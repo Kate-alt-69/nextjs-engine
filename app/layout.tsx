@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import React from "react";
 
 export const metadata: Metadata = {
-	title: "Next.js Engine",
-	description: "Schema-driven rendering engine for Next.js",
+	title: "",
+	description: "",
 };
 
 export default function RootLayout({

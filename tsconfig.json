@@ -11,6 +11,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "allowJs": true,
+    "allowImportingTsExtensions": true,
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -26,6 +27,9 @@
       ],
       "@/*": [
         "./src/*"
+      ],
+      "@/error-page": [
+        "./src/error-page/index.ts"
       ]
     },
     "baseUrl": ".",

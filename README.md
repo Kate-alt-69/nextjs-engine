@@ -258,4 +258,4 @@ Full technical documentation including all prop tables, the CSS resolver interna
 
 ---
 
-Built by Kastrick for the BuffCowLand platform. Designed to be dropped into any future Next.js project.
+Built by Kate-alt-69 for the Kastrick platform.
