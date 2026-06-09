@@ -23,13 +23,13 @@
     "noEmit": true,
     "paths": {
       "@/engine": [
-        "./src/engine/index.ts"
+        "./index.ts"
       ],
       "@/*": [
         "./*"
       ],
       "@/ep": [
-        "./src/engine/not-found.tsx"
+        "./engine/not-found.tsx"
       ]
     },
     "baseUrl": ".",

@@ -32,7 +32,7 @@ Raw React and Next.js are fast when optimised correctly, but they give you nothi
 ## Architecture Overview
 
 ```
-src/engine/
+./engine/
 │
 ├── schema/
 │   └── types.ts              All TypeScript types for the schema system
