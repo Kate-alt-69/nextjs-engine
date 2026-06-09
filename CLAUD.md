@@ -17,5 +17,4 @@
 - Always handle errors gracefully and provide meaningful error messages to users.
 
 ## 3. Documentation
-read DOCUMENT.md for documentation and how Nextjs Engine works. Always keep documentation up to date with any changes made to the codebase.
-
+read DOCUMENT.md for documentation and how Nextjs Engine works. Always keep documentation up to date with any changes made to the codebase. or the engine located under /src/engine/

@@ -4,8 +4,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── Core page factory ─────────────────────────────────────────────────────────
-export { createPage, defineSchema } from "./createPage";
-export type { CreatePageOptions } from "./createPage";
+export { createPage, createComponent, defineSchema } from "./createPage";
+export type { CreateComponentOptions, CreatePageOptions, EngineComponentProps } from "./createPage";
 
 // ── Default error pages ───────────────────────────────────────────────────────
 export { default as DefaultNotFoundPage } from "./not-found";
@@ -21,6 +21,7 @@ export type {
 	BuiltinNodeType,
 	Breakpoint,
 	ResponsiveValue,
+	CpropValue,
 	// Per-node prop types (for typed schema authoring)
 	BoxProps,
 	StackProps,
@@ -28,6 +29,7 @@ export type {
 	TextProps,
 	TextPart,
 	TextVariant,
+	MarkdownProps,
 	HeadingProps,
 	ImageNodeProps,
 	ButtonProps,
@@ -37,6 +39,7 @@ export type {
 	CardProps,
 	SpacerProps,
 	DividerProps,
+	EngineScrollProps,
 } from "./schema/types";
 
 // ── Component registry ────────────────────────────────────────────────────────
@@ -62,13 +65,25 @@ export {
 	EngineDivider,
 } from "./components/primitives";
 
-export { EngineImage } from "./components/EngineImage";
-export { EngineVideo } from "./components/EngineVideo";
+export { EngineImage }         from "./components/EngineImage";
+export { EngineVideo }         from "./components/EngineVideo";
+export { EngineCanvas, useEngineCanvas } from "./components/EngineCanvas";
 export { LazyMount, LazySection } from "./components/LazyMount";
+export { EngineGlobalStyles }  from "./core/StyleCollector";
+
+// ── Scroll system ─────────────────────────────────────────────────────────────
+export {
+	EngineScroll,
+	EngineScrollProvider,
+	useEngineScroll,
+} from "./components/EngineScroll";
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 export { useInView, useImageInView, useSectionInView, useVisibleInView } from "./hooks/useInView";
 export { useBreakpoint, useMinBreakpoint, useEngineContext } from "./providers/EngineProvider";
+
+// ── usePropStyles utilities ───────────────────────────────────────────────────
+export { cpropClass } from "./hooks/usePropStyles";
 
 // ── Provider (for wrapping sub-trees with custom config) ──────────────────────
 export { EngineProvider } from "./providers/EngineProvider";

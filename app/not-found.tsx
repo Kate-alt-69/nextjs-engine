@@ -6,4 +6,4 @@
 //  not-found.tsx to override; next.config.js will regenerate this shim if the
 //  file goes missing with no replacement.
 // ─────────────────────────────────────────────────────────────────────────────
-export { default } from "@/error-page";
+export { default } from "@/ep";

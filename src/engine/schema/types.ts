@@ -44,6 +44,7 @@ export type BuiltinNodeType =
   | "grid"
   | "text"
   | "heading"
+  | "markdown"
   | "image"
   | "section"
   | "hero"
@@ -52,11 +53,92 @@ export type BuiltinNodeType =
   | "link"
   | "spacer"
   | "divider"
-  | "slot"     // Renders a named prop from pageProps
-  | "raw";     // Escape hatch: renders a React component directly
+  | "slot"        // Renders a named prop from pageProps
+  | "raw"         // Escape hatch: renders a React component directly
+  | "canvas"      // EngineCanvas — GPU-optimised 2D/WebGL canvas
+  | "scroll";     // EngineScroll — smooth-scroll + anchor-point + page-transition system
+
+// ── Canvas props ──────────────────────────────────────────────────────────────
+
+export interface CanvasNodeProps extends BaseNodeProps {
+  mode?: "2d" | "webgl" | "webgl2" | "auto";
+  width?: number;
+  height?: number;
+  responsive?: boolean;
+  dpr?: number | "auto";
+  maxDpr?: number;
+  adaptive?: boolean;
+  pauseWhenOffscreen?: boolean;
+  pauseWhenHidden?: boolean;
+  alpha?: boolean;
+  antialias?: boolean;
+  powerPreference?: "default" | "high-performance" | "low-power";
+  /** Handler name for onSetup — must return a cleanup fn or void */
+  onSetup?: string;
+  /** Handler name for onDraw(ctx, canvas, delta, frame) */
+  onDraw?: string;
+  /** Handler name for onResize(ctx, canvas, w, h) */
+  onResize?: string;
+}
 
 /** Any string is valid — allows custom registered types */
 export type NodeType = BuiltinNodeType | (string & {});
+
+// ── CpropValue — custom CSS prop bag ─────────────────────────────────────────
+
+/**
+ * Custom CSS property bag for engine nodes.
+ *
+ * `cprop` exposes pseudo-class states (hover, focus, active) and any standard
+ * CSS properties not already covered by BaseNodeProps. It is an engine-level
+ * complement to the `style` prop, with the addition of:
+ *
+ *   · Hover / focus / active states via CSS class injection
+ *   · Direct CSS property passthrough via `css`
+ *
+ * @example
+ * cprop: {
+ *   onHover: { background: "#1a1a1a", transform: "scale(1.02)" },
+ *   css: { userSelect: "none", pointerEvents: "auto" },
+ * }
+ */
+export interface CpropValue {
+  /**
+   * CSS properties applied on `:hover`.
+   * Accepts any camelCase or kebab-case CSS property name.
+   * Compiled to a CSS class with a `:hover` selector — no JS event handlers.
+   *
+   * @example
+   * onHover: { background: "#333", color: "#fff", transform: "translateY(-2px)" }
+   */
+  onHover?: Record<string, string | number>;
+
+  /**
+   * CSS properties applied on `:focus` and `:focus-visible`.
+   *
+   * @example
+   * onFocus: { outline: "2px solid var(--e-accent)", outlineOffset: "3px" }
+   */
+  onFocus?: Record<string, string | number>;
+
+  /**
+   * CSS properties applied on `:active` (pressed state).
+   *
+   * @example
+   * onActive: { transform: "scale(0.97)", opacity: "0.9" }
+   */
+  onActive?: Record<string, string | number>;
+
+  /**
+   * Direct CSS property additions as a standard CSSProperties object.
+   * Applied as inline style — merged with other resolved styles.
+   * For properties not in BaseNodeProps (e.g. userSelect, appearance, willChange).
+   *
+   * @example
+   * css: { userSelect: "none", willChange: "transform", pointerEvents: "none" }
+   */
+  css?: CSSProperties;
+}
 
 // ── Shared base props ─────────────────────────────────────────────────────────
 
@@ -64,6 +146,33 @@ export interface BaseNodeProps {
   id?: string;
   className?: string;
   style?: CSSProperties;
+
+  /**
+   * Scroll anchor point name.
+   * Creates an HTML `id` on the element so it can be targeted by `#name` URLs.
+   * EngineScroll uses this to smooth-scroll or fade-transition to the element.
+   * When both `id` and `point` are set, `id` takes precedence.
+   *
+   * In EngineMarkdown, `#` (h1) and `##` (h2) headings become points by default.
+   * Disable with `disablepointformarkdownhash` / `disablepointformarkdownhashhash`.
+   *
+   * @example
+   * // Section becomes target of #features in the URL
+   * { type: "section", props: { point: "features" } }
+   */
+  point?: string;
+
+  /**
+   * Custom CSS prop bag. Exposes pseudo-class states (hover, focus, active)
+   * and direct CSS property additions not covered by BaseNodeProps.
+   *
+   * @example
+   * cprop: {
+   *   onHover: { background: "#2a2a2a", transform: "scale(1.02)" },
+   *   css: { userSelect: "none" },
+   * }
+   */
+  cprop?: CpropValue;
 
   // Responsive visibility
   hideOn?: Breakpoint[];
@@ -93,6 +202,12 @@ export interface BaseNodeProps {
   minH?: ResponsiveValue<string | number>;
   maxW?: ResponsiveValue<string | number>;
   maxH?: ResponsiveValue<string | number>;
+  width?: ResponsiveValue<string | number>;
+  height?: ResponsiveValue<string | number>;
+  minWidth?: ResponsiveValue<string | number>;
+  minHeight?: ResponsiveValue<string | number>;
+  maxWidth?: ResponsiveValue<string | number>;
+  maxHeight?: ResponsiveValue<string | number>;
 
   // Self-alignment inside parent flex/grid
   alignSelf?: CSSProperties["alignSelf"];
@@ -113,6 +228,14 @@ export interface BaseNodeProps {
 
   // Effects
   shadow?: string;
+  boxShadow?: string;
+  transition?: string;
+  backgroundImage?: string;
+  backgroundSize?: string;
+  backgroundRepeat?: string;
+  backgroundPosition?: string;
+  backdrop?: string;
+  backdropFilter?: string;
   overflow?: CSSProperties["overflow"];
   cursor?: CSSProperties["cursor"];
 
@@ -127,6 +250,39 @@ export interface BaseNodeProps {
   // Interaction
   onClick?: string; // name of a handler from pageProps.handlers
   href?: string;    // If set, wraps node in <a>
+
+  // ── Custom CSS variables ───────────────────────────────────────────────────
+  /**
+   * CSS custom properties to set inline on this element.
+   * Keys without leading `--` are auto-prefixed.
+   * Values cascade down to all children through the CSS variable system.
+   *
+   * @example
+   * vars: { "--card-bg": "#1a1a2e", "--accent": "#9bcf3a" }
+   */
+  vars?: Record<string, string>;
+
+  // ── Sides system ───────────────────────────────────────────────────────────
+  /**
+   * Which sides `sideDistance` applies to.
+   *   1 = top
+   *   2 = left
+   *   3 = right
+   *   4 = bottom
+   */
+  sides?: (1 | 2 | 3 | 4)[];
+
+  /**
+   * Distance applied to each selected side.
+   * Numbers are converted to rem (÷16), strings are used as-is.
+   */
+  sideDistance?: string | number;
+
+  /**
+   * Whether `sideDistance` maps to `margin` (pushes adjacent elements) or
+   * `padding` (pushes inner content). Default: `"margin"`.
+   */
+  sideType?: "margin" | "padding";
 }
 
 // ── Per-type props ────────────────────────────────────────────────────────────
@@ -172,32 +328,12 @@ export interface GridProps extends BaseNodeProps {
 
 export type TextVariant =
   | "h1" | "h2" | "h3" | "h4" | "h5" | "h6"
-  | "body" | "body-sm"
-  | "lead"
-  | "caption"
-  | "label"
-  | "mono"
-  | "overline";
+  | "body" | "body-sm" | "lead" | "caption" | "label" | "mono" | "overline";
 
-// ── Text parts ────────────────────────────────────────────────────────────────
-
-/**
- * A single inline segment inside a `parts`-based text node.
- *
- * Plain segments (no `href`) render as bare text runs — no wrapper element
- * is added unless `style` is set, in which case a `<span>` is used.
- * Segments with `href` render as `<a>` tags.
- *
- * @example
- * parts: [
- *   { text: "built with love by " },
- *   { text: "Kastrick", href: "https://kastricks.com", target: "_blank" },
- * ]
- */
 export interface TextPart {
-  /** The visible text for this segment */
+  /** Visible text for this segment */
   text: string;
-  /** If set, renders this segment as an <a> with this href */
+  /** If set, renders an <a> with this href */
   href?: string;
   /**
    * Link target.
@@ -234,14 +370,75 @@ export interface TextProps extends BaseNodeProps {
   /**
    * Inline text parts — use instead of `content` for mixed text + hyperlinks.
    * When provided, `content` and child nodes are ignored.
-   *
-   * @example
-   * parts: [
-   *   { text: "this site was made with love and with " },
-   *   { text: "Kastrick", href: "https://kastricks.com", target: "_blank" },
-   * ]
    */
   parts?: TextPart[];
+}
+
+export interface MarkdownProps extends BaseNodeProps {
+  // ── Content ───────────────────────────────────────────────────────────────
+  /** Markdown string to render inline */
+  content?: string;
+  /**
+   * Path to a .md file resolved server-side by createPage before render.
+   * The component always receives a plain `content` string — never a raw path.
+   */
+  filePath?: string;
+
+  // ── Colour ────────────────────────────────────────────────────────────────
+  /** Body text colour. Default: "#30475f" */
+  textColor?: string;
+  /** Heading colour. Default: "#07111f" */
+  headingColor?: string;
+  /** Link colour. Default: "#12304c" */
+  linkColor?: string;
+  /** Divider and muted element colour. Default: "rgba(7,17,31,0.16)" */
+  mutedColor?: string;
+
+  // ── Typography ────────────────────────────────────────────────────────────
+  /** Font family for the whole article */
+  fontFamily?: string;
+  /** Body paragraph font size. Default: "1rem" */
+  bodySize?: string;
+  /** Body paragraph line height. Default: 1.8 */
+  bodyLineHeight?: number | string;
+  /**
+   * Per-heading font-size overrides.
+   * @example headingSizes: { h1: "clamp(2rem,5vw,3.5rem)", h2: "1.75rem" }
+   */
+  headingSizes?: Partial<Record<"h1" | "h2" | "h3" | "h4" | "h5" | "h6", string>>;
+  /** Optional prefix added to generated heading ids for hash links. */
+  headingIdPrefix?: string;
+
+  // ── EngineScroll integration ──────────────────────────────────────────────
+  /**
+   * When true, `##` (h2) headings do NOT become EngineScroll anchor points.
+   * The heading id is still generated for manual `href="#slug"` links.
+   * Default: false — h2 headings ARE anchor points.
+   */
+  disablepointformarkdownhashhash?: boolean;
+  /**
+   * When true, `#` (h1) headings do NOT become EngineScroll anchor points.
+   * The heading id is still generated for manual `href="#slug"` links.
+   * Default: false — h1 headings ARE anchor points.
+   */
+  disablepointformarkdownhash?: boolean;
+
+  // ── Animation ─────────────────────────────────────────────────────────────
+  /**
+   * Animation applied to the whole article wrapper.
+   * "fade-in"  → opacity 0 → 1
+   * "slide-up" → opacity 0 + translateY(12px) → opacity 1 + none
+   */
+  textAnimation?: "none" | "fade-in" | "slide-up";
+  /**
+   * Per-block staggered animation — every heading, paragraph, list, and hr
+   * animates in with a progressively longer delay.
+   */
+  blockAnimation?: "none" | "fade-in" | "slide-up";
+  /** Duration for each animation. Default: "0.4s" */
+  animationDuration?: string;
+  /** Extra delay per block for stagger effect in ms. Default: 50 */
+  animationStagger?: number;
 }
 
 export interface HeadingProps extends TextProps {
@@ -297,8 +494,33 @@ export interface HeroProps extends SectionProps {
 }
 
 export interface CardProps extends BaseNodeProps {
+  /** Visual style variant */
   variant?: "flat" | "elevated" | "outlined" | "filled";
-  interactive?: boolean; // hover lift effect
+  /** Adds hover lift + cursor pointer */
+  interactive?: boolean;
+
+  // ── Cover image ────────────────────────────────────────────────────────────
+  /** URL of a cover image rendered in its own media area */
+  cover?: string;
+  /** Alt text for the cover image (required for accessibility when cover is set) */
+  coverAlt?: string;
+  /** CSS aspect-ratio for the cover area. Default: "16/9" */
+  coverRatio?: string;
+  /** CSS object-fit for the cover image. Default: "cover" */
+  coverFit?: CSSProperties["objectFit"];
+  /** Extra className on the cover <img> */
+  coverClassName?: string;
+
+  // ── Layout ─────────────────────────────────────────────────────────────────
+  /**
+   * "vertical"   — cover on top, content below (default)
+   * "horizontal" — cover on left, content on right
+   */
+  direction?: "vertical" | "horizontal";
+  /** Padding on the content area. Default: "1.25rem" */
+  innerPadding?: string;
+  /** Width of the cover column when direction="horizontal". Default: "40%" */
+  coverWidth?: string;
 }
 
 export interface SpacerProps {
@@ -320,6 +542,75 @@ export interface SlotProps {
   /** Key in pageProps to render */
   name: string;
   fallback?: SchemaNode;
+}
+
+// ── EngineScroll props ─────────────────────────────────────────────────────────
+
+/**
+ * Props for the `scroll` schema node type — the EngineScroll component.
+ *
+ * Place at the root of a page (or layout) to enable the full scroll system:
+ *   · RAF-based smooth scrolling with configurable easing
+ *   · Page transition (fade-out → navigate → fade-in) for cross-page anchors
+ *   · Automatic anchor detection from `point` props and Markdown headings
+ *
+ * @example
+ * {
+ *   type: "scroll",
+ *   props: { method: "ease", pageTransition: true, transitionDuration: 350 },
+ *   children: [{ type: "section", props: { point: "intro" }, children: [...] }]
+ * }
+ */
+export interface EngineScrollProps extends BaseNodeProps {
+  /**
+   * Scroll animation method.
+   *   "ease"    — custom JS ease-in-out via requestAnimationFrame (default)
+   *   "smooth"  — native CSS scroll-behavior: smooth (browser handles it)
+   *   "snap"    — CSS scroll-snap: transitions between full-viewport sections
+   *   "instant" — no animation, jumps directly to the target
+   */
+  method?: "ease" | "smooth" | "snap" | "instant";
+
+  /**
+   * Duration of the ease-mode scroll animation in ms. Default: 600.
+   * Only applies when method is "ease".
+   */
+  scrollDuration?: number;
+
+  /**
+   * Easing function used by ease mode.
+   *   "ease-in-out" — slow start, fast middle, slow end (default, Google-style)
+   *   "ease-in"     — slow start, fast end
+   *   "ease-out"    — fast start, slow end
+   *   "linear"      — constant speed
+   *   "spring"      — slight overshoot and settle
+   */
+  easing?: "ease-in-out" | "ease-in" | "ease-out" | "linear" | "spring";
+
+  /**
+   * Enable page transition for cross-page anchor navigation.
+   * When true: fade-out current page → navigate → fade-in new page → scroll.
+   * When false: navigate directly, scroll to anchor on load.
+   * Default: true
+   */
+  pageTransition?: boolean;
+
+  /**
+   * Duration of the fade transition in ms. Default: 350.
+   */
+  transitionDuration?: number;
+
+  /**
+   * Background color of the fade overlay / page wrapper opacity.
+   * Defaults to CSS var --e-bg, falls back to #ffffff.
+   */
+  transitionColor?: string;
+
+  /**
+   * scrollMarginTop applied to all scroll points to offset sticky headers.
+   * Default: 80px. Set to 0 if you have no sticky header.
+   */
+  scrollOffset?: number | string;
 }
 
 // ── Schema node ───────────────────────────────────────────────────────────────

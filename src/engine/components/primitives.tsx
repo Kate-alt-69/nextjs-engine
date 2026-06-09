@@ -5,6 +5,10 @@
 //  Every component here:
 //    · Is wrapped in React.memo — never re-renders unless its own props change
 //    · Uses usePropStyles to convert ResponsiveValue props to CSS vars
+//    · Uses cpropClass for pseudo-class CSS injection (onHover/onFocus/onActive)
+//    · Extracts `id`, `point`, and `href` from props and applies them correctly
+//       - `id` and `point` both set the element's HTML id (id takes precedence)
+//       - `href` wraps the element in a transparent <a> for click navigation
 //    · Never touches window.innerWidth at render time (CSS does all responsive work)
 //    · Forwards a ref to the underlying DOM element
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30,7 +34,31 @@ import type {
 	DividerProps,
 	CardProps,
 } from "../schema/types";
-import { usePropStyles } from "../hooks/usePropStyles";
+import { usePropStyles, cpropClass } from "../hooks/usePropStyles";
+
+// ── Href wrapper utility ──────────────────────────────────────────────────────
+//  When a node has `href`, wrap it in a transparent <a> that doesn't affect
+//  the layout of the inner element. `display: contents` makes <a> invisible
+//  to the layout algorithm — the inner element keeps its own display/box model.
+
+interface HrefWrapperProps {
+	href:     string;
+	children: ReactNode;
+}
+
+function HrefWrapper({ href, children }: HrefWrapperProps) {
+	const isExternal = /^https?:\/\//.test(href);
+	return (
+		<a
+			href={href}
+			target={isExternal ? "_blank" : undefined}
+			rel={isExternal ? "noopener noreferrer" : undefined}
+			style={{ display: "contents", textDecoration: "none", color: "inherit" }}
+		>
+			{children}
+		</a>
+	);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Box
@@ -43,15 +71,21 @@ export interface EngineBoxProps extends BoxProps {
 
 export const EngineBox = memo(
 	forwardRef<HTMLElement, EngineBoxProps>(function EngineBox(
-		{ children, as: Tag = "div", style, className, ...props },
+		{ children, as: Tag = "div", style, className, id, point, href, cprop, ...props },
 		ref,
 	) {
 		const resolvedStyle = usePropStyles(props as any, style);
-		return (
-			<Tag ref={ref} className={className} style={resolvedStyle}>
+		const hoverClass    = cpropClass(cprop);
+		const mergedClass   = [className, hoverClass].filter(Boolean).join(" ") || undefined;
+		const resolvedId    = id ?? point;
+
+		const element = (
+			<Tag ref={ref} id={resolvedId} className={mergedClass} style={resolvedStyle}>
 				{children}
 			</Tag>
 		);
+
+		return href ? <HrefWrapper href={href}>{element}</HrefWrapper> : element;
 	}),
 );
 
@@ -76,21 +110,22 @@ export const EngineStack = memo(
 			dividers = false,
 			style,
 			className,
+			id,
+			point,
+			href,
+			cprop,
 			...props
 		},
 		ref,
 	) {
-		// Map direction → flexDirection
 		const flexDir =
 			direction === "horizontal"
 				? "row"
 				: direction === "vertical"
 				? "column"
-				: direction; // If direction is already a responsive value map
+				: direction;
 
-		const baseStyle: CSSProperties = {
-			display: "flex",
-		};
+		const baseStyle: CSSProperties = { display: "flex" };
 		if (wrap) baseStyle.flexWrap = "wrap";
 
 		const resolvedStyle = usePropStyles(
@@ -103,11 +138,14 @@ export const EngineStack = memo(
 			} as any,
 			{ ...baseStyle, ...style },
 		);
+		const hoverClass  = cpropClass(cprop);
+		const mergedClass = [className, hoverClass].filter(Boolean).join(" ") || undefined;
+		const resolvedId  = id ?? point;
 
 		const childArray = React.Children.toArray(children);
 
-		return (
-			<div ref={ref} className={className} style={resolvedStyle}>
+		const element = (
+			<div ref={ref} id={resolvedId} className={mergedClass} style={resolvedStyle}>
 				{dividers
 					? childArray.map((child, i) => (
 							<React.Fragment key={i}>
@@ -126,6 +164,8 @@ export const EngineStack = memo(
 					: children}
 			</div>
 		);
+
+		return href ? <HrefWrapper href={href}>{element}</HrefWrapper> : element;
 	}),
 );
 
@@ -152,11 +192,14 @@ export const EngineGrid = memo(
 			minColWidth = "200px",
 			style,
 			className,
+			id,
+			point,
+			href,
+			cprop,
 			...props
 		},
 		ref,
 	) {
-		// auto-fit overrides columns
 		const resolvedColumns = autoFit
 			? `repeat(auto-fit, minmax(${minColWidth}, 1fr))`
 			: columns;
@@ -174,12 +217,17 @@ export const EngineGrid = memo(
 			} as any,
 			{ display: "grid", ...style },
 		);
+		const hoverClass  = cpropClass(cprop);
+		const mergedClass = [className, hoverClass].filter(Boolean).join(" ") || undefined;
+		const resolvedId  = id ?? point;
 
-		return (
-			<div ref={ref} className={className} style={resolvedStyle}>
+		const element = (
+			<div ref={ref} id={resolvedId} className={mergedClass} style={resolvedStyle}>
 				{children}
 			</div>
 		);
+
+		return href ? <HrefWrapper href={href}>{element}</HrefWrapper> : element;
 	}),
 );
 
@@ -223,9 +271,6 @@ export interface EngineTextProps extends TextProps {
 	children?: ReactNode;
 }
 
-// ── Inline part renderer ──────────────────────────────────────────────────────
-//  Renders a TextPart as either a bare text run, a styled <span>, or an <a>.
-
 function renderPart(part: TextPart, index: number): ReactNode {
 	if (part.href) {
 		const isExternal =
@@ -241,7 +286,6 @@ function renderPart(part: TextPart, index: number): ReactNode {
 			</a>
 		);
 	}
-	// Plain segment — skip the wrapper element if no per-segment style
 	return part.style
 		? <span key={index} style={part.style}>{part.text}</span>
 		: part.text;
@@ -266,6 +310,10 @@ export const EngineText = memo(
 			gradient,
 			style,
 			className,
+			id,
+			point,
+			href,
+			cprop,
 			...props
 		},
 		ref,
@@ -309,21 +357,26 @@ export const EngineText = memo(
 				align,
 				lineHeight,
 				letterSpacing,
+				cprop,
 				...props,
 			} as any,
 			{ ...extra, ...style },
 		);
+		const hoverClass  = cpropClass(cprop);
+		const mergedClass = [className, hoverClass].filter(Boolean).join(" ") || undefined;
+		const resolvedId  = id ?? point;
 
-		// When parts are supplied they take priority over content / children
 		const renderedContent: ReactNode = parts && parts.length > 0
 			? parts.map(renderPart)
 			: (content ?? children);
 
-		return (
-			<Tag ref={ref} className={className} style={resolvedStyle}>
+		const element = (
+			<Tag ref={ref} id={resolvedId} className={mergedClass} style={resolvedStyle}>
 				{renderedContent}
 			</Tag>
 		);
+
+		return href ? <HrefWrapper href={href}>{element}</HrefWrapper> : element;
 	}),
 );
 
@@ -376,6 +429,10 @@ export const EngineSection = memo(
 			snapAlign,
 			style,
 			className,
+			id,
+			point,
+			href,
+			cprop,
 			px,
 			py,
 			...props
@@ -398,12 +455,17 @@ export const EngineSection = memo(
 
 		const resolvedOuter = usePropStyles(props as any, { ...sectionStyle, ...style });
 		const resolvedInner = usePropStyles({ px: px ?? "1.5rem", py: py ?? "4rem" } as any, innerStyle);
+		const hoverClass    = cpropClass(cprop);
+		const mergedClass   = [className, hoverClass].filter(Boolean).join(" ") || undefined;
+		const resolvedId    = id ?? point;
 
-		return (
-			<section ref={ref} className={className} style={resolvedOuter}>
+		const element = (
+			<section ref={ref} id={resolvedId} className={mergedClass} style={resolvedOuter}>
 				<div style={resolvedInner}>{children}</div>
 			</section>
 		);
+
+		return href ? <HrefWrapper href={href}>{element}</HrefWrapper> : element;
 	}),
 );
 
@@ -449,6 +511,9 @@ export const EngineButton = memo(function EngineButton({
 	type = "button",
 	style,
 	className,
+	id,
+	point,
+	cprop,
 	...props
 }: EngineButtonProps) {
 	const variantStyle: CSSProperties =
@@ -472,6 +537,9 @@ export const EngineButton = memo(function EngineButton({
 		...(fullWidth === true ? { width: "100%" } : {}),
 		...style,
 	});
+	const hoverClass  = cpropClass(cprop);
+	const mergedClass = [className, hoverClass].filter(Boolean).join(" ") || undefined;
+	const resolvedId  = id ?? point;
 
 	const Tag = href ? "a" : "button";
 
@@ -479,8 +547,9 @@ export const EngineButton = memo(function EngineButton({
 		<Tag
 			type={!href ? type : undefined}
 			href={href}
+			id={resolvedId}
 			disabled={!href && disabled}
-			className={className}
+			className={mergedClass}
 			style={resolvedStyle}
 		>
 			{label ?? children}
@@ -498,7 +567,26 @@ export interface EngineCardProps extends CardProps {
 
 export const EngineCard = memo(
 	forwardRef<HTMLDivElement, EngineCardProps>(function EngineCard(
-		{ children, variant = "elevated", interactive = false, style, className, ...props },
+		{
+			children,
+			variant       = "elevated",
+			interactive   = false,
+			cover,
+			coverAlt      = "",
+			coverRatio    = "16/9",
+			coverFit      = "cover",
+			coverClassName,
+			direction     = "vertical",
+			innerPadding  = "1.25rem",
+			coverWidth    = "40%",
+			style,
+			className,
+			id,
+			point,
+			href,
+			cprop,
+			...props
+		},
 		ref,
 	) {
 		const variantStyle: CSSProperties =
@@ -511,22 +599,83 @@ export const EngineCard = memo(
 				: { background: "var(--e-card-bg, #fff)" };
 
 		const interactiveStyle: CSSProperties = interactive
-			? { cursor: "pointer", transition: "transform 0.2s, box-shadow 0.2s" }
+			? { cursor: "pointer", transition: "transform 0.2s ease, box-shadow 0.2s ease" }
 			: {};
+
+		const isHorizontal = direction === "horizontal";
 
 		const resolvedStyle = usePropStyles(props as any, {
 			borderRadius: "12px",
 			overflow: "hidden",
+			display: "flex",
+			flexDirection: isHorizontal ? "row" : "column",
 			...variantStyle,
 			...interactiveStyle,
 			...style,
 		});
+		const hoverClass  = cpropClass(cprop);
+		const mergedClass = [className, hoverClass].filter(Boolean).join(" ") || undefined;
+		const resolvedId  = id ?? point;
 
-		return (
-			<div ref={ref} className={className} style={resolvedStyle}>
-				{children}
+		const element = (
+			<div
+				ref={ref}
+				id={resolvedId}
+				className={mergedClass}
+				style={resolvedStyle}
+				onMouseEnter={interactive ? (e) => {
+					const el = e.currentTarget as HTMLDivElement;
+					el.style.transform = "translateY(-4px)";
+					if (variant === "elevated") el.style.boxShadow = "0 8px 28px rgba(0,0,0,.15)";
+				} : undefined}
+				onMouseLeave={interactive ? (e) => {
+					const el = e.currentTarget as HTMLDivElement;
+					el.style.transform = "";
+					if (variant === "elevated") el.style.boxShadow = "0 2px 12px rgba(0,0,0,.08)";
+				} : undefined}
+			>
+				{cover && (
+					<div
+						style={{
+							flexShrink:  0,
+							width:       isHorizontal ? coverWidth : "100%",
+							aspectRatio: isHorizontal ? undefined : coverRatio,
+							minHeight:   isHorizontal ? "100%" : undefined,
+							overflow:    "hidden",
+							position:    "relative",
+						}}
+					>
+						<img
+							src={cover}
+							alt={coverAlt}
+							className={coverClassName}
+							style={{
+								width:      "100%",
+								height:     "100%",
+								objectFit:  coverFit,
+								display:    "block",
+								position:   isHorizontal ? "absolute" : "static",
+								top:        0,
+								left:       0,
+							}}
+						/>
+					</div>
+				)}
+				<div
+					style={{
+						flex:    1,
+						padding: innerPadding,
+						display: "flex",
+						flexDirection: "column",
+						minWidth: 0,
+					}}
+				>
+					{children}
+				</div>
 			</div>
 		);
+
+		return href ? <HrefWrapper href={href}>{element}</HrefWrapper> : element;
 	}),
 );
 

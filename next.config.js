@@ -2,11 +2,6 @@ const fs   = require("fs");
 const path = require("path");
 
 // ── Engine 404 fallback guard ─────────────────────────────────────────────────
-//  app/not-found.tsx is committed as a re-export shim that points to the
-//  engine's built-in 404 page.  If a consumer removes the file without
-//  replacing it, Next.js would fall through to its own plain white 404.
-//  This guard regenerates the shim at startup so the engine default is always
-//  the floor, not Next.js's default.
 const appNotFound = path.join(__dirname, "app", "not-found.tsx");
 if (!fs.existsSync(appNotFound)) {
 	fs.writeFileSync(
@@ -24,6 +19,40 @@ if (!fs.existsSync(appNotFound)) {
 const nextConfig = {
 	reactStrictMode: true,
 	distDir: "dist",
+
+	// ── Image optimisation ────────────────────────────────────────────────────
+	//  Next.js will automatically serve AVIF → WebP → original format based on
+	//  the Accept header. No changes needed in EngineImage — this is transparent.
+	images: {
+		// Priority order: AVIF (smallest, best quality) → WebP → original
+		formats: ["image/avif", "image/webp"],
+		// Breakpoints for srcset generation — covers all common device widths
+		deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+		// Sizes for layout-contained images (icons, thumbnails, avatars)
+		imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+		// Cache optimised images for 30 days
+		minimumCacheTTL: 60 * 60 * 24 * 30,
+	},
+
+	webpack(config, { isServer }) {
+		if (!isServer) {
+			// ── Node.js built-in stubs for the client bundle ───────────────────────
+			//  createPage.tsx contains an async server component that dynamically
+			//  imports "fs/promises" to resolve markdown filePaths at render time.
+			//  That code path never runs on the client, but webpack still needs to
+			//  know what to do with the import. Stubbing these to `false` makes
+			//  webpack emit an empty module — no runtime error, no bundle bloat.
+			config.resolve.fallback = {
+				...(config.resolve.fallback ?? {}),
+				fs:            false,
+				"fs/promises": false,
+				path:          false,
+				os:            false,
+				crypto:        false,
+			};
+		}
+		return config;
+	},
 };
 
 module.exports = nextConfig;

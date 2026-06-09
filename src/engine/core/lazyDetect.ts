@@ -136,6 +136,18 @@ export function decideLazy(node: SchemaNode, depth: number): LazyDecision {
 		return { lazy: false, contentVisibility: false, rootMargin: "0px", placeholderHeight: "auto" };
 	}
 
+	// ── Markdown — lazy when below fold ───────────────────────────────────────
+	//  Markdown blocks can be long. Lazy-mount them below the fold so the
+	//  browser doesn't parse/paint off-screen text walls.
+	if (node.type === "markdown" && depth > 0) {
+		return {
+			lazy: true,
+			contentVisibility: true,
+			rootMargin: "400px 0px",
+			placeholderHeight: (props.minH as string) ?? "200px",
+		};
+	}
+
 	// ── Grid / Stack with many items ───────────────────────────────────────────
 	if (node.type === "grid" || node.type === "stack") {
 		const itemCount = Array.isArray(node.children) ? node.children.length : 0;

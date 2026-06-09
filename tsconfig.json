@@ -26,10 +26,10 @@
         "./src/engine/index.ts"
       ],
       "@/*": [
-        "./src/*"
+        "./*"
       ],
-      "@/error-page": [
-        "./src/error-page/index.ts"
+      "@/ep": [
+        "./src/engine/not-found.tsx"
       ]
     },
     "baseUrl": ".",
@@ -42,9 +42,13 @@
   },
   "include": [
     "src",
-    "dist/types/**/*.ts"
-  ],
-  "exclude": [
+    "app",
+    "**/*.ts",
+    "**/*.tsx",
+    "dist/types/**/*.ts",
+    ".next/types/**/*.ts"
+    ],
+    "exclude": [
     "node_modules"
-  ]
+    ]
 }

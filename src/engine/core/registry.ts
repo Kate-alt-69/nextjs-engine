@@ -25,6 +25,9 @@ import {
 } from "../components/primitives";
 import { EngineImage } from "../components/EngineImage";
 import { EngineVideo } from "../components/EngineVideo";
+import { EngineMarkdown } from "../components/EngineMarkdown";
+import { EngineCanvas } from "../components/EngineCanvas";
+import { EngineScroll } from "../components/EngineScroll";
 
 // ── Registry type ─────────────────────────────────────────────────────────────
 
@@ -44,16 +47,21 @@ function buildDefaultRegistry(): ComponentRegistry {
 	r.set("stack",   EngineStack as EngineComponent);
 	r.set("grid",    EngineGrid as EngineComponent);
 	r.set("section", EngineSection as EngineComponent);
-	r.set("hero",    EngineSection as EngineComponent); // Hero uses Section base
+	r.set("hero",    EngineSection as EngineComponent);
 
 	// Content
 	r.set("text",    EngineText as EngineComponent);
 	r.set("heading", EngineHeading as EngineComponent);
+	r.set("markdown", EngineMarkdown as EngineComponent);
 	r.set("card",    EngineCard as EngineComponent);
 
 	// Media
 	r.set("image",   EngineImage as unknown as EngineComponent);
 	r.set("video",   EngineVideo as unknown as EngineComponent);
+	r.set("canvas",  EngineCanvas as unknown as EngineComponent);
+
+	// Scroll system
+	r.set("scroll",  EngineScroll as unknown as EngineComponent);
 
 	// Decoration / utility
 	r.set("button",  EngineButton as EngineComponent);
@@ -83,39 +91,22 @@ export function registerComponent(type: NodeType, component: EngineComponent): v
 	_registry.set(type, component);
 }
 
-/**
- * Unregister a component.
- * Useful in tests or when hot-swapping component implementations.
- */
 export function unregisterComponent(type: NodeType): void {
 	_registry.delete(type);
 }
 
-/**
- * Retrieve a component by NodeType.
- * Returns undefined if the type is not registered.
- */
 export function getComponent(type: NodeType): EngineComponent | undefined {
 	return _registry.get(type);
 }
 
-/**
- * Returns true if a component is registered for the given type.
- */
 export function hasComponent(type: NodeType): boolean {
 	return _registry.has(type);
 }
 
-/**
- * Returns all registered NodeType keys.
- */
 export function registeredTypes(): NodeType[] {
 	return [..._registry.keys()];
 }
 
-/**
- * Direct access to the underlying Map — for advanced use only.
- */
 export function getRegistry(): ComponentRegistry {
 	return _registry;
 }

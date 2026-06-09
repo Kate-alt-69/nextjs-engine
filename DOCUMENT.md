@@ -1,7 +1,19 @@
 # Next.js Engine — Technical Documentation
 
-> **Last updated:** 2026-06-06
-> **Changes in this update:** Added `TextPart` type and `parts` prop to the `text` node. Added `app/not-found.tsx` fallback shim and `next.config.js` guard. Redesigned default 404 page using the engine schema.
+> **Last updated:** 2026-06-07
+> **Changes in this update:**
+> - **CSS Tier System** — `StyleCollector` now classifies every CSS block into one of three tiers based on how many page renders have used it: **Global** (10+ renders, or explicitly marked — layout/header CSS), **Group** (3–9 renders — shared across several pages), **Local** (1–2 renders — page-unique). Output order is always Global → Group → Local. `EngineGlobalStyles` component exported for `layout.tsx` injection of early global CSS.
+> - **Image optimization** — `next.config.js` now routes images through AVIF → WebP → original format automatically. `EngineImage` gains `qualityPreset` ("performance" 65 / "balanced" 75 / "sharp" 90), per-viewport `qualityMobile`/`qualityDesktop` fields, smarter `sizes` auto-generation, resolution-aware placeholder shimmer, and `imageRendering` browser hint prop.
+> - **`sides` prop** — new per-side spacing system. `sides: [1,2,3,4]` where 1=top 2=left 3=right 4=bottom. Pair with `sideDistance` and `sideType` ("margin" | "padding").
+> - **`vars` prop** — set CSS custom properties (`--var: value`) inline on any element. Cascades to all children.
+> - **Card overhaul** — `cover`, `coverAlt`, `coverRatio`, `coverFit`, `direction`, `innerPadding`, `coverWidth`.
+> **Changes in this update:**
+> - **Markdown heading anchors** — `EngineMarkdown` now generates stable slug ids for headings, so schema links/buttons can use `href: "#section-name"` for smooth in-page document navigation. Optional `headingIdPrefix` can namespace generated heading ids.
+> - **`createPage` markdown shorthand** — `createPage` now accepts compact local Markdown page objects with `filePath`, optional `title`, `description`, `meta`, `theme`, `markdown`, and `section` fields. It also accepts direct `{ meta, theme, root }` schemas again, matching the older engine examples.
+> - **Bug fix:** `createPage.tsx` — removed top-level `node:fs/promises` import that crashed webpack. Now uses a dynamic `import("fs/promises")` inside the async resolver so webpack never sees a static `node:` URI. `next.config.js` also gets a client-side `fs` fallback as defence-in-depth.
+> - **`EngineMarkdown`** — lazy-loaded by default when below the fold (added to `lazyDetect.ts`). New props: `textAnimation` (`fade-in` | `slide-up`), `blockAnimation` (per-block staggered), `animationDuration`, `animationStagger`, `fontFamily`, `bodySize`, `bodyLineHeight`. Animation CSS is injected once on first mount and respects `prefers-reduced-motion`.
+> - **`MarkdownProps`** in `types.ts` updated with all new props above.
+> **Changes in this update:** Added support for common long-form style aliases in the engine style bridge, including `fontSize`, `fontWeight`, `width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`, `alignItems`, `justifyContent`, `gridTemplateColumns`, `gridTemplateRows`, `backgroundImage`, `backgroundSize`, `backgroundRepeat`, `backgroundPosition`, `boxShadow`, `transition`, `backdrop`, and `backdropFilter`. `bg` now writes to CSS `background`, so gradients render correctly. Added `createComponent`, an engine helper for reusable schema-rendered components with runtime slots. Component children are available inside the schema as a slot named `children`.
 
 ## What It Is
 
@@ -120,6 +132,7 @@ The engine analyses every schema node before rendering it and decides the lazy s
 | Node Type | Condition | Strategy |
 |-----------|-----------|----------|
 | `video` | Always | Full lazy mount, rootMargin 800px |
+| `markdown` | Never by default | Uses normal text flow; set `lazy` manually if needed |
 | `image` | Width × Height > 640×480 | Lazy mount, rootMargin based on size |
 | `image` | Full HD (1920×1080+) | Lazy mount, rootMargin 800px |
 | `section` / `hero` | Depth > 0, more than 10 descendants | Full lazy mount, rootMargin 600px |
@@ -221,24 +234,107 @@ All nodes accept these props in addition to their type-specific props:
 | `id` | `string` | HTML id attribute |
 | `className` | `string` | CSS class names |
 | `style` | `CSSProperties` | Inline style overrides |
+| `vars` | `Record<string, string>` | CSS custom properties set inline — cascade to all children |
 | `priority` | `boolean` | Skip lazy loading entirely |
 | `lazy` | `boolean` | Force lazy (true) or eager (false) |
 | `m`, `mt`, `mr`, `mb`, `ml`, `mx`, `my` | `ResponsiveValue<string\|number>` | Margin |
 | `p`, `pt`, `pr`, `pb`, `pl`, `px`, `py` | `ResponsiveValue<string\|number>` | Padding |
 | `w`, `h`, `minW`, `minH`, `maxW`, `maxH` | `ResponsiveValue<string\|number>` | Sizing |
+| `width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight` | `ResponsiveValue<string\|number>` | Long-form sizing aliases |
 | `bg` | `string` | Background color |
 | `color` | `string` | Text color |
 | `border` | `string` | CSS border shorthand |
 | `borderRadius` | `ResponsiveValue<string\|number>` | Border radius |
 | `shadow` | `string` | Box shadow |
+| `boxShadow` | `string` | Long-form box shadow alias |
+| `transition` | `string` | CSS transition |
+| `backgroundImage`, `backgroundSize`, `backgroundRepeat`, `backgroundPosition` | `string` | Background image controls |
+| `backdrop`, `backdropFilter` | `string` | CSS backdrop-filter controls |
 | `position` | `string` | CSS position |
 | `zIndex` | `number` | Z-index |
 | `opacity` | `number` | Opacity |
 | `overflow` | `string` | Overflow behaviour |
+| `sides` | `(1\|2\|3\|4)[]` | Which sides `sideDistance` applies to (1=top 2=left 3=right 4=bottom) |
+| `sideDistance` | `string\|number` | Distance applied to each selected side |
+| `sideType` | `"margin"\|"padding"` | Whether `sideDistance` maps to margin (default) or padding |
 | `onClick` | `string` | Handler name from `createPage({ handlers })` |
 | `href` | `string` | Wraps node in an `<a>` tag |
 
 Numbers in spacing/sizing props are treated as pixels divided by 16 (so `16 → 1rem`, `32 → 2rem`).
+
+### `vars` — CSS Custom Properties
+
+Set CSS variables directly on any element. They cascade to all children through the standard CSS variable system.
+
+```ts
+{
+  type: "box",
+  props: {
+    vars: {
+      "--card-bg": "#1a1a2e",
+      "--accent":  "#9bcf3a",
+      "--radius":  "12px",
+    },
+    bg: "var(--card-bg)",
+  }
+}
+```
+
+Keys without a leading `--` are auto-prefixed, so `"accent"` and `"--accent"` both work.
+
+### `sides` — Per-Side Spacing
+
+The sides system applies a distance to specific sides of an element using CSS margin (default) or padding. In a CSS grid, adding margin to a cell pushes adjacent cells outward.
+
+**Side numbering:**
+```
+        1 (top)
+         ┌───┐
+2 (left) │   │ 3 (right)
+         └───┘
+        4 (bottom)
+```
+
+**Diamond effect on a 3×3 grid** — give the centre cell outward margin on all sides:
+
+```ts
+{
+  type: "grid",
+  props: { columns: 3, gap: "1rem" },
+  children: [
+    // ... 4 outer cells ...
+    {
+      type: "box",
+      props: {
+        sides: [1, 2, 3, 4],   // all four sides
+        sideDistance: "32px",  // push 32px outward on every side
+        sideType: "margin",    // margin = pushes neighbours (default)
+        bg: "#9bcf3a",
+      }
+    },
+    // ... 4 outer cells ...
+  ]
+}
+```
+
+**Top and bottom push only** — vertical stretch effect:
+
+```ts
+props: {
+  sides: [1, 4],        // top and bottom
+  sideDistance: "64px",
+}
+```
+
+**Padding variant** — push inner content instead of neighbours:
+
+```ts
+props: {
+  sides: [2, 3],        // left and right sides only
+  sideDistance: "2rem",
+  sideType: "padding",  // pushes content inward
+}
+```
 
 ### box
 
@@ -395,6 +491,26 @@ src: [
 ]
 ```
 
+### markdown
+
+Renders trusted Markdown content through the engine. This is intended for local content files such as legal pages, documentation, and policy copy.
+
+Supported Markdown:
+- `#` through `######` headings
+- paragraphs
+- unordered and ordered lists
+- `**bold**`, `*italic*`, and inline links like `[label](/path)`
+- horizontal rules using `---`
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `content` | `string` | Markdown source text |
+| `filePath` | `string` | Local Markdown file path. `createPage` reads it on the server before rendering. |
+| `textColor` | `string` | Paragraph/list text color |
+| `headingColor` | `string` | Heading color |
+| `linkColor` | `string` | Link color |
+| `mutedColor` | `string` | Divider/border color |
+
 ### section
 
 Page section with a centered max-width content column.
@@ -406,7 +522,65 @@ Page section with a centered max-width content column.
 | `fullViewport` | `boolean` | `false` (sets `min-height: 100svh`) |
 | `snapAlign` | `"start" \| "center" \| "end"` | — |
 
-### button
+### markdown
+
+Renders a Markdown string as semantic HTML inside an `<article>`. Lazy-loaded when below the fold (400px rootMargin). Parsed blocks: headings `#`–`######`, paragraphs, `**bold**`, `*italic*`, `[links](url)`, unordered/ordered lists, `---` horizontal rules.
+
+**Content loading:**
+
+```ts
+// Inline string
+{ type: "markdown", props: { content: "# Hello\n\nParagraph text." } }
+
+// From a .md file (server-side only — resolved by createPage before render)
+{ type: "markdown", props: { filePath: "./content/about.md" } }
+```
+
+**Colour props:**
+
+| Prop | Default | Description |
+|------|---------|-------------|
+| `textColor` | `"#30475f"` | Body paragraph colour |
+| `headingColor` | `"#07111f"` | Heading colour |
+| `linkColor` | `"#12304c"` | Inline link colour |
+| `mutedColor` | `"rgba(7,17,31,0.16)"` | `<hr>` / divider colour |
+
+**Typography props:**
+
+| Prop | Default | Description |
+|------|---------|-------------|
+| `fontFamily` | inherited | Font family for the whole article |
+| `bodySize` | `"1rem"` | Paragraph font-size |
+| `bodyLineHeight` | `1.8` | Paragraph line-height |
+| `headingSizes` | scale defaults | Per-level overrides — `{ h1: "clamp(2rem,5vw,3.5rem)", h2: "1.75rem" }` |
+| `headingIdPrefix` | — | Optional prefix for generated heading ids used by `href="#..."` navigation |
+
+Markdown headings automatically receive slug ids based on their text. For example, `## Use of Services` renders with `id="use-of-services"`, so an engine button or link can point to `href: "#use-of-services"`. Add `html { scroll-behavior: smooth; }` in page `theme.globalStyles` for smooth jumps.
+
+**Animation props:**
+
+| Prop | Values | Default | Description |
+|------|--------|---------|-------------|
+| `textAnimation` | `"none" \| "fade-in" \| "slide-up"` | — | Animates the whole article on mount |
+| `blockAnimation` | `"none" \| "fade-in" \| "slide-up"` | — | Staggered per-block animation |
+| `animationDuration` | CSS time string | `"0.4s"` | Duration per animation |
+| `animationStagger` | number (ms) | `50` | Extra delay added per block |
+
+All animations respect `prefers-reduced-motion: reduce` — set to `animation: none !important` automatically.
+
+```ts
+{
+  type: "markdown",
+  props: {
+    filePath: "./content/post.md",
+    blockAnimation: "slide-up",
+    animationDuration: "0.5s",
+    animationStagger: 60,
+    headingColor: "#9bcf3a",
+    bodySize: "1.05rem",
+  }
+}
+```
 
 Renders a `<button>` or `<a>` (if `href` is set).
 
@@ -422,7 +596,56 @@ Sizes: `xs`, `sm`, `md`, `lg`, `xl`.
 
 ### card
 
-A styled container with variants: `elevated`, `outlined`, `filled`, `flat`. Set `interactive: true` for hover lift.
+A styled container with full layout control.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `variant` | `"elevated"\|"outlined"\|"filled"\|"flat"` | `"elevated"` | Visual style |
+| `interactive` | `boolean` | `false` | Hover lift + pointer cursor |
+| `direction` | `"vertical"\|"horizontal"` | `"vertical"` | Cover on top vs cover on left |
+| `cover` | `string` | — | Cover image URL |
+| `coverAlt` | `string` | `""` | Alt text for the cover image |
+| `coverRatio` | `string` | `"16/9"` | CSS aspect-ratio of the cover area |
+| `coverFit` | `string` | `"cover"` | CSS object-fit for the cover image |
+| `coverWidth` | `string` | `"40%"` | Cover column width when `direction="horizontal"` |
+| `innerPadding` | `string` | `"1.25rem"` | Padding on the content area |
+
+Any children passed to the card render inside the content area below (or beside) the cover.
+
+```ts
+// Simple card with cover image
+{
+  type: "card",
+  props: {
+    cover: "/images/hero.jpg",
+    coverAlt: "Mountains at sunset",
+    coverRatio: "3/2",
+    variant: "elevated",
+    interactive: true,
+  },
+  children: [
+    { type: "text", props: { variant: "h3", content: "Alpine Trek" } },
+    { type: "text", props: { content: "A 5-day route through the high passes." } },
+  ]
+}
+
+// Horizontal card (media left, content right)
+{
+  type: "card",
+  props: {
+    direction: "horizontal",
+    cover: "/images/thumb.jpg",
+    coverAlt: "Article thumbnail",
+    coverWidth: "35%",
+    variant: "outlined",
+    innerPadding: "1.5rem",
+  },
+  children: [
+    { type: "text", props: { variant: "h4", content: "Getting Started" } },
+    { type: "text", props: { content: "Everything you need to know." } },
+  ]
+}
+```
 
 ### spacer
 
@@ -541,6 +764,48 @@ Always call `registerComponent` at the module level (outside components), ideall
 
 ## createPage API
 
+`createPage` accepts three page definition shapes:
+
+```ts
+// Existing full-schema form
+export default createPage({
+  schema: MySchema,
+  config: {
+    breakpoints: { … },
+    contentMaxWidth: "1400px",
+    gapBase: "1rem",
+  },
+  handlers: {
+    myHandler: () => { … }
+  },
+  slots: {
+    mySlot: <MyComponent />
+  },
+});
+
+// Direct schema form
+export default createPage({
+  meta: { title: "Home" },
+  root: { type: "box", children: [] },
+});
+
+// Compact local Markdown page form
+export default createPage({
+  title: "Privacy Policy — Kastrick",
+  description: "Kastrick privacy policy.",
+  filePath: "@/data/page/privacy.md",
+  markdown: {
+    headingColor: "#07111f",
+    textColor: "#30475f",
+    linkColor: "#12304c",
+  },
+});
+```
+
+When using the Markdown page form, `meta.title` and `meta.description` override the top-level `title` and `description` fallbacks.
+
+The older full-schema signature remains:
+
 ```ts
 export default createPage({
   schema: MySchema,       // Required — the PageSchema definition
@@ -558,7 +823,93 @@ export default createPage({
 });
 ```
 
+## createComponent API
+
+Use `createComponent` for reusable app chrome or shared UI that still needs to be rendered through the engine. It accepts the same options as `createPage`, but the returned component accepts runtime `slots` and `children`.
+
+```ts
+const SiteChrome = createComponent({
+  schema: defineSchema({
+    root: {
+      type: "box",
+      children: [
+        { type: "section", children: [] },
+        { type: "slot", props: { name: "children" } },
+      ],
+    },
+  }),
+});
+
+export default SiteChrome;
+```
+
+Runtime slots can be passed with `<SiteChrome slots={{ sidebar: <Sidebar /> }}>...</SiteChrome>`. Plain children are injected into `{ type: "slot", props: { name: "children" } }`.
+
+### Loading Markdown Files
+
+`createPage` can load local Markdown files when a `markdown` node has `props.filePath`. The file content is injected into that node before rendering, while all display control stays on the node props.
+
+```ts
+import path from "node:path";
+import { createPage, defineSchema } from "@/engine";
+
+export default createPage({
+  schema: defineSchema({
+    root: {
+      type: "section",
+      children: [
+        {
+          type: "markdown",
+          props: {
+            filePath: path.join(process.cwd(), "data/page/privacy.md"),
+            headingColor: "#07111f",
+            textColor: "#30475f",
+            linkColor: "#12304c",
+          },
+        },
+      ],
+    },
+  }),
+});
+```
+
+For simple document-style pages, use the compact Markdown page form:
+
+```ts
+import { createPage } from "@/engine";
+
+export default createPage({
+  meta: {
+    title: "Kastrick Terms of Service",
+  },
+  title: "Terms of Service — Kastrick",
+  description: "Kastrick terms of service.",
+  filePath: "@/data/page/tos.md",
+  markdown: {
+    blockAnimation: "slide-up",
+  },
+});
+```
+
+`filePath` can be absolute, relative to the project working directory, or use the `@/` project-root alias. If both `content` and `filePath` are supplied, loaded file content takes precedence. This feature is server-only, so routes that use local Markdown files should not be marked `"use client"`.
+
 ---
+
+## Known Issues
+
+### [BUG-001] SSR Spacing/Sizing Hydration Mismatch
+**Description:** Spacing props (`mt`, `py`, `px`, `h`, etc.) and sizing aliases often fail to render on initial page load, leading to a "collapsed" or incorrect layout. This is temporarily "fixed" when a Next.js Hydration Error occurs, forcing a client-side re-render that correctly applies the styles.
+
+**Root Cause:** The `StyleCollector`'s tier system is non-deterministic in development environments, causing the generated CSS string to differ between server and client renders. This is exacerbated by the inclusion of tier-identifying comments in the CSS output during development.
+
+**Affected Files & Lines:**
+- `src/engine/createPage.tsx:275` (where the hydration error manifests, due to the mismatch)
+- `src/engine/core/StyleCollector.ts:30` (cross-render registry `_xReg` persistence, contributing to non-determinism)
+- `src/engine/core/StyleCollector.ts:44` (`_tierOf` function logic, contributing to non-determinism)
+- `src/engine/core/StyleCollector.ts:65` (tier `count` incrementation, contributing to non-determinism)
+- `src/engine/core/StyleCollector.ts:100-108` (conditional inclusion of tier comments in `collect` method, **FIXED by removing comments in development**)
+
+**Resolution:** The tier-identifying comments in `src/engine/core/StyleCollector.ts`'s `collect` method (lines 100-108) have been removed for development environments to prevent hydration mismatches. Further architectural improvements are tracked in `TODO.md`.
 
 ## defineSchema
 
@@ -651,3 +1002,317 @@ Add this to `tsconfig.json` for clean imports:
   }
 }
 ```
+
+---
+
+## CSS Tier System
+
+The engine automatically classifies every CSS block into one of three tiers based on how many page renders have used it. Output order is always **Global → Group → Local** so the cascade is correct.
+
+```
+ Tier        Threshold           Typical source
+ ──────────  ──────────────────  ─────────────────────────────────────────
+ Global      10+ renders OR      Engine baseline, theme vars, layout,
+             explicit call       header, footer — CSS on EVERY page
+ Group       3–9 renders         Shared components used on several pages,
+                                 repeated responsive configs
+ Local       1–2 renders         Page-specific overrides, one-off values
+```
+
+Tiers are **mutually exclusive** — Global CSS does not appear in Group or Local.
+
+### Using EngineGlobalStyles in layout.tsx
+
+```tsx
+// app/layout.tsx
+import { EngineGlobalStyles } from "@/engine";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <head>
+        <EngineGlobalStyles />  {/* ← injects Global-tier CSS early */}
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+`EngineGlobalStyles` outputs whatever CSS is currently in the Global tier of the cross-render registry. On a cold start it's empty (harmless). After a full SSG build or several dev-server navigations the Global tier is populated with all commonly-shared CSS.
+
+### Explicitly marking CSS as Global
+
+```ts
+import { globalStyleCollector } from "@/engine/core/StyleCollector";
+
+// Force a CSS block to Global — never demoted
+globalStyleCollector.addGlobal(`:root { --brand: #9bcf3a; }`);
+```
+
+---
+
+## Image Optimisation
+
+All images are served as **AVIF → WebP → original format** automatically via Next.js image optimisation (configured in `next.config.js`). No changes needed in your schema — it's transparent.
+
+### Quality presets
+
+| Preset | Quality | Use for |
+|--------|---------|---------|
+| `"performance"` | 65 | Thumbnails, backgrounds, grids |
+| `"balanced"` | 78 | General purpose (default) |
+| `"sharp"` | 90 | Heroes, product shots, detail images |
+
+```ts
+{ type: "image", props: { src: "/hero.jpg", alt: "Hero", qualityPreset: "sharp" } }
+```
+
+### Per-viewport quality
+
+Renders two `<Image>` elements and uses CSS to show the right one per viewport:
+
+```ts
+{
+  type: "image",
+  props: {
+    src: "/photo.jpg",
+    alt: "Photo",
+    qualityMobile: 60,    // mobile (<768px) — smaller file
+    qualityDesktop: 88,   // desktop (≥768px) — full quality
+  }
+}
+```
+
+### Format notes
+
+- **AVIF** — 30–50% smaller than WebP at the same visual quality. Supported in Chrome 85+, Firefox 93+, Safari 16+.
+- **WebP** — fallback for older browsers. Supported everywhere modern.
+- **Original** — PNG/JPEG served only to browsers that don't support either.
+
+No configuration needed — `next.config.js` sets `formats: ["image/avif", "image/webp"]` and Next.js handles the rest via `Accept` header negotiation.
+
+---
+
+## canvas
+
+A canvas node that uses the GPU correctly and doesn't lag.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `mode` | `"2d"\|"webgl"\|"webgl2"\|"auto"` | `"auto"` | Rendering context. "auto" tries webgl2 → webgl → 2d |
+| `width` | `number` | — | Fixed width in px. Omit for responsive |
+| `height` | `number` | — | Fixed height in px. Omit for responsive |
+| `responsive` | `boolean` | `true` when no width/height | Fill container, resize automatically |
+| `dpr` | `number\|"auto"` | `"auto"` | Device pixel ratio for sharp rendering |
+| `maxDpr` | `number` | `2` | DPR cap — prevents 3× rendering on 3× displays |
+| `adaptive` | `boolean` | `true` | Reduce DPR when FPS < 30, restore when > 55 |
+| `pauseWhenOffscreen` | `boolean` | `true` | Stop RAF when canvas leaves viewport |
+| `pauseWhenHidden` | `boolean` | `true` | Stop RAF when browser tab is hidden |
+| `alpha` | `boolean` | `false` | Transparent canvas — set false for a free GPU win |
+| `antialias` | `boolean` | `true` | WebGL MSAA — disable for particle systems |
+| `powerPreference` | `string` | `"high-performance"` | Requests discrete GPU on dual-GPU laptops |
+| `onSetup` | handler name | — | One-time setup — receives `(ctx, canvas)`, return cleanup fn |
+| `onDraw` | handler name | — | Per-frame callback — `(ctx, canvas, delta, frame)` |
+| `onResize` | handler name | — | Resize callback — `(ctx, canvas, cssW, cssH)` |
+
+Handlers are registered in `createPage({ handlers: { myDraw: (ctx, canvas, delta) => { ... } } })`.
+
+### 2D example
+
+```ts
+createPage({
+  schema: defineSchema({
+    root: {
+      type: "canvas",
+      props: {
+        mode: "2d",
+        responsive: true,
+        style: { height: "400px" },
+        onSetup: "setupCanvas",
+        onDraw:  "drawCanvas",
+      }
+    }
+  }),
+  handlers: {
+    setupCanvas(ctx, canvas) {
+      ctx.font = "bold 16px sans-serif";
+      return () => { /* cleanup on unmount */ };
+    },
+    drawCanvas(ctx, canvas, delta) {
+      ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+      ctx.fillText(`Δ ${delta.toFixed(1)}ms`, 16, 32);
+    },
+  }
+});
+```
+
+### WebGL 3D example
+
+```ts
+handlers: {
+  setup3D(gl) {
+    gl.clearColor(0.05, 0.05, 0.1, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+    // compile shaders, create VAOs...
+    return () => { gl.getExtension("WEBGL_lose_context")?.loseContext(); };
+  },
+  draw3D(gl, canvas, delta) {
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    // draw calls...
+  },
+}
+```
+
+### Why it's faster than a plain canvas
+
+- **`desynchronized: true`** (2D) — the browser presents the canvas without waiting for the main-thread compositor. This eliminates a full frame of latency on every draw call.
+- **`powerPreference: "high-performance"`** (WebGL) — on laptops with both integrated and discrete GPUs, this requests the dedicated GPU.
+- **`contain: strict`** — prevents the canvas's layout from triggering reflows in sibling elements during animation.
+- **`transform: translateZ(0)` + `will-change: transform`** — promotes the canvas to its own GPU compositor layer.
+- **Adaptive DPR** — if the GPU falls behind (FPS < 30), pixel density is reduced automatically and restored when headroom returns.
+- **Pause when hidden/offscreen** — Page Visibility API + IntersectionObserver stop the RAF loop entirely when the canvas isn't visible, saving battery and preventing frame buildup.
+
+
+---
+
+## EngineScroll — Smooth Scroll + Anchor Navigation + Page Transitions
+
+The scroll system handles all anchor-point navigation across the engine.
+
+### Schema node type: `"scroll"`
+
+```ts
+{
+  type: "scroll",
+  props: {
+    method:            "ease",   // "ease" | "smooth" | "snap" | "instant"
+    easing:            "ease-in-out", // "ease-in" | "ease-out" | "linear" | "spring"
+    scrollDuration:    600,      // ms, ease mode only
+    pageTransition:    true,     // fade-out/fade-in for cross-page navigation
+    transitionDuration: 350,     // ms
+    scrollOffset:      80,       // px offset for sticky headers
+  },
+  children: [...]
+}
+```
+
+### `point` prop (any node)
+
+```ts
+// Any engine node can be a scroll anchor target
+{ type: "section", props: { point: "features" } }
+// → <section id="features"> — reachable via URL#features
+```
+
+### Same-page vs cross-page navigation
+
+| Scenario | Behaviour |
+|----------|-----------|
+| `/page#anchor` → `#anchor` on same page | Smooth scroll only (no transition) |
+| `/page-a#foo` → `/page-b#bar` | Fade out → navigate → fade in → scroll |
+
+### Easing methods
+
+| Value | Description |
+|-------|-------------|
+| `"ease-in-out"` | Cubic, slow start + end, fast middle (Google-style, default) |
+| `"ease-in"` | Cubic, slow start |
+| `"ease-out"` | Cubic, slow end |
+| `"linear"` | Constant speed |
+| `"spring"` | Slight overshoot and settle |
+
+### EngineMarkdown scroll points
+
+By default, all h1 and h2 headings in `EngineMarkdown` become scroll anchor
+points. Disable per-component:
+
+```ts
+{
+  type: "markdown",
+  props: {
+    content: "...",
+    disablepointformarkdownhash:     true,  // disables # (h1) as points
+    disablepointformarkdownhashhash: true,  // disables ## (h2) as points
+  }
+}
+```
+
+The HTML `id` is still generated on all headings regardless of these flags —
+so manual `href="#slug"` links still work.
+
+### Direct JSX usage
+
+```tsx
+import { EngineScrollProvider, useEngineScroll } from "@/engine";
+
+// Wrap your page (or put in layout.tsx for global transitions)
+<EngineScrollProvider method="ease" pageTransition>
+  <YourPageContent />
+</EngineScrollProvider>
+
+// Inside any child: programmatic navigation
+function MyButton() {
+  const scroll = useEngineScroll();
+  return (
+    <button onClick={() => scroll?.navigateTo("/other-page#section")}>
+      Go to section
+    </button>
+  );
+}
+```
+
+---
+
+## cprop — Custom CSS Props
+
+`cprop` exposes pseudo-class states and direct CSS on any engine node.
+
+```ts
+{
+  type: "card",
+  props: {
+    cprop: {
+      onHover:  { background: "#1a1a2e", transform: "scale(1.02)" },
+      onFocus:  { outline: "2px solid var(--e-accent)", outlineOffset: "3px" },
+      onActive: { transform: "scale(0.98)", opacity: "0.9" },
+      css:      { userSelect: "none", willChange: "transform" },
+    }
+  }
+}
+```
+
+### How it works
+
+`onHover`, `onFocus`, and `onActive` are compiled to CSS rules and injected into
+`StyleCollector` during render — the same pipeline as all other engine styles.
+A hash-based class name (e.g. `e-h-1a2b3c4`) is returned and merged into the
+element's `className`. No JavaScript event handlers are used — it is pure CSS.
+
+`cprop.css` is a standard `CSSProperties` object applied as inline style.
+
+### cpropClass utility
+
+```tsx
+import { cpropClass } from "@/engine";
+
+// In your own custom components:
+function MyComponent({ cprop, className, ...props }) {
+  const hoverClass  = cpropClass(cprop);
+  const mergedClass = [className, hoverClass].filter(Boolean).join(" ");
+  return <div className={mergedClass} {...props} />;
+}
+```
+
+---
+
+## BUG-001 Fix — Hydration Mismatch
+
+See `TODO.md` for the full root-cause analysis. In short:
+
+- `StyleCollector.collect()` now emits CSS in **insertion order** with **no tier
+  comments**. Server and client always traverse the same component tree in the
+  same order, so the CSS string is byte-for-byte identical on both sides.
+- `StyleCollector._resetRegistry()` is called at the start of each `createPage`
+  in development to prevent cross-request tier accumulation.
