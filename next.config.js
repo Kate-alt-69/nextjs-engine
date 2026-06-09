@@ -18,6 +18,7 @@ if (!fs.existsSync(appNotFound)) {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
 	reactStrictMode: true,
+	transpilePackages: ["nextjs-engine"],
 	distDir: "dist",
 
 	// ── Image optimisation ────────────────────────────────────────────────────
