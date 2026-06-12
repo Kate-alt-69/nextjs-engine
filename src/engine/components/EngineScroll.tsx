@@ -70,6 +70,7 @@ import React, {
 	type CSSProperties,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { EngineBrowser } from "../core/EngineBrowser";
 import type { EngineScrollProps } from "../schema/types";
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -120,19 +121,40 @@ function rafScrollTo(
 	durationMs: number,
 	easingFn: EasingFn,
 ): void {
-	const startY     = window.scrollY;
-	const delta      = targetY - startY;
-	const startTime  = performance.now();
+	// Respect prefers-reduced-motion: reduce — instant jump, no animation.
+	// This is an accessibility requirement; some users experience motion sickness.
+	if (EngineBrowser.supports.reducedMotion) {
+		window.scrollTo(0, targetY);
+		return;
+	}
+
+	// If the browser natively handles scrollTimeline and the user explicitly
+	// chose method:"smooth", we'd skip RAF. But for "ease" (our default) we
+	// always use RAF — it gives precise control over easing curve and duration
+	// that CSS scroll-behavior: smooth can never provide.
+
+	const startY    = window.scrollY;
+	const delta     = targetY - startY;
+	const startTime = performance.now();
+
+	// Safari has a quirk where calling window.scrollTo() inside a RAF frame
+	// while the page is already mid-momentum-scroll can cause jitter.
+	// We cancel any pending native scroll first via scrollTo with exact current.
+	if (EngineBrowser.is.safari) window.scrollTo(window.scrollX, window.scrollY);
+
+	let rafId: number;
 
 	const step = (now: number): void => {
 		const elapsed  = now - startTime;
 		const progress = Math.min(elapsed / durationMs, 1);
 		const eased    = easingFn(progress);
 		window.scrollTo(0, startY + delta * eased);
-		if (progress < 1) requestAnimationFrame(step);
+		if (progress < 1) { rafId = requestAnimationFrame(step); }
 	};
 
-	requestAnimationFrame(step);
+	rafId = requestAnimationFrame(step);
+	// rafId exposed on window so EngineScroll can cancel it on unmount if needed
+	(window as any).__e_scrollRaf = rafId;
 }
 
 // ── EngineScrollProvider ──────────────────────────────────────────────────────

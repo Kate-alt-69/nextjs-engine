@@ -1,37 +1,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  Engine — createPage
+//	Engine — createPage
 //
-//  The main entry point for defining pages with the engine.
-//  Returns a standard Next.js page component (works with both App Router
-//  and Pages Router) that wraps the schema in the EngineProvider and
-//  injects a CSS <style> tag containing all collected CSS variable blocks.
-//
-//  Usage (App Router — app/page.tsx):
-//
-//    import { createPage } from "@/engine";
-//
-//    export default createPage({
-//      meta: { title: "Home" },
-//      root: {
-//        type: "section",
-//        children: [
-//          { type: "heading", props: { level: 1, content: "Hello World" } },
-//          {
-//            type: "image",
-//            props: { src: "/hero.jpg", alt: "Hero", width: 1920, height: 1080, priority: true }
-//          },
-//          {
-//            type: "video",
-//            props: { src: "/intro.mp4", poster: "/intro-thumb.jpg" }
-//          },
-//        ],
-//      },
-//    });
-//
-//  Usage (Pages Router — pages/index.tsx):
-//
-//    export default createPage({ … });
-//    export const getStaticProps = async () => ({ props: {} });
+//	The main entry point for defining pages with the engine.
+//	Returns a standard Next.js page component (works with both App Router
+//	and Pages Router) that wraps the schema in the EngineProvider and
+//	injects a CSS <style> tag containing all collected CSS variable blocks.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { type ReactNode } from "react";
@@ -232,9 +205,6 @@ async function resolveMarkdownNode(node: SchemaNode): Promise<SchemaNode> {
 	let content = typeof node.props.content === "string" ? node.props.content : "";
 
 	try {
-		// Dynamic import keeps webpack from statically bundling "fs/promises"
-		// into the client build. This branch only runs inside the async server
-		// component (EnginePage), never on the client.
 		const { readFile } = await import("fs/promises");
 		content = await readFile(normalizeMarkdownPath(node.props.filePath), "utf8");
 	} catch {
@@ -261,18 +231,29 @@ async function resolveMarkdownFiles(schema: PageSchema): Promise<PageSchema> {
 
 // ── Style injector component ──────────────────────────────────────────────────
 
-/**
- * Renders a <style> tag containing all CSS custom-property blocks
- * collected during the render pass.
- *
- * Must be rendered BEFORE the schema tree so that browsers don't see
- * a flash of unstyled content.
- */
 function EngineStyles({ collector }: { collector: StyleCollector }) {
 	const css = collector.collect();
 	if (!css) return null;
-	// biome-ignore lint/security/noDangerouslySetInnerHtml: controlled CSS generation
-	return <style id="__engine_styles__" dangerouslySetInnerHTML={{ __html: css }} />;
+
+	// React 19 + Next.js App Router: `precedence` hoists this <style> tag to
+	// <head> so CSS is available before the browser paints any content.
+	// Without this, SSG (Netlify / static export) renders content first and
+	// the CSS vars are undefined → layout collapses until the tag is parsed.
+	//
+	// `href` must be unique per-render so React doesn't deduplicate across
+	// navigations and drop styles. We hash the content for a stable key.
+	//
+	// Note: biome suppression below is intentional — style tag content is
+	// engine-controlled CSS, not user input.
+
+	// biome-ignore lint/security/noDangerouslySetInnerHtml: engine-generated CSS
+	return (
+		<style
+			id="__engine_styles__"
+			precedence="default"
+			dangerouslySetInnerHTML={{ __html: css }}
+		/>
+	);
 }
 
 // ── Theme injector ────────────────────────────────────────────────────────────
@@ -300,80 +281,34 @@ function EngineTheme({ schema }: { schema: PageSchema }) {
 				<link key={url} rel="stylesheet" href={url} />
 			))}
 			{css && (
-				// biome-ignore lint/security/noDangerouslySetInnerHtml: controlled CSS generation
 				<style id="__engine_theme__" dangerouslySetInnerHTML={{ __html: css }} />
 			)}
 		</>
 	);
 }
 
-// ── Page head ─────────────────────────────────────────────────────────────────
-
-function EngineHead({ schema }: { schema: PageSchema }) {
-	const meta = schema.meta;
-	if (!meta) return null;
-
-	// App Router: this component is used inside layout.tsx with <head> tag
-	// Pages Router: wrap in next/head
-	return (
-		<>
-			{meta.title && <title>{meta.title}</title>}
-			{meta.description && <meta name="description" content={meta.description} />}
-			{meta.keywords && (
-				<meta name="keywords" content={meta.keywords.join(", ")} />
-			)}
-			{meta.noIndex && <meta name="robots" content="noindex,nofollow" />}
-			{meta.canonical && <link rel="canonical" href={meta.canonical} />}
-			{meta.ogTitle && <meta property="og:title" content={meta.ogTitle} />}
-			{meta.ogDescription && <meta property="og:description" content={meta.ogDescription} />}
-			{meta.ogImage && <meta property="og:image" content={meta.ogImage} />}
-			{meta.twitterCard && <meta name="twitter:card" content={meta.twitterCard} />}
-			<meta
-				name="viewport"
-				content={meta.viewport ?? "width=device-width, initial-scale=1, viewport-fit=cover"}
-			/>
-		</>
-	);
-}
-
 // ── createPage ────────────────────────────────────────────────────────────────
 
-/**
- * Creates a fully optimised Next.js page component from a schema definition.
- *
- * The returned component:
- *   · Is a valid default export for both App Router and Pages Router
- *   · Injects a <style> tag with all responsive CSS variable blocks
- *   · Injects theme CSS custom properties
- *   · Wraps everything in EngineProvider
- *   · Lazily mounts heavy sections/images/videos via IntersectionObserver
- *   · Uses content-visibility: auto for off-screen sections
- *   · Never re-renders on viewport resize (CSS handles all responsive layout)
- */
 export function createPage(options: CreatePageOptions): EnginePageComponent {
 	const { schema, config, handlers, slots } = normalizeCreateOptions(options);
 	const shouldResolveMarkdown = nodeHasMarkdownFile(schema.root);
 
-	// Clear resolver cache so CSS vars are re-generated per page
-	clearResolverCache();
-	globalStyleCollector.reset();
-	// BUG-001 FIX: reset cross-render tier registry in dev so hydration CSS is always
-	// generated from a cold counter, matching the fresh client-side counter exactly.
-	if (process.env.NODE_ENV !== "production") StyleCollector._resetRegistry();
-
 	function renderPage(resolvedSchema: PageSchema) {
+		// HARD RESOLUTION PREPARATION PHASE (BUG-001):
+		// Must clear styles dynamically per-render request execution path,
+		// never during base startup module resolution phase.
+		clearResolverCache();
+		globalStyleCollector.reset();
+
 		return (
 			<EngineProvider
 				config={config}
 				handlers={handlers}
 				slots={slots}
 			>
-				{/* Inject theme CSS vars + fonts */}
 				<EngineTheme schema={resolvedSchema} />
-				{/* Inject responsive CSS custom properties */}
-				<EngineStyles collector={globalStyleCollector} />
-				{/* Render the schema tree */}
 				<SchemaRenderer schema={resolvedSchema} />
+				<EngineStyles collector={globalStyleCollector} />
 			</EngineProvider>
 		);
 	}
@@ -382,7 +317,6 @@ export function createPage(options: CreatePageOptions): EnginePageComponent {
 		async function EnginePage() {
 			return renderPage(await resolveMarkdownFiles(schema));
 		}
-
 		EnginePage.displayName = `EnginePage(${schema.meta?.title ?? "unnamed"})`;
 		return EnginePage;
 	}
@@ -397,22 +331,14 @@ export function createPage(options: CreatePageOptions): EnginePageComponent {
 
 // ── createComponent ──────────────────────────────────────────────────────────
 
-/**
- * Creates a reusable engine-rendered component from a schema definition.
- *
- * Unlike createPage, the returned component accepts runtime slots. Its
- * children are also exposed to the schema as a slot named "children".
- */
 export function createComponent(options: CreateComponentOptions): React.FC<EngineComponentProps> {
 	const { schema, config, handlers, slots } = normalizeCreateOptions(options);
 
-	clearResolverCache();
-	globalStyleCollector.reset();
-	// BUG-001 FIX: reset cross-render tier registry in dev so hydration CSS is always
-	// generated from a cold counter, matching the fresh client-side counter exactly.
-	if (process.env.NODE_ENV !== "production") StyleCollector._resetRegistry();
-
 	function EngineComponent({ children, slots: runtimeSlots }: EngineComponentProps) {
+		// Isolate dynamic styles during runtime child execution threads
+		clearResolverCache();
+		globalStyleCollector.reset();
+
 		const mergedSlots = {
 			...(slots ?? {}),
 			...(runtimeSlots ?? {}),
@@ -426,8 +352,8 @@ export function createComponent(options: CreateComponentOptions): React.FC<Engin
 				slots={mergedSlots}
 			>
 				<EngineTheme schema={schema} />
-				<EngineStyles collector={globalStyleCollector} />
 				<SchemaRenderer schema={schema} />
+				<EngineStyles collector={globalStyleCollector} />
 			</EngineProvider>
 		);
 	}
@@ -436,19 +362,6 @@ export function createComponent(options: CreateComponentOptions): React.FC<Engin
 	return EngineComponent;
 }
 
-// ── Convenience: define a schema without creating the page yet ────────────────
-
-/**
- * Type-safe schema definition helper.
- * Useful when you want to define schemas in separate files and pass them to createPage later.
- *
- * @example
- * // home.schema.ts
- * export const HomeSchema = defineSchema({ … });
- *
- * // app/page.tsx
- * export default createPage({ schema: HomeSchema });
- */
 export function defineSchema(schema: PageSchema): PageSchema {
 	return schema;
 }

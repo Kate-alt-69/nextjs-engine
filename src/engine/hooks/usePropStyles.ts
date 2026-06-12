@@ -1,16 +1,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  Engine — usePropStyles + cpropClass
+// 	Engine — usePropStyles + cpropClass
 //
-//  usePropStyles   — converts engine props → CSSProperties (unchanged)
-//  cpropClass      — converts cprop pseudo-states → injected CSS class names
-//
-//  cpropClass is a separate utility so components can call it alongside
-//  usePropStyles without changing usePropStyles's return type.
-//
-//  CpropValue pseudo-states (onHover / onFocus / onActive) are compiled to
-//  CSS rules and injected into StyleCollector. A hash-based class name is
-//  returned and merged into the component's className, giving pure CSS
-//  pseudo-class behaviour with zero JS event handlers.
+// 	usePropStyles   — converts engine props + direct CSS props → CSSProperties
+// 	cpropClass      — compiles cprop pseudo-states → injected CSS class names
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { CSSProperties } from "react";
@@ -24,133 +16,146 @@ import {
 } from "../core/resolver";
 import { globalStyleCollector } from "../core/StyleCollector";
 
-// ── Short hash (same algo as StyleCollector) ──────────────────────────────────
+// ── Short hash ────────────────────────────────────────────────────────────────
 
-function _hash(s: string): string {
-	let h = 0;
-	for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
-	return Math.abs(h).toString(36).slice(0, 7);
+function _hash(sourceStyleString: string): string {
+	let hashingBuffer = 0;
+	for (let characterIndex = 0; characterIndex < sourceStyleString.length; characterIndex++) {
+		hashingBuffer = (Math.imul(31, hashingBuffer) + sourceStyleString.charCodeAt(characterIndex)) | 0;
+	}
+	return Math.abs(hashingBuffer).toString(36).slice(0, 7);
 }
 
 // ── camelCase → kebab-case ────────────────────────────────────────────────────
 
-function camelToKebab(key: string): string {
-	return key.replace(/([A-Z])/g, "-$1").toLowerCase();
+function camelToKebab(camelCaseKey: string): string {
+	return camelCaseKey.replace(/([A-Z])/g, "-$1").toLowerCase();
 }
 
-// ── Object of CSS declarations → CSS block string ────────────────────────────
+// ── CSSProperties → CSS declaration string ────────────────────────────────────
 
-function recordToCss(record: Record<string, string | number>): string {
-	return Object.entries(record)
-		.map(([k, v]) => `${camelToKebab(k)}:${v}`)
+function cssToDeclBlock(cssPropertiesMap: CSSProperties): string {
+	return Object.entries(cssPropertiesMap)
+		.filter(([, propertyValue]) => propertyValue != null)
+		.map(([propertyKey, propertyValue]) => `${camelToKebab(propertyKey)}:${propertyValue}`)
 		.join(";");
 }
 
 // ── cpropClass ────────────────────────────────────────────────────────────────
 
-/**
- * Compiles a CpropValue's pseudo-class states (onHover / onFocus / onActive)
- * into CSS rules, registers them with globalStyleCollector, and returns a
- * space-separated string of generated class names to attach to the element.
- *
- * Returns undefined when cprop is falsy or has no pseudo-state entries.
- *
- * @example
- * const hoverClass = cpropClass(props.cprop);
- * // hoverClass → "e-h-1a2b3c4" or undefined
- */
-export function cpropClass(cprop: CpropValue | undefined): string | undefined {
-	if (!cprop) return undefined;
+export function cpropClass(cpropContainerInstance: CpropValue | undefined): string | undefined {
+	if (!cpropContainerInstance) return undefined;
+	const processedClassNamesList: string[] = [];
 
-	const classes: string[] = [];
+	const injectSubBlockRule = (styleDeclarationsMap: CSSProperties, pseudoSelectorString: string, classPrefixString: string): void => {
+		const structuralDeclarationBlock = cssToDeclBlock(styleDeclarationsMap);
+		if (!structuralDeclarationBlock) return;
+		const styleContentHash = _hash(`${pseudoSelectorString}:${structuralDeclarationBlock}`);
+		const TargetClassIdentifier = `${classPrefixString}${styleContentHash}`;
+		const structuredCssRule = pseudoSelectorString.includes(",")
+			? pseudoSelectorString.split(",").map((splitSelector) => `.${TargetClassIdentifier}${splitSelector.trim()}`).join(",") + `{${structuralDeclarationBlock}}`
+			: `.${TargetClassIdentifier}${pseudoSelectorString}{${structuralDeclarationBlock}}`;
+		globalStyleCollector.add(structuredCssRule);
+		processedClassNamesList.push(TargetClassIdentifier);
+	};
 
-	if (cprop.onHover && Object.keys(cprop.onHover).length > 0) {
-		const declarations = recordToCss(cprop.onHover);
-		const hash   = _hash(`hover:${declarations}`);
-		const cls    = `e-h-${hash}`;
-		globalStyleCollector.add(`.${cls}:hover{${declarations}}`);
-		classes.push(cls);
-	}
+	if (cpropContainerInstance.onHover)       injectSubBlockRule(cpropContainerInstance.onHover,       ":hover",                  "e-h-");
+	if (cpropContainerInstance.onFocus)       injectSubBlockRule(cpropContainerInstance.onFocus,       ":focus,:focus-visible",   "e-f-");
+	if (cpropContainerInstance.onActive)      injectSubBlockRule(cpropContainerInstance.onActive,      ":active",                 "e-a-");
+	if (cpropContainerInstance.onChecked)     injectSubBlockRule(cpropContainerInstance.onChecked,     ":checked",                "e-c-");
+	if (cpropContainerInstance.onDisabled)    injectSubBlockRule(cpropContainerInstance.onDisabled,    ":disabled",               "e-d-");
+	if (cpropContainerInstance.onPlaceholder) injectSubBlockRule(cpropContainerInstance.onPlaceholder, ":placeholder-shown",      "e-p-");
 
-	if (cprop.onFocus && Object.keys(cprop.onFocus).length > 0) {
-		const declarations = recordToCss(cprop.onFocus);
-		const hash   = _hash(`focus:${declarations}`);
-		const cls    = `e-f-${hash}`;
-		globalStyleCollector.add(`.${cls}:focus,.${cls}:focus-visible{${declarations}}`);
-		classes.push(cls);
-	}
-
-	if (cprop.onActive && Object.keys(cprop.onActive).length > 0) {
-		const declarations = recordToCss(cprop.onActive);
-		const hash   = _hash(`active:${declarations}`);
-		const cls    = `e-a-${hash}`;
-		globalStyleCollector.add(`.${cls}:active{${declarations}}`);
-		classes.push(cls);
-	}
-
-	return classes.length > 0 ? classes.join(" ") : undefined;
+	return processedClassNamesList.length > 0 ? processedClassNamesList.join(" ") : undefined;
 }
 
 // ── Spacing helper ────────────────────────────────────────────────────────────
 
 function applySpacing(
-	cssProp: string,
-	shortKey: string,
-	value: unknown,
-	style: CSSProperties,
-	css: string[],
-): void {
-	if (value === undefined || value === null) return;
-
-	if (isResponsive(value as any)) {
-		const r = resolveSpacing(shortKey, value as any);
-		(style as Record<string, string>)[cssProp] = r.ref;
-		css.push(r.cssBlock);
+	targetCssPropertyKey: string,
+	engineShorthandAlias: string,
+	incomingValue: unknown,
+	computedStyleOutputMap: CSSProperties,
+	aggregatedStyleBlocksList: string[],
+) {
+	if (incomingValue == null) return;
+	if (isResponsive(incomingValue as any)) {
+		const spacingResolutionPayload = resolveSpacing(engineShorthandAlias, incomingValue as any);
+		(computedStyleOutputMap as Record<string, string>)[targetCssPropertyKey] = spacingResolutionPayload.ref;
+		aggregatedStyleBlocksList.push(spacingResolutionPayload.cssBlock);
 	} else {
-		(style as Record<string, string>)[cssProp] = normalizeSpacingValue(
-			value as string | number,
-		);
+		(computedStyleOutputMap as Record<string, string>)[targetCssPropertyKey] = normalizeSpacingValue(incomingValue as string | number);
 	}
 }
 
 // ── Generic (non-spacing) helper ──────────────────────────────────────────────
 
 function applyGeneric(
-	cssProp: string,
-	shortKey: string,
-	value: unknown,
-	style: CSSProperties,
-	css: string[],
-): void {
-	if (value === undefined || value === null) return;
-
-	if (isResponsive(value as any)) {
-		const r = resolveGeneric(shortKey, value as any);
-		(style as Record<string, string>)[cssProp] = r.ref;
-		css.push(r.cssBlock);
+	targetCssPropertyKey: string,
+	engineShorthandAlias: string,
+	incomingValue: unknown,
+	computedStyleOutputMap: CSSProperties,
+	aggregatedStyleBlocksList: string[],
+) {
+	if (incomingValue == null) return;
+	if (isResponsive(incomingValue as any)) {
+		const genericResolutionPayload = resolveGeneric(engineShorthandAlias, incomingValue as any);
+		(computedStyleOutputMap as Record<string, string>)[targetCssPropertyKey] = genericResolutionPayload.ref;
+		aggregatedStyleBlocksList.push(genericResolutionPayload.cssBlock);
 	} else {
-		(style as Record<string, string>)[cssProp] = String(value);
+		(computedStyleOutputMap as Record<string, string>)[targetCssPropertyKey] = String(incomingValue);
 	}
 }
 
+// ── CSS passthrough list ──────────────────────────────────────────────────────
+
+const CSS_PASSTHROUGH: readonly string[] = [
+	"transform", "transformOrigin", "transformStyle",
+	"perspective", "perspectiveOrigin", "backfaceVisibility",
+	"filter", "backdropFilter", "clipPath", "objectFit", "objectPosition",
+	"aspectRatio", "float", "clear", "verticalAlign",
+	"tableLayout", "borderCollapse", "borderSpacing",
+	"columnCount", "columnWidth", "mixBlendMode", "isolation",
+	"willChange", "contentVisibility", "contain", "containIntrinsicSize",
+	"appearance", "resize", "visibility", "pointerEvents", "userSelect",
+	"overflowX", "overflowY", "fontFamily", "fontStyle", "fontVariant", "fontStretch",
+	"fontFeatureSettings", "fontVariationSettings", "textTransform",
+	"textDecoration", "textDecorationColor", "textDecorationStyle", "textUnderlineOffset",
+	"textShadow", "textIndent", "textRendering", "textWrap",
+	"wordBreak", "wordSpacing", "whiteSpace", "hyphens", "writingMode", "direction",
+	"caretColor", "accentColor", "lineBreak", "tabSize",
+	"gridColumn", "gridRow", "gridArea", "gridColumnStart", "gridColumnEnd",
+	"gridRowStart", "gridRowEnd", "gridAutoFlow", "gridAutoColumns", "gridAutoRows",
+	"placeSelf", "placeItems", "placeContent", "animation",
+	"animationName", "animationDuration", "animationDelay",
+	"animationTimingFunction", "animationIterationCount",
+	"animationFillMode", "animationPlayState", "animationDirection",
+	"scrollSnapAlign", "scrollSnapStop",
+	"scrollMarginTop", "scrollMarginBottom", "scrollMarginLeft", "scrollMarginRight",
+	"scrollPaddingTop", "scrollPaddingBottom",
+	"overscrollBehavior", "overscrollBehaviorX", "overscrollBehaviorY",
+	"outline", "outlineColor", "outlineOffset", "outlineWidth", "outlineStyle",
+	"listStyle", "listStyleType", "listStylePosition", "content",
+	"fill", "stroke", "strokeWidth", "strokeDasharray", "strokeDashoffset",
+	"strokeLinecap", "strokeLinejoin",
+];
+
+const ALREADY_HANDLED = new Set([
+	"cursor", "overflow", "transition",
+	"backgroundImage", "backgroundSize", "backgroundRepeat", "backgroundPosition",
+	"border", "borderTop", "borderBottom", "borderLeft", "borderRight",
+	"zIndex", "position", "top", "right", "bottom", "left",
+	"opacity", "boxShadow", "color", "alignSelf", "justifySelf", "flex",
+]);
+
 // ── Main hook ─────────────────────────────────────────────────────────────────
 
-/**
- * Converts engine component props to a CSSProperties object.
- * Registers responsive CSS blocks with the global style collector.
- * Also applies cprop.css direct overrides to the inline style.
- *
- * For cprop pseudo-class states (onHover / onFocus / onActive) call
- * cpropClass(props.cprop) separately and merge the result into className.
- *
- * Returns a merged style object ready for `style={...}` on a DOM element.
- */
 export function usePropStyles(
 	props: Partial<BaseNodeProps> & Record<string, unknown>,
 	extraStyle?: CSSProperties,
 ): CSSProperties {
 	const style: CSSProperties = {};
-	const css: string[] = [];
+	const css:   string[]      = [];
 
 	// ── Spacing ────────────────────────────────────────────────────────────────
 	applySpacing("margin",        "ma", props.m,  style, css);
@@ -164,43 +169,24 @@ export function usePropStyles(
 	applySpacing("paddingBottom", "pb", props.pb, style, css);
 	applySpacing("paddingLeft",   "pl", props.pl, style, css);
 
-	// Shorthand axes
-	if (props.mx !== undefined) {
-		const r = isResponsive(props.mx)
-			? resolveSpacing("mx", props.mx)
-			: null;
-		const v = r ? r.ref : normalizeSpacingValue(props.mx as string | number);
-		if (r) css.push(r.cssBlock);
-		(style as Record<string, string>)["marginLeft"]  = v;
-		(style as Record<string, string>)["marginRight"] = v;
-	}
-	if (props.my !== undefined) {
-		const r = isResponsive(props.my)
-			? resolveSpacing("my", props.my)
-			: null;
-		const v = r ? r.ref : normalizeSpacingValue(props.my as string | number);
-		if (r) css.push(r.cssBlock);
-		(style as Record<string, string>)["marginTop"]    = v;
-		(style as Record<string, string>)["marginBottom"] = v;
-	}
-	if (props.px !== undefined) {
-		const r = isResponsive(props.px)
-			? resolveSpacing("px", props.px)
-			: null;
-		const v = r ? r.ref : normalizeSpacingValue(props.px as string | number);
-		if (r) css.push(r.cssBlock);
-		(style as Record<string, string>)["paddingLeft"]  = v;
-		(style as Record<string, string>)["paddingRight"] = v;
-	}
-	if (props.py !== undefined) {
-		const r = isResponsive(props.py)
-			? resolveSpacing("py", props.py)
-			: null;
-		const v = r ? r.ref : normalizeSpacingValue(props.py as string | number);
-		if (r) css.push(r.cssBlock);
-		(style as Record<string, string>)["paddingTop"]    = v;
-		(style as Record<string, string>)["paddingBottom"] = v;
-	}
+	const resolveAxis = (
+		axisPropKey: string,
+		cssTargetPropertyA: string,
+		cssTargetPropertyB: string,
+	): void => {
+		const axisInputValue = props[axisPropKey as keyof typeof props];
+		if (axisInputValue == null) return;
+		const axisResolutionPayload = isResponsive(axisInputValue as any) ? resolveSpacing(axisPropKey, axisInputValue as any) : null;
+		const finalCalculatedValue = axisResolutionPayload ? axisResolutionPayload.ref : normalizeSpacingValue(axisInputValue as string | number);
+		if (axisResolutionPayload) css.push(axisResolutionPayload.cssBlock);
+		(style as Record<string, string>)[cssTargetPropertyA] = finalCalculatedValue;
+		(style as Record<string, string>)[cssTargetPropertyB] = finalCalculatedValue;
+	};
+
+	resolveAxis("mx", "marginLeft",  "marginRight");
+	resolveAxis("my", "marginTop",   "marginBottom");
+	resolveAxis("px", "paddingLeft", "paddingRight");
+	resolveAxis("py", "paddingTop",  "paddingBottom");
 
 	// ── Sizing ─────────────────────────────────────────────────────────────────
 	applySpacing("width",     "wi", props.w ?? props.width,       style, css);
@@ -210,124 +196,121 @@ export function usePropStyles(
 	applySpacing("maxWidth",  "mw", props.maxW ?? props.maxWidth, style, css);
 	applySpacing("maxHeight", "xh", props.maxH ?? props.maxHeight, style, css);
 
-	// ── Flex / Grid ────────────────────────────────────────────────────────────
+	// ── Flex / Grid layout ────────────────────────────────────────────────────
 	applySpacing("gap",       "ga", props.gap,    style, css);
 	applySpacing("columnGap", "cg", props.colGap, style, css);
 	applySpacing("rowGap",    "rg", props.rowGap, style, css);
 
-	applyGeneric("display",         "di", props.display,  style, css);
-	applyGeneric("flexDirection",   "fd", props.flexDir,  style, css);
-	applyGeneric("alignItems",      "ai", props.align ?? (props as any).alignItems, style, css);
-	applyGeneric("justifyContent",  "jc", props.justify ?? (props as any).justifyContent, style, css);
-	applyGeneric("flexWrap",        "fw", props.wrap,     style, css);
-	applyGeneric("order",           "or", props.order,    style, css);
-	applyGeneric("alignSelf",       "as", props.alignSelf, style, css);
-	applyGeneric("justifySelf",     "js", props.justifySelf, style, css);
+	applyGeneric("display",        "di", props.display,                                 style, css);
+	applyGeneric("flexDirection",  "fd", props.flexDir,                                 style, css);
+	applyGeneric("alignItems",     "ai", props.align ?? (props as any).alignItems,      style, css);
+	applyGeneric("justifyContent", "jc", props.justify ?? (props as any).justifyContent, style, css);
+	applyGeneric("flexWrap",       "fw", props.wrap,                                    style, css);
+	applyGeneric("order",          "or", props.order,                                   style, css);
 
-	if (props.flex !== undefined) style.flex = props.flex as string;
+	if (props.alignSelf   != null) style.alignSelf   = props.alignSelf   as CSSProperties["alignSelf"];
+	if (props.justifySelf != null) style.justifySelf = props.justifySelf as CSSProperties["justifySelf"];
+	if (props.flex        != null) style.flex        = props.flex as string;
 
-	// ── Grid template ──────────────────────────────────────────────────────────
-	if ((props as any).columns !== undefined) {
-		const col = (props as any).columns;
-		if (isResponsive(col)) {
-			const r = resolveColumns(col);
-			(style as Record<string, string>)["gridTemplateColumns"] = r.ref;
-			css.push(r.cssBlock);
+	// ── Grid template ─────────────────────────────────────────────────────────
+	if ((props as any).columns != null) {
+		const currentGridColumnsValue = (props as any).columns;
+		if (isResponsive(currentGridColumnsValue)) {
+			const structuralColumnsPayload = resolveColumns(currentGridColumnsValue);
+			(style as Record<string, string>)["gridTemplateColumns"] = structuralColumnsPayload.ref;
+			css.push(structuralColumnsPayload.cssBlock);
 		} else {
-			const colsStr = typeof col === "number" ? `repeat(${col}, 1fr)` : String(col);
-			(style as Record<string, string>)["gridTemplateColumns"] = colsStr;
+			const explicitlyBuiltColumnsString = typeof currentGridColumnsValue === "number" ? `repeat(${currentGridColumnsValue}, 1fr)` : String(currentGridColumnsValue);
+			(style as Record<string, string>)["gridTemplateColumns"] = explicitlyBuiltColumnsString;
 		}
 	}
-	if ((props as any).columns === undefined && (props as any).gridTemplateColumns !== undefined) {
-		applyGeneric("gridTemplateColumns", "gt", (props as any).gridTemplateColumns, style, css);
-	}
-	if ((props as any).rows !== undefined) {
+	if ((props as any).rows != null) {
 		applyGeneric("gridTemplateRows", "gr", (props as any).rows, style, css);
 	}
-	if ((props as any).rows === undefined && (props as any).gridTemplateRows !== undefined) {
-		applyGeneric("gridTemplateRows", "gr", (props as any).gridTemplateRows, style, css);
-	}
 
-	// ── Text ───────────────────────────────────────────────────────────────────
-	applyGeneric("fontSize",       "fs", (props as any).size ?? (props as any).fontSize, style, css);
-	applyGeneric("fontWeight",     "fw", (props as any).weight ?? (props as any).fontWeight, style, css);
-	applyGeneric("textAlign",      "ta", (props as any).textAlign ?? (props as any).align, style, css);
-	if ((props as any).lineHeight !== undefined)
-		style.lineHeight = (props as any).lineHeight;
-	if ((props as any).letterSpacing !== undefined)
-		style.letterSpacing = (props as any).letterSpacing;
+	// ── Text ──────────────────────────────────────────────────────────────────
+	applyGeneric("fontSize",   "fs", (props as any).size ?? (props as any).fontSize,     style, css);
+	applyGeneric("fontWeight", "fw", (props as any).weight ?? (props as any).fontWeight, style, css);
+	applyGeneric("textAlign",  "ta", (props as any).textAlign ?? (props as any).align,   style, css);
+	if ((props as any).lineHeight   != null) style.lineHeight   = (props as any).lineHeight;
+	if ((props as any).letterSpacing != null) style.letterSpacing = (props as any).letterSpacing;
 
-	// ── Border ─────────────────────────────────────────────────────────────────
-	if (props.border !== undefined) style.border = props.border as string;
-	if (props.borderTop !== undefined) style.borderTop = props.borderTop as string;
-	if (props.borderBottom !== undefined) style.borderBottom = props.borderBottom as string;
-	if (props.borderRadius !== undefined) {
-		applySpacing("borderRadius", "br", props.borderRadius, style, css);
-	}
+	// ── Border ────────────────────────────────────────────────────────────────
+	if (props.border       != null) style.border       = props.border as string;
+	if (props.borderTop    != null) style.borderTop    = props.borderTop as string;
+	if (props.borderBottom != null) style.borderBottom = props.borderBottom as string;
+	if (props.borderLeft   != null) style.borderLeft   = props.borderLeft as string;
+	if (props.borderRight  != null) style.borderRight  = props.borderRight as string;
+	if (props.borderRadius != null) applySpacing("borderRadius", "br", props.borderRadius, style, css);
 
-	// ── Colours & effects ──────────────────────────────────────────────────────
-	if (props.bg !== undefined) style.background = props.bg as string;
-	if (props.color !== undefined) style.color = props.color as string;
-	if (props.opacity !== undefined) style.opacity = props.opacity as number;
-	if (props.shadow !== undefined) style.boxShadow = props.shadow as string;
-	if (props.boxShadow !== undefined) style.boxShadow = props.boxShadow as string;
-	if (props.overflow !== undefined) style.overflow = props.overflow as CSSProperties["overflow"];
-	if (props.cursor !== undefined) style.cursor = props.cursor as CSSProperties["cursor"];
-	if (props.transition !== undefined) style.transition = props.transition as string;
-	if (props.backgroundImage !== undefined) style.backgroundImage = props.backgroundImage as string;
-	if (props.backgroundSize !== undefined) style.backgroundSize = props.backgroundSize as string;
-	if (props.backgroundRepeat !== undefined) style.backgroundRepeat = props.backgroundRepeat as string;
-	if (props.backgroundPosition !== undefined) style.backgroundPosition = props.backgroundPosition as string;
-	if (props.backdrop !== undefined) style.backdropFilter = props.backdrop as string;
-	if (props.backdropFilter !== undefined) style.backdropFilter = props.backdropFilter as string;
+	// ── Colours & effects ─────────────────────────────────────────────────────
+	if (props.bg            != null) style.background      = props.bg as string;
+	if (props.color         != null) style.color           = props.color as string;
+	if (props.opacity       != null) style.opacity         = props.opacity as number;
+	if (props.shadow        != null) style.boxShadow       = props.shadow as string;
+	if (props.boxShadow     != null) style.boxShadow       = props.boxShadow as string;
+	if (props.transition    != null) style.transition      = props.transition as string;
+	if (props.backgroundImage != null) style.backgroundImage = props.backgroundImage as string;
+	if (props.backgroundSize  != null) style.backgroundSize  = props.backgroundSize as string;
+	if (props.backgroundRepeat!= null) style.backgroundRepeat= props.backgroundRepeat as string;
+	if (props.backgroundPosition != null) style.backgroundPosition = props.backgroundPosition as string;
+	if (props.backdrop        != null) style.backdropFilter  = props.backdrop as string;
+	if (props.backdropFilter  != null) style.backdropFilter  = props.backdropFilter as string;
+	if (props.overflow        != null) style.overflow        = props.overflow as CSSProperties["overflow"];
+	if (props.cursor          != null) style.cursor          = props.cursor as CSSProperties["cursor"];
 
-	// ── Position ───────────────────────────────────────────────────────────────
-	if (props.position !== undefined) style.position = props.position as CSSProperties["position"];
-	if (props.top !== undefined) style.top = typeof props.top === "number" ? `${props.top}px` : props.top as string;
-	if (props.right !== undefined) style.right = typeof props.right === "number" ? `${props.right}px` : props.right as string;
-	if (props.bottom !== undefined) style.bottom = typeof props.bottom === "number" ? `${props.bottom}px` : props.bottom as string;
-	if (props.left !== undefined) style.left = typeof props.left === "number" ? `${props.left}px` : props.left as string;
-	if (props.zIndex !== undefined) style.zIndex = props.zIndex as number;
+	// ── Position ──────────────────────────────────────────────────────────────
+	if (props.position != null) style.position = props.position as CSSProperties["position"];
+	if (props.top      != null) style.top      = typeof props.top    === "number" ? `${props.top}px`    : props.top as string;
+	if (props.right    != null) style.right    = typeof props.right  === "number" ? `${props.right}px`  : props.right as string;
+	if (props.bottom   != null) style.bottom   = typeof props.bottom === "number" ? `${props.bottom}px` : props.bottom as string;
+	if (props.left     != null) style.left     = typeof props.left   === "number" ? `${props.left}px`   : props.left as string;
+	if (props.zIndex   != null) style.zIndex   = props.zIndex as number;
 
-	// ── Register all CSS blocks ────────────────────────────────────────────────
+	// ── Register responsive CSS blocks ────────────────────────────────────────
 	globalStyleCollector.addMany(css);
+	css.length = 0;
 
-	// ── vars — CSS custom properties ──────────────────────────────────────────
-	if (props.vars !== undefined && typeof props.vars === "object") {
-		for (const [key, value] of Object.entries(props.vars as Record<string, string>)) {
-			const cssKey = key.startsWith("--") ? key : `--${key}`;
-			(style as Record<string, string>)[cssKey] = value;
+	// ── CSS custom properties (vars) ──────────────────────────────────────────
+	if (props.vars != null && typeof props.vars === "object") {
+		for (const [variableKey, variableValue] of Object.entries(props.vars as Record<string, string>)) {
+			(style as Record<string, string>)[variableKey.startsWith("--") ? variableKey : `--${variableKey}`] = variableValue;
 		}
 	}
 
-	// ── sides — per-side distance (1=top 2=left 3=right 4=bottom) ─────────────
-	if (
-		Array.isArray(props.sides) &&
-		props.sides.length > 0 &&
-		props.sideDistance !== undefined
-	) {
-		const dist = normalizeSpacingValue(props.sideDistance as string | number);
-		const isMargin = (props.sideType as string) !== "padding";
+	// ── Sides system ──────────────────────────────────────────────────────────
+	if (Array.isArray(props.sides) && props.sides.length > 0 && props.sideDistance != null) {
+		const targetSideDistanceValue = normalizeSpacingValue(props.sideDistance as string | number);
+		const evaluateAsMarginFlag = (props.sideType as string) !== "padding";
 		const SIDE_MAP: Record<number, string> = {
-			1: isMargin ? "marginTop"    : "paddingTop",
-			2: isMargin ? "marginLeft"   : "paddingLeft",
-			3: isMargin ? "marginRight"  : "paddingRight",
-			4: isMargin ? "marginBottom" : "paddingBottom",
+			1: evaluateAsMarginFlag ? "marginTop"    : "paddingTop",
+			2: evaluateAsMarginFlag ? "marginLeft"   : "paddingLeft",
+			3: evaluateAsMarginFlag ? "marginRight"  : "paddingRight",
+			4: evaluateAsMarginFlag ? "marginBottom" : "paddingBottom",
 		};
-		for (const side of props.sides as number[]) {
-			const cssProp = SIDE_MAP[side];
-			if (cssProp) (style as Record<string, string>)[cssProp] = dist;
+		for (const individualSideEntry of props.sides as number[]) {
+			const targetMappedProperty = SIDE_MAP[individualSideEntry];
+			if (targetMappedProperty) (style as Record<string, string>)[targetMappedProperty] = targetSideDistanceValue;
 		}
 	}
 
-	// ── cprop.css — direct CSS property additions ──────────────────────────────
-	// cprop pseudo-states (onHover/onFocus/onActive) are handled by cpropClass()
-	// and injected as CSS rules, not inline style.
-	if (props.cprop !== undefined) {
-		const cp = props.cprop as CpropValue;
-		if (cp.css) Object.assign(style, cp.css);
+	// ── CSS PASSTHROUGH ───────────────────────────────────────────────────────
+	for (const explicitPassthroughKey of CSS_PASSTHROUGH) {
+		if (ALREADY_HANDLED.has(explicitPassthroughKey)) continue;
+		const incomingPassthroughValue = props[explicitPassthroughKey];
+		if (incomingPassthroughValue == null) continue;
+
+		if ((style as Record<string, unknown>)[explicitPassthroughKey] != null) continue;
+
+		if (isResponsive(incomingPassthroughValue as any)) {
+			const dynamicPassthroughPayload = resolveGeneric(explicitPassthroughKey, incomingPassthroughValue as any);
+			(style as Record<string, string>)[explicitPassthroughKey] = dynamicPassthroughPayload.ref;
+			globalStyleCollector.add(dynamicPassthroughPayload.cssBlock);
+		} else {
+			(style as Record<string, unknown>)[explicitPassthroughKey] = incomingPassthroughValue;
+		}
 	}
 
-	// ── Merge explicit style overrides ─────────────────────────────────────────
+	// ── Merge explicit style overrides ────────────────────────────────────────
 	return extraStyle ? { ...style, ...extraStyle } : style;
 }

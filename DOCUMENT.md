@@ -1316,3 +1316,163 @@ See `TODO.md` for the full root-cause analysis. In short:
   same order, so the CSS string is byte-for-byte identical on both sides.
 - `StyleCollector._resetRegistry()` is called at the start of each `createPage`
   in development to prevent cross-request tier accumulation.
+
+
+---
+
+## EngineBrowser — Browser Detection & Conditional Execution
+
+`EngineBrowser` is a client-side module (safe on SSR — returns defaults when `window` is undefined).
+
+### Detection
+
+```ts
+import { EngineBrowser } from "@/engine";
+
+// Browser identity
+EngineBrowser.is.chrome     // boolean
+EngineBrowser.is.firefox    // boolean
+EngineBrowser.is.safari     // boolean
+EngineBrowser.is.edge       // boolean
+EngineBrowser.is.opera      // boolean
+EngineBrowser.is.brave      // boolean
+EngineBrowser.is.osmium     // boolean  ← yes, Osmium is detected
+EngineBrowser.is.chromium   // any Chromium-based browser
+EngineBrowser.is.mobile     // touch-primary device
+EngineBrowser.is.desktop    // mouse-primary device
+
+// Feature support
+EngineBrowser.supports.viewTransitions   // View Transitions API
+EngineBrowser.supports.containerQueries  // CSS @container
+EngineBrowser.supports.cssHas            // CSS :has()
+EngineBrowser.supports.reducedMotion     // prefers-reduced-motion: reduce
+EngineBrowser.supports.prefersDark       // prefers-color-scheme: dark
+EngineBrowser.supports.webgl2            // WebGL 2
+```
+
+### Conditional execution
+
+```ts
+EngineBrowser.run({
+  safari:  () => applySafariScrollFix(),
+  firefox: () => applyFirefoxFix(),
+  default: () => {},
+});
+
+const cls = EngineBrowser.pick({
+  safari:  "scroll-ios",
+  default: "scroll-standard",
+});
+```
+
+### React hook
+
+```tsx
+import { useBrowser } from "@/engine";
+
+function MyComponent() {
+  const browser = useBrowser();  // SSR-safe, updates after mount
+  if (browser.is.safari) return <SafariVariant />;
+  return <StandardVariant />;
+}
+```
+
+---
+
+## CSS Directly on Prop
+
+Any standard CSS property can be written directly alongside engine shorthands:
+
+```ts
+{
+  type: "box",
+  props: {
+    // Engine shorthands
+    bg:  "#111",
+    px:  "2rem",
+    // Direct CSS — just write the property name
+    transform:     "rotate(-3deg)",
+    filter:        "blur(4px)",
+    clipPath:      "polygon(0 0, 100% 0, 100% 80%, 0 100%)",
+    mixBlendMode:  "multiply",
+    willChange:    "transform",
+    animation:     "fadeIn 0.4s ease forwards",
+    aspectRatio:   "16/9",
+    gridColumn:    "1 / -1",
+    userSelect:    "none",
+    // Also works as responsive values
+    transform:     { xs: "scale(0.9)", md: "scale(1)" },
+  }
+}
+```
+
+### cprop — Engine Custom Properties
+
+`cprop` is strictly for engine-invented concepts (not raw CSS):
+
+```ts
+cprop: {
+  onHover:     { background: "#1a1a2e", transform: "scale(1.02)" },
+  onFocus:     { outline: "2px solid var(--e-accent)", outlineOffset: "3px" },
+  onActive:    { transform: "scale(0.97)", opacity: 0.9 },
+  onChecked:   { background: "var(--e-accent)" },
+  onDisabled:  { opacity: 0.4, cursor: "not-allowed" },
+}
+```
+
+All pseudo-states are compiled to CSS classes and injected via StyleCollector — no JS event handlers.
+
+---
+
+## Schema Validation
+
+```ts
+import { validatePageSchema, validateSchema } from "@/engine";
+
+// In your page or CI:
+const result = validatePageSchema(mySchema);
+// → console.warn in dev for each issue
+// → result.valid, result.errors[]
+
+// Validate just a node tree:
+const result = validateSchema(mySchema.root);
+```
+
+Each `ValidationError` has: `{ path: string, message: string, level: "error" | "warn" }`.
+
+---
+
+## Metadata Integration (SEO)
+
+```ts
+// app/some-page/page.tsx
+import type { Metadata } from "next";
+import { generateEngineMetadata } from "@/engine";
+import { myPageSchema } from "./schema";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return generateEngineMetadata(myPageSchema);
+  // or just the meta: generateEngineMetadata({ title: "…", ogImage: "…" })
+}
+
+export default createPage(myPageSchema);
+```
+
+Generates `title`, `description`, `keywords`, `canonical`, `robots`, `openGraph`, and `twitter` from `PageMeta`.
+
+---
+
+## Why RAF Scroll is Better Than CSS scroll-behavior
+
+EngineScroll uses `requestAnimationFrame` + easing functions, not `scroll-behavior: smooth`. Here is why:
+
+| | `scroll-behavior: smooth` | EngineScroll RAF |
+|---|---|---|
+| Duration control | ❌ browser decides | ✅ configurable ms |
+| Easing curve | ❌ browser decides | ✅ ease-in-out / spring / linear / etc. |
+| Safari compatibility | ⚠️ bugs on `<body>` | ✅ works everywhere |
+| `prefers-reduced-motion` | ✅ browser handles | ✅ instant jump |
+| Interrupt on new scroll | ❌ fights native | ✅ RAF cancels cleanly |
+| Chromium changes | ⚠️ behavior changes per version | ✅ RAF is a W3C primitive, unchanged since 2012 |
+
+**The "Chromium inshittification" concern:** `requestAnimationFrame` is the most stable browser API that exists. It is unaffected by any Chromium rendering changes. The concern only applies to CSS-level scroll APIs, which we deliberately avoid.

@@ -425,6 +425,34 @@ export const EngineCanvas = memo(function EngineCanvas({
 	}, [mode, alpha, antialias, powerPreference, width, height, isResponsive]);
 
 	// ── Canvas CSS ─────────────────────────────────────────────────────────────
+	// ── SSR / pre-mount placeholder to prevent CLS ──────────────────────────
+	// On the first server render the canvas context doesn't exist. Return a
+	// sized div so the layout reserves the correct space before hydration.
+	// This prevents the page from "jumping" when the canvas mounts.
+	const [canvasMounted, setCanvasMounted] = React.useState(false);
+
+	React.useEffect(() => { setCanvasMounted(true); }, []);
+
+	if (!canvasMounted) {
+		const placeholderW = width  !== undefined ? `${width}px`  : "100%";
+		const placeholderH = height !== undefined ? `${height}px` : "150px";
+		return (
+			<div
+				aria-hidden="true"
+				className={className}
+				style={{
+					width:       placeholderW,
+					height:      placeholderH,
+					background:  "var(--e-canvas-placeholder, transparent)",
+					borderRadius: style?.borderRadius,
+					// Contain sizing — prevents parent reflow
+					contain: "strict",
+					...style,
+				}}
+			/>
+		);
+	}
+
 	const canvasStyle: CSSProperties = {
 		// GPU layer promotion
 		transform:   "translateZ(0)",

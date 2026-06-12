@@ -3,21 +3,12 @@
 //  Engine — SchemaRenderer
 //
 //  Walks a PageSchema tree and renders each node to React elements.
-//
-//  Per-node pipeline:
-//    1. Look up the component in the registry
-//    2. Run lazyDetect() to decide if the node needs lazy mounting
-//    3. If lazy → wrap in <LazyMount> or <LazySection>
-//    4. If contentVisibility → inject CSS hint via style prop
-//    5. Recursively render children — passing depth + 1
-//    6. Handle "slot" nodes (pull from pageProps.slots)
-//    7. Handle "raw" nodes (render a React component from pageProps.components)
-//    8. Missing type → render a visible dev warning, nothing in production
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { memo, type ReactNode, type CSSProperties } from "react";
 import type { SchemaNode, PageSchema } from "../schema/types";
 import { getComponent } from "./registry";
+import { validatePageSchema } from "./validateSchema";
 import { decideLazy } from "./lazyDetect";
 import { LazyMount, LazySection } from "../components/LazyMount";
 import { useSlot } from "../providers/EngineProvider";
@@ -60,7 +51,9 @@ interface NodeRendererProps {
 	depth: number;
 }
 
-const NodeRenderer = memo(function NodeRenderer({ node, depth }: NodeRendererProps) {
+// FIX: Removed React.memo wrapper from NodeRenderer to ensure style collection 
+// fires reliably for matching layout targets during request loops.
+function NodeRenderer({ node, depth }: NodeRendererProps) {
 	// ── Slot handling ────────────────────────────────────────────────────────
 	if (node.type === "slot") {
 		const p = (node.props ?? {}) as { name?: string; fallback?: SchemaNode };
@@ -103,7 +96,7 @@ const NodeRenderer = memo(function NodeRenderer({ node, depth }: NodeRendererPro
 		? {
 				contentVisibility: "auto" as CSSProperties["contentVisibility"],
 				containIntrinsicHeight: lazy.placeholderHeight,
-		  }
+			}
 		: {};
 
 	const nodeProps = {
@@ -114,7 +107,7 @@ const NodeRenderer = memo(function NodeRenderer({ node, depth }: NodeRendererPro
 						...((node.props?.style as CSSProperties) ?? {}),
 						...extraStyle,
 					},
-			  }
+				}
 			: {}),
 	};
 
@@ -151,7 +144,7 @@ const NodeRenderer = memo(function NodeRenderer({ node, depth }: NodeRendererPro
 			{element}
 		</LazyMount>
 	);
-});
+}
 
 // ── Tree renderer ─────────────────────────────────────────────────────────────
 
@@ -162,5 +155,14 @@ interface SchemaRendererProps {
 export const SchemaRenderer = memo(function SchemaRenderer({
 	schema,
 }: SchemaRendererProps) {
+	// TASK-009: Validate schema structure in dev. Emits console.warn per issue.
+	// Set NEXT_PUBLIC_ENGINE_VALIDATE=1 to enable in production builds.
+	if (
+		process.env.NODE_ENV !== "production" ||
+		process.env.NEXT_PUBLIC_ENGINE_VALIDATE === "1"
+	) {
+		validatePageSchema(schema);
+	}
+
 	return <NodeRenderer node={schema.root} depth={0} />;
 });

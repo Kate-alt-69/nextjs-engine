@@ -33,6 +33,8 @@ import type {
 	SpacerProps,
 	DividerProps,
 	CardProps,
+	OptionProps,
+	OptGroupProps,
 } from "../schema/types";
 import { usePropStyles, cpropClass } from "../hooks/usePropStyles";
 
@@ -563,6 +565,7 @@ export const EngineButton = memo(function EngineButton({
 
 export interface EngineCardProps extends CardProps {
 	children?: ReactNode;
+	coverClassName?: string;
 }
 
 export const EngineCard = memo(
@@ -652,7 +655,7 @@ export const EngineCard = memo(
 							style={{
 								width:      "100%",
 								height:     "100%",
-								objectFit:  coverFit,
+								objectFit: coverFit as any,
 								display:    "block",
 								position:   isHorizontal ? "absolute" : "static",
 								top:        0,
@@ -715,3 +718,66 @@ export const EngineDivider = memo(function EngineDivider({
 			: { border: "none", borderLeft: `${thickness} ${styleVariant} ${color}`, marginLeft: marginY as CSSProperties["marginLeft"], marginRight: marginY as CSSProperties["marginRight"], height: "auto", alignSelf: "stretch" };
 	return <hr style={baseStyle} />;
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Option — native <option> element for use inside <select>
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface EngineOptionProps extends OptionProps {
+	children?: ReactNode;
+}
+
+export const EngineOption = memo(
+	forwardRef<HTMLOptionElement, EngineOptionProps>(function EngineOption(
+		{ children, value, label, disabled = false, selected, style, className, id, point, ...props },
+		ref,
+	) {
+		const resolvedStyle = usePropStyles(props as any, style);
+		const resolvedId = id ?? point;
+		return (
+			<option
+				ref={ref}
+				id={resolvedId}
+				value={value}
+				label={label}
+				disabled={disabled}
+				selected={selected}
+				className={className}
+				style={resolvedStyle}
+			>
+				{children}
+			</option>
+		);
+	}),
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  OptGroup — native <optgroup> element for grouping <option>s
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface EngineOptGroupProps extends OptGroupProps {
+	children?: ReactNode;
+}
+
+export const EngineOptGroup = memo(
+	forwardRef<HTMLOptGroupElement, EngineOptGroupProps>(function EngineOptGroup(
+		{ children, label, disabled = false, style, className, id, point, ...props },
+		ref,
+	) {
+		const resolvedStyle = usePropStyles(props as any, style);
+		const resolvedId = id ?? point;
+		return (
+			<optgroup
+				ref={ref}
+				id={resolvedId}
+				label={label}
+				disabled={disabled}
+				className={className}
+				style={resolvedStyle}
+			>
+				{children}
+			</optgroup>
+		);
+	}),
+);
+

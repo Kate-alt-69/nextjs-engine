@@ -15,33 +15,36 @@ if (!fs.existsSync(appNotFound)) {
 	console.log("[engine] app/not-found.tsx missing — regenerated engine fallback.");
 }
 
+// ── Turbopack Client Mock Guard ───────────────────────────────────────────────
+// Turbopack rejects `false` booleans. We write a clean, universal stub file
+// to securely intercept server-exclusive imports executing on client pipelines.
+const turbopackStub = path.join(__dirname, "app", "__turbopack_stub__.ts");
+if (!fs.existsSync(turbopackStub)) {
+	fs.writeFileSync(turbopackStub, "export default {};\n");
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
 	reactStrictMode: true,
 	distDir: "dist",
 
-	// ── Image optimisation ────────────────────────────────────────────────────
-	//  Next.js will automatically serve AVIF → WebP → original format based on
-	//  the Accept header. No changes needed in EngineImage — this is transparent.
-	images: {
-		// Priority order: AVIF (smallest, best quality) → WebP → original
-		formats: ["image/avif", "image/webp"],
-		// Breakpoints for srcset generation — covers all common device widths
-		deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-		// Sizes for layout-contained images (icons, thumbnails, avatars)
-		imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-		// Cache optimised images for 30 days
-		minimumCacheTTL: 60 * 60 * 24 * 30,
+	// ── Turbopack Compiler Configuration (Next.js 16 Stable) ──────────────────
+	// Instructs the underlying Rust bundler to map server modules specifically 
+	// for client/browser target environments to our clean, empty file stub.
+	turbopack: {
+		resolveAlias: {
+			fs: { browser: "./app/__turbopack_stub__.ts" },
+			"fs/promises": { browser: "./app/__turbopack_stub__.ts" },
+			path: { browser: "./app/__turbopack_stub__.ts" },
+			os: { browser: "./app/__turbopack_stub__.ts" },
+			crypto: { browser: "./app/__turbopack_stub__.ts" },
+		},
 	},
 
+	// ── Webpack Legacy Compiler Hook ──────────────────────────────────────────
+	// Kept for seamless alignment when running legacy production hooks or checks.
 	webpack(config, { isServer }) {
 		if (!isServer) {
-			// ── Node.js built-in stubs for the client bundle ───────────────────────
-			//  createPage.tsx contains an async server component that dynamically
-			//  imports "fs/promises" to resolve markdown filePaths at render time.
-			//  That code path never runs on the client, but webpack still needs to
-			//  know what to do with the import. Stubbing these to `false` makes
-			//  webpack emit an empty module — no runtime error, no bundle bloat.
 			config.resolve.fallback = {
 				...(config.resolve.fallback ?? {}),
 				fs:            false,
