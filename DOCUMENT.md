@@ -1,7 +1,18 @@
 # Next.js Engine — Technical Documentation
 
-> **Last updated:** 2026-06-07
+> **Last updated:** 2026-06-18
 > **Changes in this update:**
+> - **At-rule style support** — `style` objects and `staticClass()` now accept nested CSS at-rules such as `@media`, `@supports`, `@container`, `@starting-style`, and global declaration at-rules such as `@view-transition`. Runtime `style` at-rules are compiled through `StyleCollector` instead of being passed to React inline styles.
+> - **Compile fixes** — `EngineNav` desktop item visibility now uses the configured `mobileBreakpoint` through nested at-rule CSS. `EngineAPIConfigParser` now emits `destinationHeader` for API key auth and accepts compiled PNP private keys as JWK strings.
+> **Changes in previous update:**
+> - **`EngineAPIConfigParser`** — New `src/engine/core/EngineAPIConfigParser.ts`. Parses `.EngineAPIConfig/*.api` files (TOML-inspired syntax) into a compiled `EngineAPICompiledConfig` object consumed by `EngineAPIResolver`. Supports `$ENV_VAR` substitution, all auth types (`ak`, `bearer`, `jwt`, `basic`, `hmac`, `pnp`), version macros, and per-provider header overrides. In-process cache via `ensureAPIConfig()`.
+> - **`engineApiPlugin`** — New `src/engine/plugins/engineApiPlugin.js`. Next.js `webpack` plugin that compiles `.EngineAPIConfig/*.api` at build time and writes `.engine-api-compiled.json` to the project root. Import with `const withEngineAPI = require("./src/engine/plugins/engineApiPlugin")` in `next.config.js`.
+> - **`schemaAnalyzer`** — New `src/engine/core/schemaAnalyzer.ts` (TASK-018). Static analyzer for `PageSchema`/`SchemaNode` trees. Emits TypeScript-compiler-style diagnostics: `E001` unknown type (+ Levenshtein "did you mean?"), `E002` missing required prop, `E003` duplicate id/point, `E004` circular reference, `W001`–`W006` accessibility and performance warnings. Exports `analyzeSchema()`, `analyzeNode()`, `isSchemaValid()`.
+> - **`staticClass` utility** — New export from `usePropStyles.ts`. Converts a plain `CSSProperties` object into a deduplicated CSS class injected once into `StyleCollector`. Used internally by `EngineSection` and `EngineCard` to eliminate repeated inline styles on inner-wrapper `<div>`s (TASK-005). Public API: `import { staticClass } from "@/engine"`.
+> - **Anti-fingerprint console fix** — `EngineAPIResolver`'s blocked-header warning is now dev-only (no-ops in production).
+> **Changes in previous update:**
+> - **Core Component Additions** — New `EngineLink` (transition-aware), `EngineHero` (layout variants), `EngineSuspense` (loading presets), and `EngineForms` suite (Form, Input, etc).
+> - **`EngineAPIResolver`** — Declarative networking class for centralized fetch orchestration with multi-tier overrides and native auth support.
 > - **CSS Tier System** — `StyleCollector` now classifies every CSS block into one of three tiers based on how many page renders have used it: **Global** (10+ renders, or explicitly marked — layout/header CSS), **Group** (3–9 renders — shared across several pages), **Local** (1–2 renders — page-unique). Output order is always Global → Group → Local. `EngineGlobalStyles` component exported for `layout.tsx` injection of early global CSS.
 > - **Image optimization** — `next.config.js` now routes images through AVIF → WebP → original format automatically. `EngineImage` gains `qualityPreset` ("performance" 65 / "balanced" 75 / "sharp" 90), per-viewport `qualityMobile`/`qualityDesktop` fields, smarter `sizes` auto-generation, resolution-aware placeholder shimmer, and `imageRendering` browser hint prop.
 > - **`sides` prop** — new per-side spacing system. `sides: [1,2,3,4]` where 1=top 2=left 3=right 4=bottom. Pair with `sideDistance` and `sideType` ("margin" | "padding").
@@ -38,11 +49,15 @@ src/engine/
 │   └── types.ts              All TypeScript types for the schema system
 │
 ├── core/
-│   ├── resolver.ts           Converts ResponsiveValue props → CSS custom properties
-│   ├── StyleCollector.ts     Collects CSS blocks during render, outputs one <style> tag
-│   ├── registry.ts           Maps NodeType strings → React components
-│   ├── lazyDetect.ts         Analyses nodes and decides lazy strategy per element
-│   └── SchemaRenderer.tsx    Walks the schema tree and renders each node
+│   ├── resolver.ts              Converts ResponsiveValue props to CSS custom properties
+│   ├── StyleCollector.ts        Collects CSS blocks during render, outputs one style tag
+│   ├── registry.ts              Maps NodeType strings to React components
+│   ├── lazyDetect.ts            Analyses nodes and decides lazy strategy per element
+│   ├── SchemaRenderer.tsx       Walks the schema tree and renders each node
+│   ├── EngineAPIResolver.ts     Runtime fetch orchestrator with multi-tier auth + version macros
+│   ├── EngineAPIConfigParser.ts Parses .EngineAPIConfig/*.api files into EngineAPICompiledConfig
+│   ├── schemaAnalyzer.ts        Static analyzer — diagnostics, did-you-mean, a11y, perf warnings
+│   └── validateSchema.ts        Runtime schema validation (lightweight, throws on hard errors)
 │
 ├── hooks/
 │   ├── useInView.ts          SSR-safe IntersectionObserver hook
@@ -53,10 +68,17 @@ src/engine/
 │
 ├── components/
 │   ├── primitives.tsx        Box, Stack, Grid, Text, Heading, Section, Button, Card, Spacer, Divider
+│   ├── EngineLink.tsx        Styled anchor — delegates routing to EngineNav
+│   ├── EngineNav.tsx         Navigation bar + shared anchor-rendering pipeline
 │   ├── EngineImage.tsx       Smart lazy image with blur-up progressive loading
 │   ├── EngineVideo.tsx       Lazy video — src never loads until near viewport
+│   ├── EngineHero.tsx        Dedicated hero sections with parallax and overlays
+│   ├── EngineSuspense.tsx    Schema-native Suspense with loading presets
+│   ├── EngineForms.tsx       Form primitives (Input, Textarea, Checkbox, etc)
 │   └── LazyMount.tsx         Generic lazy mount wrapper + LazySection variant
 │
+├── plugins/
+│   └── engineApiPlugin.js    Next.js webpack plugin — compiles .EngineAPIConfig at build time
 ├── createPage.tsx            Top-level page factory
 └── index.ts                  Public API exports
 ```
@@ -582,7 +604,7 @@ All animations respect `prefers-reduced-motion: reduce` — set to `animation: n
 }
 ```
 
-Renders a `<button>` or `<a>` (if `href` is set).
+Renders a `<button>` or `<a>`. Note: For advanced routing and smooth transitions, use the `link` component.
 
 | Variant | Style |
 |---------|-------|
@@ -593,6 +615,252 @@ Renders a `<button>` or `<a>` (if `href` is set).
 | `link` | Underlined text, no padding |
 
 Sizes: `xs`, `sm`, `md`, `lg`, `xl`.
+
+### link
+
+The primary routing primitive. It handles external URLs automatically and integrates with the `next-view-transitions` pipeline.
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `href` | `string` | Destination URL. Defaults to `"#"` |
+| `target` | `string` | HTML anchor target (e.g., `"_blank"`) |
+| `onClick` | `string \| function` | Named handler or callback function |
+| `content` | `string` | Text content (alternative to schema children) |
+| `cprop.link` | `EngineLinkConfig` | Behavior config: `{ transition: "page-to-page" | "instant", styles: CSSProperties }` |
+
+**Transition Pipeline:**
+- `page-to-page`: Uses the View Transitions API for seamless full-page animations.
+- `instant`: Standard high-speed client-side navigation.
+
+**Routing pipeline:** `EngineLink` delegates all anchor rendering to `renderEngineAnchor` exported from `EngineNav`. The three-strategy routing (external / animated / native) lives in one place.
+
+**Note:** `EngineLink` merges styles from `cprop.styles` and `cprop.link.styles` before processing.
+
+---
+
+### nav
+
+Schema type: `"nav"` | `"EngineNav"` — Full navigation bar with logo, items, mobile hamburger, dropdown sub-menus, and sticky support. Also owns `renderEngineAnchor`, the shared routing pipeline used by both `EngineNav` and `EngineLink`.
+
+#### CSS custom properties
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `--engine-nav-bg` | `transparent` | Nav background |
+| `--engine-nav-border` | `rgba(255,255,255,0.08)` | Bottom border (horizontal) |
+| `--engine-nav-color` | `inherit` | Item text color |
+| `--engine-nav-active-color` | `var(--color-primary)` | Active item text |
+| `--engine-nav-active-bg` | `rgba(255,255,255,0.1)` | Active item background |
+| `--engine-nav-height` | `3.5rem` | Min-height of horizontal bar |
+| `--engine-nav-px` | `1.5rem` | Horizontal padding |
+| `--engine-nav-max-width` | `1200px` | Inner content max-width |
+| `--engine-nav-blur` | `blur(12px)` | Backdrop blur when sticky |
+| `--engine-nav-dropdown-bg` | `#1a1a1a` | Dropdown panel background |
+| `--engine-nav-dropdown-border` | `rgba(255,255,255,0.1)` | Dropdown panel border |
+
+#### Props
+
+| Prop | Default | Description |
+|---|---|---|
+| `variant` | `"horizontal"` | `"horizontal"` \| `"vertical"` \| `"minimal"` |
+| `sticky` | `false` | Stick to top with `backdrop-filter` blur |
+| `logo` | — | `{ src, href, alt, width, height }` |
+| `items` | `[]` | Array of `EngineNavItem` |
+| `mobileBreakpoint` | `768` | px threshold for hamburger menu |
+
+```ts
+interface EngineNavItem {
+  label:     string;
+  href?:     string;
+  target?:   string;
+  cprop?:    { link?: { transition?: string; href?: string } };
+  active?:   boolean;           // auto-detected from pathname if omitted
+  children?: EngineNavItem[];   // renders as dropdown
+}
+```
+
+#### Schema example
+
+```json
+{
+  "type": "nav",
+  "props": {
+    "sticky": true,
+    "logo": { "src": "/logo.svg", "href": "/", "alt": "Brand" },
+    "items": [
+      { "label": "Home",   "href": "/" },
+      { "label": "Docs",   "href": "/docs", "cprop": { "link": { "transition": "page-to-page" } } },
+      { "label": "GitHub", "href": "https://github.com/...", "target": "_blank" },
+      { "label": "More",   "children": [{ "label": "Blog", "href": "/blog" }] }
+    ]
+  }
+}
+```
+
+### hero
+
+A layout-heavy section primitive designed for high-impact banners.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `variant` | `string` | `"centered"` | `"centered" | "split" | "fullbleed"` |
+| `overlay` | `string` | — | Background overlay (CSS color/gradient). |
+| `parallax` | `boolean` | `false` | Enable scroll-parallax effect. |
+| `contentMaxWidth` | `ResponsiveValue` | `"1200px"` | Max width of the inner content container |
+| `centered` | `boolean` | `true` | Horizontally centers the content container |
+| `snapAlign` | `string` | — | CSS `scroll-snap-align` property |
+| `fullViewport` | `boolean` | `true` | Sets `min-height: 100svh` |
+
+**Layout Variants:**
+- `centered`: Flex-column with center alignment.
+- `split`: 1:1 CSS Grid layout for side-by-side content.
+- `fullbleed`: No container constraints; children fill the entire section width.
+
+### suspense
+
+Wraps children in a React Suspense boundary with optimized loading presets.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `preset` | `string` | `"skeleton"` | `"skeleton" | "spinner" | "shimmer" | "pulse" | "blur"` |
+| `minHeight` | `string\|number` | — | Reserved vertical space for the placeholder |
+| `skeletonLines` | `number` | `4` | Lines for the skeleton preset |
+| `delay` | `number` | `0` | Delay in ms before fallback appears |
+| `fallback` | `ReactNode` | — | Custom fallback override |
+
+**Note:** Uses `DelayedFallback` internally to prevent "flashing" on fast network connections.
+
+### form
+
+A standard `<form>` primitive that bridges the schema to the `EngineAPIResolver`.
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `onSubmit` | `string` | Handler name. Automatically receives form data |
+| `onReset` | `string` | Handler name to trigger on form reset |
+| `method` | `string` | `"get" \| "post"`. |
+| `action` | `string` | Native form action URL |
+| `noValidate` | `boolean` | Disable browser built-in validation. |
+| `autoComplete` | `string` | Native autocomplete control |
+| `encType` | `string` | Encoding type for multipart/file submissions |
+
+### input / textarea / checkbox / label
+
+Standard form primitives.
+
+- **input**: Supports `type` (text, password, email, number, etc), `name`, `placeholder`, and standard constraints.
+- **textarea**: Supports `rows`, `cols`, and `resizable` (`none | both | horizontal | vertical`).
+- **checkbox**: Supports `checked`, `defaultChecked`, and `value`.
+- **label**: Supports `htmlFor` or `forInput` (shorthand).
+
+**Data Binding:**
+Form elements utilize `data-engine-bind` for automatic field mapping during `EngineAPIResolver` orchestration.
+
+---
+
+## Networking
+
+### EngineAPIResolver
+
+A centralized class for handling fetch requests with multi-tier evaluation (Global → Page → Node).
+
+```ts
+const resolver = new EngineAPIResolver({
+	endpoint: "https://api.kastrick.com/&v&/",
+	versionMacros: { v: "v1" }
+});
+
+const res = await resolver.resolveRequest({
+	formData: { username: "admin" },
+	pageOverrides: {
+		endpoint: "https://api.kastrick.com/&v&/login", // Macros still apply to overrides
+		method: "POST"
+	}
+});
+```
+
+**Configuration (`EngineAPIConfig`):**
+- `endpoint`: Base URL.
+- `method`: HTTP Verb.
+- `auth`: Authentication config (`type: "bearer" | "basic" | "hmac" | "pnp"`).
+- `headers`: Request headers.
+- `versionMacros`: URL macro map (e.g., `&v&` -> `v1`).
+
+---
+
+### EngineAPIConfigParser — `.EngineAPIConfig` file format
+
+Place `.api` files inside a `.EngineAPIConfig/` directory at your project root. The plugin compiles them at build time; the parser can also be called at runtime server-side.
+
+**File format (TOML-inspired):**
+
+```ini
+# .EngineAPIConfig/main.api
+
+[provider.main]
+endpoint = "https://api.kastrick.com"
+method   = "POST"
+cache    = "no-cache"
+
+[provider.main.auth]
+type      = "hmac"
+secret    = "$API_SECRET"
+algorithm = "sha-256"
+
+[provider.cdn]
+endpoint = "https://cdn.kastrick.com"
+method   = "GET"
+cache    = "force-cache"
+
+[versions]
+V1 = "/api/v1"
+V2 = "/api/v2"
+```
+
+Environment variables are substituted with `$VAR_NAME` syntax. All `$VAR` values are resolved from `process.env` at compile time (plugin) or at `ensureAPIConfig()` call time (runtime).
+
+**Next.js plugin setup:**
+
+```js
+// next.config.js
+const withEngineAPI = require("./src/engine/plugins/engineApiPlugin");
+
+module.exports = withEngineAPI({
+  // your existing next config
+}, {
+  configDir:  ".EngineAPIConfig",          // default
+  outputFile: ".engine-api-compiled.json", // default
+});
+```
+
+**Runtime usage (server-side):**
+
+```ts
+import { ensureAPIConfig } from "@/engine";
+
+// In getServerSideProps / Route Handler / Server Component:
+const config = await ensureAPIConfig(); // reads + caches on first call
+
+const resolver = new EngineAPIResolver({
+  endpoint:      "&V1&/users/login",
+  provider:      "main",
+  compiledConfig: config,
+});
+```
+
+**Supported auth types:**
+
+| Type | Required fields | Header emitted |
+|------|----------------|----------------|
+| `none` | — | — |
+| `ak` | `key`, `header?` | `X-Key: <key>` (or custom header) |
+| `bearer` | `token` | `Authorization: Bearer <token>` |
+| `jwt` | `token` | `Authorization: Bearer <token>` |
+| `basic` | `username`, `password` | `Authorization: Basic <base64>` |
+| `hmac` | `secret`, `algorithm?` | `X-Timestamp`, `X-Signature` (SHA-256 or SHA-512 HMAC) |
+| `pnp` | `privateKey` (JWK), `algorithm?` | `X-Key`, `X-Timestamp`, `X-Signature` (Ed25519 or RS256) |
+
+---
 
 ### card
 
@@ -1439,6 +1707,119 @@ const result = validateSchema(mySchema.root);
 ```
 
 Each `ValidationError` has: `{ path: string, message: string, level: "error" | "warn" }`.
+
+---
+
+## Static Schema Analyzer
+
+`schemaAnalyzer` is a build-time / dev-time static analysis tool. Unlike `validateSchema` (which throws on hard errors at runtime), the analyzer collects all diagnostics in one pass and returns them as structured objects — suitable for CI pipelines, editor integrations, or dev-server overlays.
+
+```ts
+import { analyzeSchema, isSchemaValid } from "@/engine";
+
+const result = analyzeSchema(MySchema);
+
+console.log(result.formatted);
+// [schema:root.children[2]] EngineError(E001): Unknown node type "txt".
+//     hint: Did you mean "text"?
+// [schema:root.children[5].props] EngineWarn(W001): Image node is missing an "alt" prop.
+//     hint: Add alt="" for decorative images or a descriptive string for meaningful ones.
+
+console.log(result.errors);   // number of error-severity diagnostics
+console.log(result.warnings); // number of warn-severity diagnostics
+
+// Guard before rendering:
+if (!isSchemaValid(MySchema)) throw new Error("Schema has errors");
+```
+
+**Diagnostic codes:**
+
+| Code | Severity | Description |
+|------|----------|-------------|
+| `E001` | error | Unknown node type. Includes "Did you mean X?" via Levenshtein distance. |
+| `E002` | error | Missing required prop for a known node type (e.g. `src` on `image`). |
+| `E003` | error | Duplicate `id` or `point` value — reports first-seen path. |
+| `E004` | error | Circular reference — same object instance appears twice in the tree. |
+| `W001` | warn | `image` / `img` node has no `alt` prop (accessibility). |
+| `W002` | warn | `button` / `link` has neither `label` nor children (accessibility). |
+| `W003` | warn | `checkbox` / `input` has no `id` — cannot be associated with a `<label>`. |
+| `W004` | warn | Node has >100 direct children (performance). |
+| `W005` | warn | Tree nesting exceeds 15 levels (performance). |
+| `W006` | warn | Leaf node (`text`, `image`, `button`, etc.) has children declared — they are silently ignored. |
+
+**`EngineDiagnostic` shape:**
+
+```ts
+interface EngineDiagnostic {
+  severity: "error" | "warn" | "info";
+  code:     string;   // "E001", "W003", etc.
+  message:  string;
+  path:     string;   // e.g. "root.children[2].children[0]"
+  hint?:    string;   // optional fix suggestion
+}
+```
+
+---
+
+## `staticClass` — Deduplicated CSS Classes
+
+`staticClass` converts a `CSSProperties` object into a single CSS class that is injected once into `StyleCollector`. Identical property sets across any number of nodes share the same class name.
+
+```ts
+import { staticClass } from "@/engine";
+
+// Inside your own custom components:
+const layoutClass = staticClass({
+  width:     "100%",
+  maxWidth:  "1200px",
+  marginLeft:  "auto",
+  marginRight: "auto",
+});
+// → "e-s-a1b2c3"  (injected as .e-s-a1b2c3{width:100%;max-width:1200px;...})
+// If another component calls staticClass with the same props, the same class
+// name is returned and no duplicate CSS rule is emitted.
+```
+
+Used internally by `EngineSection` (inner content wrapper) and `EngineCard` (cover + content wrappers) to eliminate repeated inline styles across multiple instances of the same component.
+
+---
+
+## Style At-Rules
+
+Engine style objects can include nested CSS at-rules. React inline styles cannot contain `@media` or other at-rules, so the engine compiles those entries through `StyleCollector`.
+
+```ts
+{
+	type: "box",
+	props: {
+		style: {
+			display: "none",
+			"@media(min-width: 768px)": {
+				display: "grid",
+				gridTemplateColumns: "repeat(3, 1fr)",
+			},
+			"@supports(backdrop-filter: blur(8px))": {
+				backdropFilter: "blur(8px)",
+			},
+		},
+	},
+}
+```
+
+For schema `style`, at-rule-controlled properties are emitted as CSS custom properties on `:root`, then referenced from the element's inline style. This lets media/support/container rules change the value without passing illegal keys to React.
+
+`staticClass()` also accepts nested at-rules:
+
+```ts
+const desktopOnly = staticClass({
+	display: "none",
+	"@media(min-width: 768px)": {
+		display: "flex",
+	},
+});
+```
+
+Separate extracted CSS files are still a future build-time optimization. The current runtime collector is kept because it deduplicates CSS per rendered schema and avoids shipping unused style rules.
 
 ---
 

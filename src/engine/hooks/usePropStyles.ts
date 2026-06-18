@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { CSSProperties } from "react";
-import type { BaseNodeProps, CpropValue } from "../schema/types";
+import type { BaseNodeProps, CpropValue, EngineStyleObject } from "../schema/types";
 import {
 	resolveSpacing,
 	resolveGeneric,
@@ -34,11 +34,120 @@ function camelToKebab(camelCaseKey: string): string {
 
 // ── CSSProperties → CSS declaration string ────────────────────────────────────
 
-function cssToDeclBlock(cssPropertiesMap: CSSProperties): string {
+function isPlainStyleObject(value: unknown): value is Record<string, unknown> {
+	return value != null && typeof value === "object" && !Array.isArray(value);
+}
+
+function cssToDeclBlock(cssPropertiesMap: CSSProperties | EngineStyleObject): string {
 	return Object.entries(cssPropertiesMap)
-		.filter(([, propertyValue]) => propertyValue != null)
+		.filter(([propertyKey, propertyValue]) => propertyValue != null && !propertyKey.startsWith("@") && !isPlainStyleObject(propertyValue))
 		.map(([propertyKey, propertyValue]) => `${camelToKebab(propertyKey)}:${propertyValue}`)
 		.join(";");
+}
+
+function getStyleAtRules(cssPropertiesMap: CSSProperties | EngineStyleObject | undefined): [string, unknown][] {
+	if (!cssPropertiesMap) return [];
+	return Object.entries(cssPropertiesMap).filter(([propertyKey]) => propertyKey.startsWith("@"));
+}
+
+function hasStyleAtRules(cssPropertiesMap: CSSProperties | EngineStyleObject | undefined): boolean {
+	return getStyleAtRules(cssPropertiesMap).length > 0;
+}
+
+function normalizeAtRuleBlock(atRuleKey: string, nestedValue: unknown, selector: string): string {
+	if (!isPlainStyleObject(nestedValue)) {
+		return typeof nestedValue === "string" ? `${atRuleKey}{${nestedValue}}` : "";
+	}
+
+	const nestedDeclarations = cssToDeclBlock(nestedValue as EngineStyleObject);
+	const nestedRules: string[] = [];
+	const selectorScopedAtRule = /^@(media|supports|container|layer|scope|starting-style)\b/i.test(atRuleKey);
+
+	if (nestedDeclarations) {
+		nestedRules.push(selectorScopedAtRule
+			? `${atRuleKey}{${selector}{${nestedDeclarations}}}`
+			: `${atRuleKey}{${nestedDeclarations}}`);
+	}
+
+	for (const [nestedKey, childValue] of Object.entries(nestedValue)) {
+		if (!nestedKey.startsWith("@")) continue;
+		const childRule = normalizeAtRuleBlock(nestedKey, childValue, selector);
+		if (!childRule) continue;
+		nestedRules.push(selectorScopedAtRule ? `${atRuleKey}{${childRule}}` : childRule);
+	}
+
+	return nestedRules.join("\n");
+}
+
+function compileNestedStyleClass(cssPropertiesMap: CSSProperties | EngineStyleObject, classPrefixString: string): string {
+	const baseDeclarations = cssToDeclBlock(cssPropertiesMap);
+	const atRules = getStyleAtRules(cssPropertiesMap);
+	if (!baseDeclarations && atRules.length === 0) return "";
+
+	const styleContentHash = _hash(JSON.stringify(cssPropertiesMap));
+	const targetClassIdentifier = `${classPrefixString}${styleContentHash}`;
+	const selector = `.${targetClassIdentifier}`;
+	const compiledBlocks: string[] = [];
+
+	if (baseDeclarations) compiledBlocks.push(`${selector}{${baseDeclarations}}`);
+	for (const [atRuleKey, nestedValue] of atRules) {
+		const compiledAtRule = normalizeAtRuleBlock(atRuleKey, nestedValue, selector);
+		if (compiledAtRule) compiledBlocks.push(compiledAtRule);
+	}
+
+	globalStyleCollector.add(compiledBlocks.join("\n"));
+	return targetClassIdentifier;
+}
+
+function compileAtRuleStyleVars(cssPropertiesMap: CSSProperties | EngineStyleObject | undefined): CSSProperties | undefined {
+	if (!cssPropertiesMap) return undefined;
+	const atRules = getStyleAtRules(cssPropertiesMap);
+	if (atRules.length === 0) return cssPropertiesMap as CSSProperties;
+
+	const styleContentHash = _hash(JSON.stringify(cssPropertiesMap));
+	const resolvedStyle: CSSProperties = {};
+	const rootDeclarations: string[] = [];
+	const atRuleBlocks: string[] = [];
+	const variableForProperty = (propertyKey: string) => `--e-at-${styleContentHash}-${camelToKebab(propertyKey).replace(/[^a-z0-9-]/gi, "-")}`;
+
+	for (const [propertyKey, propertyValue] of Object.entries(cssPropertiesMap)) {
+		if (propertyKey.startsWith("@") || propertyValue == null || isPlainStyleObject(propertyValue)) continue;
+		const variableName = variableForProperty(propertyKey);
+		(resolvedStyle as Record<string, string>)[propertyKey] = `var(${variableName})`;
+		rootDeclarations.push(`${variableName}:${propertyValue}`);
+	}
+
+	for (const [atRuleKey, nestedValue] of atRules) {
+		if (!isPlainStyleObject(nestedValue)) {
+			if (typeof nestedValue === "string") atRuleBlocks.push(`${atRuleKey}{${nestedValue}}`);
+			continue;
+		}
+
+		const nestedVariableDeclarations: string[] = [];
+		for (const [nestedPropertyKey, nestedPropertyValue] of Object.entries(nestedValue)) {
+			if (nestedPropertyKey.startsWith("@") || nestedPropertyValue == null || isPlainStyleObject(nestedPropertyValue)) continue;
+			const variableName = variableForProperty(nestedPropertyKey);
+			(resolvedStyle as Record<string, string>)[nestedPropertyKey] = `var(${variableName})`;
+			nestedVariableDeclarations.push(`${variableName}:${nestedPropertyValue}`);
+		}
+
+		if (nestedVariableDeclarations.length > 0) {
+			atRuleBlocks.push(`${atRuleKey}{:root{${nestedVariableDeclarations.join(";")}}}`);
+		}
+
+		for (const [nestedAtRuleKey, childValue] of Object.entries(nestedValue)) {
+			if (!nestedAtRuleKey.startsWith("@")) continue;
+			const childStyle = compileAtRuleStyleVars({ [nestedAtRuleKey]: childValue } as EngineStyleObject);
+			void childStyle;
+		}
+	}
+
+	if (rootDeclarations.length > 0) {
+		globalStyleCollector.add(`:root{${rootDeclarations.join(";")}}`);
+	}
+	globalStyleCollector.addMany(atRuleBlocks);
+
+	return resolvedStyle;
 }
 
 // ── cpropClass ────────────────────────────────────────────────────────────────
@@ -47,15 +156,22 @@ export function cpropClass(cpropContainerInstance: CpropValue | undefined): stri
 	if (!cpropContainerInstance) return undefined;
 	const processedClassNamesList: string[] = [];
 
-	const injectSubBlockRule = (styleDeclarationsMap: CSSProperties, pseudoSelectorString: string, classPrefixString: string): void => {
+	const injectSubBlockRule = (styleDeclarationsMap: EngineStyleObject, pseudoSelectorString: string, classPrefixString: string): void => {
 		const structuralDeclarationBlock = cssToDeclBlock(styleDeclarationsMap);
-		if (!structuralDeclarationBlock) return;
-		const styleContentHash = _hash(`${pseudoSelectorString}:${structuralDeclarationBlock}`);
+		if (!structuralDeclarationBlock && !hasStyleAtRules(styleDeclarationsMap)) return;
+		const styleContentHash = _hash(`${pseudoSelectorString}:${JSON.stringify(styleDeclarationsMap)}`);
 		const TargetClassIdentifier = `${classPrefixString}${styleContentHash}`;
 		const structuredCssRule = pseudoSelectorString.includes(",")
 			? pseudoSelectorString.split(",").map((splitSelector) => `.${TargetClassIdentifier}${splitSelector.trim()}`).join(",") + `{${structuralDeclarationBlock}}`
 			: `.${TargetClassIdentifier}${pseudoSelectorString}{${structuralDeclarationBlock}}`;
 		globalStyleCollector.add(structuredCssRule);
+		for (const [atRuleKey, nestedValue] of getStyleAtRules(styleDeclarationsMap)) {
+			const pseudoSelector = pseudoSelectorString.includes(",")
+				? pseudoSelectorString.split(",").map((splitSelector) => `.${TargetClassIdentifier}${splitSelector.trim()}`).join(",")
+				: `.${TargetClassIdentifier}${pseudoSelectorString}`;
+			const compiledAtRule = normalizeAtRuleBlock(atRuleKey, nestedValue, pseudoSelector);
+			if (compiledAtRule) globalStyleCollector.add(compiledAtRule);
+		}
 		processedClassNamesList.push(TargetClassIdentifier);
 	};
 
@@ -148,11 +264,25 @@ const ALREADY_HANDLED = new Set([
 	"opacity", "boxShadow", "color", "alignSelf", "justifySelf", "flex",
 ]);
 
+// ── Static class generator ────────────────────────────────────────────────────
+//
+//  Converts a plain CSSProperties object into a deduplicated CSS class.
+//  Identical property sets share the same class name across the whole page,
+//  eliminating repeated inline style declarations on inner-wrapper divs.
+//
+//  Usage:
+//    const cls = staticClass({ width: "100%", maxWidth: "1200px", margin: "0 auto" });
+//    // → "e-s-abc123"  (injected once into globalStyleCollector)
+
+export function staticClass(cssProperties: CSSProperties | EngineStyleObject): string {
+	return compileNestedStyleClass(cssProperties, "e-s-");
+}
+
 // ── Main hook ─────────────────────────────────────────────────────────────────
 
 export function usePropStyles(
 	props: Partial<BaseNodeProps> & Record<string, unknown>,
-	extraStyle?: CSSProperties,
+	extraStyle?: CSSProperties | EngineStyleObject,
 ): CSSProperties {
 	const style: CSSProperties = {};
 	const css:   string[]      = [];
@@ -312,5 +442,6 @@ export function usePropStyles(
 	}
 
 	// ── Merge explicit style overrides ────────────────────────────────────────
-	return extraStyle ? { ...style, ...extraStyle } : style;
+	const compiledExtraStyle = compileAtRuleStyleVars(extraStyle);
+	return compiledExtraStyle ? { ...style, ...compiledExtraStyle } : style;
 }

@@ -2,7 +2,7 @@
 //  Next.js Engine — Schema Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { CSSProperties, JSX } from "react";
+import type { CSSProperties, JSX, ReactNode, MouseEventHandler } from "react";
 
 // ── Breakpoints ───────────────────────────────────────────────────────────────
 
@@ -16,11 +16,15 @@ export const BREAKPOINT_ORDER: Breakpoint[] = ["xs","sm","md","lg","xl","2xl"];
 
 export type ResponsiveValue<T> = T | Partial<Record<Breakpoint, T>>;
 
+export type EngineStyleObject = CSSProperties & {
+	[key: `@${string}`]: EngineStyleObject | CSSProperties | string | number | null | undefined;
+};
+
 // ── Node types ────────────────────────────────────────────────────────────────
 
 export type BuiltinNodeType =
 	| "box" | "stack" | "grid" | "text" | "heading" | "markdown"
-	| "image" | "section" | "hero" | "card" | "button" | "link"
+	| "image" | "section" | "hero" | "card" | "button" | "link" | "nav"
 	| "spacer" | "divider" | "slot" | "raw" | "canvas" | "scroll"
 	| "custom-select" | "suspense" | "option" | "optgroup"
 	| "form" | "input" | "textarea" | "checkbox" | "label";
@@ -52,36 +56,36 @@ export interface CpropValue {
 	 * @example
 	 * onHover: { background: "#1a1a2e", transform: "scale(1.02)", color: "#fff" }
 	 */
-	onHover?: CSSProperties;
+	onHover?: EngineStyleObject;
 
 	/**
 	 * CSS overrides applied on `:focus` and `:focus-visible`.
 	 * @example
 	 * onFocus: { outline: "2px solid var(--e-accent)", outlineOffset: "3px" }
 	 */
-	onFocus?: CSSProperties;
+	onFocus?: EngineStyleObject;
 
 	/**
 	 * CSS overrides applied on `:active` (pressed state).
 	 * @example
 	 * onActive: { transform: "scale(0.97)", opacity: 0.9 }
 	 */
-	onActive?: CSSProperties;
+	onActive?: EngineStyleObject;
 
 	/**
 	 * CSS overrides applied on `:checked` (useful for styled checkboxes/radios).
 	 */
-	onChecked?: CSSProperties;
+	onChecked?: EngineStyleObject;
 
 	/**
 	 * CSS overrides applied when the element is disabled (`:disabled`).
 	 */
-	onDisabled?: CSSProperties;
+	onDisabled?: EngineStyleObject;
 
 	/**
 	 * CSS overrides applied on `:placeholder-shown`.
 	 */
-	onPlaceholder?: CSSProperties;
+	onPlaceholder?: EngineStyleObject;
 }
 
 // ── BaseNodeProps ─────────────────────────────────────────────────────────────
@@ -104,7 +108,7 @@ export interface CpropValue {
 export interface BaseNodeProps {
 	id?:        string;
 	className?: string;
-	style?:     CSSProperties;
+	style?:     EngineStyleObject;
 
 	// ── EngineScroll anchor point ─────────────────────────────────────────────
 	/**
@@ -491,9 +495,183 @@ export interface SectionProps extends BaseNodeProps {
 }
 
 export interface HeroProps extends SectionProps {
-	variant?:  "centered" | "split" | "fullbleed";
-	overlay?:  string;
+	variant?: "centered" | "split" | "fullbleed";
+	overlay?: string;
 	parallax?: boolean;
+}
+
+export interface EngineHeroProps extends HeroProps {
+	children?: ReactNode;
+}
+
+export interface EngineLinkConfig {
+	href: string;
+	transition?: "page-to-page" | "instant" | string;
+	styles?: CSSProperties & Record<string, any>;
+}
+
+export interface EngineLinkProps extends Omit<BaseNodeProps, "onClick"> {
+	children?: ReactNode;
+	href?: string;
+	target?: string;
+	content?: string;
+	cprop?: any; // Bypasses the strict CpropValue core definition check
+	onClick?: string | MouseEventHandler<HTMLAnchorElement>;
+}
+
+export type SuspensePreset = "skeleton" | "spinner" | "shimmer" | "pulse" | "blur";
+
+export interface EngineSuspenseProps extends BaseNodeProps {
+	children?: ReactNode;
+	/** Built-in loading fallback preset */
+	preset?: SuspensePreset;
+	/** Minimum height of the placeholder area */
+	minHeight?: string | number;
+	/** Number of skeleton lines (skeleton preset) */
+	skeletonLines?: number;
+	/** Delay (ms) before the fallback appears — prevents flash for fast loads */
+	delay?: number;
+	/** Maximum ms to wait before switching to errorFallback */
+	timeout?: number;
+	/** Schema node id (string) to render on timeout — for future use */
+	errorFallback?: string;
+	/** Custom fallback node override */
+	fallback?: ReactNode;
+}
+
+export interface EngineFormProps extends BaseNodeProps {
+	children?: ReactNode;
+	/** Called when the form submits. Receives the current bound field values. */
+	onSubmit?: string;  // handler name from pageProps.handlers
+	/** Handler name called when form resets. */
+	onReset?: string;
+	/** noValidate disables browser built-in validation. */
+	noValidate?: boolean;
+	/** autocomplete attribute */
+	autoComplete?: string;
+	/** Form action URL (native) */
+	action?: string;
+	/** HTTP method */
+	method?: "get" | "post";
+	/** encType for file uploads */
+	encType?: string;
+}
+
+export type InputType =
+	| "text" | "email" | "password" | "search" | "url" | "tel"
+	| "number" | "hidden" | "date" | "time" | "color" | "range" | "file"
+	| "checkbox" | "radio" | "submit" | "reset" | "button";
+
+export interface EngineInputProps extends BaseNodeProps {
+	/** Input type */
+	type?: InputType;
+	/** Field name — also used as the cprop.bind key */
+	name?: string;
+	/** Placeholder text */
+	placeholder?: string;
+	/** Default value */
+	defaultValue?: string | number;
+	/** Controlled value */
+	value?: string | number;
+	/** Disable the input */
+	disabled?: boolean;
+	/** Make the input required */
+	required?: boolean;
+	/** HTML5 pattern validation */
+	pattern?: string;
+	/** Min/max for numeric/date types */
+	min?: string | number;
+	max?: string | number;
+	step?: string | number;
+	/** Min/max length for text */
+	minLength?: number;
+	maxLength?: number;
+	/** Multiple selections (file input) */
+	multiple?: boolean;
+	/** Accept file types */
+	accept?: string;
+	/** autoComplete attribute */
+	autoComplete?: string;
+	/** aria-label for accessibility */
+	ariaLabel?: string;
+	/** aria-describedby */
+	ariaDescribedBy?: string;
+	/** onChange handler name */
+	onChange?: string;
+	/** readOnly */
+	readOnly?: boolean;
+	/** autoFocus */
+	autoFocus?: boolean;
+	/** tabIndex */
+	tabIndex?: number;
+}
+
+export interface EngineTextareaProps extends BaseNodeProps {
+	name?: string;
+	placeholder?: string;
+	defaultValue?: string;
+	value?: string;
+	disabled?: boolean;
+	required?: boolean;
+	rows?: number;
+	cols?: number;
+	minLength?: number;
+	maxLength?: number;
+	readOnly?: boolean;
+	autoFocus?: boolean;
+	tabIndex?: number;
+	autoComplete?: string;
+	ariaLabel?: string;
+	ariaDescribedBy?: string;
+	onChange?: string;
+	/** resize CSS property shorthand */
+	resizable?: "none" | "both" | "horizontal" | "vertical" | "block" | "inline";
+}
+
+export interface EngineCheckboxProps extends BaseNodeProps {
+	name?: string;
+	/** Value submitted when checked */
+	value?: string;
+	/** Controlled checked state */
+	checked?: boolean;
+	/** Default checked state */
+	defaultChecked?: boolean;
+	disabled?: boolean;
+	required?: boolean;
+	ariaLabel?: string;
+	ariaDescribedBy?: string;
+	onChange?: string;
+	tabIndex?: number;
+	autoFocus?: boolean;
+}
+
+export interface EngineLabelProps extends BaseNodeProps {
+	children?: ReactNode;
+	/** The id of the form element this label is for */
+	htmlFor?: string;
+	/** Shorthand: if set and htmlFor is not, uses `for-${forInput}` as htmlFor */
+	forInput?: string;
+}
+
+export interface EngineAPIAuthConfig {
+	type: "pnp" | "ak" | "hmac" | "bearer" | "jwt" | "basic" | "none";
+	key?: string;
+	secret?: string;
+	token?: string;
+	username?: string;
+	password?: string;
+	destinationHeader?: string;
+	algorithm?: "SHA-256" | "SHA-512" | "Ed25519" | "RS256" | string;
+	privateKey?: CryptoKey | JsonWebKey | string;
+}
+
+export interface EngineAPIConfig {
+	endpoint?: string;
+	method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | string;
+	cache?: RequestCache;
+	auth?: EngineAPIAuthConfig;
+	headers?: Record<string, string>;
+	versionMacros?: Record<string, string>;
 }
 
 export interface CardProps extends Omit<BaseNodeProps, "direction"> {

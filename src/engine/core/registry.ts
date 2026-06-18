@@ -7,7 +7,7 @@ import type { NodeType } from "../schema/types";
 import {
 	EngineBox, EngineStack, EngineGrid, EngineText, EngineHeading,
 	EngineSection, EngineButton, EngineCard, EngineSpacer, EngineDivider,
-	EngineOption, EngineOptGroup,
+	EngineOption, EngineOptGroup, EngineSlot,
 } from "../components/primitives";
 import { EngineImage }    from "../components/EngineImage";
 import { EngineVideo }    from "../components/EngineVideo";
@@ -18,6 +18,8 @@ import { CustomSelect }    from "../components/CustomSelect";
 import { EngineSuspense } from "../components/EngineSuspense";
 import { EngineHero }     from "../components/EngineHero";
 import { EngineForm, EngineInput, EngineTextarea, EngineCheckbox, EngineLabel } from "../components/EngineForms";
+import { EngineLink }                                                       from "../components/EngineLink";
+import { EngineNav }                                                        from "../components/EngineNav";
 
 export type EngineComponent = ComponentType<Record<string, unknown> & { children?: React.ReactNode }>;
 export type ComponentRegistry = Map<NodeType, EngineComponent>;
@@ -42,13 +44,18 @@ function buildDefaultRegistry(): ComponentRegistry {
 	r.set("divider",       EngineDivider as EngineComponent);
 	r.set("custom-select", CustomSelect as unknown as EngineComponent);
 	r.set("suspense",      EngineSuspense as unknown as EngineComponent);
-	r.set("option",        EngineOption as EngineComponent);
-	r.set("optgroup",      EngineOptGroup as EngineComponent);
+	r.set("slot",          EngineSlot as unknown as EngineComponent);
+	r.set("option",   	  (EngineOption as unknown) as EngineComponent);
+	r.set("optgroup", 	  (EngineOptGroup as unknown) as EngineComponent);
 	r.set("form",          EngineForm as EngineComponent);
 	r.set("input",         EngineInput as EngineComponent);
 	r.set("textarea",      EngineTextarea as EngineComponent);
 	r.set("checkbox",      EngineCheckbox as EngineComponent);
 	r.set("label",         EngineLabel as EngineComponent);
+	r.set("link",          EngineLink as EngineComponent);
+	r.set("EngineLink",    EngineLink as EngineComponent);
+	r.set("nav",           EngineNav  as EngineComponent);
+	r.set("EngineNav",     EngineNav  as EngineComponent);
 	return r;
 }
 

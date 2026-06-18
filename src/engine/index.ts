@@ -23,7 +23,12 @@ export type {
 	MarkdownProps, HeadingProps, ImageNodeProps, ButtonProps,
 	ButtonVariant, ButtonSize, SectionProps, HeroProps, CardProps,
 	SpacerProps, DividerProps, EngineScrollProps, CustomSelectProps,
-	OptionProps, OptGroupProps,
+	OptionProps, OptGroupProps, SlotProps,
+	EngineLinkProps, EngineLinkConfig,
+	EngineSuspenseProps, SuspensePreset,
+	EngineHeroProps,
+	EngineFormProps, EngineInputProps, EngineTextareaProps, EngineCheckboxProps, EngineLabelProps, InputType,
+	EngineAPIConfig, EngineAPIAuthConfig,
 } from "./schema/types";
 
 // ── Component registry ────────────────────────────────────────────────────────
@@ -36,20 +41,35 @@ export {
 export {
 	EngineBox, EngineStack, EngineGrid, EngineText, EngineHeading,
 	EngineSection, EngineButton, EngineCard, EngineSpacer, EngineDivider,
-	EngineOption, EngineOptGroup,
+	EngineOption, EngineOptGroup, EngineSlot,
 } from "./components/primitives";
+export { EngineLink }                              from "./components/EngineLink";
+export { EngineNav, renderEngineAnchor }           from "./components/EngineNav";
+export type { EngineNavProps, EngineNavItem, EngineNavLogo, EngineNavVariant, EngineAnchorConfig } from "./components/EngineNav";
 export { EngineImage }                              from "./components/EngineImage";
 export { EngineVideo }                              from "./components/EngineVideo";
 export { EngineCanvas, useEngineCanvas }            from "./components/EngineCanvas";
 export { EngineMarkdown }                           from "./components/EngineMarkdown";
 export { EngineHero }                              from "./components/EngineHero";
-export type { EngineHeroProps }                    from "./components/EngineHero";
 export { LazyMount, LazySection }                   from "./components/LazyMount";
 export { CustomSelect }                             from "./components/CustomSelect";
 export { EngineSuspense }                           from "./components/EngineSuspense";
-export type { EngineSuspenseProps, SuspensePreset } from "./components/EngineSuspense";
 export { EngineForm, EngineInput, EngineTextarea, EngineCheckbox, EngineLabel } from "./components/EngineForms";
-export type { EngineFormProps, EngineInputProps, EngineTextareaProps, EngineCheckboxProps, EngineLabelProps, InputType } from "./components/EngineForms";
+
+// ── Networking ─────────────────────────────────────────────────────────────
+export { EngineAPIResolver }                        from "./core/EngineAPIResolver";
+export {
+	compileAPIConfig,
+	loadAPIConfigDir,
+	setCompiledAPIConfig,
+	getCompiledAPIConfig,
+	ensureAPIConfig,
+} from "./core/EngineAPIConfigParser";
+export type { EngineAPICompiledConfig }             from "./core/EngineAPIConfigParser";
+
+// ── Static analysis ───────────────────────────────────────────────────────────
+export { analyzeNode, analyzeSchema, isSchemaValid } from "./core/schemaAnalyzer";
+export type { EngineDiagnostic, AnalyzerResult, DiagnosticSeverity } from "./core/schemaAnalyzer";
 
 
 // ── Scroll system ─────────────────────────────────────────────────────────────
@@ -65,7 +85,7 @@ export type {
 } from "./core/EngineBrowser";
 
 // ── CSS utilities ─────────────────────────────────────────────────────────────
-export { cpropClass }                               from "./hooks/usePropStyles";
+export { cpropClass, staticClass }                  from "./hooks/usePropStyles";
 export { EngineGlobalStyles }                       from "./core/StyleCollector";
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────

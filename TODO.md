@@ -1,6 +1,6 @@
 # Next.js Engine — Master Architectural Task Registry
 
-> **Last Updated:** June 12, 2026
+> **Last Updated:** June 18, 2026
 > **Status:** Active Development
 > **Legend:** 🚨 Blocking • 🔴 High • 🟡 Medium • 🟢 Low • ✅ Completed
 
@@ -2160,6 +2160,7 @@ fixes have been successfully implemented into the engine.
 | TASK-006 | ✅ Native Next.js `generateMetadata()` integration via `generateEngineMetadata()`.                                                            |
 | TASK-008 | ✅ Hydration stability improved through `suppressHydrationWarning` on EngineMarkdown while larger parser rewrite remains planned.             |
 | TASK-009 | ✅ `validateSchema()` and `validatePageSchema()` integrated into SchemaRenderer for runtime schema validation.                                |
+| BUG-004  | ✅ Build compile fix: `staticClass()` and schema `style` now compile nested CSS at-rules through `StyleCollector`; `EngineNav` uses `mobileBreakpoint` for desktop visibility; EngineAPI auth typing now matches compiled API-key and PNP config output. |
 
 ---
 

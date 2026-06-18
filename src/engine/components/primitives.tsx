@@ -33,10 +33,12 @@ import type {
 	SpacerProps,
 	DividerProps,
 	CardProps,
+	SlotProps,
 	OptionProps,
 	OptGroupProps,
 } from "../schema/types";
-import { usePropStyles, cpropClass } from "../hooks/usePropStyles";
+import { usePropStyles, cpropClass, staticClass } from "../hooks/usePropStyles";
+import { useEngineContext } from "../providers/EngineProvider";
 
 // ── Href wrapper utility ──────────────────────────────────────────────────────
 //  When a node has `href`, wrap it in a transparent <a> that doesn't affect
@@ -447,23 +449,25 @@ export const EngineSection = memo(
 			...(snapAlign ? { scrollSnapAlign: snapAlign } : {}),
 		};
 
-		const innerStyle: CSSProperties = {
-			width: "100%",
+		// Static layout props → deduplicated CSS class (shared across all sections with same maxWidth)
+		const innerLayoutClass = staticClass({
+			width:    "100%",
 			maxWidth: typeof contentMaxWidth === "number"
 				? `${contentMaxWidth}px`
 				: (contentMaxWidth as CSSProperties["maxWidth"]),
 			...(centered ? { marginLeft: "auto", marginRight: "auto" } : {}),
-		};
+		});
 
-		const resolvedOuter = usePropStyles(props as any, { ...sectionStyle, ...style });
-		const resolvedInner = usePropStyles({ px: px ?? "1.5rem", py: py ?? "4rem" } as any, innerStyle);
-		const hoverClass    = cpropClass(cprop);
-		const mergedClass   = [className, hoverClass].filter(Boolean).join(" ") || undefined;
-		const resolvedId    = id ?? point;
+		// Responsive padding → CSS vars in style attribute only
+		const resolvedOuter   = usePropStyles(props as any, { ...sectionStyle, ...style });
+		const resolvedPadding = usePropStyles({ px: px ?? "1.5rem", py: py ?? "4rem" } as any);
+		const hoverClass      = cpropClass(cprop);
+		const mergedClass     = [className, hoverClass].filter(Boolean).join(" ") || undefined;
+		const resolvedId      = id ?? point;
 
 		const element = (
 			<section ref={ref} id={resolvedId} className={mergedClass} style={resolvedOuter}>
-				<div style={resolvedInner}>{children}</div>
+				<div className={innerLayoutClass} style={resolvedPadding}>{children}</div>
 			</section>
 		);
 
@@ -639,39 +643,41 @@ export const EngineCard = memo(
 			>
 				{cover && (
 					<div
-						style={{
+						className={staticClass({
 							flexShrink:  0,
 							width:       isHorizontal ? coverWidth : "100%",
 							aspectRatio: isHorizontal ? undefined : coverRatio,
 							minHeight:   isHorizontal ? "100%" : undefined,
 							overflow:    "hidden",
 							position:    "relative",
-						}}
+						})}
 					>
 						<img
 							src={cover}
 							alt={coverAlt}
-							className={coverClassName}
-							style={{
-								width:      "100%",
-								height:     "100%",
-								objectFit: coverFit as any,
-								display:    "block",
-								position:   isHorizontal ? "absolute" : "static",
-								top:        0,
-								left:       0,
-							}}
+							className={[
+								coverClassName,
+								staticClass({
+									width:     "100%",
+									height:    "100%",
+									objectFit: coverFit as any,
+									display:   "block",
+									position:  isHorizontal ? "absolute" : "static",
+									top:       isHorizontal ? 0 : undefined,
+									left:      isHorizontal ? 0 : undefined,
+								}),
+							].filter(Boolean).join(" ") || undefined}
 						/>
 					</div>
 				)}
 				<div
-					style={{
-						flex:    1,
-						padding: innerPadding,
-						display: "flex",
+					className={staticClass({
+						flex:          1,
+						padding:       innerPadding,
+						display:       "flex",
 						flexDirection: "column",
-						minWidth: 0,
-					}}
+						minWidth:      0,
+					})}
 				>
 					{children}
 				</div>
@@ -752,6 +758,17 @@ export const EngineOption = memo(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  Slot
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface EngineSlotProps extends SlotProps {}
+
+export const EngineSlot = memo(function EngineSlot({ name }: EngineSlotProps) {
+	const { slots } = useEngineContext();
+	return (slots?.[name] as React.ReactNode) || null;
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  OptGroup — native <optgroup> element for grouping <option>s
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -780,4 +797,3 @@ export const EngineOptGroup = memo(
 		);
 	}),
 );
-
