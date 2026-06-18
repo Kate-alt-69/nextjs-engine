@@ -20,6 +20,7 @@ import { EngineHero }     from "../components/EngineHero";
 import { EngineForm, EngineInput, EngineTextarea, EngineCheckbox, EngineLabel } from "../components/EngineForms";
 import { EngineLink }                                                       from "../components/EngineLink";
 import { EngineNav }                                                        from "../components/EngineNav";
+import { EngineManim, EngineManim3D }                                       from "../components/EngineManim";
 
 export type EngineComponent = ComponentType<Record<string, unknown> & { children?: React.ReactNode }>;
 export type ComponentRegistry = Map<NodeType, EngineComponent>;
@@ -52,10 +53,14 @@ function buildDefaultRegistry(): ComponentRegistry {
 	r.set("textarea",      EngineTextarea as EngineComponent);
 	r.set("checkbox",      EngineCheckbox as EngineComponent);
 	r.set("label",         EngineLabel as EngineComponent);
-	r.set("link",          EngineLink as EngineComponent);
-	r.set("EngineLink",    EngineLink as EngineComponent);
-	r.set("nav",           EngineNav  as EngineComponent);
-	r.set("EngineNav",     EngineNav  as EngineComponent);
+	r.set("link",          EngineLink   as EngineComponent);
+	r.set("EngineLink",    EngineLink   as EngineComponent);
+	r.set("nav",           EngineNav    as EngineComponent);
+	r.set("EngineNav",     EngineNav    as EngineComponent);
+	r.set("manim",         EngineManim  as unknown as EngineComponent);
+	r.set("EngineManim",   EngineManim  as unknown as EngineComponent);
+	r.set("manim3d",       EngineManim3D as unknown as EngineComponent);
+	r.set("EngineManim3D", EngineManim3D as unknown as EngineComponent);
 	return r;
 }
 

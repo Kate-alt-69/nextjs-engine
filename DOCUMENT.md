@@ -1,10 +1,7 @@
 # Next.js Engine — Technical Documentation
 
-> **Last updated:** 2026-06-18
+> **Last updated:** 2026-06-14
 > **Changes in this update:**
-> - **At-rule style support** — `style` objects and `staticClass()` now accept nested CSS at-rules such as `@media`, `@supports`, `@container`, `@starting-style`, and global declaration at-rules such as `@view-transition`. Runtime `style` at-rules are compiled through `StyleCollector` instead of being passed to React inline styles.
-> - **Compile fixes** — `EngineNav` desktop item visibility now uses the configured `mobileBreakpoint` through nested at-rule CSS. `EngineAPIConfigParser` now emits `destinationHeader` for API key auth and accepts compiled PNP private keys as JWK strings.
-> **Changes in previous update:**
 > - **`EngineAPIConfigParser`** — New `src/engine/core/EngineAPIConfigParser.ts`. Parses `.EngineAPIConfig/*.api` files (TOML-inspired syntax) into a compiled `EngineAPICompiledConfig` object consumed by `EngineAPIResolver`. Supports `$ENV_VAR` substitution, all auth types (`ak`, `bearer`, `jwt`, `basic`, `hmac`, `pnp`), version macros, and per-provider header overrides. In-process cache via `ensureAPIConfig()`.
 > - **`engineApiPlugin`** — New `src/engine/plugins/engineApiPlugin.js`. Next.js `webpack` plugin that compiles `.EngineAPIConfig/*.api` at build time and writes `.engine-api-compiled.json` to the project root. Import with `const withEngineAPI = require("./src/engine/plugins/engineApiPlugin")` in `next.config.js`.
 > - **`schemaAnalyzer`** — New `src/engine/core/schemaAnalyzer.ts` (TASK-018). Static analyzer for `PageSchema`/`SchemaNode` trees. Emits TypeScript-compiler-style diagnostics: `E001` unknown type (+ Levenshtein "did you mean?"), `E002` missing required prop, `E003` duplicate id/point, `E004` circular reference, `W001`–`W006` accessibility and performance warnings. Exports `analyzeSchema()`, `analyzeNode()`, `isSchemaValid()`.
@@ -70,6 +67,14 @@ src/engine/
 │   ├── primitives.tsx        Box, Stack, Grid, Text, Heading, Section, Button, Card, Spacer, Divider
 │   ├── EngineLink.tsx        Styled anchor — delegates routing to EngineNav
 │   ├── EngineNav.tsx         Navigation bar + shared anchor-rendering pipeline
+│   ├── EngineManim/
+│   │   ├── index.ts              Barrel exports
+│   │   ├── manimTypes.ts         All 2D + 3D types
+│   │   ├── manimCompiler.ts      Shape vectorizer + Float32Array pools
+│   │   ├── manimDSLParser.ts     frame() / constraint DSL parser
+│   │   ├── manimAnimationRouter.ts  Tier 2.5 animation routing
+│   │   ├── EngineManim.tsx       2D component (uses EngineCanvas)
+│   │   └── EngineManim3D.tsx     3D component (Three.js GLTF/OBJ)
 │   ├── EngineImage.tsx       Smart lazy image with blur-up progressive loading
 │   ├── EngineVideo.tsx       Lazy video — src never loads until near viewport
 │   ├── EngineHero.tsx        Dedicated hero sections with parallax and overlays
@@ -765,16 +770,16 @@ Form elements utilize `data-engine-bind` for automatic field mapping during `Eng
 A centralized class for handling fetch requests with multi-tier evaluation (Global → Page → Node).
 
 ```ts
-const resolver = new EngineAPIResolver({
-	endpoint: "https://api.kastrick.com/&v&/",
-	versionMacros: { v: "v1" }
+const resolver = new EngineAPIResolver({ 
+	endpoint: "https://api.kastrick.com/&v&/", 
+	versionMacros: { v: "v1" } 
 });
 
 const res = await resolver.resolveRequest({
 	formData: { username: "admin" },
-	pageOverrides: {
+	pageOverrides: { 
 		endpoint: "https://api.kastrick.com/&v&/login", // Macros still apply to overrides
-		method: "POST"
+		method: "POST" 
 	}
 });
 ```
@@ -914,6 +919,111 @@ Any children passed to the card render inside the content area below (or beside)
   ]
 }
 ```
+
+### manim
+
+Schema type: `"manim"` | `"EngineManim"` — Declarative 2D Manim-style animation on an HTML Canvas. Compiles `cprop.manim` into Float32Array geometry pools once (WeakMap cache) and drives `EngineCanvas` via a zero-allocation RAF loop.
+
+```ts
+{
+  type: "manim",
+  props: {
+    cprop: {
+      manim: {
+        mobjects: [
+          { id: "ring",   type: "Circle", radius: 50, strokeColor: "var(--e-accent)", strokeWidth: 3 },
+          { id: "square", type: "Square", sideLength: 80, strokeColor: "var(--e-accent)", strokeWidth: 3 },
+        ],
+        timeline: [
+          { action: "Create",    target: "ring",   durationMs: 600 },
+          { action: "Transform", origin: "ring",   target: "square", durationMs: 800 },
+          { action: "FadeOut",   target: "square", durationMs: 400 },
+        ],
+        settings: { loop: true, fpsLimit: 60 },
+      },
+    },
+  },
+}
+```
+
+**Supported mobject types:** `Circle`, `Square`, `Rectangle`, `Line`, `Path` (SVG `d` string).
+
+**Supported actions:** `Create` (draw-on reveal), `FadeIn`, `FadeOut`, `Transform` (morphs geometry via equal-point interpolation), `Wait`.
+
+**Easing:** `linear` | `ease-in` | `ease-out` | `ease-in-out` | `bounce` | `elastic`.
+
+---
+
+### manim3d
+
+Schema type: `"manim3d"` | `"EngineManim3D"` — Three.js-backed 3D renderer with GLTF/OBJ support and a DSL for bone animation.
+
+| Tier | Feature |
+|---|---|
+| 1 | Static GLTF / GLB / OBJ mesh → WebGL |
+| 2 | GLTF built-in animation clip playback |
+| 2.5 | Animation routing — clip from file OR full DSL override, per-bone overrides |
+| 3 | DSL `frame()` blocks driving bone transforms by name |
+| 4 | Constraint bindings: `camera.look.content = boneName` |
+
+```ts
+{
+  type: "manim3d",
+  props: {
+    cprop: {
+      manim3d: {
+        src: "/models/character.glb",
+        camera: { position: [0, 2, 5], fov: 60, look: { content: "head" } },
+        lights: [
+          { type: "ambient",     intensity: 0.4 },
+          { type: "directional", intensity: 0.8, direction: [1, -1, 0.5] },
+        ],
+        animation: {
+          source: "file",
+          clip:   "walk_cycle",
+          overrides: [
+            {
+              bone:   "left.hand",
+              mode:   "replace",
+              frames: [{ frameStart: 0, frameEnd: 30, transforms: [{ bone: "left.hand", rotate: [0, 45, 0] }] }],
+            },
+          ],
+        },
+        settings: { loop: true, fps: 60, shadows: true },
+      },
+    },
+  },
+}
+```
+
+**DSL format** (inline via `animation.dsl` or a `.manim` file):
+
+```
+# Frame blocks — Blender-style frame ranges
+frame (
+  frame-start = 120
+  frame-end   = 240
+) {
+  left.hand.rotate  = [0, 45, 0]
+  right.leg.rotate  = [30, 0, 0]
+  2.tentacle.move   = [10, 0, 0]
+}
+
+# Camera constraints (Tier 4)
+camera.look.content   = head
+camera.focus.distance = 5
+camera.position       = [0, 2, 5]
+
+# Light settings
+light.sun.direction = [1, -1, 0.5]
+light.sun.intensity = 0.9
+```
+
+Rules: bone transforms (`.move` / `.rotate` / `.scale`) are **only valid inside `frame()`**. Camera and light settings are **only valid at top level**. Bone name is everything before the last dot: `left.hand`, `2.tentacle`.
+
+**Three.js** is a peer dependency dynamically imported — only fetched on pages that actually use `manim3d`.
+
+---
 
 ### spacer
 
@@ -1781,45 +1891,6 @@ const layoutClass = staticClass({
 ```
 
 Used internally by `EngineSection` (inner content wrapper) and `EngineCard` (cover + content wrappers) to eliminate repeated inline styles across multiple instances of the same component.
-
----
-
-## Style At-Rules
-
-Engine style objects can include nested CSS at-rules. React inline styles cannot contain `@media` or other at-rules, so the engine compiles those entries through `StyleCollector`.
-
-```ts
-{
-	type: "box",
-	props: {
-		style: {
-			display: "none",
-			"@media(min-width: 768px)": {
-				display: "grid",
-				gridTemplateColumns: "repeat(3, 1fr)",
-			},
-			"@supports(backdrop-filter: blur(8px))": {
-				backdropFilter: "blur(8px)",
-			},
-		},
-	},
-}
-```
-
-For schema `style`, at-rule-controlled properties are emitted as CSS custom properties on `:root`, then referenced from the element's inline style. This lets media/support/container rules change the value without passing illegal keys to React.
-
-`staticClass()` also accepts nested at-rules:
-
-```ts
-const desktopOnly = staticClass({
-	display: "none",
-	"@media(min-width: 768px)": {
-		display: "flex",
-	},
-});
-```
-
-Separate extracted CSS files are still a future build-time optimization. The current runtime collector is kept because it deduplicates CSS per rendered schema and avoids shipping unused style rules.
 
 ---
 

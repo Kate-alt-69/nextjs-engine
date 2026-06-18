@@ -24,7 +24,7 @@ export type EngineStyleObject = CSSProperties & {
 
 export type BuiltinNodeType =
 	| "box" | "stack" | "grid" | "text" | "heading" | "markdown"
-	| "image" | "section" | "hero" | "card" | "button" | "link" | "nav"
+	| "image" | "section" | "hero" | "card" | "button" | "link" | "nav" | "manim" | "manim3d"
 	| "spacer" | "divider" | "slot" | "raw" | "canvas" | "scroll"
 	| "custom-select" | "suspense" | "option" | "optgroup"
 	| "form" | "input" | "textarea" | "checkbox" | "label";

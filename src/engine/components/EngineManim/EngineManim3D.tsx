@@ -72,7 +72,7 @@ export const EngineManim3D = memo(function EngineManim3D({
 
 		// ── Dynamic imports — keep Three.js out of main bundle ────────────────
 		async function init() {
-			const THREE       = await import("three");
+			const THREE       = await import("three.js" as any);
 			const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js" as any);
 			const { OBJLoader }  = await import("three/examples/jsm/loaders/OBJLoader.js"  as any);
 

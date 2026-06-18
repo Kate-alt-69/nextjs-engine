@@ -274,8 +274,36 @@ const ALREADY_HANDLED = new Set([
 //    const cls = staticClass({ width: "100%", maxWidth: "1200px", margin: "0 auto" });
 //    // → "e-s-abc123"  (injected once into globalStyleCollector)
 
-export function staticClass(cssProperties: CSSProperties | EngineStyleObject): string {
+export function staticClass(cssProperties: CSSProperties): string {
 	return compileNestedStyleClass(cssProperties, "e-s-");
+}
+
+// ── Media-query class generator ───────────────────────────────────────────────
+//
+//  Like staticClass but supports per-breakpoint overrides.
+//  Usage:
+//    const cls = mediaClass(
+//      { display: "none" },                         // base / mobile-first
+//      ["768px", { display: "flex", gap: "0.5rem" }]  // ≥768px override
+//    );
+
+export function mediaClass(
+	base:         CSSProperties,
+	...breakpoints: Array<[string, CSSProperties]>
+): string {
+	const baseDecls    = cssToDeclBlock(base);
+	const bpDecls      = breakpoints.map(([bp, s]) => `@media(min-width:${bp}){.e-m-HASH{${cssToDeclBlock(s)}}}`).join("");
+	const fingerprint  = baseDecls + bpDecls;
+	const hash         = _hash(fingerprint);
+	const cls          = `e-m-${hash}`;
+
+	let css = `.${cls}{${baseDecls}}`;
+	for (const [bp, styles] of breakpoints) {
+		css += `@media(min-width:${bp}){.${cls}{${cssToDeclBlock(styles)}}}`;
+	}
+
+	globalStyleCollector.add(css);
+	return cls;
 }
 
 // ── Main hook ─────────────────────────────────────────────────────────────────

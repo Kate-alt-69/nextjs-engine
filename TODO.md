@@ -1,6 +1,6 @@
 # Next.js Engine — Master Architectural Task Registry
 
-> **Last Updated:** June 18, 2026
+> **Last Updated:** June 18, 2026 (Session 2)
 > **Status:** Active Development
 > **Legend:** 🚨 Blocking • 🔴 High • 🟡 Medium • 🟢 Low • ✅ Completed
 
@@ -2160,7 +2160,11 @@ fixes have been successfully implemented into the engine.
 | TASK-006 | ✅ Native Next.js `generateMetadata()` integration via `generateEngineMetadata()`.                                                            |
 | TASK-008 | ✅ Hydration stability improved through `suppressHydrationWarning` on EngineMarkdown while larger parser rewrite remains planned.             |
 | TASK-009 | ✅ `validateSchema()` and `validatePageSchema()` integrated into SchemaRenderer for runtime schema validation.                                |
+| TASK-011 | ✅ EngineAPI framework complete: `EngineAPIConfigParser.ts` (TOML-inspired `.api` parser, env var substitution, all auth types), `engineApiPlugin.js` (Next.js build-time compiler), `ensureAPIConfig()` runtime cache. |
+| TASK-018 | ✅ `schemaAnalyzer.ts` complete: E001–E004 errors (unknown type + Levenshtein "did you mean", missing required props, duplicate id/point, circular refs) + W001–W006 warnings (a11y, perf). Exports `analyzeSchema()`, `analyzeNode()`, `isSchemaValid()`. |
 | BUG-004  | ✅ Build compile fix: `staticClass()` and schema `style` now compile nested CSS at-rules through `StyleCollector`; `EngineNav` uses `mobileBreakpoint` for desktop visibility; EngineAPI auth typing now matches compiled API-key and PNP config output. |
+| BUG-005  | ✅ Hydration mismatch on pages using responsive `sideDistance` — `normalizeSpacingValue` called without `isResponsive` guard, producing `[object Object]` in CSS. Fixed by routing through `resolveGeneric` when value is responsive. |
+| BUG-006  | ✅ `<style precedence="default">` treated by React 19 as a managed stylesheet resource, causing stricter hydration reconciliation on `dangerouslySetInnerHTML`. Fixed by removing `precedence` and adding `suppressHydrationWarning`. |
 
 ---
 
@@ -2207,6 +2211,12 @@ Implemented:
 * ✅ EngineSection
 * ✅ EngineButton
 * ✅ EngineLink
+* ✅ EngineNav (full nav bar + shared `renderEngineAnchor` routing pipeline)
+* ✅ EngineHero (centered / split / fullbleed variants, overlay, parallax)
+* ✅ EngineSuspense (skeleton / shimmer / spinner / pulse / blur presets)
+* ✅ EngineForms (EngineForm, EngineInput, EngineTextarea, EngineCheckbox, EngineLabel)
+* ✅ EngineManim (2D declarative Manim-style animation — Float32Array geometry pools, WeakMap AST cache, zero-allocation RAF loop)
+* ✅ EngineManim3D (Three.js GLTF/OBJ renderer — Tier 1 static mesh, Tier 2 clip playback, Tier 2.5 animation routing, Tier 3 DSL frame blocks, Tier 4 constraint bindings)
 * ✅ LazySection
 * ✅ Raw Component escape hatch
 
@@ -2391,14 +2401,17 @@ Schema System            ██████████ 100%
 Styling Engine           ██████████ 100%
 Metadata                 ██████████ 100%
 Validation               ██████████ 100%
-Markdown                 ████████░░ 80%
-Components               ████████░░ 80%
-API Framework            ██░░░░░░░░ 20%
-Suspense                 ░░░░░░░░░░ 0%
-Compiler                 ░░░░░░░░░░ 0%
-Plugin SDK               ░░░░░░░░░░ 0%
-CLI                      ░░░░░░░░░░ 0%
-DevTools                 ░░░░░░░░░░ 0%
+Navigation               ██████████ 100%
+Markdown                 ████████░░  80%
+Components               █████████░  95%
+Animation (2D)           ████████░░  80%
+Animation (3D)           ██████░░░░  60%
+API Framework            ██████░░░░  60%
+Suspense                 ██████████ 100%
+Compiler                 ░░░░░░░░░░   0%
+Plugin SDK               ░░░░░░░░░░   0%
+CLI                      ░░░░░░░░░░   0%
+DevTools                 ░░░░░░░░░░   0%
 ```
 
 ---

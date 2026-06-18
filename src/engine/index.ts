@@ -45,6 +45,9 @@ export {
 } from "./components/primitives";
 export { EngineLink }                              from "./components/EngineLink";
 export { EngineNav, renderEngineAnchor }           from "./components/EngineNav";
+export { EngineManim, EngineManim3D }                                       from "./components/EngineManim";
+export { compileManimConfig, applyEasing, parseManimDSL, routeAnimation }   from "./components/EngineManim";
+export type { ManimConfig, Manim3DConfig, ManimDSLDocument, ManimAnimationRoute, EngineManimProps, EngineManim3DProps } from "./components/EngineManim";
 export type { EngineNavProps, EngineNavItem, EngineNavLogo, EngineNavVariant, EngineAnchorConfig } from "./components/EngineNav";
 export { EngineImage }                              from "./components/EngineImage";
 export { EngineVideo }                              from "./components/EngineVideo";
@@ -85,7 +88,7 @@ export type {
 } from "./core/EngineBrowser";
 
 // ── CSS utilities ─────────────────────────────────────────────────────────────
-export { cpropClass, staticClass }                  from "./hooks/usePropStyles";
+export { cpropClass, staticClass, mediaClass }                  from "./hooks/usePropStyles";
 export { EngineGlobalStyles }                       from "./core/StyleCollector";
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
