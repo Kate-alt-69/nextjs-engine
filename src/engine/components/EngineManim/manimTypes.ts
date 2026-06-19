@@ -221,6 +221,42 @@ export interface ManimAnimationRoute {
 	speed?:    number;
 }
 
+// ── Animation router output types (Tier 2.5) ─────────────────────────────────
+//  Defined here so index.ts can re-export them alongside all other types,
+//  and manimAnimationRouter.ts can import rather than redeclare them.
+
+export interface ResolvedKeyframe {
+	/** Normalised time 0.0 – 1.0 within the animation duration */
+	time:     number;
+	move?:    [number, number, number];
+	rotate?:  [number, number, number];
+	scale?:   [number, number, number];
+	easing?:  string;
+}
+
+export interface ResolvedBoneTrack {
+	bone:         string;
+	/** Sorted keyframes derived from DSL frame groups */
+	keyframes:    ResolvedKeyframe[];
+	/** When "additive", the file's clip values are summed with these */
+	mode:         "replace" | "additive";
+}
+
+export interface RoutedAnimation {
+	/** GLTF clip name to play — undefined when source = "source" */
+	clipName?:   string;
+	/** Speed multiplier for the GLTF clip (default 1.0) */
+	clipSpeed:   number;
+	/** Per-bone DSL-driven tracks */
+	boneTracks:  ResolvedBoneTrack[];
+}
+
+export interface SampledBoneState {
+	move?:   [number, number, number];
+	rotate?: [number, number, number];
+	scale?:  [number, number, number];
+}
+
 // ── Top-level 3D config ───────────────────────────────────────────────────────
 
 export interface Manim3DConfig {

@@ -17,38 +17,15 @@ import type {
 	ManimAnimationRoute,
 	ManimDSLFrameGroup,
 	ManimBoneTransform,
+	ResolvedBoneTrack,
+	ResolvedKeyframe,
+	RoutedAnimation,
+	SampledBoneState,
 } from "./manimTypes";
 import { parseManimDSL } from "./manimDSLParser";
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Public types
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface ResolvedBoneTrack {
-	bone:         string;
-	/** Sorted keyframes derived from DSL frame groups */
-	keyframes:    ResolvedKeyframe[];
-	/** When "additive", the file's clip values are summed with these */
-	mode:         "replace" | "additive";
-}
-
-export interface ResolvedKeyframe {
-	/** Normalised time 0.0 – 1.0 within the animation duration */
-	time:     number;
-	move?:    [number, number, number];
-	rotate?:  [number, number, number];
-	scale?:   [number, number, number];
-	easing?:  string;
-}
-
-export interface RoutedAnimation {
-	/** GLTF clip name to play — undefined when source = "source" */
-	clipName?:   string;
-	/** Speed multiplier for the GLTF clip (default 1.0) */
-	clipSpeed:   number;
-	/** Per-bone DSL-driven tracks */
-	boneTracks:  ResolvedBoneTrack[];
-}
+// Re-export so consumers can import from this module directly if needed
+export type { ResolvedBoneTrack, ResolvedKeyframe, RoutedAnimation, SampledBoneState };
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Frame group → normalised keyframes
@@ -167,12 +144,6 @@ function lerpVec3(a: Vec3, b: Vec3, t: number): Vec3 {
 	return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
-export interface SampledBoneState {
-	move?:   Vec3;
-	rotate?: Vec3;
-	scale?:  Vec3;
-}
-
 /**
  * Sample a bone track at normalised time t (0.0 – 1.0).
  * Interpolates between the surrounding keyframes.
@@ -205,13 +176,13 @@ export function sampleBoneTrack(
 
 	return {
 		move:   kfs[lo].move && kfs[hi].move
-			? lerpVec3(kfs[lo].move, kfs[hi].move, u)
+			? lerpVec3(kfs[lo].move!, kfs[hi].move!, u)
 			: (kfs[hi].move ?? kfs[lo].move),
 		rotate: kfs[lo].rotate && kfs[hi].rotate
-			? lerpVec3(kfs[lo].rotate, kfs[hi].rotate, u)
+			? lerpVec3(kfs[lo].rotate!, kfs[hi].rotate!, u)
 			: (kfs[hi].rotate ?? kfs[lo].rotate),
 		scale:  kfs[lo].scale && kfs[hi].scale
-			? lerpVec3(kfs[lo].scale, kfs[hi].scale, u)
+			? lerpVec3(kfs[lo].scale!, kfs[hi].scale!, u)
 			: (kfs[hi].scale ?? kfs[lo].scale),
 	};
 }
