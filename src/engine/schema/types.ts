@@ -772,6 +772,22 @@ export interface CanvasNodeProps extends BaseNodeProps {
 
 export interface SchemaNode {
 	type:       NodeType;
+	/**
+	 * Optional stable name for this node, used as a mobile patch selector.
+	 * Set `name: "my-node"` here, then target it from the mobile patch list
+	 * with the selector `"children#my-node"`.
+	 *
+	 * Like `key`, this is an engine-level field — it is NOT passed to the
+	 * rendered component as a prop.
+	 *
+	 * @example
+	 * // Schema node:
+	 * { type: "box", name: "hero-cta", props: { ... } }
+	 *
+	 * // Mobile patch:
+	 * { "children#hero-cta": { props: { display: "none" } } }
+	 */
+	name?:      string;
 	key?:       string;
 	props?:     Record<string, unknown>;
 	children?:  SchemaNode[] | string;
@@ -810,3 +826,115 @@ export interface EngineConfig {
 	gapBase?:        string;
 	spacingScale?:   (n: number) => string;
 }
+
+// ── Mobile patch system ───────────────────────────────────────────────────────
+//
+//  Declare the mobile layout of a page alongside the main schema.
+//  Mobile patches are applied server-side when the request comes from a
+//  mobile device, producing an alternate schema tree for that render only.
+//  The desktop schema object is never mutated.
+//
+//  Selector syntax:
+//    "children#my-node" — targets a SchemaNode with name: "my-node"
+//    "#my-node"         — short form, same effect
+//
+//  Directives (at the top level of each patch entry, NOT inside props/cprop):
+//    "remove-all-prop"  — clears ALL existing props before merging new ones
+//    "remove-all-cprop" — clears the existing cprop bag before merging new one
+//
+//  Example:
+//  ```ts
+//  mobile: [
+//    {
+//      "children#pricing-cta": {
+//        "remove-all-prop": true,
+//        props: { display: "none" },
+//      },
+//    },
+//    {
+//      "children#mobile-menu": {
+//        cprop: { hide: false },
+//        props: { display: "flex" },
+//      },
+//    },
+//  ]
+//  ```
+
+/**
+ * Cprop overrides valid inside a mobile patch entry.
+ * Extends the standard CpropValue with one mobile-only field.
+ */
+export interface MobileCpropPatch extends CpropValue {
+	/**
+	 * Mobile-only shorthand. When true, sets `display: none` on the node —
+	 * hides the element from mobile viewers without touching the desktop tree.
+	 * When false (or absent), no change is made to display.
+	 *
+	 * Only meaningful inside a `MobilePatchDirectives` object.
+	 * Ignored at render time on non-mobile devices.
+	 */
+	hide?: boolean;
+}
+
+/**
+ * The directives that can appear inside a single mobile patch entry.
+ *
+ * `"remove-all-prop"` and `"remove-all-cprop"` are top-level flags — they
+ * are NOT placed under `props` or `cprop`. They tell the patcher what to
+ * wipe before applying the new values.
+ */
+export interface MobilePatchDirectives {
+	/**
+	 * When true, all existing props on the targeted node are removed before
+	 * the new `props` values are merged in. cprop is also cleared unless
+	 * kept by the node's existing cprop not being under props explicitly.
+	 *
+	 * Place this at the TOP LEVEL of the patch entry, not inside `props`.
+	 */
+	"remove-all-prop"?:  boolean;
+	/**
+	 * When true, the existing `cprop` bag on the targeted node is cleared
+	 * before merging in the new `cprop` values. All other props are kept.
+	 *
+	 * Place this at the TOP LEVEL of the patch entry, not inside `cprop`.
+	 */
+	"remove-all-cprop"?: boolean;
+	/**
+	 * Props to merge into the node after any `remove-all-prop` wipe.
+	 * These are merged shallowly — existing keys not listed here are kept
+	 * (unless wiped by `remove-all-prop`).
+	 */
+	props?:              Record<string, unknown>;
+	/**
+	 * Cprop values to merge into `props.cprop` after any `remove-all-cprop`
+	 * wipe. Includes the mobile-only `hide` shorthand.
+	 */
+	cprop?:              MobileCpropPatch;
+}
+
+/**
+ * A single mobile patch object.
+ * Each key is a node selector (`"children#name"` or `"#name"`).
+ * Each value is the set of directives to apply to the matched node.
+ */
+export type MobilePatch = {
+	[selector: string]: MobilePatchDirectives;
+};
+
+/**
+ * The full mobile schema config — an ordered array of patch objects.
+ * Patches are applied in order, so later patches override earlier ones
+ * when they target the same node.
+ *
+ * Pass this as the `mobile` field to `createPage()`:
+ * ```ts
+ * createPage({
+ *   schema: MySchema,
+ *   mobile: [
+ *     { "children#desktop-nav": { cprop: { hide: true } } },
+ *     { "children#mobile-nav": { props: { display: "flex" } } },
+ *   ],
+ * });
+ * ```
+ */
+export type MobileSchemaConfig = MobilePatch[];

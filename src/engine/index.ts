@@ -80,11 +80,21 @@ export {
 	EngineScroll, EngineScrollProvider, useEngineScroll,
 } from "./components/EngineScroll";
 
-// ── Browser detection ─────────────────────────────────────────────────────────
+// ── Browser detection + interactions ──────────────────────────────────────────
 export { EngineBrowser, useBrowser }                from "./core/EngineBrowser";
 export type {
 	BrowserInfo, BrowserIs, BrowserSupports, BrowserName,
 	RenderingEngine, BrowserConditions,
+	// Clipboard subsystem
+	BrowserClipboard,
+	// Interact subsystem
+	BrowserInteract, ShareData, PickFileOptions, OrientationLock,
+	// Media subsystem
+	BrowserMedia, MediaCameraOptions,
+	// Speech subsystem
+	BrowserSpeech, SpeakOptions, ListenOptions,
+	// Network subsystem
+	BrowserNetwork, NetworkStatus, NetworkType,
 } from "./core/EngineBrowser";
 
 // ── CSS utilities ─────────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Engine — EngineManim  (2D Phase 1)
+//  Engine — EngineManim 
 //
 //  Declarative Manim-style 2D animation. Reads cprop.manim, compiles shapes
 //  into Float32Array pools once, then drives EngineCanvas's RAF loop with
@@ -95,22 +95,24 @@ export const EngineManim = memo(function EngineManim({
 			pauseWhenOffscreen
 			className={className}
 			style={style}
-			onSetup={(ctx) => {
+			onSetup={(ctx, canvas) => {
 				const bg = compiledRef.current.settings.background;
-				if (bg !== "transparent") {
-					(ctx as CanvasRenderingContext2D).fillStyle = bg;
+				if (bg && bg !== "transparent") {
+					const c2d = ctx as CanvasRenderingContext2D;
+					c2d.fillStyle = bg;
+					c2d.fillRect(0, 0, canvas.width, canvas.height);
 				}
 				runtime.current.stepStart = performance.now();
 				runtime.current.delayEnd  = performance.now()
 					+ (compiledRef.current.steps[0]?.delay ?? 0);
 			}}
-			onDraw={(ctx, canvas, _delta, frameTime) => {
+			onDraw={(ctx, canvas, _delta, _frame) => {
 				const rt       = runtime.current;
 				const c        = compiledRef.current;
 				const step     = c.steps[rt.stepIndex];
 				if (!step) return;
 
-				const now = frameTime;
+				const now = performance.now();
 
 				// Delay not expired yet — hold
 				if (now < rt.delayEnd) return;
@@ -121,6 +123,11 @@ export const EngineManim = memo(function EngineManim({
 				const ctx2d    = ctx as CanvasRenderingContext2D;
 
 				ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+				const bg = c.settings.background;
+				if (bg && bg !== "transparent") {
+					ctx2d.fillStyle = bg;
+					ctx2d.fillRect(0, 0, canvas.width, canvas.height);
+				}
 
 				switch (step.action) {
 					case "Create": {

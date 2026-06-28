@@ -15,11 +15,14 @@ import type {
 	PageMeta,
 	MarkdownProps,
 	EngineTheme as EngineThemeConfig,
+	MobileSchemaConfig,
 } from "./schema/types";
 import { EngineProvider } from "./providers/EngineProvider";
 import { SchemaRenderer } from "./core/SchemaRenderer";
 import { globalStyleCollector, StyleCollector } from "./core/StyleCollector";
 import { clearResolverCache } from "./core/resolver";
+import { applyMobilePatches } from "./core/EngineMobilePatcher";
+import { getServerDevice } from "./core/EngineDevice";
 
 // ── createPage options ────────────────────────────────────────────────────────
 
@@ -36,6 +39,29 @@ interface CreateOptionsBase {
 	 * tree via { type: "slot", props: { name: "mySlot" } } nodes.
 	 */
 	slots?: Record<string, ReactNode>;
+	/**
+	 * Mobile layout patches. When the request comes from a mobile device,
+	 * these patches are applied to the schema server-side before render,
+	 * producing an alternate tree. The desktop schema is never mutated.
+	 *
+	 * Target nodes by their `name` field using `"children#name"` selectors.
+	 * Order matters — later entries override earlier ones for the same node.
+	 *
+	 * @example
+	 * ```ts
+	 * mobile: [
+	 *   { "children#desktop-nav": { cprop: { hide: true } } },
+	 *   { "children#mobile-nav": { props: { display: "flex" } } },
+	 *   {
+	 *     "children#pricing-hero": {
+	 *       "remove-all-prop": true,
+	 *       props: { px: "1rem", py: "2rem" },
+	 *     },
+	 *   },
+	 * ]
+	 * ```
+	 */
+	mobile?: MobileSchemaConfig;
 }
 
 export interface CreateSchemaPageOptions extends CreateOptionsBase {
@@ -84,6 +110,7 @@ type EnginePageComponent = () => ReactNode | Promise<ReactNode>;
 
 interface NormalizedCreateOptions extends CreateOptionsBase {
 	schema: PageSchema;
+	mobile?: MobileSchemaConfig;
 }
 
 // ── createPage option normalizer ─────────────────────────────────────────────
@@ -154,10 +181,10 @@ function createMarkdownSchema(options: CreateMarkdownPageOptions): PageSchema {
 }
 
 function normalizeCreateOptions(options: CreatePageOptions): NormalizedCreateOptions {
-	const { config, handlers, slots } = options;
+	const { config, handlers, slots, mobile } = options;
 
 	if (isSchemaOption(options)) {
-		return { schema: options.schema, config, handlers, slots };
+		return { schema: options.schema, config, handlers, slots, mobile };
 	}
 
 	if (isDirectSchemaOption(options)) {
@@ -170,6 +197,7 @@ function normalizeCreateOptions(options: CreatePageOptions): NormalizedCreateOpt
 			config,
 			handlers,
 			slots,
+			mobile,
 		};
 	}
 
@@ -178,6 +206,7 @@ function normalizeCreateOptions(options: CreatePageOptions): NormalizedCreateOpt
 		config,
 		handlers,
 		slots,
+		mobile,
 	};
 }
 
@@ -290,8 +319,10 @@ function EngineTheme({ schema }: { schema: PageSchema }) {
 // ── createPage ────────────────────────────────────────────────────────────────
 
 export function createPage(options: CreatePageOptions): EnginePageComponent {
-	const { schema, config, handlers, slots } = normalizeCreateOptions(options);
+	const { schema, config, handlers, slots, mobile } = normalizeCreateOptions(options);
+
 	const shouldResolveMarkdown = nodeHasMarkdownFile(schema.root);
+	const hasMobilePatches      = mobile !== undefined && mobile.length > 0;
 
 	function renderPage(resolvedSchema: PageSchema) {
 		// HARD RESOLUTION PREPARATION PHASE (BUG-001):
@@ -313,14 +344,31 @@ export function createPage(options: CreatePageOptions): EnginePageComponent {
 		);
 	}
 
-	if (shouldResolveMarkdown) {
+	// Both markdown resolution and mobile patching are async operations.
+	// If either is needed, the page component must be async.
+	if (shouldResolveMarkdown || hasMobilePatches) {
 		async function EnginePage() {
-			return renderPage(await resolveMarkdownFiles(schema));
+			// Step 1 — resolve markdown file content (if any)
+			let resolvedSchema: PageSchema = shouldResolveMarkdown
+				? await resolveMarkdownFiles(schema)
+				: schema;
+
+			// Step 2 — apply mobile patches when the request comes from a mobile UA
+			if (hasMobilePatches) {
+				const device = await getServerDevice();
+				if (device.isMobile || device.isTablet) {
+					resolvedSchema = applyMobilePatches(resolvedSchema, mobile!);
+				}
+			}
+
+			return renderPage(resolvedSchema);
 		}
+
 		EnginePage.displayName = `EnginePage(${schema.meta?.title ?? "unnamed"})`;
 		return EnginePage;
 	}
 
+	// Fast path — no async work needed
 	function EnginePage() {
 		return renderPage(schema);
 	}

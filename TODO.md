@@ -80,7 +80,143 @@ through `EngineAPIResolver`.
 
 These issues must be completed before the next production deployment.
 
+
 ---
+
+# [BUG-007] EngineLink Default Navigation Requires ViewTransitions Provider
+
+## Status
+
+🚨 Blocking
+
+---
+
+## Overview
+
+`EngineLink` currently routes internal navigation through the shared
+`renderEngineAnchor()` pipeline.
+
+The renderer assumes the application is wrapped inside
+`<ViewTransitions />` whenever internal navigation is used.
+
+As a result, applications that intentionally do **not** use
+`next-view-transitions` immediately fail during SSR and prerendering with:
+
+```text
+useSetFinishViewTransition must be used within a ViewTransitions component
+```
+
+This prevents otherwise valid engine applications from building.
+
+---
+
+## Expected Behaviour
+
+Internal navigation should work even when View Transitions are not installed or
+configured.
+
+Using the engine should **never require** a ViewTransitions provider unless the
+developer explicitly requests animated route transitions.
+
+---
+
+## Current Behaviour
+
+Current routing pipeline:
+
+```
+External Link
+        │
+        ▼
+Internal Link
+        │
+        ▼
+TransitionLink
+        │
+        ▼
+ViewTransitions Provider Required
+```
+
+This causes:
+
+* SSR failures
+* `_not-found` prerender failures
+* `layout.tsx` prerender failures while rendering ANY page
+* Production build failures
+* Runtime crashes during navigation
+
+---
+
+## Desired Routing Pipeline
+
+```
+External Link
+        │
+        ▼
+Native <a>
+
+────────────────────────
+
+Internal Link
+transition = "page-to-page"
+        │
+        ▼
+TransitionLink
+
+────────────────────────
+
+Internal Link
+transition = "instant"
+        │
+        ▼
+next/link
+
+────────────────────────
+
+Internal Link
+transition omitted
+        │
+        ▼
+next/link (default)
+```
+
+The default engine behaviour should never require
+`next-view-transitions`.
+
+---
+
+## Required Work
+
+* [ ] Make `"instant"` the default internal navigation mode.
+* [ ] Only import/use `TransitionLink` for `"page-to-page"`.
+* [ ] Allow projects to omit `ViewTransitions` entirely.
+* [ ] Prevent SSR/prerender crashes when the provider is absent.
+* [ ] Keep external links rendered as native `<a>` elements.
+* [ ] Preserve current page-to-page animations when explicitly requested.
+
+---
+
+## Affected Files
+
+```
+src/engine/components/EngineNav.tsx
+src/engine/components/EngineLink.tsx
+```
+
+---
+
+## Notes
+
+Animated page transitions should be treated as an optional enhancement rather
+than a core navigation requirement.
+
+Projects that only need standard routing should function without installing or
+configuring `next-view-transitions`.
+
+
+
+---
+
 
 ## [TASK-010] Native `<select>` Rendering Support
 

@@ -358,6 +358,10 @@ export const EngineCanvas = memo(function EngineCanvas({
 		startLoop();
 	}, [startLoop]);
 
+	// ── SSR / pre-mount — must be declared before setup effect ─────────────
+	const [canvasMounted, setCanvasMounted] = React.useState(false);
+	React.useEffect(() => { setCanvasMounted(true); }, []);
+
 	// ── Main setup effect ─────────────────────────────────────────────────────
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -421,17 +425,10 @@ export const EngineCanvas = memo(function EngineCanvas({
 			ctxRef.current = null;
 		};
 	// onDraw/onSetup/onResize intentionally excluded — callers should use useCallback
+	// canvasMounted IS included — setup must re-run once the <canvas> is in the DOM
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [mode, alpha, antialias, powerPreference, width, height, isResponsive]);
+	}, [mode, alpha, antialias, powerPreference, width, height, isResponsive, canvasMounted]);
 
-	// ── Canvas CSS ─────────────────────────────────────────────────────────────
-	// ── SSR / pre-mount placeholder to prevent CLS ──────────────────────────
-	// On the first server render the canvas context doesn't exist. Return a
-	// sized div so the layout reserves the correct space before hydration.
-	// This prevents the page from "jumping" when the canvas mounts.
-	const [canvasMounted, setCanvasMounted] = React.useState(false);
-
-	React.useEffect(() => { setCanvasMounted(true); }, []);
 
 	if (!canvasMounted) {
 		const placeholderW = width  !== undefined ? `${width}px`  : "100%";

@@ -1,7 +1,13 @@
 # Next.js Engine — Technical Documentation
 
-> **Last updated:** 2026-06-14
+> **Last updated:** 2026-06-21
 > **Changes in this update:**
+> - **`EngineDevice`** — New `src/engine/core/EngineDevice.ts`. Server + client device detection covering Apple (iPhone/iPad), Samsung (SM-/GT-/Galaxy/SamsungBrowser), Xiaomi (MIUI/Redmi/Mi/Poco), Huawei, OnePlus, OPPO, Realme, Vivo, Motorola, Nokia, Google Pixel, and generic Android. Exports `detectDevice(ua)`, `getServerDevice()` (async, reads `next/headers`), and `useMobileDevice()` React hook.
+> - **`EngineMobilePatcher`** — New `src/engine/core/EngineMobilePatcher.ts`. Applies a `MobileSchemaConfig` patch list server-side before render. Selector `"children#name"` targets nodes by their new `name` field. Top-level directives `"remove-all-prop"` / `"remove-all-cprop"` wipe values before merging new ones. `cprop.hide: true` sets `display: none`. Unknown selectors emit a dev-only Levenshtein "did you mean?" warning to stderr.
+> - **`SchemaNode.name`** — New optional `name?: string` on `SchemaNode`. Engine-level targeting field for mobile patches — not forwarded to the rendered component as a prop.
+> - **`createPage` mobile option** — `createPage()` now accepts `mobile?: MobileSchemaConfig`. When present the page becomes async, calls `getServerDevice()` server-side, and applies patches when `isMobile || isTablet`. Desktop schema is never mutated.
+> - **`EngineBrowser` v2** — Full upgrade of `src/engine/core/EngineBrowser.ts`. Five new subsystems: `clipboard` (copy, copyHtml, paste, read, canRead, canWrite), `interact` (share, notify, vibrate, pickFile, download, badge, clearBadge, fullscreen, exitFullscreen, wakeLock, location, lockOrientation), `media` (camera, microphone, screen, stop), `speech` (speak, stopSpeaking, isSpeaking, listen, stopListening, voices), `network` (status, onchange). 15 new `BrowserSupports` fields.
+> **Changes in previous update:**
 > - **`EngineAPIConfigParser`** — New `src/engine/core/EngineAPIConfigParser.ts`. Parses `.EngineAPIConfig/*.api` files (TOML-inspired syntax) into a compiled `EngineAPICompiledConfig` object consumed by `EngineAPIResolver`. Supports `$ENV_VAR` substitution, all auth types (`ak`, `bearer`, `jwt`, `basic`, `hmac`, `pnp`), version macros, and per-provider header overrides. In-process cache via `ensureAPIConfig()`.
 > - **`engineApiPlugin`** — New `src/engine/plugins/engineApiPlugin.js`. Next.js `webpack` plugin that compiles `.EngineAPIConfig/*.api` at build time and writes `.engine-api-compiled.json` to the project root. Import with `const withEngineAPI = require("./src/engine/plugins/engineApiPlugin")` in `next.config.js`.
 > - **`schemaAnalyzer`** — New `src/engine/core/schemaAnalyzer.ts` (TASK-018). Static analyzer for `PageSchema`/`SchemaNode` trees. Emits TypeScript-compiler-style diagnostics: `E001` unknown type (+ Levenshtein "did you mean?"), `E002` missing required prop, `E003` duplicate id/point, `E004` circular reference, `W001`–`W006` accessibility and performance warnings. Exports `analyzeSchema()`, `analyzeNode()`, `isSchemaValid()`.
@@ -54,7 +60,9 @@ src/engine/
 │   ├── EngineAPIResolver.ts     Runtime fetch orchestrator with multi-tier auth + version macros
 │   ├── EngineAPIConfigParser.ts Parses .EngineAPIConfig/*.api files into EngineAPICompiledConfig
 │   ├── schemaAnalyzer.ts        Static analyzer — diagnostics, did-you-mean, a11y, perf warnings
-│   └── validateSchema.ts        Runtime schema validation (lightweight, throws on hard errors)
+│   ├── validateSchema.ts        Runtime schema validation (lightweight, throws on hard errors)
+│   ├── EngineDevice.ts          Server + client device detection (Apple, Samsung, Xiaomi, etc.)
+│   └── EngineMobilePatcher.ts   Mobile schema patching — applies MobileSchemaConfig to PageSchema
 │
 ├── hooks/
 │   ├── useInView.ts          SSR-safe IntersectionObserver hook
@@ -1698,7 +1706,172 @@ See `TODO.md` for the full root-cause analysis. In short:
 
 ---
 
-## EngineBrowser — Browser Detection & Conditional Execution
+## EngineMobile — Server-Side Mobile Schema Patching
+
+`EngineMobile` lets you define a mobile layout alongside the desktop schema in the same `page.tsx`. Patches are applied **server-side** inside `createPage()` when the incoming request UA is a mobile or tablet device — the desktop schema object is never mutated.
+
+### How it works
+
+```
+Request UA
+    │
+    ▼
+getServerDevice()             ← reads next/headers User-Agent
+    │
+    ├── isDesktop → renderPage(schema)          ← original schema untouched
+    │
+    └── isMobile  → applyMobilePatches(schema, mobile)
+                        │
+                        ▼
+                   patchTree()                  ← walks tree, targets named nodes
+                        │
+                        ▼
+                   renderPage(patchedSchema)    ← mobile-specific tree
+```
+
+### Naming nodes — `SchemaNode.name`
+
+Add a `name` field to any node you want to target from a mobile patch:
+
+```ts
+{
+  type: "grid",
+  name: "feature-grid",    // ← stable patch target
+  props: { columns: 3, gap: "2rem" },
+  children: [
+    {
+      type: "box",
+      name: "pricing-hero",
+      props: { px: "4rem", py: "6rem" },
+    }
+  ]
+}
+```
+
+`name` is an engine-level field — it is not forwarded to the rendered component as a prop.
+
+### `createPage` mobile option
+
+```ts
+export default createPage({
+  schema: MySchema,
+  mobile: [
+    // Entry 1 — hide desktop nav, show mobile menu
+    {
+      "children#desktop-nav": {
+        cprop: { hide: true },          // sets display: none on mobile
+      },
+    },
+    {
+      "children#mobile-menu": {
+        props: { display: "flex" },
+      },
+    },
+    // Entry 2 — completely replace hero props for mobile
+    {
+      "children#pricing-hero": {
+        "remove-all-prop": true,        // wipe ALL desktop props first
+        props: { px: "1rem", py: "2rem" },
+      },
+    },
+    // Entry 3 — change grid columns, wipe cprop only
+    {
+      "children#feature-grid": {
+        "remove-all-cprop": true,       // wipe cprop only, keep other props
+        props: { columns: 1 },
+        cprop: { onHover: { transform: "none" } },
+      },
+    },
+  ],
+});
+```
+
+### Selector syntax
+
+| Selector | Effect |
+|----------|--------|
+| `"children#my-node"` | Finds the node with `name: "my-node"` anywhere in the tree |
+| `"#my-node"` | Short form — identical effect |
+
+### Top-level directives
+
+These sit at the **top level** of each patch entry — not inside `props` or `cprop`:
+
+| Directive | Description |
+|-----------|-------------|
+| `"remove-all-prop": true` | Clears ALL existing `props` (including any nested `cprop`) before merging new values |
+| `"remove-all-cprop": true` | Clears only `props.cprop` before merging; all other props are kept |
+
+### Mobile-only `cprop.hide`
+
+| Value | Effect |
+|-------|--------|
+| `cprop: { hide: true }` | Sets `display: "none"` on the node — invisible on mobile, unchanged on desktop |
+
+### Dev warnings
+
+When a selector doesn't match any named node the engine emits a dev-only warning to stderr with a Levenshtein "did you mean?" suggestion:
+
+```
+[engine:mobile] Selector "children#pricng-hero" did not match any node.
+                Did you mean "children#pricing-hero"?
+```
+
+Silent in production (`NODE_ENV === "production"`).
+
+---
+
+## EngineDevice — Device Detection
+
+```ts
+import { getServerDevice, useMobileDevice, detectDevice } from "@/engine";
+
+// Server Component / Route Handler / Server Action:
+const device = await getServerDevice();
+// → { isMobile: true, isTablet: false, isDesktop: false, os: "android", brand: "samsung", type: "samsung" }
+
+// Client-side React hook (SSR-safe, updates after mount):
+function MyComponent() {
+  const device = useMobileDevice();
+  if (device.isMobile) return <MobileLayout />;
+  return <DesktopLayout />;
+}
+
+// Anywhere — parse a UA string directly:
+const info = detectDevice("Mozilla/5.0 (Linux; Android 14; SM-S928B) ...");
+```
+
+**`DeviceInfo` shape:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `isMobile` | `boolean` | Phone-sized device |
+| `isTablet` | `boolean` | Tablet |
+| `isDesktop` | `boolean` | Desktop/laptop |
+| `os` | `DeviceOS` | `"ios" \| "android" \| "windows-phone" \| "desktop" \| "other"` |
+| `brand` | `DeviceBrand` | Detected hardware brand |
+| `type` | `string` | `"iphone"`, `"samsung"`, `"xiaomi"`, `"android"`, `"desktop"`, etc. |
+
+**Detected brands:**
+
+| Brand | Detection tokens |
+|-------|-----------------|
+| Apple | `iPhone`, `iPad`, `iPod`, macOS+touch |
+| Samsung | `SamsungBrowser`, `SM-`, `GT-`, `Galaxy` |
+| Xiaomi | `MIUI`, `Redmi`, `Mi`, `HMNote`, `Poco` |
+| Huawei | `Huawei`, `Honor` |
+| OnePlus | `OnePlus`, `OPD-`, `LE2` |
+| OPPO | `OPPO` |
+| Realme | `Realme` |
+| Vivo | `Vivo` |
+| Motorola | `Motorola`, `Moto` |
+| Nokia | `Nokia`, `HMD` |
+| Google | `Pixel`, `Nexus` |
+| Generic Android | any other Android UA |
+
+---
+
+## EngineBrowser — Browser Detection, Interactions & Media
 
 `EngineBrowser` is a client-side module (safe on SSR — returns defaults when `window` is undefined).
 
@@ -1719,13 +1892,29 @@ EngineBrowser.is.chromium   // any Chromium-based browser
 EngineBrowser.is.mobile     // touch-primary device
 EngineBrowser.is.desktop    // mouse-primary device
 
-// Feature support
-EngineBrowser.supports.viewTransitions   // View Transitions API
+// Feature support (selection — see BrowserSupports for full list)
+EngineBrowser.supports.viewTransitions    // View Transitions API
 EngineBrowser.supports.containerQueries  // CSS @container
 EngineBrowser.supports.cssHas            // CSS :has()
 EngineBrowser.supports.reducedMotion     // prefers-reduced-motion: reduce
 EngineBrowser.supports.prefersDark       // prefers-color-scheme: dark
 EngineBrowser.supports.webgl2            // WebGL 2
+EngineBrowser.supports.clipboard         // Clipboard API present
+EngineBrowser.supports.clipboardRead     // clipboard.readText available
+EngineBrowser.supports.clipboardWrite    // clipboard.writeText available
+EngineBrowser.supports.camera            // getUserMedia video
+EngineBrowser.supports.microphone        // getUserMedia audio
+EngineBrowser.supports.screenCapture     // getDisplayMedia
+EngineBrowser.supports.speechSynthesis   // TTS available
+EngineBrowser.supports.speechRecognition // STT available
+EngineBrowser.supports.wakeLock          // Screen Wake Lock API
+EngineBrowser.supports.notifications     // Web Notifications API
+EngineBrowser.supports.fullscreen        // Fullscreen API
+EngineBrowser.supports.networkInfo       // Network Information API
+EngineBrowser.supports.battery           // Battery Status API
+EngineBrowser.supports.webAuthn          // WebAuthn / Passkeys
+EngineBrowser.supports.fileSystemAccess  // showOpenFilePicker (Chrome/Edge)
+EngineBrowser.supports.badgeApi          // navigator.setAppBadge (PWA)
 ```
 
 ### Conditional execution
@@ -1742,6 +1931,196 @@ const cls = EngineBrowser.pick({
   default: "scroll-standard",
 });
 ```
+
+### Clipboard — `EngineBrowser.clipboard`
+
+All methods return `null` / `false` / `[]` on failure — never throw.
+
+```ts
+// Write plain text (falls back to execCommand on old WebViews)
+const ok = await EngineBrowser.clipboard.copy("Hello, world!");
+
+// Write HTML + plain-text fallback (Chrome 86+, Edge 86+)
+await EngineBrowser.clipboard.copyHtml("<b>Bold</b>", "Bold");
+
+// Read plain text — may prompt for "clipboard-read" permission in Chrome
+const text = await EngineBrowser.clipboard.paste();
+
+// Read raw ClipboardItems — for images, mixed content
+const items = await EngineBrowser.clipboard.read();
+for (const item of items) {
+  if (item.types.includes("image/png")) {
+    const blob = await item.getType("image/png");
+  }
+}
+
+// Check permissions before reading
+if (await EngineBrowser.clipboard.canRead()) {
+  const items = await EngineBrowser.clipboard.read();
+}
+```
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `copy(text)` | `Promise<boolean>` | Falls back to `execCommand("copy")` |
+| `copyHtml(html, plain?)` | `Promise<boolean>` | Chrome 86+, Edge 86+ |
+| `paste()` | `Promise<string \| null>` | Prompts `clipboard-read` in Chrome |
+| `read()` | `Promise<ClipboardItem[]>` | For images and mixed content |
+| `canRead()` | `Promise<boolean>` | Checks current permission state |
+| `canWrite()` | `Promise<boolean>` | `granted` or auto-grantable |
+
+### Browser Interactions — `EngineBrowser.interact`
+
+```ts
+// Native OS share sheet
+await EngineBrowser.interact.share({ title: "Check this", url: location.href });
+
+// Desktop/mobile notification (auto-requests permission on first call)
+await EngineBrowser.interact.notify("Upload complete", {
+  body: "Your file has been saved.",
+  icon: "/icon-192.png",
+});
+
+// Vibrate (mobile only)
+EngineBrowser.interact.vibrate(200);            // 200ms single buzz
+EngineBrowser.interact.vibrate([100, 50, 100]); // buzz-pause-buzz pattern
+
+// File picker (File System Access API or hidden <input> fallback)
+const files = await EngineBrowser.interact.pickFile({ accept: "image/*", multiple: true });
+
+// Trigger file download
+EngineBrowser.interact.download("export.json", JSON.stringify(data), "application/json");
+EngineBrowser.interact.download("photo.png", imageBlob);
+
+// Fullscreen
+await EngineBrowser.interact.fullscreen();        // default: document.documentElement
+await EngineBrowser.interact.fullscreen(videoEl); // specific element
+await EngineBrowser.interact.exitFullscreen();
+
+// Screen Wake Lock — keeps display on (recipe apps, workout trackers, kiosk)
+const lock = await EngineBrowser.interact.wakeLock();
+// ... later:
+await lock?.release();
+
+// Geolocation — clean Promise wrapper over the callback API
+const pos = await EngineBrowser.interact.location({ enableHighAccuracy: true });
+if (pos) console.log(pos.coords.latitude, pos.coords.longitude);
+
+// Lock screen orientation (requires fullscreen on most browsers)
+await EngineBrowser.interact.lockOrientation("portrait");
+
+// PWA app badge
+await EngineBrowser.interact.badge(3);      // show "3" on app icon
+await EngineBrowser.interact.clearBadge();  // remove badge
+```
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `share(data)` | `Promise<boolean>` | Returns false if unavailable or user cancels |
+| `notify(title, opts?)` | `Promise<Notification \| null>` | Auto-requests permission |
+| `vibrate(pattern)` | `boolean` | No-ops on desktop |
+| `pickFile(opts?)` | `Promise<File[] \| null>` | Falls back to `<input type="file">` |
+| `download(name, data, mime?)` | `void` | Works with string or Blob |
+| `fullscreen(el?)` | `Promise<boolean>` | Default: `document.documentElement` |
+| `exitFullscreen()` | `Promise<void>` | No-op if not fullscreen |
+| `wakeLock()` | `Promise<WakeLockSentinel \| null>` | Call `.release()` when done |
+| `location(opts?)` | `Promise<GeolocationPosition \| null>` | Returns null on denial |
+| `lockOrientation(type)` | `Promise<boolean>` | Needs fullscreen on most browsers |
+| `badge(count)` | `Promise<boolean>` | PWA only |
+| `clearBadge()` | `Promise<boolean>` | PWA only |
+
+### Media Capture — `EngineBrowser.media`
+
+```ts
+// Camera — front or rear
+const stream = await EngineBrowser.media.camera({ facing: "environment" });
+if (stream) {
+  videoEl.srcObject = stream;
+  // always stop when done to release the device and kill the indicator light:
+  EngineBrowser.media.stop(stream);
+}
+
+// Microphone
+const audioStream = await EngineBrowser.media.microphone();
+
+// Screen capture — shows browser's built-in screen/window/tab picker
+const screenStream = await EngineBrowser.media.screen();
+```
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `camera(opts?)` | `Promise<MediaStream \| null>` | `opts.facing: "user" \| "environment"` |
+| `microphone(opts?)` | `Promise<MediaStream \| null>` | Standard `MediaTrackConstraints` |
+| `screen(opts?)` | `Promise<MediaStream \| null>` | Shows browser's native picker |
+| `stop(stream)` | `void` | Stops all tracks, releases hardware |
+
+**Always call `media.stop(stream)`** when done — leaving tracks running keeps the camera/mic indicator active in the browser tab bar.
+
+### Speech — `EngineBrowser.speech`
+
+```ts
+// Text-to-speech — resolves when finished
+await EngineBrowser.speech.speak("Hello!", { lang: "en-US", rate: 1.1, pitch: 1 });
+
+// Stop mid-speech
+EngineBrowser.speech.stopSpeaking();
+EngineBrowser.speech.isSpeaking(); // boolean
+
+// Speech-to-text — returns final transcript or null
+const text = await EngineBrowser.speech.listen(
+  { lang: "en-US" },
+  (partial) => console.log("Interim:", partial), // optional live transcript callback
+);
+if (text) handleVoiceCommand(text);
+
+EngineBrowser.speech.stopListening();
+
+// Available TTS voices (may be empty on first call — loads async in some browsers)
+const voices = EngineBrowser.speech.voices();
+const japanese = voices.find(v => v.lang === "ja-JP");
+await EngineBrowser.speech.speak("こんにちは", { voice: japanese });
+```
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `speak(text, opts?)` | `Promise<void>` | Resolves when speech ends |
+| `stopSpeaking()` | `void` | Cancels in-progress TTS |
+| `isSpeaking()` | `boolean` | True while TTS is active |
+| `listen(opts?, onInterim?)` | `Promise<string \| null>` | Returns final transcript |
+| `stopListening()` | `void` | Cancels active recognition |
+| `voices()` | `SpeechSynthesisVoice[]` | May be empty until async load |
+
+**`SpeakOptions`:** `voice`, `lang` (BCP 47 e.g. `"en-US"`), `rate` (0.1–10, default 1), `pitch` (0–2, default 1), `volume` (0–1, default 1).
+
+**`ListenOptions`:** `lang` (BCP 47), `interim` (boolean — enables partial results callback).
+
+### Network — `EngineBrowser.network`
+
+```ts
+// Snapshot
+const { online, type, downlink, rtt, saveData } = EngineBrowser.network.status();
+
+// Subscribe to changes — returns an unsubscribe function
+const unsubscribe = EngineBrowser.network.onchange((status) => {
+  if (!status.online) showOfflineBanner();
+  if (status.type === "2g" || status.saveData) enableDataSaverMode();
+});
+
+// Cleanup
+unsubscribe();
+```
+
+`NetworkStatus` fields:
+
+| Field | Type | Source |
+|-------|------|--------|
+| `online` | `boolean` | `navigator.onLine` |
+| `type` | `NetworkType` | Network Information API |
+| `downlink` | `number?` | Bandwidth estimate in Mbit/s |
+| `rtt` | `number?` | Round-trip time in ms |
+| `saveData` | `boolean?` | Data-saver mode active |
+
+`type` values: `"wifi"` | `"ethernet"` | `"4g"` | `"3g"` | `"2g"` | `"slow-2g"` | `"bluetooth"` | `"none"` | `"unknown"`.
 
 ### React hook
 
