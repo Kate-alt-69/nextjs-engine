@@ -18,6 +18,7 @@ import type {
 	MobileSchemaConfig,
 } from "./schema/types";
 import { EngineProvider } from "./providers/EngineProvider";
+import { EngineScrollProvider } from "./core/enginescroll";
 import { SchemaRenderer } from "./core/SchemaRenderer";
 import { globalStyleCollector, StyleCollector } from "./core/StyleCollector";
 import { clearResolverCache } from "./core/resolver";
@@ -332,15 +333,17 @@ export function createPage(options: CreatePageOptions): EnginePageComponent {
 		globalStyleCollector.reset();
 
 		return (
-			<EngineProvider
-				config={config}
-				handlers={handlers}
-				slots={slots}
-			>
-				<EngineTheme schema={resolvedSchema} />
-				<SchemaRenderer schema={resolvedSchema} />
-				<EngineStyles collector={globalStyleCollector} />
-			</EngineProvider>
+			<EngineScrollProvider>
+				<EngineProvider
+					config={config}
+					handlers={handlers}
+					slots={slots}
+				>
+					<EngineTheme schema={resolvedSchema} />
+					<SchemaRenderer schema={resolvedSchema} />
+					<EngineStyles collector={globalStyleCollector} />
+				</EngineProvider>
+			</EngineScrollProvider>
 		);
 	}
 

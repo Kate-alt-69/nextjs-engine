@@ -2,9 +2,10 @@
 // EngineScrollNavigator.ts
 // ============================================================================
 
-import { EngineScrollMovement } from "./EngineScrollMovement";
-import { EngineScrollHash } from "./EngineScrollHash";
-import { EngineScrollRuntime } from "./EngineScrollRuntime";
+import { EngineScrollMovement }     from "./EngineScrollMovement";
+import { EngineScrollHash }         from "./EngineScrollHash";
+import { EngineScrollPointManager } from "./EngineScrollPointManager";
+import { EngineScrollRuntime }      from "./EngineScrollRuntime";
 
 export type EngineScrollTarget =
 	| number
@@ -38,37 +39,41 @@ export class EngineScrollNavigator {
 
 			case "top":
 
-				EngineScrollMovement.top(
-					duration,
-				);
-
+				EngineScrollMovement.top(duration);
 				return true;
 
 			case "bottom":
 
-				EngineScrollMovement.bottom(
-					duration,
-				);
-
+				EngineScrollMovement.bottom(duration);
 				return true;
 
 			case "current":
 
-				EngineScrollMovement.moveBy(
-					offset,
-					duration,
-				);
-
+				EngineScrollMovement.moveBy(offset, duration);
 				return true;
 
 		}
 
 		if (target.startsWith("#")) {
 
-			return EngineScrollHash.moveToHash(
-				target,
-				duration,
-			);
+			const name = target.slice(1);
+
+			// Named point registered via EngineScrollPointManager / point prop
+			if (EngineScrollPointManager.has(name)) {
+
+				const registered = EngineScrollPointManager.get(name)!;
+
+				EngineScrollMovement.move(
+					registered.point + offset,
+					duration,
+				);
+
+				return true;
+
+			}
+
+			// Fall back to DOM id lookup
+			return EngineScrollHash.moveToHash(target, duration);
 
 		}
 

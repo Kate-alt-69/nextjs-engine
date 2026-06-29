@@ -77,8 +77,31 @@ export type { EngineDiagnostic, AnalyzerResult, DiagnosticSeverity } from "./cor
 
 // ── Scroll system ─────────────────────────────────────────────────────────────
 export {
-	EngineScroll, EngineScrollProvider, useEngineScroll,
+	EngineScroll as EngineScrollComponent, EngineScrollProvider as _OldScrollProvider,
+	useEngineScroll as _oldUseEngineScroll,
 } from "./components/EngineScroll";
+// Re-export the schema component under its original name
+// export { EngineScrollComponent as EngineScrollComponent };
+
+// ── EngineScroll core (runtime, navigation, URL protocol) ────────────────────
+export {
+	EngineScroll,
+	EngineScrollProvider,
+	useEngineScroll,
+	EngineScrollNavigator,
+	EngineScrollURL,
+	EngineScrollMovement,
+	EngineScrollHash,
+	EngineScrollPointManager,
+	EngineScrollEasing,
+}                                from "./core/enginescroll";
+export type {
+	EngineScrollCtx,
+	EngineScrollTarget,
+	EngineScrollState,
+	EngineScrollPoint,
+	EngineRegisteredPoint,
+}                                from "./core/enginescroll";
 
 // ── Browser detection + interactions ──────────────────────────────────────────
 export { EngineBrowser, useBrowser }                from "./core/EngineBrowser";

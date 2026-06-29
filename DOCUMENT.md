@@ -1,6 +1,15 @@
 # Next.js Engine — Technical Documentation
 
-> **Last updated:** 2026-06-21
+> **Last updated:** 2026-06-29
+> **Changes in this update:**
+> - **`EngineScrollProvider`** — New `src/engine/core/enginescroll/EngineScrollProvider.tsx`. React context wrapping the EngineScroll runtime. Exports `useEngineScroll()` hook returning `{ move }`. `createPage` now auto-wraps every page in `<EngineScrollProvider>` so scroll is available on all pages without manual setup.
+> - **`EngineScrollURL`** — New `src/engine/core/enginescroll/EngineScrollURL.ts`. Parses and executes the `#-es?` URL protocol. Supports `move`, `offset`, `duration` params. Cleans URL with `history.replaceState()` after execution. `listen()` subscribes to future `hashchange` events.
+> - **`EngineScrollNavigator` updated** — Now checks `EngineScrollPointManager` for registered named points before falling back to `document.querySelector`. `move("#hero")` resolves registered schema `point` props first, then DOM ids.
+> - **`EngineScrollHash` fixed** — Bug: body referenced undefined `target` and `offset` variables instead of the `hash` parameter. Fixed to use correct parameter name.
+> - **`enginescroll/index.ts`** — New barrel exporting the full public API: `EngineScroll`, `EngineScrollRuntime`, `EngineScrollProvider`, `useEngineScroll`, `EngineScrollNavigator`, `EngineScrollURL`, `EngineScrollMovement`, `EngineScrollHash`, `EngineScrollPointManager`, `EngineScrollEasing`, and all types.
+> - **`EngineCanvas` fixed** — Bug: `canvasMounted` state was declared *after* the setup effect. React fires effects in declaration order, so setup ran before the `<canvas>` was in the DOM (`canvasRef.current = null` → early return). Setup never re-ran because `canvasMounted` wasn't in the dependency array. Fixed by moving `canvasMounted` before the setup effect and adding it to deps.
+> - **EngineManim fixes** — `frameTime` (frame counter, 0,1,2…) was used as a `performance.now()` timestamp. Since frame counter << timestamp, `now < rt.delayEnd` was always true — animation permanently frozen. Fixed: `const now = performance.now()`. Also fixed: `onSetup` set `fillStyle` but never called `fillRect` — canvas stayed white.
+
 > **Changes in this update:**
 > - **`EngineDevice`** — New `src/engine/core/EngineDevice.ts`. Server + client device detection covering Apple (iPhone/iPad), Samsung (SM-/GT-/Galaxy/SamsungBrowser), Xiaomi (MIUI/Redmi/Mi/Poco), Huawei, OnePlus, OPPO, Realme, Vivo, Motorola, Nokia, Google Pixel, and generic Android. Exports `detectDevice(ua)`, `getServerDevice()` (async, reads `next/headers`), and `useMobileDevice()` React hook.
 > - **`EngineMobilePatcher`** — New `src/engine/core/EngineMobilePatcher.ts`. Applies a `MobileSchemaConfig` patch list server-side before render. Selector `"children#name"` targets nodes by their new `name` field. Top-level directives `"remove-all-prop"` / `"remove-all-cprop"` wipe values before merging new ones. `cprop.hide: true` sets `display: none`. Unknown selectors emit a dev-only Levenshtein "did you mean?" warning to stderr.
@@ -1563,93 +1572,258 @@ handlers: {
 
 ---
 
-## EngineScroll — Smooth Scroll + Anchor Navigation + Page Transitions
+## EngineScroll — Runtime Scroll System
 
-The scroll system handles all anchor-point navigation across the engine.
+EngineScroll is a framework-agnostic scroll runtime with a React integration layer. It replaces browser scroll APIs with a point-based system, a RAF scheduler, semantic named targets, and its own URL protocol.
 
-### Schema node type: `"scroll"`
+Every page created with `createPage` automatically initializes EngineScroll and activates the URL protocol listener. No manual setup required for basic usage.
 
-```ts
-{
-  type: "scroll",
-  props: {
-    method:            "ease",   // "ease" | "smooth" | "snap" | "instant"
-    easing:            "ease-in-out", // "ease-in" | "ease-out" | "linear" | "spring"
-    scrollDuration:    600,      // ms, ease mode only
-    pageTransition:    true,     // fade-out/fade-in for cross-page navigation
-    transitionDuration: 350,     // ms
-    scrollOffset:      80,       // px offset for sticky headers
-  },
-  children: [...]
-}
+---
+
+### Architecture
+
+```
+EngineScroll (entry point)
+    │
+    ├── EngineScrollRuntime      — singleton state + subscriber registry
+    ├── EngineScrollAnimation    — easing + interpolation
+    ├── EngineScrollMovement     — absolute / relative / percent movement
+    ├── EngineScrollNavigator    — public navigation API (resolves targets)
+    │       ├── EngineScrollPointManager  — named point registry
+    │       └── EngineScrollHash         — DOM id fallback
+    ├── EngineScrollURL          — #-es? URL protocol parser
+    ├── EngineScrollBrowser      — browser abstraction (Firefox compat)
+    ├── EngineScrollEasing       — easing function library
+    └── EngineScrollProvider     — React context + useEngineScroll hook
 ```
 
-### `point` prop (any node)
+---
 
-```ts
-// Any engine node can be a scroll anchor target
-{ type: "section", props: { point: "features" } }
-// → <section id="features"> — reachable via URL#features
-```
+### Setup
 
-### Same-page vs cross-page navigation
-
-| Scenario | Behaviour |
-|----------|-----------|
-| `/page#anchor` → `#anchor` on same page | Smooth scroll only (no transition) |
-| `/page-a#foo` → `/page-b#bar` | Fade out → navigate → fade in → scroll |
-
-### Easing methods
-
-| Value | Description |
-|-------|-------------|
-| `"ease-in-out"` | Cubic, slow start + end, fast middle (Google-style, default) |
-| `"ease-in"` | Cubic, slow start |
-| `"ease-out"` | Cubic, slow end |
-| `"linear"` | Constant speed |
-| `"spring"` | Slight overshoot and settle |
-
-### EngineMarkdown scroll points
-
-By default, all h1 and h2 headings in `EngineMarkdown` become scroll anchor
-points. Disable per-component:
-
-```ts
-{
-  type: "markdown",
-  props: {
-    content: "...",
-    disablepointformarkdownhash:     true,  // disables # (h1) as points
-    disablepointformarkdownhashhash: true,  // disables ## (h2) as points
-  }
-}
-```
-
-The HTML `id` is still generated on all headings regardless of these flags —
-so manual `href="#slug"` links still work.
-
-### Direct JSX usage
+`createPage` auto-initializes EngineScroll on every page. For app-wide scroll (e.g. cross-page transitions) also add the provider in `layout.tsx`:
 
 ```tsx
-import { EngineScrollProvider, useEngineScroll } from "@/engine";
+// app/layout.tsx
+import { EngineScrollProvider } from "@/engine";
 
-// Wrap your page (or put in layout.tsx for global transitions)
-<EngineScrollProvider method="ease" pageTransition>
-  <YourPageContent />
-</EngineScrollProvider>
-
-// Inside any child: programmatic navigation
-function MyButton() {
-  const scroll = useEngineScroll();
+export default function RootLayout({ children }) {
   return (
-    <button onClick={() => scroll?.navigateTo("/other-page#section")}>
-      Go to section
-    </button>
+    <html lang="en">
+      <body>
+        <EngineScrollProvider>{children}</EngineScrollProvider>
+      </body>
+    </html>
   );
 }
 ```
 
 ---
+
+### `useEngineScroll` hook
+
+```tsx
+import { useEngineScroll } from "@/engine";
+
+function NavButton() {
+  const scroll = useEngineScroll();
+  return (
+    <button onClick={() => scroll.move("pricing")}>Go to Pricing</button>
+  );
+}
+```
+
+Returns `{ move }`. Throws if used outside `<EngineScrollProvider>`.
+
+---
+
+### `EngineScrollNavigator.move()` — full navigation API
+
+```ts
+import { EngineScrollNavigator } from "@/engine";
+
+// Named semantic point (registered via `point` prop or EngineScrollPointManager)
+EngineScrollNavigator.move("#hero");
+EngineScrollNavigator.move("#pricing", 2);       // with +2 point offset
+EngineScrollNavigator.move("#hero", 0, 400);     // custom duration ms
+
+// Absolute scroll point
+EngineScrollNavigator.move(120.5);
+
+// Relative from current position
+EngineScrollNavigator.move("current", 5);        // scroll forward 5 points
+
+// Jump to top or bottom
+EngineScrollNavigator.move("top");
+EngineScrollNavigator.move("bottom");
+```
+
+**`EngineScrollTarget` type:**
+
+```ts
+type EngineScrollTarget =
+  | number        // absolute scroll point
+  | "top"         // scroll to 0
+  | "bottom"      // scroll to page maximum
+  | "current"     // offset from current position
+  | `#${string}`; // named semantic point or DOM id
+```
+
+**Target resolution order for `#name`:**
+1. `EngineScrollPointManager.has(name)` → use exact registered scroll point
+2. `document.querySelector("#name")` → compute position from DOM rect
+
+---
+
+### `point` prop — registering scroll anchors
+
+Any schema node can become a named scroll target:
+
+```ts
+{ type: "section", props: { point: "hero" } }
+// → <section id="hero"> registered in EngineScrollPointManager
+// → reachable via EngineScrollNavigator.move("#hero")
+// → reachable via URL:  #-es?move=hero
+```
+
+Points are registered when the element mounts and unregistered on unmount.
+
+---
+
+### `EngineScrollPointManager` — manual registration
+
+```ts
+import { EngineScrollPointManager } from "@/engine";
+
+// Register (call from useEffect or similar)
+EngineScrollPointManager.register("my-section", point, element);
+
+// Unregister on unmount
+EngineScrollPointManager.unregister("my-section");
+
+// Recalculate all positions after layout changes
+EngineScrollPointManager.recalculate();
+
+// Query
+EngineScrollPointManager.has("my-section");   // boolean
+EngineScrollPointManager.get("my-section");   // EngineRegisteredPoint | undefined
+EngineScrollPointManager.names();             // string[]
+```
+
+```ts
+interface EngineRegisteredPoint {
+  name:    string;
+  point:   number;        // scroll point value
+  element: HTMLElement;
+}
+```
+
+---
+
+### URL Protocol
+
+EngineScroll uses the `#-es?` prefix as its own URL protocol. After execution the command is removed from the address bar with `history.replaceState()`. Standard `#section` anchors are unaffected.
+
+```text
+#-es?move=hero
+#-es?move=pricing
+#-es?move=current&offset=25
+#-es?move=120.5
+#-es?move=footer&duration=600
+#-es?move=top
+#-es?move=bottom
+```
+
+| Parameter  | Type   | Description |
+|------------|--------|-------------|
+| `move`     | string | Target: semantic name, `top`, `bottom`, `current`, or numeric |
+| `offset`   | number | Scroll-point offset added to target |
+| `duration` | number | Override animation duration (ms) |
+
+**Link usage:**
+
+```html
+<a href="#-es?move=pricing">Go to pricing</a>
+<a href="#-es?move=current&offset=10">Scroll down 10 points</a>
+```
+
+**Programmatic:**
+
+```ts
+import { EngineScrollURL } from "@/engine";
+
+EngineScrollURL.has();      // true when current URL has #-es? command
+EngineScrollURL.execute();  // parse + run + clean URL
+EngineScrollURL.listen();   // subscribe to hashchange (returns unsubscribe fn)
+```
+
+---
+
+### `EngineScrollEasing`
+
+```ts
+import { EngineScrollEasing } from "@/engine";
+
+// All accept t ∈ [0,1] and return value in [0,1]
+EngineScrollEasing.linear(t)
+EngineScrollEasing.easeInQuad(t)
+EngineScrollEasing.easeOutQuad(t)
+EngineScrollEasing.easeInOutQuad(t)
+EngineScrollEasing.easeInCubic(t)
+EngineScrollEasing.easeOutCubic(t)
+EngineScrollEasing.easeInOutCubic(t)
+```
+
+---
+
+### EngineMarkdown scroll points
+
+`h1` and `h2` headings in `EngineMarkdown` auto-register as named scroll points. Disable per-component:
+
+```ts
+{
+  type: "markdown",
+  props: {
+    disablepointformarkdownhash:     true,  // disable h1 → point
+    disablepointformarkdownhashhash: true,  // disable h2 → point
+  }
+}
+```
+
+The HTML `id` is still generated regardless — so `href="#slug"` links still work.
+
+---
+
+### Legacy schema node: `"scroll"`
+
+```ts
+{
+  type: "scroll",
+  props: {
+    method:             "ease",
+    easing:             "ease-in-out",
+    scrollDuration:     600,
+    pageTransition:     true,
+    transitionDuration: 350,
+    scrollOffset:       80,
+  },
+  children: [...]
+}
+```
+
+Supported for backwards compatibility. New projects should use `EngineScrollProvider` + `useEngineScroll` directly.
+
+---
+
+### Why RAF over `scroll-behavior: smooth`
+
+| | `scroll-behavior: smooth` | EngineScroll RAF |
+|---|---|---|
+| Duration control | ❌ browser decides | ✅ configurable ms |
+| Easing curve | ❌ browser decides | ✅ full easing library |
+| Safari compatibility | ⚠️ bugs on `<body>` | ✅ works everywhere |
+| `prefers-reduced-motion` | ✅ browser handles | ✅ instant jump |
+| Interrupt on new scroll | ❌ fights native | ✅ RAF cancels cleanly |
 
 ## cprop — Custom CSS Props
 
@@ -2292,18 +2466,3 @@ export default createPage(myPageSchema);
 Generates `title`, `description`, `keywords`, `canonical`, `robots`, `openGraph`, and `twitter` from `PageMeta`.
 
 ---
-
-## Why RAF Scroll is Better Than CSS scroll-behavior
-
-EngineScroll uses `requestAnimationFrame` + easing functions, not `scroll-behavior: smooth`. Here is why:
-
-| | `scroll-behavior: smooth` | EngineScroll RAF |
-|---|---|---|
-| Duration control | ❌ browser decides | ✅ configurable ms |
-| Easing curve | ❌ browser decides | ✅ ease-in-out / spring / linear / etc. |
-| Safari compatibility | ⚠️ bugs on `<body>` | ✅ works everywhere |
-| `prefers-reduced-motion` | ✅ browser handles | ✅ instant jump |
-| Interrupt on new scroll | ❌ fights native | ✅ RAF cancels cleanly |
-| Chromium changes | ⚠️ behavior changes per version | ✅ RAF is a W3C primitive, unchanged since 2012 |
-
-**The "Chromium inshittification" concern:** `requestAnimationFrame` is the most stable browser API that exists. It is unaffected by any Chromium rendering changes. The concern only applies to CSS-level scroll APIs, which we deliberately avoid.
