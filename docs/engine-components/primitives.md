@@ -395,3 +395,170 @@ The primary routing primitive. It handles external URLs automatically and integr
 **Note:** `EngineLink` merges styles from `cprop.styles` and `cprop.link.styles` before processing.
 
 ---
+
+---
+
+## button
+
+Renders a `<button>` or `<a>` depending on whether `href` is set.
+Use `type: "link"` for navigation — `"button"` is for actions.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `label` | `string` | — | Button text content |
+| `variant` | `"solid" \| "outline" \| "ghost" \| "elevated" \| "link"` | `"solid"` | Visual style |
+| `size` | `"xs" \| "sm" \| "md" \| "lg" \| "xl"` | `"md"` | Size preset |
+| `accentColor` | `string` | `var(--e-accent)` | Override the accent colour for this button only |
+| `icon` | `string` | — | Icon string (emoji or icon font class) |
+| `iconPosition` | `"left" \| "right"` | `"left"` | Icon placement relative to label |
+| `disabled` | `boolean` | `false` | Disables the button |
+| `loading` | `boolean` | `false` | Shows a spinner and disables the button |
+| `fullWidth` | `ResponsiveValue<boolean>` | `false` | Stretches to full container width |
+| `type` | `"button" \| "submit" \| "reset"` | `"button"` | HTML button type — set `"submit"` inside forms |
+| `href` | `string` | — | When set, renders as `<a>` instead of `<button>` |
+| `onClick` | `string` | — | Handler name from `createPage({ handlers })` |
+
+**Variant styles:**
+
+| Variant | Look |
+|---------|------|
+| `solid` | Filled with accent colour |
+| `outline` | Transparent with accent border |
+| `ghost` | Transparent, no border |
+| `elevated` | Solid with drop shadow glow |
+| `link` | Underlined text, no padding |
+
+```ts
+// Action button
+{ type: "button", props: { label: "Save", variant: "solid", size: "md", onClick: "handleSave" } }
+
+// Submit button inside a form
+{ type: "button", props: { label: "Sign in", variant: "solid", type: "submit", fullWidth: true } }
+
+// Link button
+{ type: "button", props: { label: "View docs", variant: "outline", href: "/docs", size: "lg" } }
+```
+
+---
+
+## custom-select
+
+A fully custom dropdown select — keyboard navigable, searchable, clearable.
+Replaces native `<select>` where React 19 rejects `<div>` children.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `name` | `string` | **required** | Field name — used for `data-engine-bind` and form submission |
+| `label` | `string` | — | Visible label rendered above the dropdown |
+| `options` | `SelectOption[]` | **required** | Array of `{ value, label, disabled? }` objects |
+| `placeholder` | `string` | — | Text shown when no option is selected |
+| `defaultValue` | `string` | — | Initially selected value |
+| `searchable` | `boolean` | `false` | Adds a search input inside the dropdown |
+| `clearable` | `boolean` | `false` | Shows a clear (×) button to deselect |
+| `size` | `"sm" \| "md" \| "lg"` | `"md"` | Size preset |
+| `onChange` | `string` | — | Handler name called with the selected value |
+
+```ts
+{
+  type: "custom-select",
+  props: {
+    name:        "plan",
+    label:       "Pricing plan",
+    placeholder: "Choose a plan...",
+    searchable:  true,
+    clearable:   true,
+    size:        "md",
+    onChange:    "handlePlanChange",
+    options: [
+      { value: "free",    label: "Free"             },
+      { value: "pro",     label: "Pro — $9/mo"      },
+      { value: "team",    label: "Team — $29/mo"    },
+      { value: "legacy",  label: "Legacy", disabled: true },
+    ],
+  },
+}
+```
+
+---
+
+## option / optgroup
+
+Native `<option>` and `<optgroup>` for use inside `as="select"` on a `box`.
+These are necessary because React 19 rejects unknown children inside `<select>`.
+
+```ts
+// A native select using box + option
+{
+  type: "box",
+  props: { as: "select", name: "country", style: { padding: ".5rem" } },
+  children: [
+    { type: "option", props: { value: "",   label: "Choose a country", disabled: true } },
+    { type: "option", props: { value: "us", label: "United States" } },
+    { type: "option", props: { value: "gb", label: "United Kingdom" } },
+    { type: "option", props: { value: "au", label: "Australia" } },
+  ],
+}
+
+// Grouped options using optgroup
+{
+  type: "box",
+  props: { as: "select", name: "city" },
+  children: [
+    {
+      type: "optgroup",
+      props: { label: "United States" },
+      children: [
+        { type: "option", props: { value: "nyc", label: "New York" } },
+        { type: "option", props: { value: "la",  label: "Los Angeles" } },
+      ],
+    },
+    {
+      type: "optgroup",
+      props: { label: "United Kingdom" },
+      children: [
+        { type: "option", props: { value: "ldn", label: "London" } },
+        { type: "option", props: { value: "mcr", label: "Manchester" } },
+      ],
+    },
+  ],
+}
+```
+
+**`option` props:** `value` (string), `label` (string — the visible text),
+`disabled` (boolean), `selected` (boolean).
+
+**`optgroup` props:** `label` (string — the group heading), `disabled` (boolean).
+
+Prefer `custom-select` over native `box as="select"` when you need search,
+clear, or consistent cross-browser styling.
+
+---
+
+## raw
+
+Escape hatch — renders an arbitrary React component directly inside the schema
+tree. Use when a component can't be expressed as schema nodes and registering
+it via `registerComponent` isn't appropriate (e.g. a third-party widget).
+
+```ts
+import { RawComponentRenderer } from "@/engine";
+
+// Register once at module level
+import MyThirdPartyChart from "some-chart-library";
+
+{
+  type: "raw",
+  props: {
+    component: MyThirdPartyChart,
+    // All other props are forwarded to the component
+    data:    [...],
+    width:   "100%",
+    height:  400,
+    theme:   "dark",
+  },
+}
+```
+
+`raw` bypasses the registry lookup entirely — `component` must be a valid
+React component. For reusable custom nodes, use `registerComponent` instead
+so your component is addressable by type string everywhere in the schema.

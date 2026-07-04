@@ -52,6 +52,24 @@ export type { EngineNavProps, EngineNavItem, EngineNavLogo, EngineNavVariant, En
 export { EngineImage }                              from "./components/EngineImage";
 export { EngineVideo }                              from "./components/EngineVideo";
 export { EngineCanvas, useEngineCanvas }            from "./components/EngineCanvas";
+
+// ── EngineCanvas V2 — graphics runtime (opt-in, additive) ────────────────────
+export {
+	// Graphics model factories
+	ecVec2, ecVec3, ecTransform, ecMaterial,
+	ecCircle, ecRect, ecPath, ecLine, ecPolygon,
+	ecGroup, ecScene, ecVoidEnvironment,
+	// Rendering engines
+	Engine2D, Engine3D, EngineSVGEngine, EngineSkiaEngine,
+	importSVG, exportSVG,
+	// Registry
+	createRenderingEngine, registerRenderingEngine, hasRenderingEngine,
+} from "./core/enginecanvas";
+export type {
+	ECVector2, ECVector3, ECBounds, ECMaterial, ECShadingMode,
+	ECTransform, ECCamera, ECMesh, ECGroup, ECNode, ECScene, ECEnvironment,
+	RenderingEngine as ECRenderingEngine, ECRenderContext,
+} from "./core/enginecanvas";
 export { EngineMarkdown }                           from "./components/EngineMarkdown";
 export { EngineHero }                              from "./components/EngineHero";
 export { LazyMount, LazySection }                   from "./components/LazyMount";
@@ -80,8 +98,6 @@ export {
 	EngineScroll as EngineScrollComponent, EngineScrollProvider as _OldScrollProvider,
 	useEngineScroll as _oldUseEngineScroll,
 } from "./components/EngineScroll";
-// Re-export the schema component under its original name
-// export { EngineScrollComponent as EngineScrollComponent };
 
 // ── EngineScroll core (runtime, navigation, URL protocol) ────────────────────
 export {
