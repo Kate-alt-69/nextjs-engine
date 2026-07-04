@@ -73,9 +73,9 @@ import React, {
 	type CSSProperties,
 } from "react";
 
-import { createRenderingEngine } from "../core/enginecanvas";
-import type { RenderingEngine, ECRenderContext, ECScene } from "../core/enginecanvas";
-import { useHandler } from "../providers/EngineProvider";
+import { createRenderingEngine } from "../enginecanvas";
+import type { RenderingEngine, ECRenderContext, ECScene} from "../enginecanvas";
+import { useHandler } from "../../providers/EngineProvider";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
