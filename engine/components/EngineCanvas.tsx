@@ -358,6 +358,10 @@ export const EngineCanvas = memo(function EngineCanvas({
 		startLoop();
 	}, [startLoop]);
 
+	// ── SSR / pre-mount — must be declared before setup effect ─────────────
+	const [canvasMounted, setCanvasMounted] = React.useState(false);
+	React.useEffect(() => { setCanvasMounted(true); }, []);
+
 	// ── Main setup effect ─────────────────────────────────────────────────────
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -421,10 +425,31 @@ export const EngineCanvas = memo(function EngineCanvas({
 			ctxRef.current = null;
 		};
 	// onDraw/onSetup/onResize intentionally excluded — callers should use useCallback
+	// canvasMounted IS included — setup must re-run once the <canvas> is in the DOM
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [mode, alpha, antialias, powerPreference, width, height, isResponsive]);
+	}, [mode, alpha, antialias, powerPreference, width, height, isResponsive, canvasMounted]);
 
-	// ── Canvas CSS ─────────────────────────────────────────────────────────────
+
+	if (!canvasMounted) {
+		const placeholderW = width  !== undefined ? `${width}px`  : "100%";
+		const placeholderH = height !== undefined ? `${height}px` : "150px";
+		return (
+			<div
+				aria-hidden="true"
+				className={className}
+				style={{
+					width:       placeholderW,
+					height:      placeholderH,
+					background:  "var(--e-canvas-placeholder, transparent)",
+					borderRadius: style?.borderRadius,
+					// Contain sizing — prevents parent reflow
+					contain: "strict",
+					...style,
+				}}
+			/>
+		);
+	}
+
 	const canvasStyle: CSSProperties = {
 		// GPU layer promotion
 		transform:   "translateZ(0)",

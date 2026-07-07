@@ -1,93 +1,155 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  Next.js Engine — Public API
-//  Import everything from "@/engine" (or wherever this lives in your project)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── Core page factory ─────────────────────────────────────────────────────────
-export { createPage, createComponent, defineSchema } from "./createPage";
+// ── Core page factory ──────────────────────────────────────────────────────────
+export { createPage, createComponent, defineSchema }            from "./createPage";
 export type { CreateComponentOptions, CreatePageOptions, EngineComponentProps } from "./createPage";
 
-// ── Default error pages ───────────────────────────────────────────────────────
-export { default as DefaultNotFoundPage } from "./not-found";
+// ── Metadata integration (Next.js generateMetadata()) ─────────────────────────
+export { generateEngineMetadata }                               from "./core/engineMetadata";
+
+// ── Schema validation ─────────────────────────────────────────────────────────
+export { validateSchema, validatePageSchema }                   from "./core/validateSchema";
+export type { ValidationError, ValidationResult }               from "./core/validateSchema";
 
 // ── Schema types ──────────────────────────────────────────────────────────────
 export type {
-	PageSchema,
-	SchemaNode,
-	PageMeta,
-	EngineTheme,
-	EngineConfig,
-	NodeType,
-	BuiltinNodeType,
-	Breakpoint,
-	ResponsiveValue,
-	CpropValue,
-	// Per-node prop types (for typed schema authoring)
-	BoxProps,
-	StackProps,
-	GridProps,
-	TextProps,
-	TextPart,
-	TextVariant,
-	MarkdownProps,
-	HeadingProps,
-	ImageNodeProps,
-	ButtonProps,
-	ButtonVariant,
-	ButtonSize,
-	SectionProps,
-	CardProps,
-	SpacerProps,
-	DividerProps,
-	EngineScrollProps,
+	PageSchema, SchemaNode, PageMeta, EngineTheme, EngineConfig,
+	NodeType, BuiltinNodeType, Breakpoint, ResponsiveValue,
+	CpropValue, SelectOption,
+	// Per-node prop types
+	BoxProps, StackProps, GridProps, TextProps, TextPart, TextVariant,
+	MarkdownProps, HeadingProps, ImageNodeProps, ButtonProps,
+	ButtonVariant, ButtonSize, SectionProps, HeroProps, CardProps,
+	SpacerProps, DividerProps, EngineScrollProps, CustomSelectProps,
+	OptionProps, OptGroupProps, SlotProps,
+	EngineLinkProps, EngineLinkConfig,
+	EngineSuspenseProps, SuspensePreset,
+	EngineHeroProps,
+	EngineFormProps, EngineInputProps, EngineTextareaProps, EngineCheckboxProps, EngineLabelProps, InputType,
+	EngineAPIConfig, EngineAPIAuthConfig,
 } from "./schema/types";
 
 // ── Component registry ────────────────────────────────────────────────────────
 export {
-	registerComponent,
-	unregisterComponent,
-	getComponent,
-	hasComponent,
-	registeredTypes,
+	registerComponent, unregisterComponent, getComponent,
+	hasComponent, registeredTypes,
 } from "./core/registry";
 
-// ── Individual components (for imperative use outside schema) ─────────────────
+// ── Individual components (imperative use outside schema) ─────────────────────
 export {
-	EngineBox,
-	EngineStack,
-	EngineGrid,
-	EngineText,
-	EngineHeading,
-	EngineSection,
-	EngineButton,
-	EngineCard,
-	EngineSpacer,
-	EngineDivider,
+	EngineBox, EngineStack, EngineGrid, EngineText, EngineHeading,
+	EngineSection, EngineButton, EngineCard, EngineSpacer, EngineDivider,
+	EngineOption, EngineOptGroup, EngineSlot,
 } from "./components/primitives";
+export { EngineLink }                              from "./components/EngineLink";
+export { EngineNav, renderEngineAnchor }           from "./components/EngineNav";
+export { EngineManim, EngineManim3D }                                       from "./components/EngineManim";
+export { compileManimConfig, applyEasing, parseManimDSL, routeAnimation }   from "./components/EngineManim";
+export type { ManimConfig, Manim3DConfig, ManimDSLDocument, ManimAnimationRoute, EngineManimProps, EngineManim3DProps } from "./components/EngineManim";
+export type { EngineNavProps, EngineNavItem, EngineNavLogo, EngineNavVariant, EngineAnchorConfig } from "./components/EngineNav";
+export { EngineImage }                              from "./components/EngineImage";
+export { EngineVideo }                              from "./components/EngineVideo";
+export { EngineCanvas, useEngineCanvas }            from "./components/EngineCanvas";
 
-export { EngineImage }         from "./components/EngineImage";
-export { EngineVideo }         from "./components/EngineVideo";
-export { EngineCanvas, useEngineCanvas } from "./components/EngineCanvas";
-export { LazyMount, LazySection } from "./components/LazyMount";
-export { EngineGlobalStyles }  from "./core/StyleCollector";
+// ── EngineCanvas V2 — graphics runtime (opt-in, additive) ────────────────────
+export {
+	// Graphics model factories
+	ecVec2, ecVec3, ecTransform, ecMaterial,
+	ecCircle, ecRect, ecPath, ecLine, ecPolygon,
+	ecGroup, ecScene, ecVoidEnvironment,
+	// Rendering engines
+	Engine2D, Engine3D, EngineSVGEngine, EngineSkiaEngine,
+	importSVG, exportSVG,
+	// Registry
+	createRenderingEngine, registerRenderingEngine, hasRenderingEngine,
+} from "./core/enginecanvas";
+export type {
+	ECVector2, ECVector3, ECBounds, ECMaterial, ECShadingMode,
+	ECTransform, ECCamera, ECMesh, ECGroup, ECNode, ECScene, ECEnvironment,
+	RenderingEngine as ECRenderingEngine, ECRenderContext,
+} from "./core/enginecanvas";
+export { EngineMarkdown }                           from "./components/EngineMarkdown";
+export { EngineHero }                              from "./components/EngineHero";
+export { LazyMount, LazySection }                   from "./components/LazyMount";
+export { CustomSelect }                             from "./components/CustomSelect";
+export { EngineSuspense }                           from "./components/EngineSuspense";
+export { EngineForm, EngineInput, EngineTextarea, EngineCheckbox, EngineLabel } from "./components/EngineForms";
+
+// ── Networking ─────────────────────────────────────────────────────────────
+export { EngineAPIResolver }                        from "./core/EngineAPIResolver";
+export {
+	compileAPIConfig,
+	loadAPIConfigDir,
+	setCompiledAPIConfig,
+	getCompiledAPIConfig,
+	ensureAPIConfig,
+} from "./core/EngineAPIConfigParser";
+export type { EngineAPICompiledConfig }             from "./core/EngineAPIConfigParser";
+
+// ── Static analysis ───────────────────────────────────────────────────────────
+export { analyzeNode, analyzeSchema, isSchemaValid } from "./core/schemaAnalyzer";
+export type { EngineDiagnostic, AnalyzerResult, DiagnosticSeverity } from "./core/schemaAnalyzer";
+
 
 // ── Scroll system ─────────────────────────────────────────────────────────────
+export {
+	EngineScroll as EngineScrollComponent, EngineScrollProvider as _OldScrollProvider,
+	useEngineScroll as _oldUseEngineScroll,
+} from "./components/EngineScroll";
+
+// ── EngineScroll core (runtime, navigation, URL protocol) ────────────────────
 export {
 	EngineScroll,
 	EngineScrollProvider,
 	useEngineScroll,
-} from "./components/EngineScroll";
+	EngineScrollNavigator,
+	EngineScrollURL,
+	EngineScrollMovement,
+	EngineScrollHash,
+	EngineScrollPointManager,
+	EngineScrollEasing,
+}                                from "./core/enginescroll";
+export type {
+	EngineScrollCtx,
+	EngineScrollTarget,
+	EngineScrollState,
+	EngineScrollPoint,
+	EngineRegisteredPoint,
+}                                from "./core/enginescroll";
+
+// ── Browser detection + interactions ──────────────────────────────────────────
+export { EngineBrowser, useBrowser }                from "./core/EngineBrowser";
+export type {
+	BrowserInfo, BrowserIs, BrowserSupports, BrowserName,
+	RenderingEngine, BrowserConditions,
+	// Clipboard subsystem
+	BrowserClipboard,
+	// Interact subsystem
+	BrowserInteract, ShareData, PickFileOptions, OrientationLock,
+	// Media subsystem
+	BrowserMedia, MediaCameraOptions,
+	// Speech subsystem
+	BrowserSpeech, SpeakOptions, ListenOptions,
+	// Network subsystem
+	BrowserNetwork, NetworkStatus, NetworkType,
+} from "./core/EngineBrowser";
+
+// ── CSS utilities ─────────────────────────────────────────────────────────────
+export { cpropClass, staticClass, mediaClass }                  from "./hooks/usePropStyles";
+export { EngineGlobalStyles }                       from "./core/StyleCollector";
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 export { useInView, useImageInView, useSectionInView, useVisibleInView } from "./hooks/useInView";
 export { useBreakpoint, useMinBreakpoint, useEngineContext } from "./providers/EngineProvider";
 
-// ── usePropStyles utilities ───────────────────────────────────────────────────
-export { cpropClass } from "./hooks/usePropStyles";
+// ── Provider ──────────────────────────────────────────────────────────────────
+export { EngineProvider }                           from "./providers/EngineProvider";
+export type { EngineProviderProps }                 from "./providers/EngineProvider";
 
-// ── Provider (for wrapping sub-trees with custom config) ──────────────────────
-export { EngineProvider } from "./providers/EngineProvider";
-export type { EngineProviderProps } from "./providers/EngineProvider";
+// ── Default pages ─────────────────────────────────────────────────────────────
+export { default as DefaultNotFoundPage }           from "./not-found";
 
-// ── Breakpoint constants ──────────────────────────────────────────────────────
-export { BREAKPOINTS, BREAKPOINT_ORDER } from "./schema/types";
+// ── Constants ─────────────────────────────────────────────────────────────────
+export { BREAKPOINTS, BREAKPOINT_ORDER }            from "./schema/types";

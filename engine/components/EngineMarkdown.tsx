@@ -296,7 +296,7 @@ export const EngineMarkdown = memo(function EngineMarkdown({
 		display:    "grid",
 		gap:        "1.25rem",
 		color:      textColor,
-		fontFamily: fontFamily ?? undefined,
+		fontFamily: typeof fontFamily === "object" ? undefined : (fontFamily ?? undefined),
 		...style,
 	});
 
@@ -309,6 +309,9 @@ export const EngineMarkdown = memo(function EngineMarkdown({
 		<article
 			style={{ ...resolvedStyle, ...articleAnimStyle }}
 			className={articleClass || undefined}
+			// Regex markdown parsing can produce minor hydration warnings when
+			// multi-line content differs between server/client. Suppress cleanly.
+			suppressHydrationWarning
 		>
 			{blocks.map((block, index) => {
 				const bClass = animClass(blockAnimation);

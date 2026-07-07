@@ -10,7 +10,22 @@
 //    Output: --e-pa-x7k2: 1rem;
 //            @media (min-width: 768px)  { :root { --e-pa-x7k2: 2rem } }
 //            @media (min-width: 1280px) { :root { --e-pa-x7k2: 3rem } }
-//    Inline: style={{ padding: "var(--e-pa-x7k2)" }}
+//    Inline: style={{ padding: "var(--e-pa-x7k2, 1rem)" }}
+//                                        ↑ fallback = xs/base value
+//
+//  PRODUCTION FIX (TASK-002 / Layout collapse on compiled / SSG):
+//    Every var() reference now includes the base (xs / scalar) value as a CSS
+//    var fallback:  var(--e-pa-x7k2, 1rem)
+//
+//    Without this, production SSG HTML has the <style id="__engine_styles__">
+//    tag at the bottom of <body>. The browser paints content BEFORE reaching
+//    that tag, so CSS vars are undefined and layout collapses (zero padding,
+//    no columns, stacked rows). The fallback ensures every element has a valid
+//    computed value on first paint, regardless of when the style tag loads.
+//
+//    In dev mode, React's hydration re-render masked this — the styles were
+//    applied during client-side hydration before the user noticed. In
+//    production SSG there is no re-render, exposing the FOUC permanently.
 //
 //  CSS vars are deterministically hashed so duplicate values share one var.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -24,21 +39,11 @@ import {
 
 // ── Value normalisation ───────────────────────────────────────────────────────
 
-/**
- * Normalises a raw prop value:
- *   number  → rem  (n / 16 rem, 0 stays "0")
- *   string  → passed through unchanged
- */
 export function normalizeSpacingValue(v: string | number): string {
 	if (typeof v === "number") return v === 0 ? "0" : `${v / 16}rem`;
 	return v;
 }
 
-/**
- * Normalise a grid column count or template string.
- *   number  → repeat(n, 1fr)
- *   string  → passed through
- */
 export function normalizeColumns(v: string | number): string {
 	if (typeof v === "number") return `repeat(${v}, 1fr)`;
 	return v;
@@ -46,7 +51,6 @@ export function normalizeColumns(v: string | number): string {
 
 // ── Hash ──────────────────────────────────────────────────────────────────────
 
-/** djb2-inspired hash → short base-36 string */
 function shortHash(input: string): string {
 	let h = 5381;
 	for (let i = 0; i < input.length; i++) {
@@ -58,16 +62,19 @@ function shortHash(input: string): string {
 // ── Resolved type ─────────────────────────────────────────────────────────────
 
 export interface ResolvedVar {
-	/** Full CSS custom property name, e.g. "--e-pa-abc12" */
-	varName: string;
-	/** var() reference for inline styles, e.g. "var(--e-pa-abc12)" */
-	ref: string;
-	/** Complete CSS text block to inject into <style> */
+	varName:  string;
+	/**
+	 * var() reference with fallback for inline styles.
+	 * e.g. "var(--e-pa-abc12, 1rem)"
+	 * The fallback is the xs/base value — guarantees layout on first paint
+	 * even before the <style> tag has been processed by the browser.
+	 */
+	ref:      string;
 	cssBlock: string;
 }
 
 // Module-level cache — shared across an SSR render pass.
-// Cleared explicitly by StyleCollector before each page render.
+// Cleared explicitly by createPage before each page render.
 const _varCache = new Map<string, ResolvedVar>();
 
 export function clearResolverCache(): void {
@@ -76,46 +83,44 @@ export function clearResolverCache(): void {
 
 // ── Core resolve function ─────────────────────────────────────────────────────
 
-/**
- * Resolves a responsive value to a CSS custom property.
- *
- * @param shortProp   Two-letter abbreviation used in the var name (e.g. "pa", "mt").
- * @param value       The responsive value — plain scalar or breakpoint map.
- * @param normalize   Pass true to run values through normalizeSpacingValue.
- */
 export function resolveVar(
 	shortProp: string,
 	value: ResponsiveValue<string | number>,
 	normalize = true,
 ): ResolvedVar {
 	const cacheKey = `${shortProp}|${JSON.stringify(value)}`;
-	const cached = _varCache.get(cacheKey);
+	const cached   = _varCache.get(cacheKey);
 	if (cached) return cached;
 
-	const hash = shortHash(cacheKey);
+	const hash    = shortHash(cacheKey);
 	const varName = `--e-${shortProp}-${hash}`;
-	const ref = `var(${varName})`;
 
-	let cssBlock = "";
+	let cssBlock  = "";
+	let fallback  = "";  // ← base value used as var() fallback
 
 	if (typeof value !== "object" || value === null) {
-		const v = normalize
+		// ── Scalar value ──────────────────────────────────────────────────────
+		const v   = normalize
 			? normalizeSpacingValue(value as string | number)
 			: String(value);
-		cssBlock = `:root{${varName}:${v}}`;
+		fallback  = v;
+		cssBlock  = `:root{${varName}:${v}}`;
 	} else {
-		// Cascade: propagate the last-defined value to missing breakpoints
+		// ── Responsive map ────────────────────────────────────────────────────
 		let cascade: string | undefined;
 		const lines: string[] = [];
 
 		for (const bp of BREAKPOINT_ORDER) {
 			const raw = (value as Partial<Record<Breakpoint, string | number>>)[bp];
-			const v = raw !== undefined
+			const v   = raw !== undefined
 				? (normalize ? normalizeSpacingValue(raw) : String(raw))
 				: cascade;
 
 			if (v === undefined) continue;
 			if (raw !== undefined) cascade = v;
+
+			// Capture the xs/first value as the fallback for var()
+			if (!fallback) fallback = v;
 
 			if (bp === "xs") {
 				lines.push(`:root{${varName}:${v}}`);
@@ -129,6 +134,13 @@ export function resolveVar(
 		cssBlock = lines.join("\n");
 	}
 
+	// ── var() reference with fallback ─────────────────────────────────────────
+	// fallback ensures layout is correct on first paint even before the
+	// __engine_styles__ <style> tag has been parsed (critical for SSG/Netlify).
+	const ref = fallback
+		? `var(${varName}, ${fallback})`
+		: `var(${varName})`;
+
 	const result: ResolvedVar = { varName, ref, cssBlock };
 	_varCache.set(cacheKey, result);
 	return result;
@@ -136,7 +148,6 @@ export function resolveVar(
 
 // ── Convenience helpers ───────────────────────────────────────────────────────
 
-/** Resolves a spacing prop (margin/padding family). */
 export function resolveSpacing(
 	shortProp: string,
 	value: ResponsiveValue<string | number>,
@@ -144,7 +155,6 @@ export function resolveSpacing(
 	return resolveVar(shortProp, value, true);
 }
 
-/** Resolves a column count prop — normalises numbers to repeat(n, 1fr). */
 export function resolveColumns(
 	value: ResponsiveValue<string | number>,
 ): ResolvedVar {
@@ -157,7 +167,6 @@ export function resolveColumns(
 	return resolveVar("co", normalizeColumns(value as string | number), false);
 }
 
-/** Resolves a generic non-spacing CSS value (display, flex-direction, etc). */
 export function resolveGeneric(
 	shortProp: string,
 	value: ResponsiveValue<string>,
@@ -167,57 +176,28 @@ export function resolveGeneric(
 
 // ── Prop-to-CSS-property mapping ──────────────────────────────────────────────
 
-/** Maps engine prop names to their CSS property equivalents. */
 export const CSS_PROP_MAP: Record<string, string> = {
-	// Spacing
-	m:  "margin",
-	mt: "margin-top",
-	mr: "margin-right",
-	mb: "margin-bottom",
-	ml: "margin-left",
-	mx: undefined!, // handled specially → margin-left + margin-right
-	my: undefined!, // handled specially → margin-top + margin-bottom
-	p:  "padding",
-	pt: "padding-top",
-	pr: "padding-right",
-	pb: "padding-bottom",
-	pl: "padding-left",
-	px: undefined!, // handled specially → padding-left + padding-right
-	py: undefined!, // handled specially → padding-top + padding-bottom
-	// Sizing
-	w:    "width",
-	h:    "height",
-	minW: "min-width",
-	minH: "min-height",
-	maxW: "max-width",
-	maxH: "max-height",
-	// Flex/Grid
-	gap:    "gap",
-	colGap: "column-gap",
-	rowGap: "row-gap",
-	// Display & flex
-	display:  "display",
-	flexDir:  "flex-direction",
-	align:    "align-items",
-	justify:  "justify-content",
-	wrap:     "flex-wrap",
-	// Grid
-	columns: "grid-template-columns",
-	rows:    "grid-template-rows",
-	// Border
+	m:  "margin",       mt: "margin-top",       mr: "margin-right",
+	mb: "margin-bottom", ml: "margin-left",
+	mx: undefined!,     my: undefined!,
+	p:  "padding",      pt: "padding-top",       pr: "padding-right",
+	pb: "padding-bottom", pl: "padding-left",
+	px: undefined!,     py: undefined!,
+	w:    "width",       h:    "height",
+	minW: "min-width",   minH: "min-height",
+	maxW: "max-width",   maxH: "max-height",
+	gap:    "gap",       colGap: "column-gap",    rowGap: "row-gap",
+	display:  "display", flexDir:  "flex-direction",
+	align:    "align-items", justify: "justify-content", wrap: "flex-wrap",
+	columns:  "grid-template-columns", rows: "grid-template-rows",
 	borderRadius: "border-radius",
-	// Text
-	size:          "font-size",
-	weight:        "font-weight",
-	lineHeight:    "line-height",
-	letterSpacing: "letter-spacing",
-	// Misc
+	size:   "font-size", weight: "font-weight",
+	lineHeight:    "line-height", letterSpacing: "letter-spacing",
 	order: "order",
 };
 
 // ── isResponsive utility ──────────────────────────────────────────────────────
 
-/** Returns true if value is a breakpoint map (not a plain scalar). */
 export function isResponsive<T>(
 	value: ResponsiveValue<T>,
 ): value is Partial<Record<Breakpoint, T>> {
