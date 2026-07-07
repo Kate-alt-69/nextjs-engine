@@ -6,3 +6,5 @@ dist
 **.7z
 wah
 tsconfig.tsbuildinfo
+app/gemini/**.tsx
+app/asdf/**.tsx
