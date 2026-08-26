@@ -258,7 +258,7 @@ export const EngineCanvas = memo(function EngineCanvas({
 			}
 
 			if (notify) {
-				graphicsEngine?.resize(cssWidth, cssHeight);
+				graphicsEngine?.resize(cssWidth, cssHeight, dpr);
 				onResizeRef.current?.(context, canvas, cssWidth, cssHeight);
 			}
 		};
@@ -414,7 +414,7 @@ export const EngineCanvas = memo(function EngineCanvas({
 		transform: "translateZ(0)",
 		contain: "strict",
 		display: "block",
-		...(isResponsive ? { width: "100%", height: "100%" } : {}),
+		...(isResponsive ? { width: "100%", height: "100%", minHeight: "150px" } : {}),
 		...(width !== undefined ? { width: `${width}px` } : {}),
 		...(height !== undefined ? { height: `${height}px` } : {}),
 		...style,

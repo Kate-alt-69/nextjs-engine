@@ -55,9 +55,10 @@ function autoSizes(fill?: boolean, width?: number): string {
 	return `(max-width: 480px) 100vw, (max-width: 768px) calc(100vw - 2rem), ${width}px`;
 }
 
-export interface EngineImageProps extends Omit<ImageNodeProps, "type"> {
+export interface EngineImageProps extends Omit<ImageNodeProps, "type" | "objectFit"> {
 	width?: number;
 	height?: number;
+	objectFit?: CSSProperties["objectFit"];
 	blurDataURL?: string;
 	qualityPreset?: "performance" | "balanced" | "sharp";
 	qualityMobile?: number;

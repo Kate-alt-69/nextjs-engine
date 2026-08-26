@@ -12,7 +12,6 @@ import type { ECCamera, ECGroup, ECMesh, ECNode, ECScene, ECTransform } from "./
 import type { ECRenderContext, RenderingEngine } from "./RenderingEngine";
 
 type ThreeModule = typeof import("three");
-
 type IndexArray = Uint16Array | Uint32Array;
 
 interface RetainedNode {
@@ -37,15 +36,15 @@ export class Engine3D implements RenderingEngine {
 	private readonly retainedNodes = new Map<string, RetainedNode>();
 	private width = 0;
 	private height = 0;
+	private dpr = 1;
 	private backgroundValue: string | undefined;
-
-	// -------------------------------------------------------------------------
 
 	public async init(context: ECRenderContext): Promise<void> {
 		const THREE = await import("three");
 		this.THREE = THREE;
 		this.width = context.width;
 		this.height = context.height;
+		this.dpr = context.dpr;
 
 		this.renderer = new THREE.WebGLRenderer({
 			canvas: context.canvas,
@@ -54,7 +53,7 @@ export class Engine3D implements RenderingEngine {
 			antialias: true,
 			powerPreference: "high-performance",
 		});
-		this.renderer.setPixelRatio(context.dpr);
+		this.renderer.setPixelRatio(this.dpr);
 		this.renderer.setSize(this.width, this.height, false);
 
 		this.camera = new THREE.PerspectiveCamera(60, this.width / Math.max(this.height, 1), 0.1, 1000);
@@ -62,9 +61,7 @@ export class Engine3D implements RenderingEngine {
 		this.scene = new THREE.Scene();
 	}
 
-	// -------------------------------------------------------------------------
-
-	public resize(width: number, height: number): void {
+	public resize(width: number, height: number, dpr = this.dpr): void {
 		this.width = width;
 		this.height = height;
 
@@ -73,10 +70,14 @@ export class Engine3D implements RenderingEngine {
 			this.camera.updateProjectionMatrix();
 		}
 
-		this.renderer?.setSize(width, height, false);
+		if (this.renderer) {
+			if (dpr !== this.dpr) {
+				this.dpr = dpr;
+				this.renderer.setPixelRatio(dpr);
+			}
+			this.renderer.setSize(width, height, false);
+		}
 	}
-
-	// -------------------------------------------------------------------------
 
 	public render(ecScene: ECScene, _delta: number, _frame: number): void {
 		if (!this.THREE || !this.renderer || !this.camera || !this.scene) return;
@@ -92,8 +93,6 @@ export class Engine3D implements RenderingEngine {
 
 		this.renderer.render(this.scene, this.camera);
 	}
-
-	// -------------------------------------------------------------------------
 
 	private applyEnvironment(ecScene: ECScene): void {
 		const scene = this.scene;
@@ -148,8 +147,6 @@ export class Engine3D implements RenderingEngine {
 			camera.lookAt(cameraConfig.lookAt.x, cameraConfig.lookAt.y, cameraConfig.lookAt.z);
 		}
 	}
-
-	// -------------------------------------------------------------------------
 
 	private syncNode(node: ECNode, parent: any, seenIds: Set<string>): any {
 		seenIds.add(node.id);
@@ -364,8 +361,6 @@ export class Engine3D implements RenderingEngine {
 		retained.material?.dispose?.();
 		retained.rimMaterial?.dispose?.();
 	}
-
-	// -------------------------------------------------------------------------
 
 	public dispose(): void {
 		for (const retained of this.retainedNodes.values()) {

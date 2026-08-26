@@ -52,6 +52,9 @@ export const EngineHero = memo(
 			const element = heroRef.current;
 			if (!element) return;
 
+			const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+			if (reducedMotion?.matches) return;
+
 			const userAgent = navigator.userAgent;
 			const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
 			const safariVersion = isSafari
@@ -59,6 +62,7 @@ export const EngineHero = memo(
 				: 99;
 			if (isSafari && safariVersion < 16) return;
 
+			const originalBackgroundPositionY = element.style.backgroundPositionY;
 			let animationFrame = 0;
 			let nearViewport = true;
 
@@ -89,6 +93,7 @@ export const EngineHero = memo(
 				window.removeEventListener("scroll", requestUpdate);
 				observer?.disconnect();
 				if (animationFrame !== 0) cancelAnimationFrame(animationFrame);
+				element.style.backgroundPositionY = originalBackgroundPositionY;
 			};
 		}, [parallax]);
 
@@ -133,8 +138,6 @@ export const EngineHero = memo(
 			innerBase.textAlign = "center";
 		} else if (variant === "split") {
 			innerBase.display = "grid";
-			innerBase.gridTemplateColumns = "1fr 1fr";
-			innerBase.gap = "4rem";
 			innerBase.alignItems = "center";
 		}
 
@@ -143,6 +146,12 @@ export const EngineHero = memo(
 				px: px ?? (variant === "fullbleed" ? "0" : "1.5rem"),
 				py: py ?? "6rem",
 				...(variant !== "fullbleed" ? { maxW: contentMaxWidth } : {}),
+				...(variant === "split"
+					? {
+						columns: { xs: 1, md: 2 },
+						gap: { xs: "2rem", lg: "4rem" },
+					}
+					: {}),
 			} as any,
 			innerBase,
 		);
