@@ -16,9 +16,17 @@ import {
 import { getComponent } from "./registry";
 import { validatePageSchema } from "./validateSchema";
 import { decideLazy } from "./lazyDetect";
+import { globalStyleCollector } from "./StyleCollector";
 import { LazyMount, LazySection } from "../components/LazyMount";
 import { useSlot } from "../providers/EngineProvider";
-import { mediaClass } from "../hooks/usePropStyles";
+
+function shortHash(value: string): string {
+	let hashValue = 5381;
+	for (let index = 0; index < value.length; index++) {
+		hashValue = ((hashValue << 5) + hashValue + value.charCodeAt(index)) | 0;
+	}
+	return Math.abs(hashValue).toString(36).slice(0, 7);
+}
 
 function UnknownNodeWarning({ type }: { type: string }) {
 	if (process.env.NODE_ENV === "production") return null;
@@ -52,20 +60,34 @@ function buildVisibilityClass(props: Record<string, unknown>): string | undefine
 	const showOnly = Array.isArray(props.showOnly) ? props.showOnly as Breakpoint[] : [];
 	if (hideOn.length === 0 && showOnly.length === 0) return undefined;
 
-	const isVisible = (breakpoint: Breakpoint): boolean => {
+	const hiddenBreakpoints = BREAKPOINT_ORDER.filter((breakpoint) => {
 		const allowedByShowOnly = showOnly.length === 0 || showOnly.includes(breakpoint);
-		return allowedByShowOnly && !hideOn.includes(breakpoint);
-	};
+		return !allowedByShowOnly || hideOn.includes(breakpoint);
+	});
+	if (hiddenBreakpoints.length === 0) return undefined;
 
-	const baseStyle: CSSProperties = { display: isVisible("xs") ? "revert" : "none" };
-	const responsiveStyles = BREAKPOINT_ORDER
-		.filter((breakpoint) => breakpoint !== "xs")
-		.map((breakpoint) => [
-			`${BREAKPOINTS[breakpoint]}px`,
-			{ display: isVisible(breakpoint) ? "revert" : "none" } as CSSProperties,
-		] as [string, CSSProperties]);
+	const signature = hiddenBreakpoints.join("|");
+	const className = `e-v-${shortHash(signature)}`;
+	const cssRules: string[] = [];
 
-	return mediaClass(baseStyle, ...responsiveStyles);
+	for (const breakpoint of hiddenBreakpoints) {
+		const breakpointIndex = BREAKPOINT_ORDER.indexOf(breakpoint);
+		const minWidth = BREAKPOINTS[breakpoint];
+		const nextBreakpoint = BREAKPOINT_ORDER[breakpointIndex + 1];
+		const maxWidth = nextBreakpoint ? BREAKPOINTS[nextBreakpoint] - 0.02 : undefined;
+		const selectorRule = `.${className}{display:none!important}`;
+
+		if (minWidth === 0 && maxWidth !== undefined) {
+			cssRules.push(`@media(max-width:${maxWidth}px){${selectorRule}}`);
+		} else if (maxWidth === undefined) {
+			cssRules.push(`@media(min-width:${minWidth}px){${selectorRule}}`);
+		} else {
+			cssRules.push(`@media(min-width:${minWidth}px) and (max-width:${maxWidth}px){${selectorRule}}`);
+		}
+	}
+
+	globalStyleCollector.add(cssRules.join("\n"));
+	return className;
 }
 
 interface NodeRendererProps {
