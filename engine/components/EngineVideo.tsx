@@ -124,26 +124,30 @@ export const EngineVideo = memo(function EngineVideo({
 	});
 
 	const resolvedPreload = preload ?? (autoPlay ? "auto" : "metadata");
+	const sources: VideoSource[] = Array.isArray(src)
+		? src
+		: [{ src, type: src.endsWith(".webm") ? "video/webm" : "video/mp4" }];
+	const sourceKey = sources
+		.map((source, index) => `${index}\u001f${source.src}\u001f${source.type ?? ""}`)
+		.join("\u001e");
+
+	// A <video> element does not reliably reselect changed <source> children.
+	// sourceKey remounts the media element, while this resets wrapper readiness.
+	useEffect(() => {
+		setVideoReady(false);
+		setBuffering(false);
+	}, [sourceKey]);
 
 	useEffect(() => {
 		if (!inView || !autoPlay) return;
 		setBuffering(true);
-	}, [autoPlay, inView]);
+	}, [autoPlay, inView, sourceKey]);
 
 	const handleCanPlay = useCallback(() => {
 		setVideoReady(true);
 		setBuffering(false);
 		onCanPlay?.();
-		if (autoPlay && videoRef.current) {
-			videoRef.current.play().catch(() => {
-				setBuffering(false);
-			});
-		}
-	}, [autoPlay, onCanPlay]);
-
-	const sources: VideoSource[] = Array.isArray(src)
-		? src
-		: [{ src, type: src.endsWith(".webm") ? "video/webm" : "video/mp4" }];
+	}, [onCanPlay]);
 
 	const wrapperStyle: CSSProperties = {
 		position: "relative",
@@ -176,7 +180,9 @@ export const EngineVideo = memo(function EngineVideo({
 
 			{inView && (
 				<video
+					key={sourceKey}
 					ref={videoRef}
+					autoPlay={autoPlay}
 					muted={muted}
 					loop={loop}
 					controls={controls}
