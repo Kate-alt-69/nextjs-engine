@@ -9,7 +9,8 @@ the component page and current TypeScript types.
 | I want to… | Read |
 |---|---|
 | Understand the engine | [`readme.md`](./readme.md) |
-| Learn schemas and responsive props | [`readme.md`](./readme.md) |
+| Learn schemas | [`readme.md`](./readme.md) |
+| Learn styling and responsive props | [`styling.md`](./styling.md) |
 | Build layouts and controls | [`engine-components/primitives.md`](./engine-components/primitives.md) |
 | Understand current runtime/performance behavior | [`runtime-performance.md`](./runtime-performance.md) |
 
@@ -30,6 +31,13 @@ the component page and current TypeScript types.
 | EngineForms | [`engineforms.md`](./engine-components/engineforms.md) | Native form primitives and named handlers |
 | EngineAPI | [`engineapi.md`](./engine-components/engineapi.md) | Request resolver, auth, `.api` configuration |
 | EngineMobile / Device | [`enginemobile.md`](./engine-components/enginemobile.md) | Server schema patching and device detection |
+
+## Cross-cutting references
+
+| Topic | Documentation |
+|---|---|
+| Styling, responsive values, at-rules, pseudo states | [`styling.md`](./styling.md) |
+| Runtime, lazy behavior, bundle/runtime performance | [`runtime-performance.md`](./runtime-performance.md) |
 
 ## Abbreviations
 
