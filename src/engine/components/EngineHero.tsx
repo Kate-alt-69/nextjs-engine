@@ -1,13 +1,6 @@
 "use client";
 // ─────────────────────────────────────────────────────────────────────────────
-//  Engine — EngineHero
-//
-//  A dedicated hero section component with:
-//    · Three layout variants: centered | split | fullbleed
-//    · Overlay gradients and solid colour overlays
-//    · CSS parallax backgrounds (with Safari <16 fallback)
-//    · Responsive layouts via the engine shorthand prop system
-//    · Full BaseNodeProps + SectionProps + HeroProps passthrough
+// EngineHero
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, {
@@ -15,13 +8,11 @@ import React, {
 	memo,
 	useEffect,
 	useRef,
-	type ReactNode,
 	type CSSProperties,
+	type ReactNode,
 } from "react";
-import { usePropStyles, cpropClass } from "../hooks/usePropStyles";
+import { cpropClass, usePropStyles } from "../hooks/usePropStyles";
 import type { HeroProps } from "../schema/types";
-
-// ── EngineHero ────────────────────────────────────────────────────────────────
 
 export interface EngineHeroProps extends HeroProps {
 	children?: ReactNode;
@@ -31,12 +22,12 @@ export const EngineHero = memo(
 	forwardRef<HTMLElement, EngineHeroProps>(function EngineHero(
 		{
 			children,
-			variant       = "centered",
+			variant = "centered",
 			overlay,
-			parallax      = false,
+			parallax = false,
 			contentMaxWidth = "1200px",
-			centered      = true,
-			fullViewport  = true,
+			centered = true,
+			fullViewport = true,
 			snapAlign,
 			style,
 			className,
@@ -44,12 +35,8 @@ export const EngineHero = memo(
 			point,
 			href,
 			cprop,
-			// Extract px / py so the outer section doesn't receive padding —
-			// they are applied only to the inner content container.
 			px,
 			py,
-			// Extract background props so we can control them alongside
-			// the parallax backgroundAttachment flag.
 			backgroundImage,
 			backgroundSize,
 			backgroundPosition,
@@ -58,116 +45,112 @@ export const EngineHero = memo(
 		},
 		ref,
 	) {
-		// ── Parallax scroll effect ────────────────────────────────────────────
-		// Uses a passive scroll listener that adjusts backgroundPositionY.
-		// Pure CSS `background-attachment: fixed` is used as the primary
-		// mechanism but we supplement with JS for smoother results.
-		// Disabled on Safari < 16 where `background-attachment: fixed` is
-		// unreliable inside overflow:hidden containers.
 		const heroRef = useRef<HTMLElement | null>(null);
 
 		useEffect(() => {
 			if (!parallax) return;
+			const element = heroRef.current;
+			if (!element) return;
 
-			const el =
-				(ref as React.RefObject<HTMLElement>)?.current ?? heroRef.current;
-			if (!el) return;
-
-			// Safari < 16 detection — disable JS parallax on those versions.
-			const ua = navigator.userAgent;
-			const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+			const userAgent = navigator.userAgent;
+			const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
 			const safariVersion = isSafari
-				? parseInt((ua.match(/version\/(\d+)/i)?.[1]) ?? "99", 10)
+				? parseInt((userAgent.match(/version\/(\d+)/i)?.[1]) ?? "99", 10)
 				: 99;
 			if (isSafari && safariVersion < 16) return;
 
-			const onScroll = () => {
-				const rect   = el.getBoundingClientRect();
-				const offset = rect.top * 0.3;
-				el.style.backgroundPositionY = `calc(50% + ${offset}px)`;
+			let animationFrame = 0;
+			let nearViewport = true;
+
+			const updateParallax = (): void => {
+				animationFrame = 0;
+				if (!nearViewport) return;
+				const offset = element.getBoundingClientRect().top * 0.3;
+				element.style.backgroundPositionY = `calc(50% + ${offset}px)`;
 			};
 
-			window.addEventListener("scroll", onScroll, { passive: true });
-			return () => window.removeEventListener("scroll", onScroll);
-		}, [parallax, ref]);
+			const requestUpdate = (): void => {
+				if (!nearViewport || animationFrame !== 0) return;
+				animationFrame = requestAnimationFrame(updateParallax);
+			};
 
-		// ── Merged ref handler ────────────────────────────────────────────────
-		const handleRef = (el: HTMLElement | null) => {
-			(heroRef as React.MutableRefObject<HTMLElement | null>).current = el;
-			if (typeof ref === "function") ref(el);
-			else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
+			let observer: IntersectionObserver | undefined;
+			if (typeof IntersectionObserver !== "undefined") {
+				observer = new IntersectionObserver(([entry]) => {
+					nearViewport = entry.isIntersecting;
+					if (nearViewport) requestUpdate();
+				}, { rootMargin: "300px 0px" });
+				observer.observe(element);
+			}
+
+			requestUpdate();
+			window.addEventListener("scroll", requestUpdate, { passive: true });
+			return () => {
+				window.removeEventListener("scroll", requestUpdate);
+				observer?.disconnect();
+				if (animationFrame !== 0) cancelAnimationFrame(animationFrame);
+			};
+		}, [parallax]);
+
+		const handleRef = (element: HTMLElement | null): void => {
+			heroRef.current = element;
+			if (typeof ref === "function") ref(element);
+			else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = element;
 		};
 
-		// ── Outer section styles ──────────────────────────────────────────────
 		const sectionBase: CSSProperties = {
-			position : "relative",
-			width    : "100%",
-			overflow : "hidden",
+			position: "relative",
+			width: "100%",
+			overflow: "hidden",
 			...(fullViewport ? { minHeight: "100svh" } : {}),
-			...(snapAlign   ? { scrollSnapAlign: snapAlign } : {}),
-			// Background image — parallax uses CSS fixed attachment as baseline
+			...(snapAlign ? { scrollSnapAlign: snapAlign } : {}),
 			...(backgroundImage
 				? {
 					backgroundImage,
-					backgroundSize     : backgroundSize     ?? "cover",
-					backgroundPosition : backgroundPosition ?? "center",
-					backgroundRepeat   : backgroundRepeat   ?? "no-repeat",
+					backgroundSize: backgroundSize ?? "cover",
+					backgroundPosition: backgroundPosition ?? "center",
+					backgroundRepeat: backgroundRepeat ?? "no-repeat",
 					...(parallax ? { backgroundAttachment: "fixed" } : {}),
-				  }
+				}
 				: {}),
 		};
 
-		// ── Inner content container styles ────────────────────────────────────
 		const innerBase: CSSProperties = {
-			position : "relative",
-			zIndex   : 1,
-			width    : "100%",
+			position: "relative",
+			zIndex: 1,
+			width: "100%",
 		};
 
-		// maxWidth is skipped for fullbleed — content spans the entire width.
-		if (variant !== "fullbleed") {
-			innerBase.maxWidth = typeof contentMaxWidth === "number"
-				? `${contentMaxWidth}px`
-				: (contentMaxWidth as CSSProperties["maxWidth"]);
-		}
-
 		if (centered && variant !== "fullbleed") {
-			innerBase.marginLeft  = "auto";
+			innerBase.marginLeft = "auto";
 			innerBase.marginRight = "auto";
 		}
 
-		// Variant-specific layout
 		if (variant === "centered") {
-			innerBase.display       = "flex";
+			innerBase.display = "flex";
 			innerBase.flexDirection = "column";
-			innerBase.alignItems    = "center";
-			innerBase.textAlign     = "center";
+			innerBase.alignItems = "center";
+			innerBase.textAlign = "center";
 		} else if (variant === "split") {
 			innerBase.display = "grid";
-			(innerBase as Record<string, unknown>).gridTemplateColumns = "1fr 1fr";
-			innerBase.gap     = "4rem";
+			innerBase.gridTemplateColumns = "1fr 1fr";
+			innerBase.gap = "4rem";
 			innerBase.alignItems = "center";
 		}
-		// fullbleed: no layout constraints — children fill freely
 
-		// ── Padding for inner container ───────────────────────────────────────
-		// Use usePropStyles for the inner container so responsive px/py values
-		// work correctly via the engine's CSS-var responsive system.
 		const resolvedInner = usePropStyles(
 			{
 				px: px ?? (variant === "fullbleed" ? "0" : "1.5rem"),
 				py: py ?? "6rem",
+				...(variant !== "fullbleed" ? { maxW: contentMaxWidth } : {}),
 			} as any,
 			innerBase,
 		);
-
-		// ── Outer section — engine prop resolution ────────────────────────────
 		const resolvedOuter = usePropStyles(props as any, { ...sectionBase, ...style });
-		const hoverClass    = cpropClass(cprop);
-		const mergedClass   = [className, hoverClass].filter(Boolean).join(" ") || undefined;
-		const resolvedId    = id ?? point;
+		const hoverClass = cpropClass(cprop);
+		const mergedClass = [className, hoverClass].filter(Boolean).join(" ") || undefined;
+		const resolvedId = id ?? point;
 
-		// ── Render ────────────────────────────────────────────────────────────
 		const element = (
 			<section
 				ref={handleRef}
@@ -175,26 +158,22 @@ export const EngineHero = memo(
 				className={mergedClass}
 				style={resolvedOuter}
 			>
-				{/* Overlay layer — rendered below content (z-index 0) */}
 				{overlay && (
 					<div
 						aria-hidden="true"
 						style={{
-							position     : "absolute",
-							inset        : 0,
-							background   : overlay,
-							zIndex       : 0,
+							position: "absolute",
+							inset: 0,
+							background: overlay,
+							zIndex: 0,
 							pointerEvents: "none",
 						}}
 					/>
 				)}
-
-				{/* Content layer — always above overlay */}
 				<div style={resolvedInner}>{children}</div>
 			</section>
 		);
 
-		// Respect the same href-wrapping convention as other engine primitives
 		if (href) {
 			const isExternal = /^https?:\/\//.test(href);
 			return (
