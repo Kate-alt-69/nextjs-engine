@@ -54,8 +54,9 @@ function tokenise(source: string): ParsedConfig {
 }
 
 function substituteEnv(value: string): string {
-	return value.replace(/\$([A-Z_][A-Z0-9_]*)/g, (_, name: string) => {
-		return (typeof process !== "undefined" ? process.env[name] : undefined) ?? "";
+	return value.replace(/\$\{([A-Z_][A-Z0-9_]*)\}|\$([A-Z_][A-Z0-9_]*)/g, (_, bracedName: string | undefined, plainName: string | undefined) => {
+		const name = bracedName ?? plainName;
+		return name && typeof process !== "undefined" ? process.env[name] ?? "" : "";
 	});
 }
 
@@ -141,7 +142,7 @@ export function compileAPIConfig(source: string): EngineAPICompiledConfig {
 						);
 					}
 				} catch {
-					// Invalid headers JSON is ignored so one optional field does not kill the whole config.
+					// Invalid optional headers JSON is ignored.
 				}
 			}
 			continue;
@@ -156,9 +157,7 @@ export function compileAPIConfig(source: string): EngineAPICompiledConfig {
 		}
 
 		if (sectionKey === "versions") {
-			for (const [key, value] of Object.entries(section)) {
-				compiled.versions[key] = String(value);
-			}
+			for (const [key, value] of Object.entries(section)) compiled.versions[key] = String(value);
 		}
 	}
 
