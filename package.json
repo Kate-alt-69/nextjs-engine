@@ -4,7 +4,13 @@
 	"description": "A schema-driven rendering layer for Next.js and React with responsive UI primitives, EngineCanvas graphics, and Manim 3D model support.",
 	"private": false,
 	"sideEffects": false,
-	"files": ["engine", "docs", "DOCUMENT.md", "README.md", "index.ts"],
+	"files": [
+		"engine",
+		"docs",
+		"DOCUMENT.md",
+		"README.md",
+		"index.ts"
+	],
 	"exports": {
 		".": {
 			"types": "./index.ts",
@@ -15,6 +21,10 @@
 			"types": "./engine/server.ts",
 			"import": "./engine/server.ts",
 			"default": "./engine/server.ts"
+		},
+		"./plugin": {
+			"require": "./engine/plugins/engineApiPlugin.js",
+			"default": "./engine/plugins/engineApiPlugin.js"
 		}
 	},
 	"types": "./index.ts",
@@ -37,7 +47,17 @@
 		"next-view-transitions": "^0.3.5",
 		"typescript": "^5.9.3"
 	},
-	"keywords": ["nextjs", "react", "schema", "ui-engine", "canvas", "typescript"],
-	"repository": {"type": "git", "url": "git+https://github.com/Kate-alt-69/nextjs-engine.git"},
+	"keywords": [
+		"nextjs",
+		"react",
+		"schema",
+		"ui-engine",
+		"canvas",
+		"typescript"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Kate-alt-69/nextjs-engine.git"
+	},
 	"homepage": "https://github.com/Kate-alt-69/nextjs-engine#readme"
 }
