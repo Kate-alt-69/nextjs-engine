@@ -102,11 +102,14 @@ function buildRequestBody(formData: EngineAPIFormData): BodyInit {
 	return nativeFormData;
 }
 
-function encodeBase64Utf8(value: string): string {
-	const bytes = new TextEncoder().encode(value);
+function encodeBytesBase64(bytes: Uint8Array): string {
 	let binary = "";
 	for (const byte of bytes) binary += String.fromCharCode(byte);
 	return btoa(binary);
+}
+
+function encodeBase64Utf8(value: string): string {
+	return encodeBytesBase64(new TextEncoder().encode(value));
 }
 
 export class EngineAPIResolver {
@@ -234,10 +237,10 @@ export class EngineAPIResolver {
 				? { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }
 				: { name: "Ed25519" };
 
-		return (crypto.subtle.importKey as typeof crypto.subtle.importKey)(
+		return (crypto.subtle.importKey as any)(
 			"jwk",
 			jwk,
-			normalizedAlgorithm as any,
+			normalizedAlgorithm,
 			false,
 			["sign"],
 		) as Promise<CryptoKey>;
@@ -249,6 +252,6 @@ export class EngineAPIResolver {
 			privateKey,
 			new TextEncoder().encode(payload),
 		);
-		return encodeBase64Utf8(String.fromCharCode(...new Uint8Array(signatureBuffer)));
+		return encodeBytesBase64(new Uint8Array(signatureBuffer));
 	}
 }
