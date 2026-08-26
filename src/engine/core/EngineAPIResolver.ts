@@ -117,11 +117,12 @@ function deleteHeaderCaseInsensitive(headers: Record<string, string>, target: st
 	}
 }
 
-function decodeBase64(value: string): Uint8Array {
+function decodeBase64(value: string): ArrayBuffer {
 	const binary = atob(value);
-	const bytes = new Uint8Array(binary.length);
+	const buffer = new ArrayBuffer(binary.length);
+	const bytes = new Uint8Array(buffer);
 	for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
-	return bytes;
+	return buffer;
 }
 
 export class EngineAPIResolver {
