@@ -73,7 +73,8 @@ hook and starts with desktop-safe SSR defaults until mount.
 
 ### Request-aware server helper
 
-Package consumers should import the server helper from the server-only entry:
+Package consumers import request-aware helpers from the dedicated server-only
+subpath:
 
 ```ts
 import { getServerDevice } from "nextjs-engine/server";
@@ -81,8 +82,13 @@ import { getServerDevice } from "nextjs-engine/server";
 const device = await getServerDevice();
 ```
 
-The server entry also exports `detectDevice`, `DESKTOP_DEVICE`, and device
-information types.
+`nextjs-engine/server` is an explicit package export that maps to
+`engine/server.ts`; it is not an undocumented deep import. The server entry also
+exports `detectDevice`, `DESKTOP_DEVICE`, and the device information types.
+
+The `main-empty` package-sync workflow validates both the `./server` export map
+and the presence of `engine/server.ts`, so a future source/package drift fails CI
+instead of silently publishing a broken documented import.
 
 When working directly inside this repository source instead of through the
 published package, the equivalent implementation is
