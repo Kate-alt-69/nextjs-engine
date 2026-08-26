@@ -17,6 +17,7 @@ optional EngineCanvas graphics runtime.
   }}
   onDraw={(ctx, canvas, delta, frame) => {
     // draw one frame
+    if (animationFinished) return false; // stop callback RAF
   }}
 />
 ```
@@ -35,6 +36,9 @@ Schema callbacks may also be named handlers from `createPage({ handlers })`:
 }
 ```
 
+A named `onDraw` handler follows the same completion contract and may return
+`false` when it has no more frames to produce.
+
 ## Props
 
 | Prop | Type | Default | Notes |
@@ -51,7 +55,7 @@ Schema callbacks may also be named handlers from `createPage({ handlers })`:
 | `antialias` | `boolean` | `true` | WebGL antialias hint |
 | `powerPreference` | WebGL power preference | `"high-performance"` | GPU preference hint |
 | `onSetup` | function or handler name | — | Runs once after context creation; may return cleanup |
-| `onDraw` | function or handler name | — | Per-frame callback in callback mode |
+| `onDraw` | function or handler name | — | Per-frame callback; return `false` when complete |
 | `onResize` | function or handler name | — | Receives CSS width/height |
 | `graphics` | `{ engine, scene }` | — | Uses the EC graphics runtime instead of `onDraw` |
 
@@ -60,6 +64,25 @@ placeholder-wrapper swap during mount.
 
 Responsive canvases keep a `150px` minimum height unless the supplied `style`
 overrides it. Give the parent or the canvas an explicit height for real layouts.
+
+## Demand-driven callback RAF
+
+Callback mode does not own an idle animation loop just because a canvas exists.
+If there is no `onDraw`, EngineCanvas runs setup/resize lifecycle only and does
+not schedule RAF.
+
+When `onDraw` returns `false`, EngineCanvas treats that callback frame source as
+complete and stops requesting frames. Offscreen/tab visibility transitions do
+not accidentally restart a completed callback.
+
+A responsive backing-store resize clears the native canvas bitmap. To preserve a
+completed static/final frame, EngineCanvas wakes the callback for one redraw
+after such a resize. If that callback still returns `false`, the loop stops again
+immediately. Replacing the `onDraw` callback also wakes callback mode so changed
+animation/data state can produce frames again.
+
+The `false` completion signal applies only to callback mode. Graphics-engine
+scenes continue to follow their renderer lifecycle.
 
 ## Context selection
 
@@ -190,11 +213,14 @@ useEffect(() => setup({
   adaptive: true,
   onDraw(gl, canvas, delta, frame) {
     // custom drawing
+    if (finished) return false;
   },
 }), [setup]);
 
 return <canvas ref={canvasRef} />;
 ```
 
-The hook uses the same rate-limited DPR strategy, but lifecycle conveniences
-such as the component's offscreen/tab observers are the caller's responsibility.
+The low-level hook also avoids creating RAF when `onDraw` is absent and honors
+`return false` as a completion signal. Unlike the component, the hook does not
+own resize/offscreen/tab observers; those lifecycle conveniences remain the
+caller's responsibility.

@@ -9,6 +9,7 @@
 // · responsive CSS sizing is never replaced with fixed inline pixel sizing
 // · offscreen + hidden pause reasons cannot accidentally resume each other
 // · callback/scene refs stay current without tearing down the canvas runtime
+// · callback mode owns RAF only while onDraw has useful work to do
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, {
@@ -28,6 +29,9 @@ type CtxGL = WebGLRenderingContext;
 type CtxGL2 = WebGL2RenderingContext;
 type AnyCtx = Ctx2D | CtxGL | CtxGL2;
 
+/** Return false from an onDraw callback when it has no more frames to produce. */
+export type EngineCanvasDrawResult = void | false;
+
 export interface EngineCanvasProps {
 	mode?: Mode;
 	width?: number;
@@ -42,7 +46,7 @@ export interface EngineCanvasProps {
 	antialias?: boolean;
 	powerPreference?: "default" | "high-performance" | "low-power";
 	onSetup?: string | ((ctx: AnyCtx, canvas: HTMLCanvasElement) => (() => void) | void);
-	onDraw?: string | ((ctx: AnyCtx, canvas: HTMLCanvasElement, delta: number, frame: number) => void);
+	onDraw?: string | ((ctx: AnyCtx, canvas: HTMLCanvasElement, delta: number, frame: number) => EngineCanvasDrawResult);
 	onResize?: string | ((ctx: AnyCtx, canvas: HTMLCanvasElement, width: number, height: number) => void);
 	graphics?: {
 		engine: string;
@@ -189,7 +193,7 @@ export const EngineCanvas = memo(function EngineCanvas({
 		| ((ctx: AnyCtx, canvas: HTMLCanvasElement) => (() => void) | void)
 		| undefined;
 	const resolvedOnDraw = (typeof onDrawRaw === "function" ? onDrawRaw : onDrawFromContext) as
-		| ((ctx: AnyCtx, canvas: HTMLCanvasElement, delta: number, frame: number) => void)
+		| ((ctx: AnyCtx, canvas: HTMLCanvasElement, delta: number, frame: number) => EngineCanvasDrawResult)
 		| undefined;
 	const resolvedOnResize = (typeof onResizeRaw === "function" ? onResizeRaw : onResizeFromContext) as
 		| ((ctx: AnyCtx, canvas: HTMLCanvasElement, width: number, height: number) => void)
@@ -199,6 +203,7 @@ export const EngineCanvas = memo(function EngineCanvas({
 	const onDrawRef = useRef(resolvedOnDraw);
 	const onResizeRef = useRef(resolvedOnResize);
 	const graphicsRef = useRef(graphics);
+	const requestLoopRef = useRef<() => void>(() => {});
 	onDrawRef.current = resolvedOnDraw;
 	onResizeRef.current = resolvedOnResize;
 	graphicsRef.current = graphics;
@@ -225,6 +230,7 @@ export const EngineCanvas = memo(function EngineCanvas({
 		let disposed = false;
 		let raf = 0;
 		let running = false;
+		let drawCompleted = false;
 		let frame = 0;
 		let lastFrameTime = 0;
 		let lastDprAdjustment = 0;
@@ -240,8 +246,8 @@ export const EngineCanvas = memo(function EngineCanvas({
 			cssHeight: number,
 			dpr: number,
 			notify: boolean,
-		): void => {
-			if (cssWidth <= 0 || cssHeight <= 0) return;
+		): boolean => {
+			if (cssWidth <= 0 || cssHeight <= 0) return false;
 			lastCssWidth = cssWidth;
 			lastCssHeight = cssHeight;
 			currentDpr = dpr;
@@ -261,6 +267,7 @@ export const EngineCanvas = memo(function EngineCanvas({
 				graphicsEngine?.resize(cssWidth, cssHeight, dpr);
 				onResizeRef.current?.(context, canvas, cssWidth, cssHeight);
 			}
+			return backingStoreChanged;
 		};
 
 		const initialSize = getCanvasCssSize(canvas, width, height);
@@ -306,7 +313,16 @@ export const EngineCanvas = memo(function EngineCanvas({
 			if (currentGraphics) {
 				graphicsEngine?.render(currentGraphics.scene, delta, frame++);
 			} else {
-				onDrawRef.current?.(context, canvas, delta, frame++);
+				const draw = onDrawRef.current;
+				if (!draw) {
+					running = false;
+					return;
+				}
+				if (draw(context, canvas, delta, frame++) === false) {
+					drawCompleted = true;
+					running = false;
+					return;
+				}
 			}
 
 			raf = requestAnimationFrame(tick);
@@ -314,9 +330,16 @@ export const EngineCanvas = memo(function EngineCanvas({
 
 		const startLoop = (): void => {
 			if (running || disposed || shouldPause()) return;
+			if (!graphicsRef.current && (drawCompleted || !onDrawRef.current)) return;
 			running = true;
 			lastFrameTime = 0;
 			raf = requestAnimationFrame(tick);
+		};
+
+		requestLoopRef.current = () => {
+			if (graphicsRef.current || !onDrawRef.current) return;
+			drawCompleted = false;
+			startLoop();
 		};
 
 		const syncLoopState = (): void => {
@@ -329,7 +352,16 @@ export const EngineCanvas = memo(function EngineCanvas({
 			resizeObserver = new ResizeObserver((entries) => {
 				const entry = entries[0];
 				if (!entry) return;
-				resizeBackingStore(entry.contentRect.width, entry.contentRect.height, currentDpr, true);
+				const backingStoreChanged = resizeBackingStore(
+					entry.contentRect.width,
+					entry.contentRect.height,
+					currentDpr,
+					true,
+				);
+				if (backingStoreChanged && !graphicsRef.current && onDrawRef.current) {
+					drawCompleted = false;
+					startLoop();
+				}
 			});
 			resizeObserver.observe(canvas);
 		}
@@ -385,6 +417,7 @@ export const EngineCanvas = memo(function EngineCanvas({
 
 		return () => {
 			disposed = true;
+			requestLoopRef.current = () => {};
 			stopLoop();
 			userCleanup?.();
 			graphicsEngine?.dispose();
@@ -409,6 +442,10 @@ export const EngineCanvas = memo(function EngineCanvas({
 		graphics?.engine,
 		resolvedOnSetup,
 	]);
+
+	useEffect(() => {
+		if (resolvedOnDraw) requestLoopRef.current();
+	}, [resolvedOnDraw]);
 
 	const canvasStyle: CSSProperties = {
 		transform: "translateZ(0)",
@@ -439,7 +476,7 @@ export function useEngineCanvas(
 	const setup = useCallback((
 		handlers: Pick<EngineCanvasProps, "adaptive" | "maxDpr"> & {
 			onSetup?: (ctx: AnyCtx, canvas: HTMLCanvasElement) => (() => void) | void;
-			onDraw?: (ctx: AnyCtx, canvas: HTMLCanvasElement, delta: number, frame: number) => void;
+			onDraw?: (ctx: AnyCtx, canvas: HTMLCanvasElement, delta: number, frame: number) => EngineCanvasDrawResult;
 			onResize?: (ctx: AnyCtx, canvas: HTMLCanvasElement, width: number, height: number) => void;
 		},
 	): (() => void) => {
@@ -488,10 +525,10 @@ export function useEngineCanvas(
 				lastDprAdjustment = now;
 			}
 
-			handlers.onDraw?.(context, canvas, delta, frame++);
+			if (handlers.onDraw?.(context, canvas, delta, frame++) === false) return;
 			raf = requestAnimationFrame(tick);
 		};
-		raf = requestAnimationFrame(tick);
+		if (handlers.onDraw) raf = requestAnimationFrame(tick);
 
 		return () => {
 			cancelAnimationFrame(raf);

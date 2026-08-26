@@ -38,6 +38,7 @@ interface ManimRuntime {
 	delayEnd: number;
 	interpBuffer: Float32Array;
 	loopCount: number;
+	frameAccumulator: number;
 }
 
 type TransformPair = {
@@ -83,6 +84,7 @@ export const EngineManim = memo(function EngineManim({
 		delayEnd: 0,
 		interpBuffer: new Float32Array(prepared.maxPointBufferLength),
 		loopCount: 0,
+		frameAccumulator: 0,
 	});
 
 	// Config changes can increase the required transform buffer, but resizing is
@@ -102,6 +104,11 @@ export const EngineManim = memo(function EngineManim({
 			className={className}
 			style={style}
 			onSetup={(ctx, canvas) => {
+				const currentRuntime = runtime.current;
+				currentRuntime.stepIndex = 0;
+				currentRuntime.loopCount = 0;
+				currentRuntime.frameAccumulator = 0;
+
 				const background = compiledRef.current.settings.background;
 				if (background && background !== "transparent") {
 					const context = ctx as CanvasRenderingContext2D;
@@ -109,14 +116,20 @@ export const EngineManim = memo(function EngineManim({
 					context.fillRect(0, 0, canvas.width, canvas.height);
 				}
 				const now = performance.now();
-				runtime.current.stepStart = now;
-				runtime.current.delayEnd = now + (compiledRef.current.steps[0]?.delay ?? 0);
+				currentRuntime.stepStart = now;
+				currentRuntime.delayEnd = now + (compiledRef.current.steps[0]?.delay ?? 0);
 			}}
-			onDraw={(ctx, canvas) => {
+			onDraw={(ctx, canvas, delta) => {
 				const currentRuntime = runtime.current;
 				const currentTimeline = compiledRef.current;
 				const step = currentTimeline.steps[currentRuntime.stepIndex];
-				if (!step) return;
+				if (!step) return false;
+
+				const fpsLimit = Math.max(1, currentTimeline.settings.fpsLimit);
+				const frameInterval = 1000 / fpsLimit;
+				currentRuntime.frameAccumulator += delta;
+				if (currentRuntime.frameAccumulator < frameInterval) return;
+				currentRuntime.frameAccumulator %= frameInterval;
 
 				const now = performance.now();
 				if (now < currentRuntime.delayEnd) return;
@@ -126,70 +139,71 @@ export const EngineManim = memo(function EngineManim({
 				const progress = applyEasing(rawProgress, step.easing);
 				const context = ctx as CanvasRenderingContext2D;
 
-				context.clearRect(0, 0, canvas.width, canvas.height);
-				const background = currentTimeline.settings.background;
-				if (background && background !== "transparent") {
-					context.fillStyle = background;
-					context.fillRect(0, 0, canvas.width, canvas.height);
-				}
-
-				switch (step.action) {
-					case "Create": {
-						if (!step.target) break;
-						const drawCount = Math.max(2, Math.floor(step.target.pointCount * progress));
-						drawPoints(
-							context,
-							step.target.points,
-							drawCount,
-							step.target.isBezier,
-							1,
-							step.target.strokeColor,
-							step.target.fillColor,
-							step.target.strokeWidth,
-						);
-						break;
+				// Wait intentionally leaves the previous frame untouched. Clearing here
+				// would turn a hold into a blank/background-only frame.
+				if (step.action !== "Wait") {
+					context.clearRect(0, 0, canvas.width, canvas.height);
+					const background = currentTimeline.settings.background;
+					if (background && background !== "transparent") {
+						context.fillStyle = background;
+						context.fillRect(0, 0, canvas.width, canvas.height);
 					}
 
-					case "FadeIn":
-						if (step.target) {
+					switch (step.action) {
+						case "Create": {
+							if (!step.target) break;
+							const drawCount = Math.max(2, Math.floor(step.target.pointCount * progress));
 							drawPoints(
-								context, step.target.points, step.target.pointCount,
-								step.target.isBezier, progress,
-								step.target.strokeColor, step.target.fillColor, step.target.strokeWidth,
+								context,
+								step.target.points,
+								drawCount,
+								step.target.isBezier,
+								1,
+								step.target.strokeColor,
+								step.target.fillColor,
+								step.target.strokeWidth,
 							);
+							break;
 						}
-						break;
 
-					case "FadeOut":
-						if (step.target) {
+						case "FadeIn":
+							if (step.target) {
+								drawPoints(
+									context, step.target.points, step.target.pointCount,
+									step.target.isBezier, progress,
+									step.target.strokeColor, step.target.fillColor, step.target.strokeWidth,
+								);
+							}
+							break;
+
+						case "FadeOut":
+							if (step.target) {
+								drawPoints(
+									context, step.target.points, step.target.pointCount,
+									step.target.isBezier, 1 - progress,
+									step.target.strokeColor, step.target.fillColor, step.target.strokeWidth,
+								);
+							}
+							break;
+
+						case "Transform": {
+							if (!step.origin || !step.target) break;
+							const pair = prepared.transformPairs.get(currentRuntime.stepIndex);
+							if (!pair) break;
+							interpolatePoints(pair.from, pair.to, progress, currentRuntime.interpBuffer);
 							drawPoints(
-								context, step.target.points, step.target.pointCount,
-								step.target.isBezier, 1 - progress,
-								step.target.strokeColor, step.target.fillColor, step.target.strokeWidth,
+								context,
+								currentRuntime.interpBuffer,
+								pair.from.length / 2,
+								step.origin.isBezier,
+								1,
+								step.target.strokeColor,
+								step.target.fillColor,
+								step.target.strokeWidth,
 							);
+							break;
 						}
-						break;
-
-					case "Transform": {
-						if (!step.origin || !step.target) break;
-						const pair = prepared.transformPairs.get(currentRuntime.stepIndex);
-						if (!pair) break;
-						interpolatePoints(pair.from, pair.to, progress, currentRuntime.interpBuffer);
-						drawPoints(
-							context,
-							currentRuntime.interpBuffer,
-							pair.from.length / 2,
-							step.origin.isBezier,
-							1,
-							step.target.strokeColor,
-							step.target.fillColor,
-							step.target.strokeWidth,
-						);
-						break;
 					}
-
-					case "Wait":
-						break;
 				}
 
 				if (rawProgress >= 1) {
@@ -200,7 +214,7 @@ export const EngineManim = memo(function EngineManim({
 							currentRuntime.loopCount++;
 						} else {
 							currentRuntime.stepIndex = Math.max(0, currentTimeline.steps.length - 1);
-							return;
+							return false;
 						}
 					}
 
