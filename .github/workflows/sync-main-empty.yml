@@ -55,9 +55,18 @@ jobs:
           cp source/DOCUMENT.md package/DOCUMENT.md
 
           node - <<'NODE'
+          const fs = require("fs");
           const packageJson = require("./package/package.json");
           if (packageJson.name !== "nextjs-engine") {
             throw new Error(`Refusing to sync unexpected package: ${packageJson.name}`);
+          }
+
+          const serverExport = packageJson.exports?.["./server"];
+          if (!serverExport || serverExport.import !== "./engine/server.ts") {
+            throw new Error("Package must export nextjs-engine/server from ./engine/server.ts");
+          }
+          if (!fs.existsSync("./package/engine/server.ts")) {
+            throw new Error("Package server export points to a missing engine/server.ts");
           }
           NODE
 
