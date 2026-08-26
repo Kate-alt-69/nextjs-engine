@@ -73,6 +73,10 @@ import React, {
 	type CSSProperties,
 } from "react";
 
+import { createRenderingEngine } from "../enginecanvas";
+import type { RenderingEngine, ECRenderContext, ECScene} from "../enginecanvas";
+import { useHandler } from "../../providers/EngineProvider";
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Mode = "2d" | "webgl" | "webgl2" | "auto";
@@ -150,24 +154,50 @@ export interface EngineCanvasProps {
 	 * Called once after the canvas and context are created.
 	 * Use for shader compilation, buffer setup, loading assets, etc.
 	 * Return a cleanup function that will be called on unmount.
+	 *
+	 * Accepts either a direct function reference, or a handler-name string
+	 * resolved via `createPage({ handlers })` — same convention as `onClick`
+	 * on button/link.
 	 */
-	onSetup?: (ctx: AnyCtx, canvas: HTMLCanvasElement) => (() => void) | void;
+	onSetup?: string | ((ctx: AnyCtx, canvas: HTMLCanvasElement) => (() => void) | void);
 	/**
 	 * Called every animation frame.
 	 * @param ctx    Rendering context
 	 * @param canvas The canvas element
 	 * @param delta  Milliseconds since the last frame (frame-rate independent)
 	 * @param frame  Cumulative frame counter (starts at 0)
+	 *
+	 * Accepts either a direct function reference, or a handler-name string.
 	 */
-	onDraw?: (ctx: AnyCtx, canvas: HTMLCanvasElement, delta: number, frame: number) => void;
+	onDraw?: string | ((ctx: AnyCtx, canvas: HTMLCanvasElement, delta: number, frame: number) => void);
 	/**
 	 * Called when the canvas resizes (only fires in responsive mode).
 	 * @param ctx    Rendering context
 	 * @param canvas The canvas element
 	 * @param w      New CSS width in pixels
 	 * @param h      New CSS height in pixels
+	 *
+	 * Accepts either a direct function reference, or a handler-name string.
 	 */
-	onResize?: (ctx: AnyCtx, canvas: HTMLCanvasElement, w: number, h: number) => void;
+	onResize?: string | ((ctx: AnyCtx, canvas: HTMLCanvasElement, w: number, h: number) => void);
+
+	// ── EngineCanvas V2 — graphics runtime (opt-in, additive) ──────────────
+	/**
+	 * Opt-in pluggable rendering engine. When set, EC creates the named
+	 * rendering engine ("2d" | "3d" | "svg" | "skia" | custom), calls its
+	 * init/render/resize/dispose lifecycle for you, and reuses the SAME
+	 * RAF loop, adaptive DPR, pause-when-offscreen, and SSR handling that
+	 * onDraw/onSetup get. `onDraw` is ignored while `graphics` is set —
+	 * they are mutually exclusive draw paths on the same canvas.
+	 *
+	 * This does NOT make EngineCanvas the engine's universal renderer —
+	 * it is purely opt-in per <canvas> instance. DOM components (button,
+	 * box, etc.) are never routed through this.
+	 */
+	graphics?: {
+		engine: string;
+		scene:  ECScene;
+	};
 
 	// ── Layout ────────────────────────────────────────────────────────────
 	style?:     CSSProperties;
@@ -250,12 +280,26 @@ export const EngineCanvas = memo(function EngineCanvas({
 	alpha            = false,
 	antialias        = true,
 	powerPreference  = "high-performance",
-	onSetup,
-	onDraw,
-	onResize,
+	onSetup:  onSetupRaw,
+	onDraw:   onDrawRaw,
+	onResize: onResizeRaw,
+	graphics,
 	style,
 	className,
 }: EngineCanvasProps) {
+	// ── Handler resolution — accepts a direct function OR a handler-name
+	//    string looked up via createPage({ handlers }), same convention as
+	//    onClick on button/link. Hooks always run (Rules of Hooks); the
+	//    empty-string fallback makes useHandler() a harmless no-op lookup
+	//    when the prop is already a function or omitted.
+	const onSetupFromContext  = useHandler(typeof onSetupRaw  === "string" ? onSetupRaw  : "");
+	const onDrawFromContext   = useHandler(typeof onDrawRaw   === "string" ? onDrawRaw   : "");
+	const onResizeFromContext = useHandler(typeof onResizeRaw === "string" ? onResizeRaw : "");
+
+	const onSetup  = (typeof onSetupRaw  === "function" ? onSetupRaw  : onSetupFromContext)  as ((ctx: AnyCtx, canvas: HTMLCanvasElement) => (() => void) | void) | undefined;
+	const onDraw   = (typeof onDrawRaw   === "function" ? onDrawRaw   : onDrawFromContext)   as ((ctx: AnyCtx, canvas: HTMLCanvasElement, delta: number, frame: number) => void) | undefined;
+	const onResize = (typeof onResizeRaw === "function" ? onResizeRaw : onResizeFromContext) as ((ctx: AnyCtx, canvas: HTMLCanvasElement, w: number, h: number) => void) | undefined;
+
 	const canvasRef   = useRef<HTMLCanvasElement>(null);
 	const ctxRef      = useRef<AnyCtx | null>(null);
 	const rafRef      = useRef<number>(0);
@@ -264,6 +308,7 @@ export const EngineCanvas = memo(function EngineCanvas({
 	const dprRef      = useRef(1);
 	const pausedRef   = useRef(false);
 	const fpsTracker  = useRef(new FPSTracker(30));
+	const graphicsEngineRef = useRef<RenderingEngine | null>(null);
 
 	// Whether to use responsive layout
 	const isResponsive = responsive ?? (width === undefined && height === undefined);
@@ -334,13 +379,17 @@ export const EngineCanvas = memo(function EngineCanvas({
 				}
 			}
 
-			onDraw?.(ctx, canvas, delta, frameRef.current++);
+			if (graphicsEngineRef.current && graphics) {
+				graphicsEngineRef.current.render(graphics.scene, delta, frameRef.current++);
+			} else {
+				onDraw?.(ctx, canvas, delta, frameRef.current++);
+			}
 			rafRef.current = requestAnimationFrame(tick);
 		};
 
 		lastTimeRef.current = 0;
 		rafRef.current = requestAnimationFrame(tick);
-	}, [onDraw, adaptive, dprProp, maxDpr]);
+	}, [onDraw, graphics, adaptive, dprProp, maxDpr]);
 
 	const stopLoop = useCallback(() => {
 		cancelAnimationFrame(rafRef.current);
@@ -380,8 +429,29 @@ export const EngineCanvas = memo(function EngineCanvas({
 		const cssH = height ?? canvas.offsetHeight ?? 150;
 		applyDPR(canvas, cssW, cssH);
 
-		// User setup
+		// User setup (still fires even when `graphics` is set — additive, not exclusive)
 		const cleanup = onSetup?.(result.ctx, canvas);
+
+		// ── EngineCanvas V2 graphics engine (opt-in) ────────────────────────────
+		let engineDisposed = false;
+		if (graphics) {
+			const engine: RenderingEngine = createRenderingEngine(graphics.engine);
+			const renderContext: ECRenderContext = {
+				canvas,
+				ctx2d: result.resolvedMode === "2d"
+					? (result.ctx as CanvasRenderingContext2D)
+					: undefined,
+				gl: result.resolvedMode !== "2d"
+					? (result.ctx as WebGLRenderingContext | WebGL2RenderingContext)
+					: undefined,
+				width:  cssW,
+				height: cssH,
+				dpr:    dprRef.current,
+			};
+			Promise.resolve(engine.init(renderContext)).then(() => {
+				if (!engineDisposed) graphicsEngineRef.current = engine;
+			});
+		}
 
 		// Start the loop
 		startLoop();
@@ -394,6 +464,7 @@ export const EngineCanvas = memo(function EngineCanvas({
 				if (!entry || !ctxRef.current) return;
 				const { width: rw, height: rh } = entry.contentRect;
 				applyDPR(canvas, rw, rh);
+				graphicsEngineRef.current?.resize(rw, rh);
 				onResize?.(ctxRef.current, canvas, rw, rh);
 			});
 			resizeObserver.observe(canvas);
@@ -419,6 +490,9 @@ export const EngineCanvas = memo(function EngineCanvas({
 		return () => {
 			stopLoop();
 			cleanup?.();
+			engineDisposed = true;
+			graphicsEngineRef.current?.dispose();
+			graphicsEngineRef.current = null;
 			resizeObserver?.disconnect();
 			intersectionObserver?.disconnect();
 			if (onVisibility) document.removeEventListener("visibilitychange", onVisibility);
@@ -426,8 +500,9 @@ export const EngineCanvas = memo(function EngineCanvas({
 		};
 	// onDraw/onSetup/onResize intentionally excluded — callers should use useCallback
 	// canvasMounted IS included — setup must re-run once the <canvas> is in the DOM
+	// graphics.engine IS included — swapping the engine name must re-init
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [mode, alpha, antialias, powerPreference, width, height, isResponsive, canvasMounted]);
+	}, [mode, alpha, antialias, powerPreference, width, height, isResponsive, canvasMounted, graphics?.engine]);
 
 
 	if (!canvasMounted) {
@@ -496,7 +571,11 @@ export function useEngineCanvas(options: Pick<EngineCanvasProps, "mode" | "alpha
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 
 	const setup = useCallback((
-		handlers: Pick<EngineCanvasProps, "onSetup" | "onDraw" | "onResize" | "adaptive" | "maxDpr">
+		handlers: Pick<EngineCanvasProps, "adaptive" | "maxDpr"> & {
+			onSetup?: (ctx: AnyCtx, canvas: HTMLCanvasElement) => (() => void) | void;
+			onDraw?:  (ctx: AnyCtx, canvas: HTMLCanvasElement, delta: number, frame: number) => void;
+			onResize?: (ctx: AnyCtx, canvas: HTMLCanvasElement, w: number, h: number) => void;
+		}
 	): (() => void) => {
 		const canvas = canvasRef.current;
 		if (!canvas) return () => {};
