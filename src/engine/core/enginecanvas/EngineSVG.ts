@@ -28,8 +28,6 @@ export class EngineSVGEngine implements RenderingEngine {
 	private width = 0;
 	private height = 0;
 
-	// -------------------------------------------------------------------------
-
 	public init(context: ECRenderContext): void {
 		if (typeof document === "undefined") return;
 
@@ -51,8 +49,6 @@ export class EngineSVGEngine implements RenderingEngine {
 		this.svg = svg;
 	}
 
-	// -------------------------------------------------------------------------
-
 	public resize(width: number, height: number): void {
 		this.width = width;
 		this.height = height;
@@ -64,8 +60,6 @@ export class EngineSVGEngine implements RenderingEngine {
 		}
 		this.updateBackgroundRect();
 	}
-
-	// -------------------------------------------------------------------------
 
 	public render(scene: ECScene, _delta: number, _frame: number): void {
 		const svg = this.svg;
@@ -79,8 +73,6 @@ export class EngineSVGEngine implements RenderingEngine {
 		}
 		this.removeMissingNodes(seenIds);
 	}
-
-	// -------------------------------------------------------------------------
 
 	private syncBackground(scene: ECScene): void {
 		const svg = this.svg;
@@ -156,10 +148,7 @@ export class EngineSVGEngine implements RenderingEngine {
 	): SVGPathElement {
 		if (!retained) {
 			const element = document.createElementNS("http://www.w3.org/2000/svg", "path");
-			retained = {
-				type: "mesh",
-				element,
-			};
+			retained = { type: "mesh", element };
 			this.retainedNodes.set(mesh.id, retained);
 		}
 
@@ -194,7 +183,7 @@ export class EngineSVGEngine implements RenderingEngine {
 	}
 
 	private attachToParent(element: SVGElement, parent: SVGElement): void {
-		if (element.parentElement === parent) return;
+		if (element.parentNode === parent) return;
 		parent.appendChild(element);
 	}
 
@@ -211,8 +200,6 @@ export class EngineSVGEngine implements RenderingEngine {
 		}
 	}
 
-	// -------------------------------------------------------------------------
-
 	public dispose(): void {
 		this.retainedNodes.clear();
 		this.backgroundRect = null;
@@ -224,15 +211,6 @@ export class EngineSVGEngine implements RenderingEngine {
 	}
 }
 
-// ============================================================================
-// Import / Export utilities — usable standalone, without the render pipeline
-// ============================================================================
-
-/**
- * Parses an SVG source string into ECMesh nodes — one per <path>, <circle>,
- * <rect>, <line>, or <polygon> found. Groups (<g>) are flattened; nested
- * transforms are not currently composed.
- */
 export function importSVG(svgSource: string): ECNode[] {
 	if (typeof DOMParser === "undefined") {
 		throw new Error("[EngineSVG] importSVG() is browser-only (requires DOMParser).");
@@ -326,7 +304,6 @@ function readMaterial(element: Element) {
 	};
 }
 
-/** Serializes an ECScene into a standalone SVG document string. */
 export function exportSVG(scene: ECScene, width: number, height: number): string {
 	const body = scene.children.map(nodeToSVGString).join("\n");
 	return (
