@@ -1,0 +1,89 @@
+name: Sync main-empty package branch
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/engine/**"
+      - "docs/**"
+      - "DOCUMENT.md"
+      - ".github/workflows/sync-main-empty.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-main-empty
+  cancel-in-progress: true
+
+jobs:
+  sync-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: source
+          fetch-depth: 1
+
+      - name: Checkout package branch
+        uses: actions/checkout@v4
+        with:
+          ref: main-empty
+          path: package
+          fetch-depth: 1
+
+      - name: Mirror engine and documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -d source/src/engine
+          test -d source/docs
+          test -f source/DOCUMENT.md
+          test -f package/package.json
+          test -f package/index.ts
+
+          rm -rf package/engine package/docs
+          mkdir -p package/engine package/docs
+
+          rsync -a --delete source/src/engine/ package/engine/
+          rsync -a --delete source/docs/ package/docs/
+          cp source/DOCUMENT.md package/DOCUMENT.md
+
+          node - <<'NODE'
+          const packageJson = require("./package/package.json");
+          if (packageJson.name !== "nextjs-engine") {
+            throw new Error(`Refusing to sync unexpected package: ${packageJson.name}`);
+          }
+          NODE
+
+      - name: Validate package branch
+        working-directory: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts --no-package-lock --no-audit --no-fund
+          npm run type-check
+          npm run pack:check
+
+      - name: Commit package update
+        working-directory: package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- engine docs DOCUMENT.md
+
+          if git diff --cached --quiet; then
+            echo "main-empty is already synchronized"
+            exit 0
+          fi
+
+          git commit -m "Sync package sources from main ${GITHUB_SHA::7}"
+          git push origin HEAD:main-empty
