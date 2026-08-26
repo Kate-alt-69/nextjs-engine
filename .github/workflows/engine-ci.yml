@@ -25,3 +25,15 @@ jobs:
         run: npm run type-check
       - name: Build Next.js integration app
         run: npx next build
+      - name: Report production client bundle sizes
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Largest client JavaScript chunks:"
+          find .next/static/chunks -type f -name '*.js' -printf '%s %p\n' \
+            | sort -nr \
+            | head -20 \
+            | awk '{ printf "%8.1f KiB  %s\n", $1 / 1024, $2 }'
+          total_bytes="$(find .next/static/chunks -type f -name '*.js' -printf '%s\n' | awk '{ total += $1 } END { print total + 0 }')"
+          chunk_count="$(find .next/static/chunks -type f -name '*.js' | wc -l | tr -d ' ')"
+          printf 'Total client JavaScript: %.1f KiB across %s chunks\n' "$(awk -v bytes="$total_bytes" 'BEGIN { print bytes / 1024 }')" "$chunk_count"
