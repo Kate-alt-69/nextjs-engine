@@ -23,7 +23,6 @@ export type {
 	EngineSuspenseProps, SuspensePreset,
 	EngineHeroProps,
 	EngineFormProps, EngineInputProps, EngineTextareaProps, EngineCheckboxProps, EngineLabelProps, InputType,
-	EngineAPIConfig, EngineAPIAuthConfig,
 } from "./schema/types";
 
 export {
@@ -68,6 +67,32 @@ export { EngineForm, EngineInput, EngineTextarea, EngineCheckbox, EngineLabel } 
 
 // Networking. File/config loading helpers should be called in server/build paths.
 export { EngineAPIResolver } from "./core/EngineAPIResolver";
+export type {
+	EngineAPIAuthConfig,
+	EngineAPIConfig,
+	EngineAPIFormData,
+	EngineAPIStaticEndpoint,
+} from "./core/EngineAPIResolver";
+export {
+	APIStatic,
+	configureAPIStatic,
+	getDefaultAPIStatic,
+	getAPIStaticRouteHash,
+	getAPIStaticRouteURL,
+	normalizeAPIStaticRoute,
+	staticEndpoint,
+} from "./core/APIStatic";
+export type {
+	APIStaticExecuteOptions,
+	APIStaticInputSchema,
+	APIStaticOperation,
+	APIStaticOptions,
+	APIStaticProxyHandler,
+	APIStaticResponseDescriptor,
+	APIStaticRouteModule,
+	APIStaticRunContext,
+	APIStaticRunSource,
+} from "./core/APIStatic";
 export {
 	compileAPIConfig,
 	loadAPIConfigDir,

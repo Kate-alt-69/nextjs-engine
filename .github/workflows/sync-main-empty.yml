@@ -56,7 +56,8 @@ jobs:
 
           node - <<'NODE'
           const fs = require("fs");
-          const packageJson = require("./package/package.json");
+          const packagePath = "./package/package.json";
+          const packageJson = require(packagePath);
           if (packageJson.name !== "nextjs-engine") {
             throw new Error(`Refusing to sync unexpected package: ${packageJson.name}`);
           }
@@ -68,6 +69,19 @@ jobs:
           if (!fs.existsSync("./package/engine/server.ts")) {
             throw new Error("Package server export points to a missing engine/server.ts");
           }
+          if (!fs.existsSync("./package/engine/plugins/engineApiPlugin.js")) {
+            throw new Error("Package is missing engineApiPlugin.js");
+          }
+          if (!fs.existsSync("./package/engine/plugins/apiStaticCompiler.js")) {
+            throw new Error("Package is missing apiStaticCompiler.js");
+          }
+
+          packageJson.exports = packageJson.exports || {};
+          packageJson.exports["./plugin"] = {
+            require: "./engine/plugins/engineApiPlugin.js",
+            default: "./engine/plugins/engineApiPlugin.js"
+          };
+          fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, "\t")}\n`, "utf8");
           NODE
 
       - name: Validate package branch
@@ -87,7 +101,7 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A -- engine docs DOCUMENT.md
+          git add -A -- engine docs DOCUMENT.md package.json
 
           if git diff --cached --quiet; then
             echo "main-empty is already synchronized"

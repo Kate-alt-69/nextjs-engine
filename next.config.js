@@ -1,5 +1,6 @@
-const fs   = require("fs");
+const fs = require("fs");
 const path = require("path");
+const withEngineAPI = require("./src/engine/plugins/engineApiPlugin");
 
 // ── Engine 404 fallback guard ─────────────────────────────────────────────────
 const appNotFound = path.join(__dirname, "app", "not-found.tsx");
@@ -29,7 +30,7 @@ const nextConfig = {
 	distDir: "dist",
 
 	// ── Turbopack Compiler Configuration (Next.js 16 Stable) ──────────────────
-	// Instructs the underlying Rust bundler to map server modules specifically 
+	// Instructs the underlying Rust bundler to map server modules specifically
 	// for client/browser target environments to our clean, empty file stub.
 	turbopack: {
 		resolveAlias: {
@@ -47,15 +48,15 @@ const nextConfig = {
 		if (!isServer) {
 			config.resolve.fallback = {
 				...(config.resolve.fallback ?? {}),
-				fs:            false,
+				fs: false,
 				"fs/promises": false,
-				path:          false,
-				os:            false,
-				crypto:        false,
+				path: false,
+				os: false,
+				crypto: false,
 			};
 		}
 		return config;
 	},
 };
 
-module.exports = nextConfig;
+module.exports = withEngineAPI(nextConfig);

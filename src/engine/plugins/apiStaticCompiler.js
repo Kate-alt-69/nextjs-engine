@@ -1,0 +1,453 @@
+"use strict";
+
+const fs = require("fs");
+const path = require("path");
+
+const SAFE_ROUTE_SEGMENT = /^[A-Za-z0-9._-]+$/;
+const RESERVED_HELPERS = ["response", "error"];
+
+function normalizeRouteId(routeId) {
+	const normalized = String(routeId).trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+	if (!normalized) throw new Error("[APIStaticCompiler] Route id cannot be empty.");
+	for (const segment of normalized.split("/")) {
+		if (!segment || segment === "." || segment === ".." || !SAFE_ROUTE_SEGMENT.test(segment)) {
+			throw new Error(`[APIStaticCompiler] Invalid route segment: ${segment || "<empty>"}`);
+		}
+	}
+	return normalized;
+}
+
+function getRouteHash(routeId) {
+	const normalized = normalizeRouteId(routeId);
+	let hash = 0x811c9dc5;
+	for (let index = 0; index < normalized.length; index += 1) {
+		hash ^= normalized.charCodeAt(index);
+		hash = Math.imul(hash, 0x01000193) >>> 0;
+	}
+	return hash.toString(36).padStart(7, "0").slice(-7);
+}
+
+function isIdentifierStart(char) {
+	return /[A-Za-z_$]/.test(char || "");
+}
+
+function isIdentifierPart(char) {
+	return /[A-Za-z0-9_$-]/.test(char || "");
+}
+
+function skipQuoted(source, index, quote) {
+	index += 1;
+	while (index < source.length) {
+		if (source[index] === "\\") {
+			index += 2;
+			continue;
+		}
+		if (source[index] === quote) return index + 1;
+		index += 1;
+	}
+	throw new Error("[APIStaticCompiler] Unterminated string literal.");
+}
+
+function skipLineComment(source, index) {
+	const newline = source.indexOf("\n", index + 2);
+	return newline === -1 ? source.length : newline + 1;
+}
+
+function skipBlockComment(source, index) {
+	const end = source.indexOf("*/", index + 2);
+	if (end === -1) throw new Error("[APIStaticCompiler] Unterminated block comment.");
+	return end + 2;
+}
+
+function skipTrivia(source, index, allowComma = true) {
+	while (index < source.length) {
+		const char = source[index];
+		if (/\s/.test(char) || (allowComma && char === ",")) {
+			index += 1;
+			continue;
+		}
+		if (source.startsWith("//", index)) {
+			index = skipLineComment(source, index);
+			continue;
+		}
+		if (source.startsWith("/*", index)) {
+			index = skipBlockComment(source, index);
+			continue;
+		}
+		break;
+	}
+	return index;
+}
+
+function findMatching(source, openIndex, openChar, closeChar) {
+	let depth = 0;
+	for (let index = openIndex; index < source.length; index += 1) {
+		const char = source[index];
+		if (char === '"' || char === "'" || char === "`") {
+			index = skipQuoted(source, index, char) - 1;
+			continue;
+		}
+		if (source.startsWith("//", index)) {
+			index = skipLineComment(source, index) - 1;
+			continue;
+		}
+		if (source.startsWith("/*", index)) {
+			index = skipBlockComment(source, index) - 1;
+			continue;
+		}
+		if (char === openChar) depth += 1;
+		else if (char === closeChar) {
+			depth -= 1;
+			if (depth === 0) return index;
+		}
+	}
+	throw new Error(`[APIStaticCompiler] Unclosed ${openChar}.`);
+}
+
+function readIdentifier(source, index) {
+	index = skipTrivia(source, index, false);
+	if (!isIdentifierStart(source[index])) {
+		throw new Error(`[APIStaticCompiler] Expected identifier near: ${source.slice(index, index + 24)}`);
+	}
+	const start = index;
+	index += 1;
+	while (isIdentifierPart(source[index])) index += 1;
+	return { value: source.slice(start, index), end: index };
+}
+
+function readString(source, index) {
+	index = skipTrivia(source, index, false);
+	const quote = source[index];
+	if (quote !== '"' && quote !== "'") {
+		throw new Error(`[APIStaticCompiler] Expected string near: ${source.slice(index, index + 24)}`);
+	}
+	const end = skipQuoted(source, index, quote);
+	const raw = source.slice(index, end);
+	let value;
+	if (quote === '"') value = JSON.parse(raw);
+	else {
+		value = raw.slice(1, -1)
+			.replace(/\\'/g, "'")
+			.replace(/\\\\/g, "\\");
+	}
+	return { value, end };
+}
+
+function findCreateEndpoint(source) {
+	let index = 0;
+	while (index < source.length) {
+		const char = source[index];
+		if (char === '"' || char === "'" || char === "`") {
+			index = skipQuoted(source, index, char);
+			continue;
+		}
+		if (source.startsWith("//", index)) {
+			index = skipLineComment(source, index);
+			continue;
+		}
+		if (source.startsWith("/*", index)) {
+			index = skipBlockComment(source, index);
+			continue;
+		}
+		if (source.startsWith("createEndpoint", index)) {
+			const before = source[index - 1];
+			const after = source[index + "createEndpoint".length];
+			if (!isIdentifierPart(before) && !isIdentifierPart(after)) {
+				let cursor = skipTrivia(source, index + "createEndpoint".length, false);
+				if (source[cursor] !== "(") throw new Error("[APIStaticCompiler] createEndpoint must be called with (...).");
+				const callEnd = findMatching(source, cursor, "(", ")");
+				return { start: index, open: cursor, end: callEnd + 1 };
+			}
+		}
+		index += 1;
+	}
+	throw new Error("[APIStaticCompiler] Missing createEndpoint([...]) declaration.");
+}
+
+function parseSchema(source, start, end) {
+	const schema = {};
+	let index = start;
+	while (index < end) {
+		index = skipTrivia(source, index);
+		if (index >= end) break;
+		let key;
+		if (source[index] === '"' || source[index] === "'") {
+			const parsed = readString(source, index);
+			key = parsed.value;
+			index = parsed.end;
+		} else {
+			const parsed = readIdentifier(source, index);
+			key = parsed.value;
+			index = parsed.end;
+		}
+		index = skipTrivia(source, index, false);
+		if (source[index] !== ":") throw new Error(`[APIStaticCompiler] Expected ':' after schema key ${key}.`);
+		index = skipTrivia(source, index + 1, false);
+		const rule = readString(source, index);
+		schema[key] = rule.value;
+		index = rule.end;
+	}
+	return schema;
+}
+
+function collectFunctionNames(source) {
+	const names = new Set(["proxy", "fetch"]);
+	const pattern = /\b(?:async\s+)?function\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/g;
+	let match;
+	while ((match = pattern.exec(source))) names.add(match[1]);
+	return names;
+}
+
+function transformBracketCalls(expression, functionNames) {
+	let output = expression;
+	let changed = true;
+	while (changed) {
+		changed = false;
+		for (const name of functionNames) {
+			const pattern = new RegExp(`\\b${name.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}\\s*\\[`, "g");
+			let match;
+			while ((match = pattern.exec(output))) {
+				const open = output.indexOf("[", match.index + name.length);
+				const close = findMatching(output, open, "[", "]");
+				const inner = transformBracketCalls(output.slice(open + 1, close), functionNames);
+				output = `${output.slice(0, open)}(${inner})${output.slice(close + 1)}`;
+				changed = true;
+				break;
+			}
+			if (changed) break;
+		}
+	}
+	return output;
+}
+
+function parseRun(source, index, functionNames) {
+	index += "run.".length;
+	const sourceType = readIdentifier(source, index);
+	if (!["query", "body", "input", "proxy"].includes(sourceType.value)) {
+		throw new Error(`[APIStaticCompiler] Unsupported run source: ${sourceType.value}`);
+	}
+	index = skipTrivia(source, sourceType.end, false);
+
+	if (source[index] === "(") {
+		const close = findMatching(source, index, "(", ")");
+		let expression = source.slice(index + 1, close).trim();
+		if (/^return\b/.test(expression)) expression = expression.replace(/^return\b/, "").trim();
+		if (!expression) throw new Error("[APIStaticCompiler] run.<source>(...) needs an expression.");
+		return {
+			source: sourceType.value,
+			kind: "expression",
+			code: transformBracketCalls(expression, functionNames),
+			end: close + 1,
+		};
+	}
+
+	if (source[index] === "{") {
+		const close = findMatching(source, index, "{", "}");
+		return {
+			source: sourceType.value,
+			kind: "block",
+			code: transformBracketCalls(source.slice(index + 1, close), functionNames),
+			end: close + 1,
+		};
+	}
+
+	throw new Error("[APIStaticCompiler] run.<source> must use (...) or { ... }.");
+}
+
+function parseOperation(source, start, end, functionNames) {
+	let index = start;
+	let name = "";
+	const schemas = {};
+	let run = null;
+
+	while (index < end) {
+		index = skipTrivia(source, index);
+		if (index >= end) break;
+
+		if (source.startsWith("run.", index)) {
+			if (run) throw new Error("[APIStaticCompiler] An endpoint operation can only contain one run.* declaration.");
+			run = parseRun(source, index, functionNames);
+			index = run.end;
+			continue;
+		}
+
+		const keyToken = readIdentifier(source, index);
+		const key = keyToken.value;
+		index = skipTrivia(source, keyToken.end, false);
+		if (source[index] !== ":") throw new Error(`[APIStaticCompiler] Expected ':' after ${key}.`);
+		index = skipTrivia(source, index + 1, false);
+
+		if (key === "name") {
+			const value = readString(source, index);
+			name = value.value;
+			index = value.end;
+			continue;
+		}
+
+		if (["query", "body", "input"].includes(key)) {
+			if (source[index] !== "{") throw new Error(`[APIStaticCompiler] ${key} must be an input schema object.`);
+			const close = findMatching(source, index, "{", "}");
+			schemas[key] = parseSchema(source, index + 1, close);
+			index = close + 1;
+			continue;
+		}
+
+		throw new Error(`[APIStaticCompiler] Unknown createEndpoint property: ${key}`);
+	}
+
+	if (!name.trim()) throw new Error("[APIStaticCompiler] Every endpoint operation needs name: \"...\".");
+	if (!run) throw new Error(`[APIStaticCompiler] Operation ${name} needs run.query(...), run.body(...), run.input(...), or run.proxy(...).`);
+	const schema = schemas[run.source] || schemas.input;
+	return { name, source: run.source, schema, run };
+}
+
+function parseEndpointArray(source, start, end, functionNames) {
+	const operations = [];
+	let index = start;
+	while (index < end) {
+		index = skipTrivia(source, index);
+		if (index >= end) break;
+		if (source[index] !== "{") throw new Error("[APIStaticCompiler] createEndpoint expects an array of { ... } operations.");
+		const close = findMatching(source, index, "{", "}");
+		operations.push(parseOperation(source, index + 1, close, functionNames));
+		index = close + 1;
+	}
+	if (operations.length === 0) throw new Error("[APIStaticCompiler] createEndpoint needs at least one operation.");
+	const names = new Set();
+	for (const operation of operations) {
+		if (names.has(operation.name)) throw new Error(`[APIStaticCompiler] Duplicate operation name: ${operation.name}`);
+		names.add(operation.name);
+	}
+	return operations;
+}
+
+function ensureNoReservedHelperDeclarations(source) {
+	for (const name of RESERVED_HELPERS) {
+		const pattern = new RegExp(`\\b(?:const|let|var|function|class)\\s+${name}\\b`);
+		if (pattern.test(source)) throw new Error(`[APIStaticCompiler] ${name} is reserved by the .route runtime.`);
+	}
+}
+
+function makeRunFunction(run) {
+	const aliases = [
+		"const query = __context.query;",
+		"const body = __context.body;",
+		"const input = __context.input;",
+		"const proxy = __context.proxy;",
+	].join("\n\t\t\t");
+	const body = run.kind === "expression"
+		? `return (${run.code});`
+		: run.code.trim();
+	return `async (__context) => {\n\t\t\t${aliases}\n\t\t\t${body}\n\t\t}`;
+}
+
+function generateModuleSource(routeId, routeHash, userSource, operations) {
+	const call = findCreateEndpoint(userSource);
+	const userCode = `${userSource.slice(0, call.start)}\n${userSource.slice(call.end)}`.trim();
+	ensureNoReservedHelperDeclarations(userCode);
+	try {
+		findCreateEndpoint(userCode);
+		throw new Error("[APIStaticCompiler] A .route file may only contain one createEndpoint([...]) declaration.");
+	} catch (reason) {
+		if (!(reason instanceof Error) || !reason.message.includes("Missing createEndpoint")) throw reason;
+	}
+	const operationSource = operations.map((operation) => {
+		return `\t{\n\t\tname: ${JSON.stringify(operation.name)},\n\t\tsource: ${JSON.stringify(operation.source)},\n\t\tschema: ${JSON.stringify(operation.schema || {})},\n\t\trun: ${makeRunFunction(operation.run)},\n\t}`;
+	}).join(",\n");
+
+	return `${userCode}\n\nfunction response(options = {}) {\n\treturn {\n\t\t__engine_api_static_response__: true,\n\t\tstatus: options.status,\n\t\theaders: options.headers,\n\t\tbody: options.body,\n\t};\n}\n\nfunction error(status, message, details) {\n\tconst reason = new Error(message);\n\treason.__engine_api_static_error__ = true;\n\treason.status = status;\n\treason.details = details;\n\tthrow reason;\n}\n\nconst __engineApiStaticRoute = {\n\troute: ${JSON.stringify(routeId)},\n\thash: ${JSON.stringify(routeHash)},\n\toperations: [\n${operationSource}\n\t],\n};\n\nconst __engineApiStaticGlobal = globalThis;\nif (!__engineApiStaticGlobal.__NEXTJS_ENGINE_API_STATIC__) {\n\t__engineApiStaticGlobal.__NEXTJS_ENGINE_API_STATIC__ = new Map();\n}\n__engineApiStaticGlobal.__NEXTJS_ENGINE_API_STATIC__.set(${JSON.stringify(routeId)}, __engineApiStaticRoute);\n`;
+}
+
+function transpileRoute(moduleSource, fileName) {
+	let typescript;
+	try {
+		typescript = require("typescript");
+	} catch {
+		return moduleSource;
+	}
+
+	const result = typescript.transpileModule(moduleSource, {
+		fileName,
+		reportDiagnostics: true,
+		compilerOptions: {
+			target: typescript.ScriptTarget.ES2020,
+			module: typescript.ModuleKind.ES2020,
+			isolatedModules: true,
+			removeComments: false,
+		},
+	});
+	const errors = (result.diagnostics || []).filter((diagnostic) => diagnostic.category === typescript.DiagnosticCategory.Error);
+	if (errors.length > 0) {
+		const text = errors.map((diagnostic) => typescript.flattenDiagnosticMessageText(diagnostic.messageText, "\n")).join("\n");
+		throw new Error(`[APIStaticCompiler] TypeScript error in ${fileName}:\n${text}`);
+	}
+	return result.outputText;
+}
+
+function compileAPIStaticSource(source, routeId, fileName = `${routeId}.route`) {
+	const normalizedRoute = normalizeRouteId(routeId);
+	const call = findCreateEndpoint(source);
+	let cursor = skipTrivia(source, call.open + 1, false);
+	if (source[cursor] !== "[") throw new Error("[APIStaticCompiler] createEndpoint must receive an array: createEndpoint([ ... ]).");
+	const arrayEnd = findMatching(source, cursor, "[", "]");
+	const afterArray = skipTrivia(source, arrayEnd + 1, false);
+	if (afterArray !== call.end - 1) throw new Error("[APIStaticCompiler] createEndpoint accepts exactly one array argument.");
+	const functionNames = collectFunctionNames(`${source.slice(0, call.start)}\n${source.slice(call.end)}`);
+	const operations = parseEndpointArray(source, cursor + 1, arrayEnd, functionNames);
+	const hash = getRouteHash(normalizedRoute);
+	const moduleSource = generateModuleSource(normalizedRoute, hash, source, operations);
+	return {
+		route: normalizedRoute,
+		hash,
+		operations: operations.map((operation) => operation.name),
+		code: transpileRoute(moduleSource, fileName),
+	};
+}
+
+function walkRouteFiles(directory) {
+	if (!fs.existsSync(directory)) return [];
+	const output = [];
+	for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+		const absolute = path.join(directory, entry.name);
+		if (entry.isDirectory()) output.push(...walkRouteFiles(absolute));
+		else if (entry.isFile() && entry.name.endsWith(".route")) output.push(absolute);
+	}
+	return output.sort();
+}
+
+function outputPathForRoute(outputDirectory, routeId, hash) {
+	const segments = routeId.split("/");
+	const baseName = segments.pop();
+	return path.join(outputDirectory, ...segments, `${baseName}-${hash}.js`);
+}
+
+function compileAPIStaticDir(options = {}) {
+	const projectRoot = options.projectRoot || process.cwd();
+	const endpointDir = path.resolve(projectRoot, options.endpointDir || "data/endpoint");
+	const outputDir = path.resolve(projectRoot, options.outputDir || "public/_static/endpoint");
+	const routeFiles = walkRouteFiles(endpointDir);
+
+	fs.rmSync(outputDir, { recursive: true, force: true });
+	if (routeFiles.length === 0) return [];
+	fs.mkdirSync(outputDir, { recursive: true });
+
+	const compiled = [];
+	for (const filePath of routeFiles) {
+		const relative = path.relative(endpointDir, filePath).replace(/\\/g, "/");
+		const routeId = relative.slice(0, -".route".length);
+		const source = fs.readFileSync(filePath, "utf8");
+		const result = compileAPIStaticSource(source, routeId, relative);
+		const destination = outputPathForRoute(outputDir, result.route, result.hash);
+		fs.mkdirSync(path.dirname(destination), { recursive: true });
+		fs.writeFileSync(destination, result.code, "utf8");
+		compiled.push({ route: result.route, hash: result.hash, operations: result.operations, output: destination });
+	}
+	return compiled;
+}
+
+module.exports = {
+	compileAPIStaticDir,
+	compileAPIStaticSource,
+	getRouteHash,
+	normalizeRouteId,
+};

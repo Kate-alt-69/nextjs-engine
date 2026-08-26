@@ -8,3 +8,5 @@ wah
 tsconfig.tsbuildinfo
 app/gemini/**.tsx
 app/asdf/**.tsx
+.engine-api-compiled.json
+/public/_static/endpoint/

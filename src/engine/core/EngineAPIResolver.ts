@@ -1,7 +1,11 @@
 /**
  * Next.js Engine — EngineAPIResolver
- * Declarative fetch orchestration with config cascading and native auth support.
+ * Declarative fetch orchestration with config cascading, native auth support,
+ * and APIStatic endpoint dispatch.
  */
+
+import type { EngineAPIStaticEndpoint } from "./APIStatic";
+export type { EngineAPIStaticEndpoint } from "./APIStatic";
 
 export interface EngineAPIAuthConfig {
 	type: "pnp" | "ak" | "hmac" | "bearer" | "jwt" | "basic" | "none";
@@ -16,7 +20,7 @@ export interface EngineAPIAuthConfig {
 }
 
 export interface EngineAPIConfig {
-	endpoint?: string;
+	endpoint?: string | EngineAPIStaticEndpoint;
 	method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | string;
 	cache?: RequestCache;
 	auth?: EngineAPIAuthConfig;
@@ -30,6 +34,10 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 	if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
 	const prototype = Object.getPrototypeOf(value);
 	return prototype === Object.prototype || prototype === null;
+}
+
+function isStaticEndpoint(value: EngineAPIConfig["endpoint"]): value is EngineAPIStaticEndpoint {
+	return isPlainObject(value) && typeof value.static === "string";
 }
 
 function deepMerge(target: Record<string, unknown>, ...sources: Array<Record<string, unknown> | undefined>): Record<string, unknown> {
@@ -136,14 +144,24 @@ export class EngineAPIResolver {
 		pageOverrides?: EngineAPIConfig;
 		nodeOverrides?: EngineAPIConfig;
 		formData?: EngineAPIFormData;
+		/** Input passed to APIStatic. `formData` is used as a fallback for compatibility. */
+		input?: unknown;
 	} = {}): Promise<Response> {
-		const { pageOverrides, nodeOverrides, formData } = params;
+		const { pageOverrides, nodeOverrides, formData, input } = params;
 		const config = deepMerge(
 			{},
 			this.globalConfig as Record<string, unknown>,
 			pageOverrides as Record<string, unknown> | undefined,
 			nodeOverrides as Record<string, unknown> | undefined,
 		) as EngineAPIConfig;
+
+		if (isStaticEndpoint(config.endpoint)) {
+			const { getDefaultAPIStatic } = await import("./APIStatic");
+			return getDefaultAPIStatic().resolveRequest(config.endpoint.static, {
+				operation: config.endpoint.operation,
+				input: input ?? formData,
+			});
+		}
 
 		const method = (config.method || "GET").toUpperCase();
 		let url = config.endpoint || "";
