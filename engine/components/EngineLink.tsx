@@ -38,6 +38,7 @@ export const EngineLink = memo(
 			className,
 			onClick,
 			cprop,
+			style,
 			...restProps
 		} = props;
 
@@ -46,15 +47,18 @@ export const EngineLink = memo(
 		// Fallback resolution cascade
 		const targetHref = linkConfig?.href ?? basicHref ?? "#";
 
-		// Style resolution
+		// Style resolution — normal style props and cprop/link styles all resolve
+		// to the anchor's style attribute. cprop remains responsible for pseudo
+		// state classes such as hover/focus/active.
 		const compiledStyles = {
-			...(cprop?.styles  ?? {}),
+			...(cprop?.styles ?? {}),
 			...(linkConfig?.styles ?? {}),
+			...(style ?? {}),
 		};
 
-		const resolvedStyle = usePropStyles(props as any, compiledStyles);
+		const resolvedStyle = usePropStyles(restProps as any, compiledStyles);
 		const hoverClass    = cpropClass(cprop);
-		const finalClass    = [resolvedStyle, hoverClass, className].filter(Boolean).join(" ") || undefined;
+		const finalClass    = [hoverClass, className].filter(Boolean).join(" ") || undefined;
 
 		// Handler resolution
 		const contextHandler = useHandler(typeof onClick === "string" ? onClick : "");
@@ -71,6 +75,7 @@ export const EngineLink = memo(
 			target,
 			transition: linkConfig?.transition,
 			className:  finalClass,
+			style:      resolvedStyle,
 			children:   content ?? children,
 			onClick:    handleClick,
 			ref,
