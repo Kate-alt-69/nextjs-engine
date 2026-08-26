@@ -1,56 +1,92 @@
 # EngineSuspense (ESU)
 
-Schema type: `"suspense"` — wraps children in a `React.Suspense` boundary with
-built-in loading fallback presets. Handles the delayed-fallback trick so fast
-loads never flash a spinner. Integrates with `EngineCanvas` and `EngineManim`
-for animation-based loading states.
+Schema type: `"suspense"`.
 
----
+EngineSuspense wraps children in `React.Suspense` and provides built-in loading
+presets, delayed fallback display, and an optional timeout UI.
 
-## How it works
+## How the fallback lifecycle works
 
-```
-Schema children
-      │
-      ▼
-React.Suspense
-      │
-      ├── Children resolve instantly → render, fallback never shown
-      │
-      └── Children suspend →
-              delay (ms) → DelayedFallback fires → preset rendered
-                                                         │
-                                              timeout (ms) → errorFallback
+```text
+children render
+    │
+    ├── do not suspend ───────────────► children stay visible
+    │
+    └── suspend
+         │
+         ├── delay elapsed ───────────► loading fallback becomes visible
+         │
+         └── timeout elapsed ─────────► timeout slot / built-in timeout alert
+
+children later resolve ───────────────► React replaces the fallback with children
 ```
 
-`DelayedFallback` holds the fallback for `delay` ms before mounting it.
-This means a fetch that resolves in < 200 ms never shows a spinner at all
-— a flicker that ruins perceived performance. Set `delay: 200` as a safe
-default for most async operations.
-
----
+The delay and timeout timers start when React mounts the Suspense fallback — in
+other words, when this boundary is actually suspended. A timeout changes what is
+shown while waiting; it does **not** abort the underlying fetch/work and it is
+not an error boundary. Rejected promises/errors still require a React error
+boundary if you want exception handling.
 
 ## Props
 
 | Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `preset` | `"skeleton" \| "spinner" \| "shimmer" \| "pulse" \| "blur"` | `"skeleton"` | Built-in loading preset |
-| `minHeight` | `string \| number` | — | Reserved vertical space for the placeholder, prevents layout shift |
-| `skeletonLines` | `number` | `4` | Number of animated lines (skeleton preset only) |
-| `delay` | `number` | `0` | Ms to wait before showing the fallback at all |
-| `timeout` | `number` | — | Max ms before switching to `errorFallback` |
-| `errorFallback` | `string` | — | Schema node id to render after timeout (future use) |
-| `fallback` | `ReactNode` | — | Fully custom fallback — overrides `preset` entirely |
+|---|---|---|---|
+| `preset` | `"skeleton" \| "spinner" \| "shimmer" \| "pulse" \| "blur"` | `"skeleton"` | Built-in loading fallback |
+| `minHeight` | `string \| number` | — | Reserves placeholder height |
+| `skeletonLines` | `number` | `4` | Number of skeleton lines |
+| `delay` | `number` | `0` | Ms before the loading fallback becomes visible |
+| `timeout` | `number` | — | Ms before timeout UI replaces the loading fallback |
+| `errorFallback` | `string` | — | **Page slot name** to show after timeout |
+| `fallback` | `ReactNode` | — | Direct React loading fallback override |
 
-All shared base props apply (`id`, `className`, `style`, `cprop`, `point`, etc.).
+Shared engine props such as `id`, `point`, `className`, `style`, and `cprop`
+also apply.
 
----
+## Timeout fallback slots
 
-## Built-in presets
+`errorFallback` resolves through the existing page-level slot registry. It is
+not a DOM id and it does not search elsewhere in the schema tree.
 
-### `skeleton`
+```tsx
+export default createPage({
+  schema: pageSchema,
+  slots: {
+    loadError: (
+      <div role="alert">
+        This section is taking longer than expected.
+      </div>
+    ),
+  },
+});
+```
 
-Animated placeholder lines. Best for articles, doc pages, cards, product detail.
+```ts
+{
+  type: "suspense",
+  props: {
+    preset: "skeleton",
+    delay: 150,
+    timeout: 8000,
+    errorFallback: "loadError",
+  },
+  children: [/* async/suspending content */],
+}
+```
+
+If `timeout` is configured but the named slot is missing (or no
+`errorFallback` is supplied), EngineSuspense renders its built-in accessible
+`Loading timed out.` alert. If the children subsequently resolve, React still
+replaces that timeout UI with the resolved children.
+
+Older documentation described `errorFallback` as an arbitrary schema-node id.
+That mechanism was not implementable from inside an already-rendered Suspense
+boundary and was never functional. The current API deliberately uses page slots,
+which EngineProvider can resolve at runtime.
+
+## Delayed fallback
+
+Use `delay` to avoid flashing a placeholder for work that resolves almost
+instantly:
 
 ```ts
 {
@@ -61,199 +97,75 @@ Animated placeholder lines. Best for articles, doc pages, cards, product detail.
     minHeight: "320px",
     delay: 200,
   },
-  children: [{ type: "markdown", props: { filePath: "./content/post.md" } }],
+  children: [/* content */],
 }
 ```
 
-### `shimmer`
+If the boundary resolves before the delay expires, the fallback component
+unmounts and its timer is cleared.
 
-Left-to-right shimmer sweep. Best for tables, lists, feeds, dashboards.
+## Built-in presets
+
+### `skeleton`
+
+Animated placeholder lines for article/card-style content.
 
 ```ts
-{
-  type: "suspense",
-  props: { preset: "shimmer", minHeight: "400px", delay: 150 },
-  children: [...],
-}
+{ type: "suspense", props: { preset: "skeleton", skeletonLines: 5 } }
 ```
 
 ### `spinner`
 
-Centered circular spinner. Best for buttons, dialog actions, small widget loads.
+Centered circular loading indicator.
 
 ```ts
-{
-  type: "suspense",
-  props: { preset: "spinner", minHeight: "120px" },
-  children: [...],
-}
+{ type: "suspense", props: { preset: "spinner", minHeight: "120px" } }
+```
+
+### `shimmer`
+
+A full-area shimmer placeholder.
+
+```ts
+{ type: "suspense", props: { preset: "shimmer", minHeight: "400px" } }
 ```
 
 ### `pulse`
 
-Opacity fade in/out. Best for image slots and media placeholders.
+A solid placeholder with an opacity pulse.
 
 ```ts
-{
-  type: "suspense",
-  props: { preset: "pulse", minHeight: "280px" },
-  children: [{ type: "image", props: { src: "/photo.jpg", alt: "Photo" } }],
-}
+{ type: "suspense", props: { preset: "pulse", minHeight: "280px" } }
 ```
 
 ### `blur`
 
-Renders children immediately at reduced opacity with a CSS blur, then
-resolves once data loads. Best for hero sections and progressive reveals.
-Unlike all other presets, `blur` keeps the children in the DOM — it just
-makes them visually indistinct until content is ready.
+An inert blurred placeholder surface. It intentionally does **not** render the
+suspended children again inside the fallback. Doing that would allow the
+fallback itself to suspend when the same unresolved child is rendered twice,
+which can bubble suspension into an outer boundary.
 
 ```ts
-{
-  type: "suspense",
-  props: { preset: "blur", minHeight: "500px" },
-  children: [...],
-}
+{ type: "suspense", props: { preset: "blur", minHeight: "500px" } }
 ```
 
----
+## Reduced motion
 
-## Custom fallback — passing your own ReactNode
+The animated built-in presets share the `e-suspense-motion` class. Under
+`prefers-reduced-motion: reduce`, their keyframe animations are disabled. The
+one-time stylesheet also has a stable id, so development hot reloads do not
+intentionally keep appending duplicate Suspense keyframe sheets.
 
-The `fallback` prop accepts any `ReactNode`. Because the engine renders
-schema nodes not raw JSX, the way to pass a custom fallback is to:
+## Custom React fallback
 
-1. Register a component with `registerComponent`
-2. Pass it to your page via `createPage({ slots })` and `type: "slot"` inside the suspense.
+When using `EngineSuspense` directly from React, `fallback` overrides the built-in
+loading preset:
 
-However the simplest pattern is to register a **wrapper component** that
-bakes the custom fallback in:
-
-```ts
-import { registerComponent } from "@/engine";
-import { memo, Suspense } from "react";
-
-// A manim-powered suspense that draws a logo animation while content loads
-registerComponent("suspense-logo", memo(function SuspenseLogo({
-  children,
-  minHeight = "300px",
-}: {
-  children?: React.ReactNode;
-  minHeight?: string;
-}) {
-  // The fallback is a canvas animation via EngineManim's compiled output
-  const fallback = (
-    <div style={{
-      minHeight,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    }}>
-      {/* EngineCanvas renders here via the engine's SchemaRenderer internally */}
-      <canvas width={240} height={80} /* driven by EngineManim runtime */ />
-    </div>
-  );
-
-  return <Suspense fallback={fallback}>{children}</Suspense>;
-}));
+```tsx
+<EngineSuspense fallback={<MyLoader />} timeout={10_000} errorFallback="loadError">
+  <AsyncPanel />
+</EngineSuspense>
 ```
 
-Then use it in any schema:
-
-```ts
-{
-  type: "suspense-logo",
-  props: { minHeight: "300px" },
-  children: [
-    { type: "markdown", props: { filePath: "./content/doc.md" } },
-  ],
-}
-```
-
----
-
-## Using EngineManim as a suspense fallback
-
-`EngineManim` uses `EngineCanvas` internally. You can render a manim animation
-as a loading state by registering a wrapper that creates its own canvas context:
-
-```ts
-import { registerComponent } from "@/engine";
-import { compileManimConfig } from "@/engine";
-import { memo, useRef, useEffect } from "react";
-
-registerComponent("suspense-manim", memo(function SuspenseManim({
-  minHeight = "200px",
-}: {
-  minHeight?: string;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const compiled = compileManimConfig({
-      mobjects: [
-        { id: "ring", type: "Circle", radius: 28, strokeColor: "#60a5fa", strokeWidth: 2 },
-      ],
-      timeline: [
-        { action: "Create",  target: "ring", durationMs: 600 },
-        { action: "FadeOut", target: "ring", durationMs: 400, delay: 400 },
-      ],
-      settings: { loop: true, fpsLimit: 60, background: "transparent" },
-    });
-
-    let raf: number;
-    let stepStart = performance.now();
-    let stepIndex = 0;
-
-    function frame() {
-      const now = performance.now();
-      const step = compiled.steps[stepIndex];
-      if (!step) { stepIndex = 0; stepStart = now; raf = requestAnimationFrame(frame); return; }
-      if (now < stepStart + (step.delay ?? 0)) { raf = requestAnimationFrame(frame); return; }
-      ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
-      const t = Math.min((now - stepStart - (step.delay ?? 0)) / step.durationMs, 1);
-      // draw step at progress t — delegate to compiled draw function
-      if (t >= 1) { stepIndex++; stepStart = now; }
-      raf = requestAnimationFrame(frame);
-    }
-
-    raf = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
-  return (
-    <div style={{ minHeight, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <canvas ref={canvasRef} width={80} height={80} style={{ opacity: 0.7 }} />
-    </div>
-  );
-}));
-```
-
-Use it as a schema type the same way: `{ type: "suspense-manim", props: { minHeight: "200px" } }`.
-
----
-
-## Timeout + error fallback
-
-```ts
-{
-  type: "suspense",
-  props: {
-    preset: "skeleton",
-    minHeight: "300px",
-    delay: 200,
-    timeout: 8000,
-    errorFallback: "load-error-card",  // schema node id to render on timeout
-  },
-  children: [...],
-}
-```
-
-If the children haven't resolved within `timeout` ms, `EngineSuspense` switches
-to the node registered under `errorFallback`. Define it anywhere else in your
-schema tree with `id: "load-error-card"`.
+For schema-driven pages, prefer the built-in loading presets and a named page
+slot for timeout UI.

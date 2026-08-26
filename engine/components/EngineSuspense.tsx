@@ -2,279 +2,315 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  Engine — EngineSuspense
 //
-//  Schema-native abstraction over React.Suspense.
-//  Provides built-in loading presets and timeout handling.
-//
-//  Supported presets:
-//    · skeleton — animated placeholder lines (articles, cards, blog posts)
-//    · spinner  — centered loading spinner (buttons, small widgets)
-//    · shimmer  — left-to-right shimmer effect (tables, lists, dashboards)
-//    · pulse    — opacity animation (images, media)
-//    · blur     — blurred content reveal (heroes, progressive loading)
+//  Schema-native React.Suspense wrapper with delayed loading presets and a
+//  timeout fallback resolved through the page-level slot registry.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, {
-  Suspense,
-  memo,
-  useState,
-  useEffect,
-  type ReactNode,
-  type CSSProperties,
+	Suspense,
+	memo,
+	useEffect,
+	useState,
+	type CSSProperties,
+	type ReactNode,
 } from "react";
 import { usePropStyles, cpropClass } from "../hooks/usePropStyles";
+import { useSlot } from "../providers/EngineProvider";
 import type { BaseNodeProps } from "../schema/types";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
 
 export type SuspensePreset = "skeleton" | "spinner" | "shimmer" | "pulse" | "blur";
 
 export interface EngineSuspenseProps extends BaseNodeProps {
-  children?: ReactNode;
-  /** Built-in loading fallback preset */
-  preset?: SuspensePreset;
-  /** Minimum height of the placeholder area */
-  minHeight?: string | number;
-  /** Number of skeleton lines (skeleton preset) */
-  skeletonLines?: number;
-  /** Delay (ms) before the fallback appears — prevents flash for fast loads */
-  delay?: number;
-  /** Maximum ms to wait before switching to errorFallback */
-  timeout?: number;
-  /** Schema node id (string) to render on timeout — for future use */
-  errorFallback?: string;
-  /** Custom fallback node override */
-  fallback?: ReactNode;
+	children?: ReactNode;
+	/** Built-in loading fallback preset. */
+	preset?: SuspensePreset;
+	/** Minimum height of the placeholder area. */
+	minHeight?: string | number;
+	/** Number of skeleton lines. */
+	skeletonLines?: number;
+	/** Delay before the loading fallback becomes visible. */
+	delay?: number;
+	/** Maximum time the Suspense fallback may remain mounted before timeout UI. */
+	timeout?: number;
+	/** Page slot name rendered after timeout. Falls back to a built-in alert. */
+	errorFallback?: string;
+	/** Direct React loading fallback override. */
+	fallback?: ReactNode;
 }
 
-// ── Keyframe injection (once per session) ─────────────────────────────────────
+const SUSPENSE_STYLE_ID = "__engine_suspense_css__";
+let keyframesInjected = false;
 
-let _keyframesInjected = false;
-function injectKeyframes() {
-  if (typeof document === "undefined" || _keyframesInjected) return;
-  _keyframesInjected = true;
-  const style = document.createElement("style");
-  style.textContent = `
-    @keyframes e-shimmer {
-      0%   { background-position: -400px 0; }
-      100% { background-position: 400px 0; }
-    }
-    @keyframes e-pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.4; }
-    }
-    @keyframes e-spin {
-      to { transform: rotate(360deg); }
-    }
-    @keyframes e-skeleton-wave {
-      0%   { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-  `;
-  document.head.appendChild(style);
+function injectKeyframes(): void {
+	if (typeof document === "undefined") return;
+	if (keyframesInjected || document.getElementById(SUSPENSE_STYLE_ID)) {
+		keyframesInjected = true;
+		return;
+	}
+	keyframesInjected = true;
+	const style = document.createElement("style");
+	style.id = SUSPENSE_STYLE_ID;
+	style.textContent = `
+		@keyframes e-shimmer {
+			0% { background-position: -400px 0; }
+			100% { background-position: 400px 0; }
+		}
+		@keyframes e-pulse {
+			0%, 100% { opacity: 1; }
+			50% { opacity: 0.4; }
+		}
+		@keyframes e-spin { to { transform: rotate(360deg); } }
+		@keyframes e-skeleton-wave {
+			0% { background-position: -200% 0; }
+			100% { background-position: 200% 0; }
+		}
+		@media (prefers-reduced-motion: reduce) {
+			.e-suspense-motion { animation: none !important; }
+		}
+	`;
+	document.head.appendChild(style);
 }
 
-// ── Skeleton preset ───────────────────────────────────────────────────────────
+function resolveMinHeight(value: string | number | undefined, fallback?: string): string | undefined {
+	if (typeof value === "number") return `${value}px`;
+	return value ?? fallback;
+}
 
 function SkeletonFallback({
-  lines = 4,
-  minHeight,
+	lines = 4,
+	minHeight,
 }: {
-  lines?: number;
-  minHeight?: string | number;
+	lines?: number;
+	minHeight?: string | number;
 }) {
-  useEffect(() => { injectKeyframes(); }, []);
+	useEffect(() => { injectKeyframes(); }, []);
+	const widths = ["100%", "85%", "90%", "70%", "95%", "60%", "80%", "75%"];
+	const safeLines = Math.max(0, Math.floor(lines));
 
-  const containerStyle: CSSProperties = {
-    padding: "1.25rem",
-    minHeight: typeof minHeight === "number" ? `${minHeight}px` : minHeight,
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.75rem",
-  };
-
-  const lineStyle = (width: string, height = "14px"): CSSProperties => ({
-    height,
-    borderRadius: "6px",
-    width,
-    background:
-      "linear-gradient(90deg, var(--e-skeleton-base, #e2e8f0) 25%, var(--e-skeleton-shine, #f1f5f9) 50%, var(--e-skeleton-base, #e2e8f0) 75%)",
-    backgroundSize: "200% 100%",
-    animation: "e-skeleton-wave 1.5s ease-in-out infinite",
-  });
-
-  const widths = ["100%", "85%", "90%", "70%", "95%", "60%", "80%", "75%"];
-
-  return (
-    <div style={containerStyle} aria-busy="true" aria-label="Loading..." role="status">
-      {Array.from({ length: lines }, (_, i) => (
-        <div key={i} style={lineStyle(widths[i % widths.length])} />
-      ))}
-    </div>
-  );
+	return (
+		<div
+			style={{
+				padding: "1.25rem",
+				minHeight: resolveMinHeight(minHeight),
+				display: "flex",
+				flexDirection: "column",
+				gap: "0.75rem",
+			}}
+			aria-busy="true"
+			aria-label="Loading..."
+			role="status"
+		>
+			{Array.from({ length: safeLines }, (_, index) => (
+				<div
+					key={index}
+					className="e-suspense-motion"
+					style={{
+						height: "14px",
+						borderRadius: "6px",
+						width: widths[index % widths.length],
+						background: "linear-gradient(90deg, var(--e-skeleton-base, #e2e8f0) 25%, var(--e-skeleton-shine, #f1f5f9) 50%, var(--e-skeleton-base, #e2e8f0) 75%)",
+						backgroundSize: "200% 100%",
+						animation: "e-skeleton-wave 1.5s ease-in-out infinite",
+					}}
+				/>
+			))}
+		</div>
+	);
 }
-
-// ── Spinner preset ────────────────────────────────────────────────────────────
 
 function SpinnerFallback({ minHeight }: { minHeight?: string | number }) {
-  useEffect(() => { injectKeyframes(); }, []);
-
-  const containerStyle: CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: typeof minHeight === "number" ? `${minHeight}px` : (minHeight ?? "80px"),
-  };
-
-  const spinnerStyle: CSSProperties = {
-    width: "32px",
-    height: "32px",
-    borderRadius: "50%",
-    border: "3px solid var(--e-skeleton-base, #e2e8f0)",
-    borderTopColor: "var(--e-accent, #4f46e5)",
-    animation: "e-spin 0.7s linear infinite",
-  };
-
-  return (
-    <div style={containerStyle} role="status" aria-label="Loading...">
-      <div style={spinnerStyle} aria-hidden="true" />
-    </div>
-  );
+	useEffect(() => { injectKeyframes(); }, []);
+	return (
+		<div
+			style={{
+				display: "flex",
+				alignItems: "center",
+				justifyContent: "center",
+				minHeight: resolveMinHeight(minHeight, "80px"),
+			}}
+			role="status"
+			aria-label="Loading..."
+		>
+			<div
+				className="e-suspense-motion"
+				style={{
+					width: "32px",
+					height: "32px",
+					borderRadius: "50%",
+					border: "3px solid var(--e-skeleton-base, #e2e8f0)",
+					borderTopColor: "var(--e-accent, #4f46e5)",
+					animation: "e-spin 0.7s linear infinite",
+				}}
+				aria-hidden="true"
+			/>
+		</div>
+	);
 }
-
-// ── Shimmer preset ────────────────────────────────────────────────────────────
 
 function ShimmerFallback({ minHeight }: { minHeight?: string | number }) {
-  useEffect(() => { injectKeyframes(); }, []);
-
-  const style: CSSProperties = {
-    minHeight: typeof minHeight === "number" ? `${minHeight}px` : (minHeight ?? "120px"),
-    borderRadius: "8px",
-    background:
-      "linear-gradient(90deg, var(--e-skeleton-base, #e2e8f0) 0%, var(--e-skeleton-shine, #f8fafc) 50%, var(--e-skeleton-base, #e2e8f0) 100%)",
-    backgroundSize: "400px 100%",
-    animation: "e-shimmer 1.5s ease-in-out infinite",
-  };
-
-  return <div style={style} role="status" aria-label="Loading..." aria-busy="true" />;
+	useEffect(() => { injectKeyframes(); }, []);
+	return (
+		<div
+			className="e-suspense-motion"
+			style={{
+				minHeight: resolveMinHeight(minHeight, "120px"),
+				borderRadius: "8px",
+				background: "linear-gradient(90deg, var(--e-skeleton-base, #e2e8f0) 0%, var(--e-skeleton-shine, #f8fafc) 50%, var(--e-skeleton-base, #e2e8f0) 100%)",
+				backgroundSize: "400px 100%",
+				animation: "e-shimmer 1.5s ease-in-out infinite",
+			}}
+			role="status"
+			aria-label="Loading..."
+			aria-busy="true"
+		/>
+	);
 }
-
-// ── Pulse preset ──────────────────────────────────────────────────────────────
 
 function PulseFallback({ minHeight }: { minHeight?: string | number }) {
-  useEffect(() => { injectKeyframes(); }, []);
-
-  const style: CSSProperties = {
-    minHeight: typeof minHeight === "number" ? `${minHeight}px` : (minHeight ?? "120px"),
-    borderRadius: "8px",
-    background: "var(--e-skeleton-base, #e2e8f0)",
-    animation: "e-pulse 1.8s ease-in-out infinite",
-  };
-
-  return <div style={style} role="status" aria-label="Loading..." aria-busy="true" />;
+	useEffect(() => { injectKeyframes(); }, []);
+	return (
+		<div
+			className="e-suspense-motion"
+			style={{
+				minHeight: resolveMinHeight(minHeight, "120px"),
+				borderRadius: "8px",
+				background: "var(--e-skeleton-base, #e2e8f0)",
+				animation: "e-pulse 1.8s ease-in-out infinite",
+			}}
+			role="status"
+			aria-label="Loading..."
+			aria-busy="true"
+		/>
+	);
 }
 
-// ── Blur preset ───────────────────────────────────────────────────────────────
+function BlurFallback({ minHeight }: { minHeight?: string | number }) {
+	return (
+		<div
+			style={{
+				minHeight: resolveMinHeight(minHeight, "120px"),
+				borderRadius: "8px",
+				background: "linear-gradient(135deg, var(--e-skeleton-base, #e2e8f0), var(--e-skeleton-shine, #f8fafc))",
+				filter: "blur(8px)",
+				opacity: 0.65,
+				pointerEvents: "none",
+			}}
+			aria-busy="true"
+			aria-label="Loading..."
+			role="status"
+		/>
+	);
+}
 
-function BlurFallback({
-  children,
-  minHeight,
+function DefaultTimeoutFallback({ minHeight }: { minHeight?: string | number }) {
+	return (
+		<div
+			role="alert"
+			style={{
+				minHeight: resolveMinHeight(minHeight, "80px"),
+				display: "flex",
+				alignItems: "center",
+				justifyContent: "center",
+				padding: "1rem",
+				color: "var(--e-error, #b91c1c)",
+			}}
+		>
+			Loading timed out.
+		</div>
+	);
+}
+
+type FallbackPhase = "hidden" | "loading" | "timeout";
+
+function TimedFallback({
+	delay,
+	timeout,
+	loadingFallback,
+	timeoutFallback,
 }: {
-  children?: ReactNode;
-  minHeight?: string | number;
+	delay: number;
+	timeout?: number;
+	loadingFallback: ReactNode;
+	timeoutFallback: ReactNode;
 }) {
-  const style: CSSProperties = {
-    minHeight: typeof minHeight === "number" ? `${minHeight}px` : minHeight,
-    filter: "blur(8px)",
-    opacity: 0.6,
-    transition: "filter 0.4s ease, opacity 0.4s ease",
-    pointerEvents: "none",
-  };
-  return (
-    <div style={style} aria-busy="true" aria-label="Loading..." role="status">
-      {children}
-    </div>
-  );
+	const normalizedDelay = Math.max(0, delay);
+	const normalizedTimeout = timeout === undefined ? undefined : Math.max(0, timeout);
+	const [phase, setPhase] = useState<FallbackPhase>(normalizedDelay > 0 ? "hidden" : "loading");
+
+	useEffect(() => {
+		setPhase(normalizedDelay > 0 ? "hidden" : "loading");
+		const delayTimer = normalizedDelay > 0
+			? window.setTimeout(() => setPhase("loading"), normalizedDelay)
+			: undefined;
+		const timeoutTimer = normalizedTimeout !== undefined
+			? window.setTimeout(() => setPhase("timeout"), normalizedTimeout)
+			: undefined;
+
+		return () => {
+			if (delayTimer !== undefined) window.clearTimeout(delayTimer);
+			if (timeoutTimer !== undefined) window.clearTimeout(timeoutTimer);
+		};
+	}, [normalizedDelay, normalizedTimeout]);
+
+	if (phase === "timeout") return <>{timeoutFallback}</>;
+	if (phase === "hidden") return null;
+	return <>{loadingFallback}</>;
 }
-
-// ── Delayed fallback wrapper ──────────────────────────────────────────────────
-//  Hides fallback for `delay` ms to avoid flash on fast loads.
-
-function DelayedFallback({
-  delay,
-  children,
-}: {
-  delay: number;
-  children: ReactNode;
-}) {
-  const [visible, setVisible] = useState(delay === 0);
-
-  useEffect(() => {
-    if (delay === 0) return;
-    const timer = setTimeout(() => setVisible(true), delay);
-    return () => clearTimeout(timer);
-  }, [delay]);
-
-  return visible ? <>{children}</> : null;
-}
-
-// ── EngineSuspense ────────────────────────────────────────────────────────────
 
 export const EngineSuspense = memo(function EngineSuspense({
-  children,
-  preset = "skeleton",
-  minHeight,
-  skeletonLines = 4,
-  delay = 0,
-  timeout,
-  errorFallback,
-  fallback,
-  style,
-  className,
-  id,
-  point,
-  cprop,
-  ...props
+	children,
+	preset = "skeleton",
+	minHeight,
+	skeletonLines = 4,
+	delay = 0,
+	timeout,
+	errorFallback,
+	fallback,
+	style,
+	className,
+	id,
+	point,
+	cprop,
+	...props
 }: EngineSuspenseProps) {
-  const resolvedStyle = usePropStyles(props as any, style);
-  const hoverClass   = cpropClass(cprop);
-  const mergedClass  = [className, hoverClass].filter(Boolean).join(" ") || undefined;
-  const resolvedId   = id ?? point;
+	const resolvedStyle = usePropStyles(props as any, style);
+	const hoverClass = cpropClass(cprop);
+	const mergedClass = [className, hoverClass].filter(Boolean).join(" ") || undefined;
+	const resolvedId = id ?? point;
+	const errorSlot = useSlot(errorFallback ?? "");
 
-  // Build preset fallback
-  const presetFallback: ReactNode = (() => {
-    if (fallback) return fallback;
-    switch (preset) {
-      case "skeleton":
-        return <SkeletonFallback lines={skeletonLines} minHeight={minHeight} />;
-      case "spinner":
-        return <SpinnerFallback minHeight={minHeight} />;
-      case "shimmer":
-        return <ShimmerFallback minHeight={minHeight} />;
-      case "pulse":
-        return <PulseFallback minHeight={minHeight} />;
-      case "blur":
-        return <BlurFallback minHeight={minHeight}>{children}</BlurFallback>;
-      default:
-        return <SkeletonFallback lines={skeletonLines} minHeight={minHeight} />;
-    }
-  })();
+	const presetFallback: ReactNode = fallback ?? (() => {
+		switch (preset) {
+			case "skeleton":
+				return <SkeletonFallback lines={skeletonLines} minHeight={minHeight} />;
+			case "spinner":
+				return <SpinnerFallback minHeight={minHeight} />;
+			case "shimmer":
+				return <ShimmerFallback minHeight={minHeight} />;
+			case "pulse":
+				return <PulseFallback minHeight={minHeight} />;
+			case "blur":
+				return <BlurFallback minHeight={minHeight} />;
+			default:
+				return <SkeletonFallback lines={skeletonLines} minHeight={minHeight} />;
+		}
+	})();
 
-  const wrappedFallback =
-    delay > 0 ? (
-      <DelayedFallback delay={delay}>{presetFallback}</DelayedFallback>
-    ) : (
-      presetFallback
-    );
+	const timeoutFallback = errorSlot ?? <DefaultTimeoutFallback minHeight={minHeight} />;
+	const wrappedFallback = delay > 0 || timeout !== undefined
+		? (
+			<TimedFallback
+				delay={delay}
+				timeout={timeout}
+				loadingFallback={presetFallback}
+				timeoutFallback={timeoutFallback}
+			/>
+		)
+		: presetFallback;
 
-  return (
-    <div
-      id={resolvedId}
-      className={mergedClass}
-      style={resolvedStyle}
-    >
-      <Suspense fallback={wrappedFallback}>
-        {children}
-      </Suspense>
-    </div>
-  );
+	return (
+		<div id={resolvedId} className={mergedClass} style={resolvedStyle}>
+			<Suspense fallback={wrappedFallback}>{children}</Suspense>
+		</div>
+	);
 });
