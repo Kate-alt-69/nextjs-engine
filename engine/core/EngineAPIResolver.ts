@@ -1,7 +1,6 @@
 /**
  * Next.js Engine — EngineAPIResolver
- * Declarative runtime networking orchestration subsystem implementing native fetch pipelines,
- * multi-tier cascade override evaluations, and Zero-Fingerprint Anti-Fingerprinting protocols.
+ * Declarative fetch orchestration with config cascading and native auth support.
  */
 
 export interface EngineAPIAuthConfig {
@@ -25,22 +24,92 @@ export interface EngineAPIConfig {
 	versionMacros?: Record<string, string>;
 }
 
-/**
- * Non-generic target deep merge utility to resolve indexing constraints
- */
-function deepMerge(target: any, ...sources: any[]): any {
-	const result = { ...target };
+export type EngineAPIFormData = Record<string, unknown> | FormData;
+
+function isMergeableObject(value: unknown): value is Record<string, unknown> {
+	return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function deepMerge(target: Record<string, unknown>, ...sources: Array<Record<string, unknown> | undefined>): Record<string, unknown> {
+	const result: Record<string, unknown> = { ...target };
 	for (const source of sources) {
 		if (!source) continue;
-		for (const key of Object.keys(source)) {
-			if (source[key] && typeof source[key] === "object" && !Array.isArray(source[key]) && key in result) {
-				result[key] = deepMerge(result[key], source[key]);
+		for (const [key, value] of Object.entries(source)) {
+			const existingValue = result[key];
+			if (isMergeableObject(value) && isMergeableObject(existingValue)) {
+				result[key] = deepMerge(existingValue, value);
 			} else {
-				result[key] = source[key];
+				result[key] = value;
 			}
 		}
 	}
 	return result;
+}
+
+function isNativeFormData(value: unknown): value is FormData {
+	return typeof FormData !== "undefined" && value instanceof FormData;
+}
+
+function isBlobLike(value: unknown): value is Blob {
+	return typeof Blob !== "undefined" && value instanceof Blob;
+}
+
+function containsBinaryValue(value: unknown): boolean {
+	if (isBlobLike(value)) return true;
+	if (typeof FileList !== "undefined" && value instanceof FileList) return value.length > 0;
+	if (Array.isArray(value)) return value.some(containsBinaryValue);
+	return false;
+}
+
+function appendFormDataValue(target: FormData, key: string, value: unknown): void {
+	if (value === undefined) return;
+	if (value === null) {
+		target.append(key, "");
+		return;
+	}
+	if (typeof FileList !== "undefined" && value instanceof FileList) {
+		for (const file of Array.from(value)) target.append(key, file);
+		return;
+	}
+	if (Array.isArray(value)) {
+		for (const item of value) appendFormDataValue(target, key, item);
+		return;
+	}
+	if (isBlobLike(value)) {
+		target.append(key, value);
+		return;
+	}
+	if (typeof value === "object") {
+		target.append(key, JSON.stringify(value));
+		return;
+	}
+	target.append(key, String(value));
+}
+
+function buildRequestBody(formData: EngineAPIFormData): BodyInit {
+	if (isNativeFormData(formData)) return formData;
+
+	const hasBinaryPayload = Object.values(formData).some(containsBinaryValue);
+	if (!hasBinaryPayload) return JSON.stringify(formData);
+	if (typeof FormData === "undefined") {
+		throw new Error("[EngineAPIResolver] Binary form data requires the FormData Web API.");
+	}
+
+	const nativeFormData = new FormData();
+	for (const [key, value] of Object.entries(formData)) {
+		appendFormDataValue(nativeFormData, key, value);
+	}
+	return nativeFormData;
+}
+
+function encodeBytesBase64(bytes: Uint8Array): string {
+	let binary = "";
+	for (const byte of bytes) binary += String.fromCharCode(byte);
+	return btoa(binary);
+}
+
+function encodeBase64Utf8(value: string): string {
+	return encodeBytesBase64(new TextEncoder().encode(value));
 }
 
 export class EngineAPIResolver {
@@ -53,85 +122,76 @@ export class EngineAPIResolver {
 	async resolveRequest(params: {
 		pageOverrides?: EngineAPIConfig;
 		nodeOverrides?: EngineAPIConfig;
-		formData?: Record<string, any>;
-	}): Promise<Response> {
+		formData?: EngineAPIFormData;
+	} = {}): Promise<Response> {
 		const { pageOverrides, nodeOverrides, formData } = params;
-
-		// 1. Structural priority layout execution
-		const config: EngineAPIConfig = deepMerge({}, this.globalConfig, pageOverrides || {}, nodeOverrides || {});
+		const config = deepMerge(
+			{},
+			this.globalConfig as Record<string, unknown>,
+			pageOverrides as Record<string, unknown> | undefined,
+			nodeOverrides as Record<string, unknown> | undefined,
+		) as EngineAPIConfig;
 
 		const method = (config.method || "GET").toUpperCase();
 		let url = config.endpoint || "";
 		const cache = config.cache || "default";
 
-		// 2. URL Macro Adjustments
 		if (config.versionMacros) {
 			for (const [macro, replacement] of Object.entries(config.versionMacros)) {
-				const macroPlaceholder = `&${macro}&`;
-				if (url.includes(macroPlaceholder)) {
-					url = url.split(macroPlaceholder).join(replacement);
-				}
+				url = url.split(`&${macro}&`).join(replacement);
 			}
 		}
 
-		// 3. Form Data Payloads
-		let body: string | undefined = undefined;
-		if (["POST", "PUT", "PATCH"].includes(method) && formData) {
-			body = JSON.stringify(formData);
+		if (!url.trim()) {
+			throw new Error("[EngineAPIResolver] Cannot resolve a request without an endpoint.");
 		}
 
-		// 4. Headers Build Array
+		let body: BodyInit | undefined;
+		if (["POST", "PUT", "PATCH", "DELETE"].includes(method) && formData) {
+			body = buildRequestBody(formData);
+		}
+
 		const headers: Record<string, string> = {
-			...(body ? { "Content-Type": "application/json" } : {}),
+			...(typeof body === "string" ? { "Content-Type": "application/json" } : {}),
 			...(config.headers || {}),
 		};
 
-		// 5. Native Auth Logic Routing
 		const auth = config.auth || { type: "none" };
 		const timestamp = Math.floor(Date.now() / 1000).toString();
+		const signatureBody = typeof body === "string" ? body : "";
 
 		switch (auth.type) {
 			case "none":
 				break;
-
 			case "ak": {
-				const destHeader = auth.destinationHeader || "X-Key";
-				if (auth.key) headers[destHeader] = auth.key;
+				const destinationHeader = auth.destinationHeader || "X-Key";
+				if (auth.key) headers[destinationHeader] = auth.key;
 				break;
 			}
-
 			case "bearer":
-			case "jwt": {
-				if (auth.token) headers["Authorization"] = `Bearer ${auth.token}`;
+			case "jwt":
+				if (auth.token) headers.Authorization = `Bearer ${auth.token}`;
 				break;
-			}
-
-			case "basic": {
-				if (auth.username && auth.password) {
-					const credentials = btoa(`${auth.username}:${auth.password}`);
-					headers["Authorization"] = `Basic ${credentials}`;
+			case "basic":
+				if (auth.username !== undefined && auth.password !== undefined) {
+					headers.Authorization = `Basic ${encodeBase64Utf8(`${auth.username}:${auth.password}`)}`;
 				}
 				break;
-			}
-
 			case "hmac": {
 				if (auth.key && auth.secret) {
-					const algo = auth.algorithm === "SHA-512" ? "SHA-512" : "SHA-256";
-					const signaturePayload = `${method}\n${url}\n${timestamp}\n${body || ""}`;
-					
-					headers["X-Signature"] = await this.cryptoHMAC(signaturePayload, auth.secret, algo);
+					const algorithm = String(auth.algorithm).toUpperCase() === "SHA-512" ? "SHA-512" : "SHA-256";
+					const signaturePayload = `${method}\n${url}\n${timestamp}\n${signatureBody}`;
+					headers["X-Signature"] = await this.cryptoHMAC(signaturePayload, auth.secret, algorithm);
 					headers["X-Key"] = auth.key;
 					headers["X-Timestamp"] = timestamp;
 				}
 				break;
 			}
-
 			case "pnp": {
 				if (auth.key && auth.privateKey) {
-					const signaturePayload = `${url}\n${timestamp}\n${body || ""}`;
+					const signaturePayload = `${url}\n${timestamp}\n${signatureBody}`;
 					const signingKey = await this.resolvePrivateKey(auth.privateKey, auth.algorithm);
 					if (!signingKey) break;
-					
 					headers["X-Signature"] = await this.cryptoAsymmetricSign(signaturePayload, signingKey);
 					headers["X-Key"] = auth.key;
 					headers["X-Timestamp"] = timestamp;
@@ -140,82 +200,58 @@ export class EngineAPIResolver {
 			}
 		}
 
-		// 6. Zero-Fingerprint Sanitation Processing
 		const fingerprintPatterns = [/x-engine-/i, /x-powered-by/i, /x-framework/i];
 		for (const key of Object.keys(headers)) {
-			if (fingerprintPatterns.some((pattern) => pattern.test(key))) {
-				if (process.env.NODE_ENV === "development") {
-						// Anti-fingerprinting blocked a disallowed header injection
-						void key;
-					}
-				delete headers[key];
-			}
+			if (fingerprintPatterns.some((pattern) => pattern.test(key))) delete headers[key];
 		}
 
-		const fetchOptions: RequestInit = {
-			method,
-			headers,
-			cache,
-		};
-
-		if (body) {
-			fetchOptions.body = body;
-		}
-
+		const fetchOptions: RequestInit = { method, headers, cache };
+		if (body !== undefined) fetchOptions.body = body;
 		return fetch(url, fetchOptions);
 	}
 
 	private async cryptoHMAC(payload: string, secret: string, algorithm: "SHA-256" | "SHA-512"): Promise<string> {
 		const encoder = new TextEncoder();
-		const keyData = encoder.encode(secret);
-		const payloadData = encoder.encode(payload);
-
 		const importedKey = await crypto.subtle.importKey(
 			"raw",
-			keyData,
+			encoder.encode(secret),
 			{ name: "HMAC", hash: algorithm },
 			false,
-			["sign"]
+			["sign"],
 		);
-
-		const signatureBuffer = await crypto.subtle.sign("HMAC", importedKey, payloadData);
+		const signatureBuffer = await crypto.subtle.sign("HMAC", importedKey, encoder.encode(payload));
 		return Array.from(new Uint8Array(signatureBuffer))
-			.map((b) => b.toString(16).padStart(2, "0"))
+			.map((byte) => byte.toString(16).padStart(2, "0"))
 			.join("");
 	}
 
-	private async resolvePrivateKey(privateKey: CryptoKey | JsonWebKey | string, algorithm?: string): Promise<CryptoKey | undefined> {
-		if (typeof CryptoKey !== "undefined" && privateKey instanceof CryptoKey) {
-			return privateKey;
-		}
+	private async resolvePrivateKey(
+		privateKey: CryptoKey | JsonWebKey | string,
+		algorithm?: string,
+	): Promise<CryptoKey | undefined> {
+		if (typeof CryptoKey !== "undefined" && privateKey instanceof CryptoKey) return privateKey;
 
-		const jwk = typeof privateKey === "string"
-			? JSON.parse(privateKey) as JsonWebKey
-			: privateKey;
-		const normalizedAlgorithm: AlgorithmIdentifier | RsaHashedImportParams = algorithm === "RS256"
-			? { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }
-			: { name: "Ed25519" };
+		const jwk = typeof privateKey === "string" ? JSON.parse(privateKey) as JsonWebKey : privateKey;
+		const normalizedAlgorithm: AlgorithmIdentifier | RsaHashedImportParams =
+			String(algorithm).toUpperCase() === "RS256"
+				? { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }
+				: { name: "Ed25519" };
 
 		return (crypto.subtle.importKey as any)(
 			"jwk",
 			jwk,
 			normalizedAlgorithm,
 			false,
-			["sign"]
-		);
+			["sign"],
+		) as Promise<CryptoKey>;
 	}
 
 	private async cryptoAsymmetricSign(payload: string, privateKey: CryptoKey): Promise<string> {
-		const encoder = new TextEncoder();
-		const payloadData = encoder.encode(payload);
-
 		const signatureBuffer = await crypto.subtle.sign(
 			privateKey.algorithm.name,
 			privateKey,
-			payloadData
+			new TextEncoder().encode(payload),
 		);
-
-		const binaryString = String.fromCharCode(...new Uint8Array(signatureBuffer));
-		return btoa(binaryString);
+		return encodeBytesBase64(new Uint8Array(signatureBuffer));
 	}
 }

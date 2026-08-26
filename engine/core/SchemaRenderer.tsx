@@ -6,14 +6,27 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { memo, type ReactNode, type CSSProperties } from "react";
-import type { SchemaNode, PageSchema } from "../schema/types";
+import {
+	BREAKPOINTS,
+	BREAKPOINT_ORDER,
+	type Breakpoint,
+	type SchemaNode,
+	type PageSchema,
+} from "../schema/types";
 import { getComponent } from "./registry";
 import { validatePageSchema } from "./validateSchema";
 import { decideLazy } from "./lazyDetect";
+import { globalStyleCollector } from "./StyleCollector";
 import { LazyMount, LazySection } from "../components/LazyMount";
 import { useSlot } from "../providers/EngineProvider";
 
-// ── Dev warning ───────────────────────────────────────────────────────────────
+function shortHash(value: string): string {
+	let hashValue = 5381;
+	for (let index = 0; index < value.length; index++) {
+		hashValue = ((hashValue << 5) + hashValue + value.charCodeAt(index)) | 0;
+	}
+	return Math.abs(hashValue).toString(36).slice(0, 7);
+}
 
 function UnknownNodeWarning({ type }: { type: string }) {
 	if (process.env.NODE_ENV === "production") return null;
@@ -29,13 +42,11 @@ function UnknownNodeWarning({ type }: { type: string }) {
 				fontSize: "0.8rem",
 			}}
 		>
-			⚠ Engine: Unknown node type <strong>"{type}"</strong> — register it
-			with <code>registerComponent("{type}", YourComponent)</code>
+			⚠ Engine: Unknown node type <strong>"{type}"</strong> — register it with{" "}
+			<code>registerComponent("{type}", YourComponent)</code>
 		</div>
 	);
 }
-
-// ── Slot node ─────────────────────────────────────────────────────────────────
 
 function SlotNode({ name, fallback, depth }: { name: string; fallback?: SchemaNode; depth: number }) {
 	const slotContent = useSlot(name);
@@ -44,88 +55,118 @@ function SlotNode({ name, fallback, depth }: { name: string; fallback?: SchemaNo
 	return null;
 }
 
-// ── Single node renderer ──────────────────────────────────────────────────────
+function buildVisibilityClass(props: Record<string, unknown>): string | undefined {
+	const hideOn = Array.isArray(props.hideOn) ? props.hideOn as Breakpoint[] : [];
+	const showOnly = Array.isArray(props.showOnly) ? props.showOnly as Breakpoint[] : [];
+	if (hideOn.length === 0 && showOnly.length === 0) return undefined;
+
+	const hiddenBreakpoints = BREAKPOINT_ORDER.filter((breakpoint) => {
+		const allowedByShowOnly = showOnly.length === 0 || showOnly.includes(breakpoint);
+		return !allowedByShowOnly || hideOn.includes(breakpoint);
+	});
+	if (hiddenBreakpoints.length === 0) return undefined;
+
+	const signature = hiddenBreakpoints.join("|");
+	const className = `e-v-${shortHash(signature)}`;
+	const cssRules: string[] = [];
+
+	for (const breakpoint of hiddenBreakpoints) {
+		const breakpointIndex = BREAKPOINT_ORDER.indexOf(breakpoint);
+		const minWidth = BREAKPOINTS[breakpoint];
+		const nextBreakpoint = BREAKPOINT_ORDER[breakpointIndex + 1];
+		const maxWidth = nextBreakpoint ? BREAKPOINTS[nextBreakpoint] - 0.02 : undefined;
+		const selectorRule = `.${className}{display:none!important}`;
+
+		if (minWidth === 0 && maxWidth !== undefined) {
+			cssRules.push(`@media(max-width:${maxWidth}px){${selectorRule}}`);
+		} else if (maxWidth === undefined) {
+			cssRules.push(`@media(min-width:${minWidth}px){${selectorRule}}`);
+		} else {
+			cssRules.push(`@media(min-width:${minWidth}px) and (max-width:${maxWidth}px){${selectorRule}}`);
+		}
+	}
+
+	globalStyleCollector.add(cssRules.join("\n"));
+	return className;
+}
 
 interface NodeRendererProps {
 	node: SchemaNode;
 	depth: number;
 }
 
-// FIX: Removed React.memo wrapper from NodeRenderer to ensure style collection 
-// fires reliably for matching layout targets during request loops.
 function NodeRenderer({ node, depth }: NodeRendererProps) {
-	// ── Slot handling ────────────────────────────────────────────────────────
 	if (node.type === "slot") {
-		const p = (node.props ?? {}) as { name?: string; fallback?: SchemaNode };
+		const props = (node.props ?? {}) as { name?: string; fallback?: SchemaNode };
 		return (
 			<SlotNode
-				name={p.name ?? ""}
-				fallback={p.fallback}
+				name={props.name ?? ""}
+				fallback={props.fallback}
 				depth={depth}
 			/>
 		);
 	}
 
-	// ── Resolve children first ────────────────────────────────────────────────
 	let renderedChildren: ReactNode = null;
+	const hasTreeChildren = node.children !== undefined;
 
 	if (typeof node.children === "string") {
 		renderedChildren = node.children;
 	} else if (Array.isArray(node.children) && node.children.length > 0) {
-		renderedChildren = node.children.map((child, i) => (
+		renderedChildren = node.children.map((child, index) => (
 			<NodeRenderer
-				key={child.key ?? `${child.type}-${i}`}
+				key={child.key ?? `${child.type}-${index}`}
 				node={child}
 				depth={depth + 1}
 			/>
 		));
 	}
 
-	// ── Look up component ─────────────────────────────────────────────────────
 	const Component = getComponent(node.type);
+	if (!Component) return <UnknownNodeWarning type={node.type} />;
 
-	if (!Component) {
-		return <UnknownNodeWarning type={node.type} />;
-	}
-
-	// ── Lazy detection ────────────────────────────────────────────────────────
 	const lazy = decideLazy(node, depth);
-
-	// ── Merge content-visibility hint into props ───────────────────────────────
 	const extraStyle: CSSProperties = lazy.contentVisibility && !lazy.lazy
 		? {
-				contentVisibility: "auto" as CSSProperties["contentVisibility"],
-				containIntrinsicHeight: lazy.placeholderHeight,
-			}
+			contentVisibility: "auto" as CSSProperties["contentVisibility"],
+			containIntrinsicHeight: lazy.placeholderHeight,
+		}
 		: {};
 
+	const originalProps = node.props ?? {};
+	const visibilityClass = buildVisibilityClass(originalProps);
+	const originalClassName = typeof originalProps.className === "string" ? originalProps.className : undefined;
+	const mergedClassName = [originalClassName, visibilityClass].filter(Boolean).join(" ") || undefined;
 	const nodeProps = {
-		...(node.props ?? {}),
+		...originalProps,
+		...(mergedClassName ? { className: mergedClassName } : {}),
 		...(Object.keys(extraStyle).length > 0
 			? {
-					style: {
-						...((node.props?.style as CSSProperties) ?? {}),
-						...extraStyle,
-					},
-				}
+				style: {
+					...((originalProps.style as CSSProperties) ?? {}),
+					...extraStyle,
+				},
+			}
 			: {}),
 	};
 
-	// ── Render the element ────────────────────────────────────────────────────
+	const effectiveChildren = hasTreeChildren
+		? renderedChildren
+		: (originalProps.children as ReactNode | undefined) ?? null;
+
 	const element = (
 		<Component {...nodeProps}>
-			{renderedChildren}
+			{effectiveChildren}
 		</Component>
 	);
 
-	// ── Wrap in lazy mount if needed ──────────────────────────────────────────
 	if (!lazy.lazy) return element;
 
 	const isSection = node.type === "section" || node.type === "hero";
-
 	if (isSection) {
 		return (
 			<LazySection
+				className={visibilityClass}
 				height={lazy.placeholderHeight}
 				rootMargin={lazy.rootMargin}
 				contentVisibility={lazy.contentVisibility}
@@ -138,6 +179,7 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 
 	return (
 		<LazyMount
+			className={visibilityClass}
 			height={lazy.placeholderHeight}
 			rootMargin={lazy.rootMargin}
 		>
@@ -146,17 +188,11 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 	);
 }
 
-// ── Tree renderer ─────────────────────────────────────────────────────────────
-
 interface SchemaRendererProps {
 	schema: PageSchema;
 }
 
-export const SchemaRenderer = memo(function SchemaRenderer({
-	schema,
-}: SchemaRendererProps) {
-	// TASK-009: Validate schema structure in dev. Emits console.warn per issue.
-	// Set NEXT_PUBLIC_ENGINE_VALIDATE=1 to enable in production builds.
+export const SchemaRenderer = memo(function SchemaRenderer({ schema }: SchemaRendererProps) {
 	if (
 		process.env.NODE_ENV !== "production" ||
 		process.env.NEXT_PUBLIC_ENGINE_VALIDATE === "1"
