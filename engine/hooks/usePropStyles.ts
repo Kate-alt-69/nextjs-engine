@@ -16,8 +16,6 @@ import {
 } from "../core/resolver";
 import { globalStyleCollector } from "../core/StyleCollector";
 
-// ── Short hash ────────────────────────────────────────────────────────────────
-
 function _hash(sourceStyleString: string): string {
 	let hashingBuffer = 0;
 	for (let characterIndex = 0; characterIndex < sourceStyleString.length; characterIndex++) {
@@ -26,13 +24,9 @@ function _hash(sourceStyleString: string): string {
 	return Math.abs(hashingBuffer).toString(36).slice(0, 7);
 }
 
-// ── camelCase → kebab-case ────────────────────────────────────────────────────
-
 function camelToKebab(camelCaseKey: string): string {
 	return camelCaseKey.replace(/([A-Z])/g, "-$1").toLowerCase();
 }
-
-// ── CSSProperties → CSS declaration string ────────────────────────────────────
 
 function isPlainStyleObject(value: unknown): value is Record<string, unknown> {
 	return value != null && typeof value === "object" && !Array.isArray(value);
@@ -110,10 +104,13 @@ function compileAtRuleStyleVars(cssPropertiesMap: CSSProperties | EngineStyleObj
 	const atRuleBlocks: string[] = [];
 	const variableForProperty = (propertyKey: string) => `--e-at-${styleContentHash}-${camelToKebab(propertyKey).replace(/[^a-z0-9-]/gi, "-")}`;
 
+	// Keep the base value as the inline fallback. The collected stylesheet can
+	// be parsed after the element appears during SSG/client navigation; without
+	// this fallback a background/color can temporarily become the browser default.
 	for (const [propertyKey, propertyValue] of Object.entries(cssPropertiesMap)) {
 		if (propertyKey.startsWith("@") || propertyValue == null || isPlainStyleObject(propertyValue)) continue;
 		const variableName = variableForProperty(propertyKey);
-		(resolvedStyle as Record<string, string>)[propertyKey] = `var(${variableName})`;
+		(resolvedStyle as Record<string, string>)[propertyKey] = `var(${variableName}, ${String(propertyValue)})`;
 		rootDeclarations.push(`${variableName}:${propertyValue}`);
 	}
 
@@ -127,7 +124,9 @@ function compileAtRuleStyleVars(cssPropertiesMap: CSSProperties | EngineStyleObj
 		for (const [nestedPropertyKey, nestedPropertyValue] of Object.entries(nestedValue)) {
 			if (nestedPropertyKey.startsWith("@") || nestedPropertyValue == null || isPlainStyleObject(nestedPropertyValue)) continue;
 			const variableName = variableForProperty(nestedPropertyKey);
-			(resolvedStyle as Record<string, string>)[nestedPropertyKey] = `var(${variableName})`;
+			if ((resolvedStyle as Record<string, string>)[nestedPropertyKey] === undefined) {
+				(resolvedStyle as Record<string, string>)[nestedPropertyKey] = `var(${variableName})`;
+			}
 			nestedVariableDeclarations.push(`${variableName}:${nestedPropertyValue}`);
 		}
 
@@ -135,10 +134,12 @@ function compileAtRuleStyleVars(cssPropertiesMap: CSSProperties | EngineStyleObj
 			atRuleBlocks.push(`${atRuleKey}{:root{${nestedVariableDeclarations.join(";")}}}`);
 		}
 
+		// Preserve parent scope for nested rules instead of recursively emitting
+		// a child media/supports rule into global scope.
 		for (const [nestedAtRuleKey, childValue] of Object.entries(nestedValue)) {
 			if (!nestedAtRuleKey.startsWith("@")) continue;
-			const childStyle = compileAtRuleStyleVars({ [nestedAtRuleKey]: childValue } as EngineStyleObject);
-			void childStyle;
+			const childRule = normalizeAtRuleBlock(nestedAtRuleKey, childValue, ":root");
+			if (childRule) atRuleBlocks.push(`${atRuleKey}{${childRule}}`);
 		}
 	}
 
@@ -149,8 +150,6 @@ function compileAtRuleStyleVars(cssPropertiesMap: CSSProperties | EngineStyleObj
 
 	return resolvedStyle;
 }
-
-// ── cpropClass ────────────────────────────────────────────────────────────────
 
 export function cpropClass(cpropContainerInstance: CpropValue | undefined): string | undefined {
 	if (!cpropContainerInstance) return undefined;
@@ -185,8 +184,6 @@ export function cpropClass(cpropContainerInstance: CpropValue | undefined): stri
 	return processedClassNamesList.length > 0 ? processedClassNamesList.join(" ") : undefined;
 }
 
-// ── Spacing helper ────────────────────────────────────────────────────────────
-
 function applySpacing(
 	targetCssPropertyKey: string,
 	engineShorthandAlias: string,
@@ -204,8 +201,6 @@ function applySpacing(
 	}
 }
 
-// ── Generic (non-spacing) helper ──────────────────────────────────────────────
-
 function applyGeneric(
 	targetCssPropertyKey: string,
 	engineShorthandAlias: string,
@@ -222,8 +217,6 @@ function applyGeneric(
 		(computedStyleOutputMap as Record<string, string>)[targetCssPropertyKey] = String(incomingValue);
 	}
 }
-
-// ── CSS passthrough list ──────────────────────────────────────────────────────
 
 const CSS_PASSTHROUGH: readonly string[] = [
 	"transform", "transformOrigin", "transformStyle",
@@ -254,38 +247,20 @@ const CSS_PASSTHROUGH: readonly string[] = [
 	"listStyle", "listStyleType", "listStylePosition", "content",
 	"fill", "stroke", "strokeWidth", "strokeDasharray", "strokeDashoffset",
 	"strokeLinecap", "strokeLinejoin",
+	"backgroundAttachment", "backgroundClip", "backgroundOrigin", "backgroundBlendMode",
 ];
 
 const ALREADY_HANDLED = new Set([
 	"cursor", "overflow", "transition",
-	"backgroundImage", "backgroundSize", "backgroundRepeat", "backgroundPosition",
+	"background", "backgroundColor", "backgroundImage", "backgroundSize", "backgroundRepeat", "backgroundPosition",
 	"border", "borderTop", "borderBottom", "borderLeft", "borderRight",
 	"zIndex", "position", "top", "right", "bottom", "left",
 	"opacity", "boxShadow", "color", "alignSelf", "justifySelf", "flex",
 ]);
 
-// ── Static class generator ────────────────────────────────────────────────────
-//
-//  Converts a plain CSSProperties object into a deduplicated CSS class.
-//  Identical property sets share the same class name across the whole page,
-//  eliminating repeated inline style declarations on inner-wrapper divs.
-//
-//  Usage:
-//    const cls = staticClass({ width: "100%", maxWidth: "1200px", margin: "0 auto" });
-//    // → "e-s-abc123"  (injected once into globalStyleCollector)
-
 export function staticClass(cssProperties: CSSProperties): string {
 	return compileNestedStyleClass(cssProperties, "e-s-");
 }
-
-// ── Media-query class generator ───────────────────────────────────────────────
-//
-//  Like staticClass but supports per-breakpoint overrides.
-//  Usage:
-//    const cls = mediaClass(
-//      { display: "none" },                         // base / mobile-first
-//      ["768px", { display: "flex", gap: "0.5rem" }]  // ≥768px override
-//    );
 
 export function mediaClass(
 	base:         CSSProperties,
@@ -306,8 +281,6 @@ export function mediaClass(
 	return cls;
 }
 
-// ── Main hook ─────────────────────────────────────────────────────────────────
-
 export function usePropStyles(
 	props: Partial<BaseNodeProps> & Record<string, unknown>,
 	extraStyle?: CSSProperties | EngineStyleObject,
@@ -315,7 +288,6 @@ export function usePropStyles(
 	const style: CSSProperties = {};
 	const css:   string[]      = [];
 
-	// ── Spacing ────────────────────────────────────────────────────────────────
 	applySpacing("margin",        "ma", props.m,  style, css);
 	applySpacing("marginTop",     "mt", props.mt, style, css);
 	applySpacing("marginRight",   "mr", props.mr, style, css);
@@ -346,7 +318,6 @@ export function usePropStyles(
 	resolveAxis("px", "paddingLeft", "paddingRight");
 	resolveAxis("py", "paddingTop",  "paddingBottom");
 
-	// ── Sizing ─────────────────────────────────────────────────────────────────
 	applySpacing("width",     "wi", props.w ?? props.width,       style, css);
 	applySpacing("height",    "he", props.h ?? props.height,      style, css);
 	applySpacing("minWidth",  "mn", props.minW ?? props.minWidth, style, css);
@@ -354,23 +325,21 @@ export function usePropStyles(
 	applySpacing("maxWidth",  "mw", props.maxW ?? props.maxWidth, style, css);
 	applySpacing("maxHeight", "xh", props.maxH ?? props.maxHeight, style, css);
 
-	// ── Flex / Grid layout ────────────────────────────────────────────────────
 	applySpacing("gap",       "ga", props.gap,    style, css);
 	applySpacing("columnGap", "cg", props.colGap, style, css);
 	applySpacing("rowGap",    "rg", props.rowGap, style, css);
 
-	applyGeneric("display",        "di", props.display,                                 style, css);
-	applyGeneric("flexDirection",  "fd", props.flexDir,                                 style, css);
-	applyGeneric("alignItems",     "ai", props.align ?? (props as any).alignItems,      style, css);
+	applyGeneric("display",        "di", props.display,                                  style, css);
+	applyGeneric("flexDirection",  "fd", props.flexDir,                                  style, css);
+	applyGeneric("alignItems",     "ai", props.align ?? (props as any).alignItems,       style, css);
 	applyGeneric("justifyContent", "jc", props.justify ?? (props as any).justifyContent, style, css);
-	applyGeneric("flexWrap",       "fw", props.wrap,                                    style, css);
-	applyGeneric("order",          "or", props.order,                                   style, css);
+	applyGeneric("flexWrap",       "wr", props.wrap,                                     style, css);
+	applyGeneric("order",          "or", props.order,                                    style, css);
 
 	if (props.alignSelf   != null) style.alignSelf   = props.alignSelf   as CSSProperties["alignSelf"];
 	if (props.justifySelf != null) style.justifySelf = props.justifySelf as CSSProperties["justifySelf"];
 	if (props.flex        != null) style.flex        = props.flex as string;
 
-	// ── Grid template ─────────────────────────────────────────────────────────
 	if ((props as any).columns != null) {
 		const currentGridColumnsValue = (props as any).columns;
 		if (isResponsive(currentGridColumnsValue)) {
@@ -386,14 +355,12 @@ export function usePropStyles(
 		applyGeneric("gridTemplateRows", "gr", (props as any).rows, style, css);
 	}
 
-	// ── Text ──────────────────────────────────────────────────────────────────
-	applyGeneric("fontSize",   "fs", (props as any).size ?? (props as any).fontSize,     style, css);
-	applyGeneric("fontWeight", "fw", (props as any).weight ?? (props as any).fontWeight, style, css);
-	applyGeneric("textAlign",  "ta", (props as any).textAlign ?? (props as any).align,   style, css);
-	if ((props as any).lineHeight   != null) style.lineHeight   = (props as any).lineHeight;
+	applyGeneric("fontSize",   "fs",  (props as any).size ?? (props as any).fontSize,     style, css);
+	applyGeneric("fontWeight", "ftw", (props as any).weight ?? (props as any).fontWeight, style, css);
+	applyGeneric("textAlign",  "ta",  (props as any).textAlign ?? (props as any).align,   style, css);
+	if ((props as any).lineHeight    != null) style.lineHeight    = (props as any).lineHeight;
 	if ((props as any).letterSpacing != null) style.letterSpacing = (props as any).letterSpacing;
 
-	// ── Border ────────────────────────────────────────────────────────────────
 	if (props.border       != null) style.border       = props.border as string;
 	if (props.borderTop    != null) style.borderTop    = props.borderTop as string;
 	if (props.borderBottom != null) style.borderBottom = props.borderBottom as string;
@@ -401,23 +368,22 @@ export function usePropStyles(
 	if (props.borderRight  != null) style.borderRight  = props.borderRight as string;
 	if (props.borderRadius != null) applySpacing("borderRadius", "br", props.borderRadius, style, css);
 
-	// ── Colours & effects ─────────────────────────────────────────────────────
-	if (props.bg            != null) style.background      = props.bg as string;
-	if (props.color         != null) style.color           = props.color as string;
-	if (props.opacity       != null) style.opacity         = props.opacity as number;
-	if (props.shadow        != null) style.boxShadow       = props.shadow as string;
-	if (props.boxShadow     != null) style.boxShadow       = props.boxShadow as string;
-	if (props.transition    != null) style.transition      = props.transition as string;
-	if (props.backgroundImage != null) style.backgroundImage = props.backgroundImage as string;
-	if (props.backgroundSize  != null) style.backgroundSize  = props.backgroundSize as string;
-	if (props.backgroundRepeat!= null) style.backgroundRepeat= props.backgroundRepeat as string;
-	if (props.backgroundPosition != null) style.backgroundPosition = props.backgroundPosition as string;
-	if (props.backdrop        != null) style.backdropFilter  = props.backdrop as string;
-	if (props.backdropFilter  != null) style.backdropFilter  = props.backdropFilter as string;
-	if (props.overflow        != null) style.overflow        = props.overflow as CSSProperties["overflow"];
-	if (props.cursor          != null) style.cursor          = props.cursor as CSSProperties["cursor"];
+	applyGeneric("background",         "bg",  props.bg ?? props.background, style, css);
+	applyGeneric("backgroundColor",    "bc",  props.backgroundColor,        style, css);
+	applyGeneric("color",              "cl",  props.color,                  style, css);
+	applyGeneric("opacity",            "op",  props.opacity,                style, css);
+	applyGeneric("backgroundImage",    "bgi", props.backgroundImage,        style, css);
+	applyGeneric("backgroundSize",     "bgs", props.backgroundSize,         style, css);
+	applyGeneric("backgroundRepeat",   "bgr", props.backgroundRepeat,       style, css);
+	applyGeneric("backgroundPosition", "bgp", props.backgroundPosition,     style, css);
+	if (props.shadow         != null) style.boxShadow      = props.shadow as string;
+	if (props.boxShadow      != null) style.boxShadow      = props.boxShadow as string;
+	if (props.transition     != null) style.transition     = props.transition as string;
+	if (props.backdrop       != null) style.backdropFilter = props.backdrop as string;
+	if (props.backdropFilter != null) style.backdropFilter = props.backdropFilter as string;
+	if (props.overflow       != null) style.overflow       = props.overflow as CSSProperties["overflow"];
+	if (props.cursor         != null) style.cursor         = props.cursor as CSSProperties["cursor"];
 
-	// ── Position ──────────────────────────────────────────────────────────────
 	if (props.position != null) style.position = props.position as CSSProperties["position"];
 	if (props.top      != null) style.top      = typeof props.top    === "number" ? `${props.top}px`    : props.top as string;
 	if (props.right    != null) style.right    = typeof props.right  === "number" ? `${props.right}px`  : props.right as string;
@@ -425,18 +391,14 @@ export function usePropStyles(
 	if (props.left     != null) style.left     = typeof props.left   === "number" ? `${props.left}px`   : props.left as string;
 	if (props.zIndex   != null) style.zIndex   = props.zIndex as number;
 
-	// ── Register responsive CSS blocks ────────────────────────────────────────
 	globalStyleCollector.addMany(css);
-	css.length = 0;
 
-	// ── CSS custom properties (vars) ──────────────────────────────────────────
 	if (props.vars != null && typeof props.vars === "object") {
 		for (const [variableKey, variableValue] of Object.entries(props.vars as Record<string, string>)) {
 			(style as Record<string, string>)[variableKey.startsWith("--") ? variableKey : `--${variableKey}`] = variableValue;
 		}
 	}
 
-	// ── Sides system ──────────────────────────────────────────────────────────
 	if (Array.isArray(props.sides) && props.sides.length > 0 && props.sideDistance != null) {
 		const targetSideDistanceValue = normalizeSpacingValue(props.sideDistance as string | number);
 		const evaluateAsMarginFlag = (props.sideType as string) !== "padding";
@@ -452,12 +414,10 @@ export function usePropStyles(
 		}
 	}
 
-	// ── CSS PASSTHROUGH ───────────────────────────────────────────────────────
 	for (const explicitPassthroughKey of CSS_PASSTHROUGH) {
 		if (ALREADY_HANDLED.has(explicitPassthroughKey)) continue;
 		const incomingPassthroughValue = props[explicitPassthroughKey];
 		if (incomingPassthroughValue == null) continue;
-
 		if ((style as Record<string, unknown>)[explicitPassthroughKey] != null) continue;
 
 		if (isResponsive(incomingPassthroughValue as any)) {
@@ -469,7 +429,6 @@ export function usePropStyles(
 		}
 	}
 
-	// ── Merge explicit style overrides ────────────────────────────────────────
 	const compiledExtraStyle = compileAtRuleStyleVars(extraStyle);
 	return compiledExtraStyle ? { ...style, ...compiledExtraStyle } : style;
 }
