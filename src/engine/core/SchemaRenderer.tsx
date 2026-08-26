@@ -6,12 +6,19 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { memo, type ReactNode, type CSSProperties } from "react";
-import type { SchemaNode, PageSchema } from "../schema/types";
+import {
+	BREAKPOINTS,
+	BREAKPOINT_ORDER,
+	type Breakpoint,
+	type SchemaNode,
+	type PageSchema,
+} from "../schema/types";
 import { getComponent } from "./registry";
 import { validatePageSchema } from "./validateSchema";
 import { decideLazy } from "./lazyDetect";
 import { LazyMount, LazySection } from "../components/LazyMount";
 import { useSlot } from "../providers/EngineProvider";
+import { mediaClass } from "../hooks/usePropStyles";
 
 function UnknownNodeWarning({ type }: { type: string }) {
 	if (process.env.NODE_ENV === "production") return null;
@@ -38,6 +45,38 @@ function SlotNode({ name, fallback, depth }: { name: string; fallback?: SchemaNo
 	if (slotContent != null) return <>{slotContent}</>;
 	if (fallback) return <NodeRenderer node={fallback} depth={depth} />;
 	return null;
+}
+
+function buildVisibilityClass(props: Record<string, unknown>): string | undefined {
+	const hideOn = Array.isArray(props.hideOn) ? props.hideOn as Breakpoint[] : [];
+	const showOnly = Array.isArray(props.showOnly) ? props.showOnly as Breakpoint[] : [];
+	if (hideOn.length === 0 && showOnly.length === 0) return undefined;
+
+	const isVisible = (breakpoint: Breakpoint): boolean => {
+		const allowedByShowOnly = showOnly.length === 0 || showOnly.includes(breakpoint);
+		return allowedByShowOnly && !hideOn.includes(breakpoint);
+	};
+
+	const baseStyle: CSSProperties = {
+		display: isVisible("xs") ? "contents" : "none",
+	};
+	const responsiveStyles = BREAKPOINT_ORDER
+		.filter((breakpoint) => breakpoint !== "xs")
+		.map((breakpoint) => [
+			`${BREAKPOINTS[breakpoint]}px`,
+			{ display: isVisible(breakpoint) ? "contents" : "none" } as CSSProperties,
+		] as [string, CSSProperties]);
+
+	return mediaClass(baseStyle, ...responsiveStyles);
+}
+
+function applyResponsiveVisibility(
+	content: ReactNode,
+	props: Record<string, unknown>,
+): ReactNode {
+	const visibilityClass = buildVisibilityClass(props);
+	if (!visibilityClass) return content;
+	return <span className={visibilityClass}>{content}</span>;
 }
 
 interface NodeRendererProps {
@@ -96,10 +135,6 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 			: {}),
 	};
 
-	// Some existing schemas use props.children for leaf-like primitives such as
-	// label. JSX children used to overwrite that value with null whenever the
-	// SchemaNode.children field was absent. Preserve it as a backwards-compatible
-	// fallback while still giving the real tree-level children field priority.
 	const effectiveChildren = hasTreeChildren
 		? renderedChildren
 		: (originalProps.children as ReactNode | undefined) ?? null;
@@ -110,11 +145,11 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 		</Component>
 	);
 
-	if (!lazy.lazy) return element;
+	if (!lazy.lazy) return applyResponsiveVisibility(element, originalProps);
 
 	const isSection = node.type === "section" || node.type === "hero";
 	if (isSection) {
-		return (
+		return applyResponsiveVisibility(
 			<LazySection
 				height={lazy.placeholderHeight}
 				rootMargin={lazy.rootMargin}
@@ -122,14 +157,16 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 				containIntrinsicHeight={lazy.placeholderHeight}
 			>
 				{element}
-			</LazySection>
+			</LazySection>,
+			originalProps,
 		);
 	}
 
-	return (
+	return applyResponsiveVisibility(
 		<LazyMount height={lazy.placeholderHeight} rootMargin={lazy.rootMargin}>
 			{element}
-		</LazyMount>
+		</LazyMount>,
+		originalProps,
 	);
 }
 
