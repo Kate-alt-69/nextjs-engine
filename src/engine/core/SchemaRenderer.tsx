@@ -57,26 +57,15 @@ function buildVisibilityClass(props: Record<string, unknown>): string | undefine
 		return allowedByShowOnly && !hideOn.includes(breakpoint);
 	};
 
-	const baseStyle: CSSProperties = {
-		display: isVisible("xs") ? "contents" : "none",
-	};
+	const baseStyle: CSSProperties = { display: isVisible("xs") ? "revert" : "none" };
 	const responsiveStyles = BREAKPOINT_ORDER
 		.filter((breakpoint) => breakpoint !== "xs")
 		.map((breakpoint) => [
 			`${BREAKPOINTS[breakpoint]}px`,
-			{ display: isVisible(breakpoint) ? "contents" : "none" } as CSSProperties,
+			{ display: isVisible(breakpoint) ? "revert" : "none" } as CSSProperties,
 		] as [string, CSSProperties]);
 
 	return mediaClass(baseStyle, ...responsiveStyles);
-}
-
-function applyResponsiveVisibility(
-	content: ReactNode,
-	props: Record<string, unknown>,
-): ReactNode {
-	const visibilityClass = buildVisibilityClass(props);
-	if (!visibilityClass) return content;
-	return <span className={visibilityClass}>{content}</span>;
 }
 
 interface NodeRendererProps {
@@ -123,8 +112,12 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 		: {};
 
 	const originalProps = node.props ?? {};
+	const visibilityClass = buildVisibilityClass(originalProps);
+	const originalClassName = typeof originalProps.className === "string" ? originalProps.className : undefined;
+	const mergedClassName = [originalClassName, visibilityClass].filter(Boolean).join(" ") || undefined;
 	const nodeProps = {
 		...originalProps,
+		...(mergedClassName ? { className: mergedClassName } : {}),
 		...(Object.keys(extraStyle).length > 0
 			? {
 				style: {
@@ -145,28 +138,31 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 		</Component>
 	);
 
-	if (!lazy.lazy) return applyResponsiveVisibility(element, originalProps);
+	if (!lazy.lazy) return element;
 
 	const isSection = node.type === "section" || node.type === "hero";
 	if (isSection) {
-		return applyResponsiveVisibility(
+		return (
 			<LazySection
+				className={visibilityClass}
 				height={lazy.placeholderHeight}
 				rootMargin={lazy.rootMargin}
 				contentVisibility={lazy.contentVisibility}
 				containIntrinsicHeight={lazy.placeholderHeight}
 			>
 				{element}
-			</LazySection>,
-			originalProps,
+			</LazySection>
 		);
 	}
 
-	return applyResponsiveVisibility(
-		<LazyMount height={lazy.placeholderHeight} rootMargin={lazy.rootMargin}>
+	return (
+		<LazyMount
+			className={visibilityClass}
+			height={lazy.placeholderHeight}
+			rootMargin={lazy.rootMargin}
+		>
 			{element}
-		</LazyMount>,
-		originalProps,
+		</LazyMount>
 	);
 }
 
