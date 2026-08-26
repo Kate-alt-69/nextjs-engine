@@ -16,7 +16,9 @@ Three.js remains dynamically imported by the 3D render paths.
 
 ## EngineCanvas
 
-- one component-owned RAF loop per EngineCanvas instance;
+- one component-owned RAF loop per active EngineCanvas frame source;
+- callback mode does not schedule RAF when `onDraw` is absent;
+- callback mode stops RAF when `onDraw` returns `false` and only wakes for a changed callback or backing-store redraw;
 - pauses while offscreen and/or while the document is hidden;
 - adaptive DPR adjustments are rate-limited to at most one decision per 750ms;
 - built-in graphics engines are imported only when selected;
@@ -29,6 +31,22 @@ For complex scenes, keep EC node ids stable and reuse vertex/index typed arrays
 when geometry has not changed. Replacing those arrays tells retained renderers
 that geometry needs rebuilding. For Engine2D specifically, material and transform
 updates do not invalidate cached geometry paths.
+
+## EngineManim
+
+Manim2D compiles shape geometry outside RAF. Transform pairs with mismatched
+point counts are normalized once per compiled timeline and interpolation writes
+into a retained `Float32Array`; transform frames do not allocate replacement
+geometry arrays.
+
+`settings.fpsLimit` caps Manim2D timeline sampling/painting. Non-looping
+animations use EngineCanvas's completion signal to release RAF after the final
+frame. `Wait` holds the existing bitmap instead of clearing it and repainting an
+empty/background-only frame.
+
+Manim3D static scenes are demand-rendered rather than continuously redrawn.
+Animated Manim3D scenes cancel RAF while offscreen or while the document is
+hidden, and model/renderer resources are disposed on teardown.
 
 ## EngineScroll
 

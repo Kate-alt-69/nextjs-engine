@@ -32,6 +32,31 @@ Schema types: `"manim"` and `"EngineManim"`.
 Supported mobjects include `Circle`, `Square`, `Rectangle`, `Line`, and `Path`.
 Supported actions include `Create`, `FadeIn`, `FadeOut`, `Transform`, and `Wait`.
 
+### 2D runtime and frame behavior
+
+Shape geometry is compiled once per `ManimConfig` object. Transform steps also
+pre-normalize origin/target point counts before RAF begins, so the transform hot
+path interpolates into a retained `Float32Array` rather than allocating new
+geometry buffers every frame.
+
+`settings.fpsLimit` is enforced by the Manim callback. It caps expensive Manim
+painting/timeline sampling while the browser RAF may continue at the display
+refresh rate. Values above the display refresh rate naturally cannot create more
+browser frames than RAF supplies.
+
+A `Wait` action is a true hold: it leaves the previously rendered frame intact
+until the wait duration completes. It does not clear the canvas to the
+background.
+
+When `settings.loop` is false, the final timeline frame returns EngineCanvas's
+callback-completion signal and the Canvas RAF stops. A responsive backing-store
+resize requests one redraw so the retained final frame survives resizing, then
+the callback stops again. An empty timeline likewise owns no permanent RAF.
+
+When Manim setup restarts for a changed configuration, timeline index, loop
+counter, timing accumulator, and delay state reset to the beginning rather than
+continuing from the previous configuration's step index.
+
 ## EngineManim 3D
 
 Schema types: `"manim3d"` and `"EngineManim3D"`.
