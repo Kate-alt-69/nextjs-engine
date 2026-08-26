@@ -1,238 +1,140 @@
 # EngineForms (EF)
 
-Schema types: `"form"`, `"input"`, `"textarea"`, `"checkbox"`, `"label"` —
-schema-native HTML form primitives. They behave identically to their HTML
-counterparts while staying fully schema-driven. Use `cprop.bind` to wire
-fields directly into `EngineAPIResolver` so the engine assembles and fires
-the request without any manual `FormData` or `fetch` calls.
+Schema types: `"form"`, `"input"`, `"textarea"`, `"checkbox"`, and `"label"`.
 
----
+EngineForms are native form elements with engine styling and named-handler
+resolution. **Field binding is currently driven by `name`, not by
+`cprop.bind`.**
 
-## How field binding works
+## Submit flow
 
+```text
+input/textarea/checkbox props.name
+        ↓
+data-engine-bind="name"
+        ↓
+EngineForm collects bound values on submit
+        ↓
+named createPage handler receives (values, submitEvent)
+        ↓
+your handler may pass values to EngineAPIResolver
 ```
-input / textarea / checkbox
-  props.name = "email"          ← sets data-engine-bind="email"
-        │
-        ▼
-EngineAPIResolver.resolveRequest({ formData: { email, password } })
-        │
-        ▼
-POST body: { "email": "...", "password": "..." }
-```
 
-Every form element sets a `data-engine-bind` attribute on the rendered DOM
-node. When the form's `onSubmit` handler fires, `EngineAPIResolver` walks
-the form's DOM subtree, collects all bound values by name, and passes them
-as `formData` automatically. No manual `new FormData()` needed.
+EngineAPIResolver does not walk the form DOM itself.
 
----
-
-## `form`
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `onSubmit` | `string` | Handler name from `createPage({ handlers })`. Receives bound field values. |
-| `onReset` | `string` | Handler name called when the form resets. |
-| `method` | `"get" \| "post"` | Native form HTTP method (used when `action` is set). |
-| `action` | `string` | Native form action URL — bypasses EngineAPIResolver. |
-| `noValidate` | `boolean` | Disables browser built-in validation. Set `true` when using custom validation. |
-| `autoComplete` | `string` | HTML `autocomplete` attribute (`"on"`, `"off"`, etc.). |
-| `encType` | `string` | Encoding type for file uploads: `"multipart/form-data"`. |
-
----
-
-## `input`
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `type` | `InputType` | `"text"`, `"email"`, `"password"`, `"search"`, `"url"`, `"tel"`, `"number"`, `"hidden"`, `"date"`, `"time"`, `"color"`, `"range"`, `"file"` |
-| `name` | `string` | Field name — becomes the key in `formData`. Also sets `data-engine-bind`. |
-| `placeholder` | `string` | Placeholder text. |
-| `defaultValue` | `string \| number` | Initial value (uncontrolled). |
-| `value` | `string \| number` | Controlled value. |
-| `disabled` | `boolean` | Disables the field. |
-| `required` | `boolean` | Makes the field required. |
-| `pattern` | `string` | HTML5 regex validation pattern. |
-| `min` / `max` | `string \| number` | Range for `number` and `date` inputs. |
-| `step` | `string \| number` | Step increment for `number` and `range`. |
-| `minLength` / `maxLength` | `number` | Character length constraints. |
-| `multiple` | `boolean` | Allow multiple file selections. |
-| `accept` | `string` | Accepted file types: `"image/*"`, `".pdf"`, etc. |
-| `autoComplete` | `string` | Per-field autocomplete hint. |
-| `readOnly` | `boolean` | Read-only field. |
-| `autoFocus` | `boolean` | Focus this field on page load. |
-| `tabIndex` | `number` | Tab order. |
-| `onChange` | `string` | Handler name called on every keystroke. |
-| `ariaLabel` | `string` | Accessible label when no visible label exists. |
-| `ariaDescribedBy` | `string` | Id of an element describing this field. |
-
----
-
-## `textarea`
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `name` | `string` | Field name. |
-| `placeholder` | `string` | Placeholder text. |
-| `defaultValue` | `string` | Initial value (uncontrolled). |
-| `value` | `string` | Controlled value. |
-| `rows` | `number` | Visible row count. |
-| `cols` | `number` | Visible column count. |
-| `minLength` / `maxLength` | `number` | Character constraints. |
-| `resizable` | `"none" \| "both" \| "horizontal" \| "vertical" \| "block" \| "inline"` | CSS resize behaviour. |
-| `disabled` | `boolean` | |
-| `required` | `boolean` | |
-| `readOnly` | `boolean` | |
-| `autoFocus` | `boolean` | |
-| `tabIndex` | `number` | |
-| `onChange` | `string` | Handler name. |
-| `autoComplete` | `string` | |
-| `ariaLabel` / `ariaDescribedBy` | `string` | Accessibility. |
-
----
-
-## `checkbox`
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `name` | `string` | Field name — value is `"on"` / `"off"` in `formData`. |
-| `value` | `string` | Custom value submitted when checked (default `"on"`). |
-| `checked` | `boolean` | Controlled checked state. |
-| `defaultChecked` | `boolean` | Initial checked state (uncontrolled). |
-| `disabled` | `boolean` | |
-| `required` | `boolean` | |
-| `onChange` | `string` | Handler name. |
-| `autoFocus` | `boolean` | |
-| `tabIndex` | `number` | |
-| `ariaLabel` / `ariaDescribedBy` | `string` | Accessibility. |
-
----
-
-## `label`
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `htmlFor` | `string` | Id of the associated form element. |
-| `forInput` | `string` | Shorthand — sets `htmlFor` to `for-${forInput}`. |
-
----
-
-## Full example — login form with EngineAPI
+## Form
 
 ```ts
-// page.tsx
+{
+  type: "form",
+  props: {
+    onSubmit: "handleLogin",
+    noValidate: false,
+  },
+  children: [/* fields */],
+}
+```
+
+| Prop | Type | Notes |
+|---|---|---|
+| `onSubmit` | `string` | Named handler from `createPage({ handlers })` |
+| `onReset` | `string` | Named reset handler |
+| `method` | `"get" \| "post"` | Native form method |
+| `action` | `string` | Native action URL |
+| `noValidate` | `boolean` | Native validation control |
+| `autoComplete` | `string` | Native autocomplete |
+| `encType` | `string` | Native encoding type |
+
+When a named submit handler exists and no native `action` is supplied,
+EngineForm prevents the browser's default navigation and calls:
+
+```ts
+handler(values, event)
+```
+
+If an `action` is present, the named handler may still observe the submission,
+but EngineForm does not automatically cancel the native action.
+
+## Input / Textarea
+
+`name` is both the native form field name and EngineForms binding key.
+
+```ts
+{
+  type: "input",
+  props: {
+    id: "email",
+    name: "email",
+    type: "email",
+    required: true,
+    onChange: "emailChanged",
+  },
+}
+```
+
+A named `onChange` handler receives:
+
+```ts
+handler(currentValue, changeEvent)
+```
+
+File inputs contribute a `File` for a single selection or `File[]` when
+`multiple` is enabled. Disabled fields are skipped.
+
+## Checkbox values
+
+Checkbox binding currently produces:
+
+- checked → the checkbox `value`, or `"on"` when no value was supplied;
+- unchecked → `"off"`.
+
+Repeated fields with the same binding name are accumulated into an array.
+
+## Label
+
+```ts
+{ type: "label", props: { forInput: "email", children: "Email" } }
+```
+
+`forInput: "email"` maps to `htmlFor="for-email"`. Use a matching input id:
+
+```ts
+{ type: "input", props: { id: "for-email", name: "email" } }
+```
+
+You may use `htmlFor` directly instead.
+
+## EngineAPI example
+
+```ts
 export default createPage({
   schema: LoginSchema,
   handlers: {
-    async handleLogin(formData: Record<string, string>) {
+    async handleLogin(values: Record<string, unknown>) {
       const resolver = new EngineAPIResolver({
-        endpoint: "https://api.example.com/&v1&/auth/login",
-        method:   "POST",
-        versionMacros: { v1: "v1" },
-        auth: { type: "none" },  // login endpoint itself is public
+        endpoint: "https://api.example.com/login",
+        method: "POST",
       });
 
-      const res = await resolver.resolveRequest({ formData });
-      if (res.ok) {
-        const { token } = await res.json();
-        localStorage.setItem("token", token);
-        window.location.href = "/dashboard";
-      }
+      const response = await resolver.resolveRequest({ formData: values });
+      // handle response
     },
-  },
-});
-
-// schema
-const LoginSchema = defineSchema({
-  root: {
-    type: "section",
-    props: { contentMaxWidth: "420px", py: "8rem" },
-    children: [
-      { type: "heading", props: { level: 2, content: "Sign in", align: "center" } },
-
-      {
-        type: "form",
-        props: { onSubmit: "handleLogin", noValidate: true },
-        children: [
-          // Email field
-          {
-            type: "stack",
-            props: { direction: "vertical", gap: ".5rem" },
-            children: [
-              { type: "label", props: { forInput: "email", children: "Email" } },
-              {
-                type: "input",
-                props: {
-                  id: "for-email",   // matches label forInput → "for-email"
-                  name: "email",     // data-engine-bind="email"
-                  type: "email",
-                  placeholder: "you@example.com",
-                  required: true,
-                  autoComplete: "email",
-                },
-              },
-            ],
-          },
-
-          // Password field
-          {
-            type: "stack",
-            props: { direction: "vertical", gap: ".5rem", mt: "1rem" },
-            children: [
-              { type: "label", props: { forInput: "password", children: "Password" } },
-              {
-                type: "input",
-                props: {
-                  id: "for-password",
-                  name: "password",
-                  type: "password",
-                  placeholder: "••••••••",
-                  required: true,
-                  minLength: 8,
-                  autoComplete: "current-password",
-                },
-              },
-            ],
-          },
-
-          // Remember me
-          {
-            type: "stack",
-            props: { direction: "horizontal", gap: ".5rem", align: "center", mt: "1rem" },
-            children: [
-              { type: "checkbox", props: { name: "rememberMe", id: "remember" } },
-              { type: "label",    props: { htmlFor: "remember", children: "Remember me" } },
-            ],
-          },
-
-          // Submit
-          {
-            type: "button",
-            props: {
-              label:     "Sign in",
-              variant:   "solid",
-              type:      "submit",
-              fullWidth: true,
-              mt:        "1.5rem",
-            },
-          },
-        ],
-      },
-    ],
   },
 });
 ```
 
-When the user clicks "Sign in", the engine:
-1. Collects `{ email: "...", password: "...", rememberMe: "on" }` from `data-engine-bind` attributes
-2. Passes them to `handleLogin` in your `handlers` map
-3. `handleLogin` passes `formData` to `EngineAPIResolver` which serialises it into the POST body
+For binary values EngineAPIResolver creates native `FormData` and lets `fetch`
+set the multipart boundary. For non-binary object values it sends JSON by
+default.
 
----
+## Current binding API
 
-## Notes
+Do not rely on old docs/examples that say `cprop.bind` automatically talks to
+EngineAPIResolver. In the current API:
 
-- The `onSubmit` handler name string maps to a function in `createPage({ handlers })`. The function receives the collected `formData` as its first argument.
-- For file uploads: set `encType: "multipart/form-data"` on `form` and `type: "file"` on `input`. `EngineAPIResolver` will detect the `File` objects and build a `FormData` payload automatically.
-- `label.forInput: "email"` → sets `htmlFor="for-email"`. The matching input needs `id: "for-email"`. This keeps label/input pairs accessible without writing the id string twice.
+1. set `name` on the field;
+2. set `onSubmit` on the EngineForm to a named page handler;
+3. receive the collected object in that handler;
+4. pass it to EngineAPIResolver if the form is network-backed.
+
+This keeps form collection and network orchestration separate and explicit.
