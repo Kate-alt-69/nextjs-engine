@@ -1,261 +1,111 @@
 # Next.js Engine
 
-A schema-driven rendering engine for Next.js. Define pages as TypeScript objects — the engine handles every optimization automatically.
-
-No raw HTML. No raw JSX. Just fast pages.
-
----
+A schema-driven rendering engine for Next.js. Define pages as TypeScript objects and keep the page structure readable while the engine handles responsive layout, lazy rendering, navigation, media, and graphics plumbing underneath.
 
 ## Why
 
-Raw React and Next.js hand you the tools but apply nothing for you. Every optimization — lazy loading, memoization, responsive layout, image sizing, video buffering — you have to wire up yourself, every single time.
-
-This engine does all of it by default. You write a schema. The engine produces an optimised Next.js page.
-
----
-
-## What It Handles Automatically
-
-| Problem | Engine Solution |
-|---------|----------------|
-| Unnecessary re-renders | `React.memo` on every component |
-| JS-based responsive = layout shifts | CSS custom properties + `@media` — zero JS |
-| Images not optimised | Always uses `next/image` |
-| Images loading too early or too late | `IntersectionObserver` with size-aware pre-load distance |
-| No blur placeholder on images | Blur-up progressive loading built in |
-| Videos fetching on page load | `src` never injected into DOM until 800px before viewport |
-| Off-screen sections wasting render budget | `content-visibility: auto` applied automatically |
-| Heavy sections blocking interactivity | `LazyMount` — children don't exist in DOM until near viewport |
-| Layout shift from lazy content | Reserved placeholder height on every lazy element |
-| No Suspense boundaries | Auto-wrapped around every lazy subtree |
-| Scattered CSS | One deduplicated `<style>` tag per page |
-
----
-
-## Quick Start
-
-Drop the `src/engine/` folder into any Next.js project, add the path alias, and start defining pages.
-
-**1. Add the alias in `tsconfig.json`:**
-
-```json
-{
-  "compilerOptions": {
-    "paths": {
-      "@/engine": ["./src/engine/index.ts"]
-    }
-  }
-}
-```
-
-**2. Define and export a page:**
+Raw React and TypeScript give you complete control, but even simple interface behavior quickly accumulates hooks, observers, viewport checks, cleanup logic, event wiring, and deeply nested JSX. Next.js Engine keeps that work behind a schema-oriented programming model so the code still reads like the website it describes.
 
 ```ts
-// app/page.tsx
-import { createPage, defineSchema } from "@/engine";
+import { createPage, defineSchema } from "nextjs-engine";
 
-const HomeSchema = defineSchema({
-  meta: {
-    title: "My Site",
-    description: "Built with the Next.js Engine",
-  },
-  root: {
-    type: "section",
-    props: { contentMaxWidth: "1100px" },
-    children: [
-      {
-        type: "heading",
-        props: {
-          level: 1,
-          content: "Hello World",
-          subheading: "Fast by default.",
-          align: "center",
-        },
-      },
-      {
-        type: "image",
-        props: {
-          src: "/hero.jpg",
-          alt: "Hero image",
-          width: 1200,
-          height: 600,
-          priority: true,   // above fold — loads immediately
-        },
-      },
-      {
-        type: "video",
-        props: {
-          src: "/demo.mp4",
-          poster: "/demo-thumb.jpg",
-          // lazy by default — src never fetches until near viewport
-        },
-      },
-    ],
-  },
+const schema = defineSchema({
+	root: {
+		type: "section",
+		props: {
+			px: { xs: "1rem", md: "3rem" },
+			py: { xs: "3rem", md: "7rem" },
+		},
+		children: [
+			{
+				type: "heading",
+				props: {
+					level: 1,
+					content: "Readable by default.",
+				},
+			},
+		],
+	},
 });
 
-export default createPage({ schema: HomeSchema });
+export default createPage({ schema });
 ```
 
-That's it. The engine handles the rest.
+## 2.0 graphics update
 
----
+The 2.0 package keeps the existing schema/page runtime and upgrades the graphics side substantially:
 
-## Responsive Layout
+- EngineCanvas V2 is the wired Canvas implementation used by schema `canvas` nodes.
+- Rendering engines declare the Canvas context they require instead of competing with `mode="auto"`.
+- EngineCanvas tracks the current scene/callbacks, handles responsive backing-size/DPR changes, and exposes controlled initialization failures.
+- EngineCanvas can drive EC 2D, WebGL/3D, SVG, and registered custom renderers.
+- EC path support includes curved SVG-style geometry used by more complex vector scenes.
+- EngineManim3D supports GLTF/GLB and OBJ models.
+- OBJ models may optionally load an accompanying MTL file with `mtlSrc`.
+- `autoFrame` calculates model bounds and positions the camera around imported models.
+- `autoRotate` provides an optional presentation rotation for 3D showcases.
 
-Pass a breakpoint map to any spacing, sizing, or layout prop. The engine converts it to CSS custom properties — the browser does the switching, not JavaScript.
+### OBJ + MTL example
+
+```tsx
+<EngineManim3D
+	cprop={{
+		manim3d: {
+			src: "/models/build.obj",
+			mtlSrc: "/models/build.mtl",
+			format: "obj",
+			settings: {
+				autoFrame: true,
+				autoRotate: 0.18,
+			},
+		},
+	}}
+	style={{ width: "100%", height: "540px" }}
+/>
+```
+
+## Responsive values
+
+Responsive values stay beside the property they control:
 
 ```ts
 props: {
-  px:      { xs: "1rem", md: "2rem", xl: "3rem" },
-  columns: { xs: 1, md: 2, lg: 3 },
-  display: { xs: "block", md: "flex" },
+	px: { xs: "1rem", md: "2rem", xl: "3rem" },
+	display: { xs: "block", md: "flex" },
+	columns: { xs: 1, md: 2, lg: 3 },
 }
 ```
 
-No resize listeners. No hydration mismatches. No layout shifts.
+The engine compiles those values into CSS instead of requiring page components to own viewport listeners.
 
----
+## Custom components
 
-## Theme
-
-Set CSS custom properties once, used everywhere:
-
-```ts
-defineSchema({
-  theme: {
-    vars: {
-      "--e-accent":  "#7c3aed",
-      "--e-bg":      "#0f0f1a",
-      "--e-card-bg": "#1a1a2e",
-      "--e-muted":   "#94a3b8",
-    },
-    fonts: [
-      "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap"
-    ],
-    globalStyles: `
-      body { background: var(--e-bg); font-family: 'Inter', sans-serif; }
-    `,
-  },
-  root: { … }
-})
-```
-
----
-
-## Custom Components
-
-Register any React component under a custom node type:
+Next.js Engine is not intended to replace React. Register ordinary React components whenever a feature is clearer as normal component code:
 
 ```ts
 import { memo } from "react";
-import { registerComponent } from "@/engine";
+import { registerComponent } from "nextjs-engine";
 
 registerComponent(
-  "my-card",
-  memo(function MyCard({ title, children }) {
-    return <div className="card"><h3>{title}</h3>{children}</div>;
-  })
+	"my-card",
+	memo(function MyCard({ title, children }) {
+		return <div className="card"><h3>{title}</h3>{children}</div>;
+	}),
 );
 ```
 
-```ts
-// In any schema:
-{ type: "my-card", props: { title: "Hello" }, children: […] }
-```
-
----
-
-## Lazy Loading Rules
-
-The engine decides laziness automatically based on element type and position in the tree. Override with `props.priority = true` (always eager) or `props.lazy = true/false`.
-
-| Type | Default Behaviour |
-|------|------------------|
-| `video` | Always lazy, pre-fetches 800px ahead |
-| `image` (large, >640×480) | Lazy, pre-fetches 400–800px ahead based on size |
-| `image` (small) | Native `loading="lazy"` via next/image |
-| `image` (priority) | Eager, next/image preload in `<head>` |
-| `section` / `hero` (deep, below fold) | Full lazy mount |
-| `section` / `hero` (shallow, below fold) | `content-visibility: auto` only |
-| `grid` / `stack` (many items, below fold) | Lazy mount |
-| Everything at depth 0 | Eager |
-
----
-
-## Node Types
-
-`box` `stack` `grid` `text` `heading` `image` `video` `section` `hero` `card` `button` `spacer` `divider` `slot`
-
-Full prop reference for each type is in `DOCUMENT.md`.
-
----
-
-## Event Handlers
-
-Named handlers are provided at the `createPage` level and referenced by name in the schema:
+Then use it from a schema:
 
 ```ts
-export default createPage({
-  schema: MySchema,
-  handlers: {
-    openModal: () => setOpen(true),
-  },
-});
-
-// In schema:
-{ type: "button", props: { label: "Open", onClick: "openModal" } }
+{
+	type: "my-card",
+	props: { title: "Hello" },
+	children: [],
+}
 ```
 
----
+## Package
 
-## Slots
+The distributable package lives on the repository's `main-empty` branch. It can be consumed as an npm-style source package or copied/vendorized directly into an application.
 
-Inject React components into specific points in the schema tree:
-
-```ts
-createPage({
-  schema: MySchema,
-  slots: { sidebar: <MySidebar /> },
-})
-
-// In schema:
-{ type: "slot", props: { name: "sidebar" } }
-```
-
----
-
-## File Structure
-
-```
-src/engine/
-├── schema/types.ts          All TypeScript types
-├── core/
-│   ├── resolver.ts          ResponsiveValue → CSS vars
-│   ├── StyleCollector.ts    Collects + deduplicates CSS
-│   ├── registry.ts          NodeType → component map
-│   ├── lazyDetect.ts        Auto lazy strategy per node
-│   └── SchemaRenderer.tsx   Schema tree → React elements
-├── hooks/
-│   ├── useInView.ts         IntersectionObserver hook
-│   └── usePropStyles.ts     Props → inline CSS
-├── providers/
-│   └── EngineProvider.tsx   Context + breakpoint hook
-├── components/
-│   ├── primitives.tsx       Box, Stack, Grid, Text, Section, Button…
-│   ├── EngineImage.tsx      Smart lazy image
-│   ├── EngineVideo.tsx      Lazy video
-│   └── LazyMount.tsx        Lazy mount wrapper
-├── createPage.tsx           Page factory
-└── index.ts                 Public exports
-```
-
----
-
-## Docs
-
-Full technical documentation including all prop tables, the CSS resolver internals, lazy detection rules, and integration guides is in `DOCUMENT.md`.
-
----
-
-Built by Kate-alt-69 for the Kastrick platform.
+The complete engine reference remains in `DOCUMENT.md` and `docs/`.

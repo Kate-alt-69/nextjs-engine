@@ -1,5 +1,5 @@
 /**
- * Next.js Engine Root Entrypoint
- * Re-exports the entire engine framework for external project consumption.
+ * Nextjs Engine — browser/shared package entrypoint.
+ * Server-only helpers live at `nextjs-engine/server`.
  */
 export * from "./engine";
