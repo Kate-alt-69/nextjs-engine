@@ -1,12 +1,6 @@
 // ============================================================================
 // ECGraphicsModel.ts — factory functions for the EC graphics model
 // ============================================================================
-//
-//  Every shape ultimately becomes vertices. These factories generate the
-//  Float32Array vertex data once, so mesh.vertices() / vertexCount() /
-//  faceCount() / bounds() / center() work on any shape without the caller
-//  knowing how it was built.
-// ============================================================================
 
 import type {
 	ECBounds,
@@ -26,8 +20,6 @@ function nextId(prefix: string): string {
 	return `${prefix}-${(idCounter++).toString(36)}`;
 }
 
-// ── Primitives ───────────────────────────────────────────────────────────────
-
 export function ecVec2(x: number, y: number): ECVector2 {
 	return { x, y };
 }
@@ -40,53 +32,55 @@ export function ecTransform(overrides: Partial<ECTransform> = {}): ECTransform {
 	return {
 		position: overrides.position ?? ecVec3(0, 0, 0),
 		rotation: overrides.rotation ?? ecVec3(0, 0, 0),
-		scale:    overrides.scale    ?? ecVec3(1, 1, 1),
+		scale: overrides.scale ?? ecVec3(1, 1, 1),
 	};
 }
 
 export function ecMaterial(overrides: Partial<ECMaterial> = {}): ECMaterial {
 	return {
-		fill:         overrides.fill,
-		stroke:       overrides.stroke,
-		strokeWidth:  overrides.strokeWidth  ?? 1,
-		opacity:      overrides.opacity      ?? 1,
-		shading:      overrides.shading      ?? "flat",
-		rimColor:     overrides.rimColor,
+		fill: overrides.fill,
+		stroke: overrides.stroke,
+		strokeWidth: overrides.strokeWidth ?? 1,
+		opacity: overrides.opacity ?? 1,
+		shading: overrides.shading ?? "flat",
+		rimColor: overrides.rimColor,
 		rimIntensity: overrides.rimIntensity ?? 0.5,
 	};
 }
 
-// ── Mesh helpers ─────────────────────────────────────────────────────────────
-
 function computeBounds(vertices: Float32Array): ECBounds {
+	if (vertices.length === 0) return { min: ecVec3(0, 0, 0), max: ecVec3(0, 0, 0) };
 
-	let minX = Infinity, minY = Infinity, minZ = Infinity;
-	let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+	let minX = Infinity;
+	let minY = Infinity;
+	let minZ = Infinity;
+	let maxX = -Infinity;
+	let maxY = -Infinity;
+	let maxZ = -Infinity;
 
-	for (let i = 0; i < vertices.length; i += 3) {
-		const x = vertices[i], y = vertices[i + 1], z = vertices[i + 2];
-		if (x < minX) minX = x; if (x > maxX) maxX = x;
-		if (y < minY) minY = y; if (y > maxY) maxY = y;
-		if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
-	}
-
-	if (vertices.length === 0) {
-		return { min: ecVec3(0, 0, 0), max: ecVec3(0, 0, 0) };
+	for (let index = 0; index < vertices.length; index += 3) {
+		const x = vertices[index];
+		const y = vertices[index + 1];
+		const z = vertices[index + 2];
+		if (x < minX) minX = x;
+		if (x > maxX) maxX = x;
+		if (y < minY) minY = y;
+		if (y > maxY) maxY = y;
+		if (z < minZ) minZ = z;
+		if (z > maxZ) maxZ = z;
 	}
 
 	return { min: ecVec3(minX, minY, minZ), max: ecVec3(maxX, maxY, maxZ) };
-
 }
 
 function makeMesh(
-	topology:  ECMesh["topology"],
-	vertices:  Float32Array,
-	material:  ECMaterial,
+	topology: ECMesh["topology"],
+	vertices: Float32Array,
+	material: ECMaterial,
 	transform: ECTransform,
-	indices?:  Uint16Array | Uint32Array,
+	indices?: Uint16Array | Uint32Array,
 ): ECMesh {
-
-	const mesh: ECMesh = {
+	return {
 		id: nextId("mesh"),
 		type: "mesh",
 		vertices,
@@ -94,223 +88,254 @@ function makeMesh(
 		material,
 		transform,
 		topology,
-
-		vertexCount(): number {
-			return vertices.length / 3;
-		},
-
-		faceCount(): number {
-			if (indices) return indices.length / 3;
-			if (topology === "fan") return Math.max(0, (vertices.length / 3) - 2);
-			return 0;
-		},
-
-		bounds(): ECBounds {
-			return computeBounds(vertices);
-		},
-
+		vertexCount: () => vertices.length / 3,
+		faceCount: () => indices ? indices.length / 3 : topology === "fan" ? Math.max(0, vertices.length / 3 - 2) : 0,
+		bounds: () => computeBounds(vertices),
 		center(): ECVector3 {
-			const b = computeBounds(vertices);
+			const bounds = computeBounds(vertices);
 			return ecVec3(
-				(b.min.x + b.max.x) / 2,
-				(b.min.y + b.max.y) / 2,
-				(b.min.z + b.max.z) / 2,
+				(bounds.min.x + bounds.max.x) / 2,
+				(bounds.min.y + bounds.max.y) / 2,
+				(bounds.min.z + bounds.max.z) / 2,
 			);
 		},
 	};
-
-	return mesh;
-
 }
 
-// ── Shape builders ───────────────────────────────────────────────────────────
-
-/**
- * Circle → generates a vertex ring + a center vertex at index 0 for
- * triangle-fan filling. `segments` controls smoothness (default 48).
- */
 export function ecCircle(
-	radius:    number,
+	radius: number,
 	opts: {
-		segments?:  number;
-		material?:  Partial<ECMaterial>;
+		segments?: number;
+		material?: Partial<ECMaterial>;
 		transform?: Partial<ECTransform>;
 	} = {},
 ): ECMesh {
+	const segments = Math.max(3, Math.floor(opts.segments ?? 48));
+	const vertices = new Float32Array((segments + 2) * 3);
 
-	const segments = opts.segments ?? 48;
-	const verts    = new Float32Array((segments + 2) * 3);
-
-	// Center vertex (fan origin)
-	verts[0] = 0; verts[1] = 0; verts[2] = 0;
-
-	for (let i = 0; i <= segments; i++) {
-		const angle = (i / segments) * Math.PI * 2;
-		const idx   = (i + 1) * 3;
-		verts[idx]     = Math.cos(angle) * radius;
-		verts[idx + 1] = Math.sin(angle) * radius;
-		verts[idx + 2] = 0;
+	for (let segment = 0; segment <= segments; segment++) {
+		const angle = (segment / segments) * Math.PI * 2;
+		const index = (segment + 1) * 3;
+		vertices[index] = Math.cos(angle) * radius;
+		vertices[index + 1] = Math.sin(angle) * radius;
 	}
 
-	return makeMesh(
-		"fan",
-		verts,
-		ecMaterial(opts.material),
-		ecTransform(opts.transform),
-	);
-
+	return makeMesh("fan", vertices, ecMaterial(opts.material), ecTransform(opts.transform));
 }
 
-/** Rectangle → 4 corner vertices, fan-filled (2 triangles). */
 export function ecRect(
-	width:  number,
+	width: number,
 	height: number,
 	opts: {
-		material?:  Partial<ECMaterial>;
+		material?: Partial<ECMaterial>;
 		transform?: Partial<ECTransform>;
 	} = {},
 ): ECMesh {
-
-	const hw = width / 2, hh = height / 2;
-
-	const verts = new Float32Array([
-		-hw, -hh, 0,
-		 hw, -hh, 0,
-		 hw,  hh, 0,
-		-hw,  hh, 0,
+	const halfWidth = width / 2;
+	const halfHeight = height / 2;
+	const vertices = new Float32Array([
+		-halfWidth, -halfHeight, 0,
+		halfWidth, -halfHeight, 0,
+		halfWidth, halfHeight, 0,
+		-halfWidth, halfHeight, 0,
 	]);
-
-	return makeMesh(
-		"fan",
-		verts,
-		ecMaterial(opts.material),
-		ecTransform(opts.transform),
-	);
-
+	return makeMesh("fan", vertices, ecMaterial(opts.material), ecTransform(opts.transform));
 }
 
 /**
- * Path → parses a minimal SVG-like command string (M, L, C, Q, Z) or an
- * explicit point list into a line-strip mesh (no fill).
+ * SVG-like path parser. The engine intentionally flattens curves to line
+ * segments, but supports the common M/L/H/V/C/Q/Z command set in both absolute
+ * and relative forms, repeated coordinate groups, commas, and exponent numbers.
  */
 export function ecPath(
 	source: string | ECVector2[],
 	opts: {
-		material?:  Partial<ECMaterial>;
+		material?: Partial<ECMaterial>;
 		transform?: Partial<ECTransform>;
 	} = {},
 ): ECMesh {
-
-	const points: ECVector2[] =
-		typeof source === "string" ? parsePathString(source) : source;
-
-	const verts = new Float32Array(points.length * 3);
-
-	for (let i = 0; i < points.length; i++) {
-		verts[i * 3]     = points[i].x;
-		verts[i * 3 + 1] = points[i].y;
-		verts[i * 3 + 2] = 0;
+	const points = typeof source === "string" ? parsePathString(source) : source;
+	const vertices = new Float32Array(points.length * 3);
+	for (let index = 0; index < points.length; index++) {
+		vertices[index * 3] = points[index].x;
+		vertices[index * 3 + 1] = points[index].y;
 	}
-
-	return makeMesh(
-		"strip",
-		verts,
-		ecMaterial(opts.material),
-		ecTransform(opts.transform),
-	);
-
+	return makeMesh("strip", vertices, ecMaterial(opts.material), ecTransform(opts.transform));
 }
 
-function parsePathString(d: string): ECVector2[] {
-
+function parsePathString(path: string): ECVector2[] {
 	const points: ECVector2[] = [];
-	const tokens = d.match(/[a-zA-Z]|-?\d*\.?\d+/g) ?? [];
+	const tokens = path.match(/[a-zA-Z]|[-+]?(?:\d*\.?\d+)(?:e[-+]?\d+)?/gi) ?? [];
+	let tokenIndex = 0;
+	let command = "";
+	let currentX = 0;
+	let currentY = 0;
+	let startX = 0;
+	let startY = 0;
 
-	let i = 0, cx = 0, cy = 0;
+	const isCommand = (token: string | undefined): boolean => Boolean(token && /^[a-zA-Z]$/.test(token));
+	const hasNumbers = (count: number): boolean => {
+		if (tokenIndex + count > tokens.length) return false;
+		for (let offset = 0; offset < count; offset++) {
+			if (isCommand(tokens[tokenIndex + offset])) return false;
+		}
+		return true;
+	};
+	const number = (): number => Number.parseFloat(tokens[tokenIndex++]);
+	const pushPoint = (x: number, y: number): void => {
+		currentX = x;
+		currentY = y;
+		points.push(ecVec2(x, y));
+	};
 
-	function num(): number {
-		return parseFloat(tokens[i++]);
-	}
-
-	while (i < tokens.length) {
-
-		const cmd = tokens[i];
-
-		if (cmd === "M" || cmd === "L") {
-			i++;
-			cx = num(); cy = num();
-			points.push(ecVec2(cx, cy));
-		} else if (cmd === "C") {
-			i++;
-			const c1x = num(), c1y = num();
-			const c2x = num(), c2y = num();
-			const ex  = num(), ey  = num();
-			// Flatten cubic bezier into line segments
-			const steps = 16;
-			for (let s = 1; s <= steps; s++) {
-				const t  = s / steps;
-				const mt = 1 - t;
-				const x  = mt*mt*mt*cx + 3*mt*mt*t*c1x + 3*mt*t*t*c2x + t*t*t*ex;
-				const y  = mt*mt*mt*cy + 3*mt*mt*t*c1y + 3*mt*t*t*c2y + t*t*t*ey;
-				points.push(ecVec2(x, y));
-			}
-			cx = ex; cy = ey;
-		} else if (cmd === "Z" || cmd === "z") {
-			i++;
-			if (points.length) points.push(points[0]);
-		} else {
-			i++; // skip unknown token defensively
+	while (tokenIndex < tokens.length) {
+		if (isCommand(tokens[tokenIndex])) command = tokens[tokenIndex++];
+		if (!command) {
+			tokenIndex++;
+			continue;
 		}
 
+		const relative = command === command.toLowerCase();
+		const upper = command.toUpperCase();
+
+		switch (upper) {
+			case "M": {
+				if (!hasNumbers(2)) {
+					command = "";
+					break;
+				}
+				let first = true;
+				while (hasNumbers(2)) {
+					const x = number();
+					const y = number();
+					const nextX = relative ? currentX + x : x;
+					const nextY = relative ? currentY + y : y;
+					pushPoint(nextX, nextY);
+					if (first) {
+						startX = nextX;
+						startY = nextY;
+						first = false;
+					}
+				}
+				// Repeated pairs following M/m are implicit L/l commands.
+				command = relative ? "l" : "L";
+				break;
+			}
+			case "L": {
+				while (hasNumbers(2)) {
+					const x = number();
+					const y = number();
+					pushPoint(relative ? currentX + x : x, relative ? currentY + y : y);
+				}
+				break;
+			}
+			case "H": {
+				while (hasNumbers(1)) {
+					const x = number();
+					pushPoint(relative ? currentX + x : x, currentY);
+				}
+				break;
+			}
+			case "V": {
+				while (hasNumbers(1)) {
+					const y = number();
+					pushPoint(currentX, relative ? currentY + y : y);
+				}
+				break;
+			}
+			case "C": {
+				while (hasNumbers(6)) {
+					const rawC1X = number();
+					const rawC1Y = number();
+					const rawC2X = number();
+					const rawC2Y = number();
+					const rawEndX = number();
+					const rawEndY = number();
+					const c1X = relative ? currentX + rawC1X : rawC1X;
+					const c1Y = relative ? currentY + rawC1Y : rawC1Y;
+					const c2X = relative ? currentX + rawC2X : rawC2X;
+					const c2Y = relative ? currentY + rawC2Y : rawC2Y;
+					const endX = relative ? currentX + rawEndX : rawEndX;
+					const endY = relative ? currentY + rawEndY : rawEndY;
+					const originX = currentX;
+					const originY = currentY;
+					for (let step = 1; step <= 16; step++) {
+						const t = step / 16;
+						const mt = 1 - t;
+						pushPoint(
+							mt * mt * mt * originX + 3 * mt * mt * t * c1X + 3 * mt * t * t * c2X + t * t * t * endX,
+							mt * mt * mt * originY + 3 * mt * mt * t * c1Y + 3 * mt * t * t * c2Y + t * t * t * endY,
+						);
+					}
+				}
+				break;
+			}
+			case "Q": {
+				while (hasNumbers(4)) {
+					const rawControlX = number();
+					const rawControlY = number();
+					const rawEndX = number();
+					const rawEndY = number();
+					const controlX = relative ? currentX + rawControlX : rawControlX;
+					const controlY = relative ? currentY + rawControlY : rawControlY;
+					const endX = relative ? currentX + rawEndX : rawEndX;
+					const endY = relative ? currentY + rawEndY : rawEndY;
+					const originX = currentX;
+					const originY = currentY;
+					for (let step = 1; step <= 12; step++) {
+						const t = step / 12;
+						const mt = 1 - t;
+						pushPoint(
+							mt * mt * originX + 2 * mt * t * controlX + t * t * endX,
+							mt * mt * originY + 2 * mt * t * controlY + t * t * endY,
+						);
+					}
+				}
+				break;
+			}
+			case "Z":
+				if (points.length > 0 && (currentX !== startX || currentY !== startY)) pushPoint(startX, startY);
+				currentX = startX;
+				currentY = startY;
+				command = "";
+				break;
+			default:
+				// Unsupported SVG commands are skipped until the next command token.
+				while (tokenIndex < tokens.length && !isCommand(tokens[tokenIndex])) tokenIndex++;
+				command = "";
+				break;
+		}
 	}
 
 	return points;
-
 }
 
-/** Line strip through explicit points — no fill, stroke only. */
 export function ecLine(
 	points: ECVector2[],
 	opts: {
-		material?:  Partial<ECMaterial>;
+		material?: Partial<ECMaterial>;
 		transform?: Partial<ECTransform>;
 	} = {},
 ): ECMesh {
 	return ecPath(points, opts);
 }
 
-/** Closed polygon, fan-filled. */
 export function ecPolygon(
 	points: ECVector2[],
 	opts: {
-		material?:  Partial<ECMaterial>;
+		material?: Partial<ECMaterial>;
 		transform?: Partial<ECTransform>;
 	} = {},
 ): ECMesh {
-
-	const verts = new Float32Array(points.length * 3);
-
-	for (let i = 0; i < points.length; i++) {
-		verts[i * 3]     = points[i].x;
-		verts[i * 3 + 1] = points[i].y;
-		verts[i * 3 + 2] = 0;
+	const vertices = new Float32Array(points.length * 3);
+	for (let index = 0; index < points.length; index++) {
+		vertices[index * 3] = points[index].x;
+		vertices[index * 3 + 1] = points[index].y;
 	}
-
-	return makeMesh(
-		"fan",
-		verts,
-		ecMaterial(opts.material),
-		ecTransform(opts.transform),
-	);
-
+	return makeMesh("fan", vertices, ecMaterial(opts.material), ecTransform(opts.transform));
 }
 
-// ── Group / Scene ────────────────────────────────────────────────────────────
-
-export function ecGroup(
-	children:  ECNode[],
-	transform: Partial<ECTransform> = {},
-): ECGroup {
+export function ecGroup(children: ECNode[], transform: Partial<ECTransform> = {}): ECGroup {
 	return {
 		id: nextId("group"),
 		type: "group",
@@ -322,23 +347,19 @@ export function ecGroup(
 export function ecScene(
 	children: ECNode[],
 	opts: {
-		camera?:      ECCamera;
+		camera?: ECCamera;
 		environment?: ECScene["environment"];
-		background?:  string;
+		background?: string;
 	} = {},
 ): ECScene {
 	return {
 		id: nextId("scene"),
 		type: "scene",
 		children,
-		camera:      opts.camera,
+		camera: opts.camera,
 		environment: opts.environment ?? "void",
-		background:  opts.background,
+		background: opts.background,
 	};
 }
 
-/**
- * The Void — EngineCanvas's default environment. No background, no HDRI,
- * no sky, no fog, no floor. Infinite empty space. Works for both 2D and 3D.
- */
 export const ecVoidEnvironment: ECScene["environment"] = "void";
