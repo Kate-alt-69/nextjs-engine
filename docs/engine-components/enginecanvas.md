@@ -120,10 +120,26 @@ Built-in engine names:
 
 | Engine | Purpose | Current behavior |
 |---|---|---|
-| `2d` | Canvas 2D vector rendering | Immediate-mode drawing using one EC scene |
+| `2d` | Canvas 2D vector rendering | Retains compiled topology and `Path2D` geometry for unchanged meshes; paints each frame |
 | `3d` | Three.js-backed EC meshes | Retained-mode objects and GPU-resource disposal |
 | `svg` | DOM SVG renderer/import/export | Retained SVG DOM nodes; updates instead of rebuilding the tree every frame |
 | `skia` | Future CanvasKit backend | Recognized but intentionally not implemented yet |
+
+### Engine2D geometry caching
+
+Engine2D separates geometry compilation from per-frame painting. For a stable
+`ECMesh`, triangle topology, boundary edges, strip paths, fill paths, and outline
+paths are cached. Transform and material values are still read every frame, so
+moving, rotating, scaling, recoloring, changing opacity, and changing stroke
+settings do not require rebuilding the geometry path.
+
+The cache is invalidated when the mesh's `vertices` typed-array reference,
+`indices` typed-array reference, topology, or vertex count changes. If you edit
+vertex values in place, replace the typed array when you want the retained path
+to be rebuilt. This is the same stable-geometry contract used by the retained 3D
+path and avoids walking large vertex arrays on every RAF.
+
+Browsers without `Path2D` support fall back to direct Canvas path construction.
 
 ### Engine3D retained mode
 
