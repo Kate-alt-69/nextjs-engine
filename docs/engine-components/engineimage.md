@@ -103,12 +103,12 @@ EngineVideo does not create the `<video>` element until its wrapper is within
 | `src` | `string \| VideoSource[]` | required | Single source or ordered `<source>` list |
 | `poster` | `string` | — | Poster shown before playback |
 | `aspectRatio` | `string` | `"16/9"` | Reserves space before mounting |
-| `autoPlay` | `boolean` | `false` | Attempts playback once the video can play |
+| `autoPlay` | `boolean` | `false` | Passed to the native video element once mounted |
 | `muted` | `boolean` | `true` | Browser-friendly autoplay default |
 | `loop` | `boolean` | `false` | Native video loop |
 | `controls` | `boolean` | `true` | Native controls |
 | `playsInline` | `boolean` | `true` | Native inline playback hint |
-| `preload` | `"none" \| "metadata" \| "auto"` | metadata normally, auto for autoplay | Explicit value always wins |
+| `preload` | `"none" \| "metadata" \| "auto"` | metadata normally, auto for autoplay | Passed through as the browser preload hint |
 | `rootMargin` | `string` | `"800px 0px"` | How early the video element mounts |
 | `eager` | `boolean` | `false` | Mount immediately |
 
@@ -116,6 +116,28 @@ Non-autoplay videos do not show a fake perpetual buffering spinner while using
 `preload="none"`. With the default configuration NE loads metadata near the
 viewport and leaves playback to the user. Autoplay videos default to
 `preload="auto"` and show the loading indicator until playback is ready.
+
+`preload` remains a browser hint, not a network guarantee. An explicit value is
+passed through unchanged, but `autoPlay: true` also sets the native `autoplay`
+attribute; browsers may therefore fetch enough media to honor the playback
+request even when `preload="none"` was supplied.
+
+### Changing video sources
+
+Updating `src` after EngineVideo has mounted now creates a fresh native media
+element keyed by the ordered source list. This matters because changing React
+`<source>` children alone does not reliably make an existing `<video>` run the
+HTML media resource-selection algorithm again.
+
+On a source change NE:
+
+1. stops/removes the old media element through React replacement;
+2. resets ready/buffering state for the wrapper;
+3. mounts the new ordered `<source>` list;
+4. lets the native element apply the current preload/autoplay policy.
+
+The source key is based on source URL, MIME type, and order, so recreating an
+array with identical entries does not intentionally restart playback.
 
 ## Automatic lazy policy
 
