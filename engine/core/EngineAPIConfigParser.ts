@@ -3,40 +3,14 @@
 //
 //  Parses .EngineAPIConfig/*.api files (TOML-inspired syntax) into a compiled
 //  JSON structure consumed at runtime by EngineAPIResolver.
-//
-//  File format:
-//    # Comment
-//    [provider.NAME]
-//    endpoint = "https://api.example.com"
-//    method   = "POST"
-//    cache    = "no-cache"
-//
-//    [provider.NAME.auth]
-//    type      = "hmac"
-//    secret    = "$ENV_VAR"
-//    algorithm = "sha-256"
-//
-//    [versions]
-//    V1 = "/api/v1"
-//    V2 = "/api/v2"
-//
-//  Environment variable substitution: $VAR_NAME → process.env.VAR_NAME
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { EngineAPIConfig, EngineAPIAuthConfig } from "../schema/types";
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Public shape
-// ─────────────────────────────────────────────────────────────────────────────
-
 export interface EngineAPICompiledConfig {
 	providers: Record<string, EngineAPIConfig>;
-	versions:  Record<string, string>;
+	versions: Record<string, string>;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Internal: low-level tokeniser
-// ─────────────────────────────────────────────────────────────────────────────
 
 type ScalarValue = string | number | boolean;
 
@@ -45,13 +19,13 @@ interface ParsedConfig {
 }
 
 function parseScalar(raw: string): ScalarValue {
-	const t = raw.trim();
-	if (t.startsWith('"') && t.endsWith('"')) return t.slice(1, -1);
-	if (t === "true")  return true;
-	if (t === "false") return false;
-	const n = Number(t);
-	if (!Number.isNaN(n)) return n;
-	return t;
+	const trimmed = raw.trim();
+	if (trimmed.startsWith('"') && trimmed.endsWith('"')) return trimmed.slice(1, -1);
+	if (trimmed === "true") return true;
+	if (trimmed === "false") return false;
+	const numericValue = Number(trimmed);
+	if (!Number.isNaN(numericValue)) return numericValue;
+	return trimmed;
 }
 
 function tokenise(source: string): ParsedConfig {
@@ -69,19 +43,15 @@ function tokenise(source: string): ParsedConfig {
 			continue;
 		}
 
-		const kvMatch = line.match(/^([^=]+)=(.+)$/);
-		if (kvMatch) {
-			if (!result[section]) result[section] = {};
-			result[section][kvMatch[1].trim()] = parseScalar(kvMatch[2]);
-		}
+		const keyValueMatch = line.match(/^([^=]+)=(.+)$/);
+		if (!keyValueMatch) continue;
+
+		if (!result[section]) result[section] = {};
+		result[section][keyValueMatch[1].trim()] = parseScalar(keyValueMatch[2]);
 	}
 
 	return result;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Internal: environment variable substitution
-// ─────────────────────────────────────────────────────────────────────────────
 
 function substituteEnv(value: string): string {
 	return value.replace(/\$([A-Z_][A-Z0-9_]*)/g, (_, name: string) => {
@@ -90,93 +60,104 @@ function substituteEnv(value: string): string {
 }
 
 function substituteSection(section: Record<string, ScalarValue>): Record<string, ScalarValue> {
-	const out: Record<string, ScalarValue> = {};
-	for (const [k, v] of Object.entries(section)) {
-		out[k] = typeof v === "string" ? substituteEnv(v) : v;
+	const resolvedSection: Record<string, ScalarValue> = {};
+	for (const [key, value] of Object.entries(section)) {
+		resolvedSection[key] = typeof value === "string" ? substituteEnv(value) : value;
 	}
-	return out;
+	return resolvedSection;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Internal: auth config builder
-// ─────────────────────────────────────────────────────────────────────────────
+function normalizeHmacAlgorithm(value: ScalarValue | undefined): string {
+	return String(value ?? "SHA-256").toUpperCase().replace(/_/g, "-") === "SHA-512"
+		? "SHA-512"
+		: "SHA-256";
+}
+
+function normalizeAsymmetricAlgorithm(value: ScalarValue | undefined): string {
+	return String(value ?? "Ed25519").toUpperCase() === "RS256" ? "RS256" : "Ed25519";
+}
 
 function buildAuth(section: Record<string, ScalarValue>): EngineAPIAuthConfig {
-	const type = String(section["type"] ?? "none") as EngineAPIAuthConfig["type"];
+	const type = String(section.type ?? "none").toLowerCase() as EngineAPIAuthConfig["type"];
+
 	switch (type) {
 		case "ak":
 			return {
 				type: "ak",
-				key:    String(section["key"]    ?? ""),
-				destinationHeader: String(section["header"] ?? section["destinationHeader"] ?? "X-Key"),
+				key: String(section.key ?? ""),
+				destinationHeader: String(section.header ?? section.destinationHeader ?? "X-Key"),
 			};
 		case "bearer":
-			return { type: "bearer", token: String(section["token"] ?? "") };
+			return { type: "bearer", token: String(section.token ?? "") };
 		case "jwt":
-			return { type: "jwt",    token: String(section["token"] ?? "") };
+			return { type: "jwt", token: String(section.token ?? "") };
 		case "basic":
 			return {
-				type:     "basic",
-				username: String(section["username"] ?? ""),
-				password: String(section["password"] ?? ""),
+				type: "basic",
+				username: String(section.username ?? ""),
+				password: String(section.password ?? ""),
 			};
 		case "hmac":
 			return {
-				type:      "hmac",
-				secret:    String(section["secret"]    ?? ""),
-				algorithm: (section["algorithm"] as any) ?? "sha-256",
+				type: "hmac",
+				key: String(section.key ?? ""),
+				secret: String(section.secret ?? ""),
+				algorithm: normalizeHmacAlgorithm(section.algorithm),
 			};
 		case "pnp":
 			return {
-				type:       "pnp",
-				privateKey: String(section["privateKey"] ?? ""),
-				algorithm:  (section["algorithm"] as any) ?? "Ed25519",
+				type: "pnp",
+				key: String(section.key ?? ""),
+				privateKey: String(section.privateKey ?? ""),
+				algorithm: normalizeAsymmetricAlgorithm(section.algorithm),
 			};
 		default:
 			return { type: "none" };
 	}
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Core compiler
-// ─────────────────────────────────────────────────────────────────────────────
-
 export function compileAPIConfig(source: string): EngineAPICompiledConfig {
-	const parsed   = tokenise(source);
+	const parsed = tokenise(source);
 	const compiled: EngineAPICompiledConfig = { providers: {}, versions: {} };
 
 	for (const [sectionKey, rawSection] of Object.entries(parsed)) {
 		if (sectionKey === "__root__") continue;
 		const section = substituteSection(rawSection);
 
-		// [provider.NAME]
 		const providerRoot = sectionKey.match(/^provider\.([^.]+)$/);
 		if (providerRoot) {
-			const name = providerRoot[1];
-			if (!compiled.providers[name]) compiled.providers[name] = { endpoint: "" };
-			const prov = compiled.providers[name];
-			if (section["endpoint"]) prov.endpoint = String(section["endpoint"]);
-			if (section["method"])   prov.method   = section["method"] as any;
-			if (section["cache"] !== undefined) prov.cache = section["cache"] as any;
-			if (section["headers"]) {
-				try { prov.headers = JSON.parse(String(section["headers"])); } catch { /* noop */ }
+			const providerName = providerRoot[1];
+			if (!compiled.providers[providerName]) compiled.providers[providerName] = { endpoint: "" };
+			const provider = compiled.providers[providerName];
+			if (section.endpoint) provider.endpoint = String(section.endpoint);
+			if (section.method) provider.method = String(section.method);
+			if (section.cache !== undefined) provider.cache = String(section.cache) as RequestCache;
+			if (section.headers) {
+				try {
+					const parsedHeaders = JSON.parse(String(section.headers));
+					if (parsedHeaders && typeof parsedHeaders === "object" && !Array.isArray(parsedHeaders)) {
+						provider.headers = Object.fromEntries(
+							Object.entries(parsedHeaders).map(([key, value]) => [key, String(value)]),
+						);
+					}
+				} catch {
+					// Invalid headers JSON is ignored so one optional field does not kill the whole config.
+				}
 			}
 			continue;
 		}
 
-		// [provider.NAME.auth]
 		const providerAuth = sectionKey.match(/^provider\.([^.]+)\.auth$/);
 		if (providerAuth) {
-			const name = providerAuth[1];
-			if (!compiled.providers[name]) compiled.providers[name] = { endpoint: "" };
-			compiled.providers[name].auth = buildAuth(section);
+			const providerName = providerAuth[1];
+			if (!compiled.providers[providerName]) compiled.providers[providerName] = { endpoint: "" };
+			compiled.providers[providerName].auth = buildAuth(section);
 			continue;
 		}
 
-		// [versions]
 		if (sectionKey === "versions") {
-			for (const [k, v] of Object.entries(section)) {
-				compiled.versions[k] = String(v);
+			for (const [key, value] of Object.entries(section)) {
+				compiled.versions[key] = String(value);
 			}
 		}
 	}
@@ -184,52 +165,42 @@ export function compileAPIConfig(source: string): EngineAPICompiledConfig {
 	return compiled;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  File system loader  (server-side only — uses dynamic import)
-// ─────────────────────────────────────────────────────────────────────────────
-
 export async function loadAPIConfigDir(
 	configDir = ".EngineAPIConfig",
 ): Promise<EngineAPICompiledConfig> {
 	try {
 		const { readdir, readFile } = await import("fs/promises");
-		const { join }              = await import("path");
-		const dir                   = join(process.cwd(), configDir);
-		let   combined              = "";
+		const { join } = await import("path");
+		const directoryPath = join(process.cwd(), configDir);
+		let combinedSource = "";
 
 		try {
-			const files = await readdir(dir);
-			for (const file of files.filter((f) => f.endsWith(".api"))) {
-				combined += await readFile(join(dir, file), "utf8") + "\n";
+			const files = await readdir(directoryPath);
+			for (const file of files.filter((entry) => entry.endsWith(".api")).sort()) {
+				combinedSource += `${await readFile(join(directoryPath, file), "utf8")}\n`;
 			}
 		} catch {
-			// Directory absent — return empty config without throwing
+			// Missing config directory means an empty config, not a runtime failure.
 		}
 
-		return compileAPIConfig(combined);
+		return compileAPIConfig(combinedSource);
 	} catch {
 		return { providers: {}, versions: {} };
 	}
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  In-process config cache  (one compile per server lifecycle)
-// ─────────────────────────────────────────────────────────────────────────────
-
-let _cached: EngineAPICompiledConfig | null = null;
+let cachedCompiledConfig: EngineAPICompiledConfig | null = null;
 
 export function setCompiledAPIConfig(config: EngineAPICompiledConfig): void {
-	_cached = config;
+	cachedCompiledConfig = config;
 }
 
 export function getCompiledAPIConfig(): EngineAPICompiledConfig | null {
-	return _cached;
+	return cachedCompiledConfig;
 }
 
-export async function ensureAPIConfig(
-	configDir?: string,
-): Promise<EngineAPICompiledConfig> {
-	if (_cached) return _cached;
-	_cached = await loadAPIConfigDir(configDir);
-	return _cached;
+export async function ensureAPIConfig(configDir?: string): Promise<EngineAPICompiledConfig> {
+	if (cachedCompiledConfig) return cachedCompiledConfig;
+	cachedCompiledConfig = await loadAPIConfigDir(configDir);
+	return cachedCompiledConfig;
 }
