@@ -20,13 +20,15 @@ Three.js remains dynamically imported by the 3D render paths.
 - pauses while offscreen and/or while the document is hidden;
 - adaptive DPR adjustments are rate-limited to at most one decision per 750ms;
 - built-in graphics engines are imported only when selected;
+- 2D retains compiled topology and `Path2D` geometry for unchanged meshes;
 - 3D and SVG graphics backends retain output objects rather than rebuilding the complete scene/tree every frame;
 - removed Three.js geometry/material resources are disposed;
 - DPR changes are forwarded to rendering engines during resize.
 
 For complex scenes, keep EC node ids stable and reuse vertex/index typed arrays
-when geometry has not changed. Replacing those arrays tells the retained 3D
-renderer that geometry needs rebuilding.
+when geometry has not changed. Replacing those arrays tells retained renderers
+that geometry needs rebuilding. For Engine2D specifically, material and transform
+updates do not invalidate cached geometry paths.
 
 ## EngineScroll
 
