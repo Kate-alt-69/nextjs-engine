@@ -1,57 +1,25 @@
 "use client";
 // ─────────────────────────────────────────────────────────────────────────────
 //  Engine — LazyMount
-//
-//  Generic lazy-mounting wrapper.
-//  Children are NOT rendered to the DOM at all until the container enters
-//  the viewport (or within rootMargin of it).  This is the correct strategy
-//  for heavy content — React never calls the child render function, no JS
-//  runs, no network requests fire.
-//
-//  Compare to lazy-loading images which still create DOM nodes immediately:
-//    <img loading="lazy" />  →  DOM node exists, browser decides network timing
-//    <LazyMount>…</LazyMount> →  Zero DOM, zero network, zero JS until in-view
-//
-//  Usage:
-//    <LazyMount height="600px" skeleton={<VideoSkeleton />}>
-//      <HeavyVideoPlayer src="…" />
-//    </LazyMount>
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, {
-	type ReactNode,
-	type CSSProperties,
 	memo,
 	Suspense,
+	type CSSProperties,
+	type ReactNode,
 } from "react";
-import { useSectionInView } from "../hooks/useInView";
+import { useInView } from "../hooks/useInView";
 
 export interface LazyMountProps {
 	children: ReactNode;
-	/**
-	 * Reserved height before the element mounts.
-	 * Prevents layout shift (CLS) by holding space.
-	 * Accepts any CSS height value.
-	 */
 	height?: string | number;
-	/**
-	 * Reserved width (default: 100%)
-	 */
 	width?: string | number;
-	/**
-	 * Custom placeholder shown before mount.
-	 * If omitted, a shimmer skeleton is rendered using the height/width above.
-	 */
+	/** Reserve responsive media space without forcing a fixed pixel height. */
+	aspectRatio?: string;
 	skeleton?: ReactNode;
-	/**
-	 * Pre-load distance above viewport in pixels.
-	 * Default: 600 — start mounting 600px before entering view.
-	 */
+	/** Distance around the viewport at which the child should start mounting. */
 	rootMargin?: string;
-	/**
-	 * Skip lazy mounting entirely — renders children immediately.
-	 * Set this for above-fold content.
-	 */
 	eager?: boolean;
 	className?: string;
 	style?: CSSProperties;
@@ -60,19 +28,27 @@ export interface LazyMountProps {
 function DefaultSkeleton({
 	height,
 	width,
+	aspectRatio,
 }: {
 	height?: string | number;
 	width?: string | number;
+	aspectRatio?: string;
 }) {
-	const h = typeof height === "number" ? `${height}px` : (height ?? "200px");
-	const w = typeof width === "number" ? `${width}px` : (width ?? "100%");
+	const resolvedHeight = height === "auto"
+		? undefined
+		: typeof height === "number"
+			? `${height}px`
+			: height;
+	const resolvedWidth = typeof width === "number" ? `${width}px` : (width ?? "100%");
 
 	return (
 		<div
 			aria-hidden="true"
+			className="e-lazy-skeleton"
 			style={{
-				width: w,
-				height: h,
+				width: resolvedWidth,
+				height: resolvedHeight ?? (aspectRatio ? "100%" : "200px"),
+				aspectRatio,
 				borderRadius: "8px",
 				background:
 					"linear-gradient(90deg, var(--e-skeleton-a,#e2e8f0) 25%, var(--e-skeleton-b,#f1f5f9) 50%, var(--e-skeleton-a,#e2e8f0) 75%)",
@@ -83,9 +59,8 @@ function DefaultSkeleton({
 	);
 }
 
-// Inject shimmer keyframes once into the document
 let shimmerInjected = false;
-function injectShimmerCSS() {
+function injectShimmerCSS(): void {
 	if (typeof document === "undefined" || shimmerInjected) return;
 	shimmerInjected = true;
 	const style = document.createElement("style");
@@ -93,6 +68,9 @@ function injectShimmerCSS() {
 		@keyframes e-shimmer {
 			0%   { background-position: 200% 0 }
 			100% { background-position: -200% 0 }
+		}
+		@media (prefers-reduced-motion: reduce) {
+			.e-lazy-skeleton { animation-duration: 0.001ms; animation-iteration-count: 1; }
 		}
 	`;
 	document.head.appendChild(style);
@@ -102,60 +80,53 @@ export const LazyMount = memo(function LazyMount({
 	children,
 	height,
 	width,
+	aspectRatio,
 	skeleton,
 	rootMargin = "600px 0px",
 	eager = false,
 	className,
 	style,
 }: LazyMountProps) {
-	const { ref, inView } = useSectionInView<HTMLDivElement>(eager);
+	const { ref, inView } = useInView<HTMLDivElement>({
+		rootMargin,
+		once: true,
+		initialInView: eager,
+	});
 
-	// Inject shimmer CSS on first client render
 	React.useEffect(() => {
 		injectShimmerCSS();
 	}, []);
 
+	const resolvedHeight = height === "auto"
+		? undefined
+		: typeof height === "number"
+			? `${height}px`
+			: height;
 	const containerStyle: CSSProperties = {
 		width: typeof width === "number" ? `${width}px` : (width ?? "100%"),
+		...(resolvedHeight ? { minHeight: resolvedHeight } : {}),
+		...(aspectRatio ? { aspectRatio } : {}),
 		...style,
 	};
+	const fallback = skeleton ?? (
+		<DefaultSkeleton
+			height={height}
+			width={width}
+			aspectRatio={aspectRatio}
+		/>
+	);
 
 	return (
 		<div ref={ref} className={className} style={containerStyle}>
 			{inView ? (
-				// Wrap in Suspense so any lazy-loaded child (React.lazy, next/dynamic)
-				// also gets a boundary — no unhandled suspense errors
-				<Suspense
-					fallback={
-						skeleton ?? (
-							<DefaultSkeleton height={height} width={width} />
-						)
-					}
-				>
-					{children}
-				</Suspense>
-			) : (
-				(skeleton ?? (
-					<DefaultSkeleton height={height} width={width} />
-				))
-			)}
+				<Suspense fallback={fallback}>{children}</Suspense>
+			) : fallback}
 		</div>
 	);
 });
 
-// ── LazySection ───────────────────────────────────────────────────────────────
-// Specialised variant for full page sections.
-// Also applies content-visibility: auto as a CSS hint to the browser to skip
-// paint/layout work for off-screen sections even before JS decides to mount.
-
 export interface LazySectionProps extends LazyMountProps {
-	/**
-	 * Hint to the browser's rendering engine to skip layout/paint for this
-	 * section until it enters the viewport.
-	 * Default: true — disable only for sections with position:sticky children.
-	 */
 	contentVisibility?: boolean;
-	/** Intrinsic size hint for content-visibility — prevents scroll jump. */
 	containIntrinsicHeight?: string;
 }
 
@@ -176,7 +147,7 @@ export const LazySection = memo(function LazySection({
 							? `${height}px`
 							: height
 						: "500px"),
-		  }
+			}
 		: {};
 
 	return (

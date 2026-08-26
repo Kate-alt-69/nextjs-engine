@@ -1,39 +1,37 @@
 # Next.js Engine — Documentation Index
 
-## Where to start
+The component docs below are maintained against the current `src/engine`
+implementation. When a legacy example conflicts with a component page, prefer
+the component page and current TypeScript types.
+
+## Start here
 
 | I want to… | Read |
-|------------|------|
-| Understand what the engine is | [`readme.md`](./readme.md#what-it-is) |
-| Learn the schema system | [`readme.md → Schema Node Reference`](./readme.md#schema-node-reference) |
-| Understand PROP vs CPROP | [`readme.md → cprop`](./readme.md#cprop--custom-css-props) |
-| Set up a new page | [`readme.md → createPage API`](./readme.md#createpage-api) |
-| Use responsive values | [`readme.md → Responsive System`](./readme.md#responsive-system) |
+|---|---|
+| Understand the engine | [`readme.md`](./readme.md) |
+| Learn schemas and responsive props | [`readme.md`](./readme.md) |
+| Build layouts and controls | [`engine-components/primitives.md`](./engine-components/primitives.md) |
+| Understand current runtime/performance behavior | [`runtime-performance.md`](./runtime-performance.md) |
 
----
+## Engine components
 
-## Engine Components
+| Component | Documentation | Summary |
+|---|---|---|
+| Primitives | [`primitives.md`](./engine-components/primitives.md) | Box, Stack, Grid, Text, Heading, Button, Card, Section, Slot |
+| EngineCanvas | [`enginecanvas.md`](./engine-components/enginecanvas.md) | Canvas lifecycle, adaptive DPR, EC 2D/3D/SVG runtime |
+| EngineScroll | [`enginescroll.md`](./engine-components/enginescroll.md) | Point navigation, URL protocol, one-RAF scheduler |
+| EngineBrowser | [`enginebrowser.md`](./engine-components/enginebrowser.md) | Browser capabilities and interaction APIs |
+| EngineManim | [`enginemanim.md`](./engine-components/enginemanim.md) | 2D animation and Three.js 3D model animation |
+| EngineImage / Video | [`engineimage.md`](./engine-components/engineimage.md) | Viewport-aware media and responsive image quality |
+| EngineMarkdown | [`enginemarkdown.md`](./engine-components/enginemarkdown.md) | Markdown rendering and heading anchors |
+| EngineNav | [`enginenav.md`](./engine-components/enginenav.md) | Navigation bar and menus |
+| EngineHero | [`enginehero.md`](./engine-components/enginehero.md) | Centered/split/full-bleed heroes and parallax |
+| EngineSuspense | [`enginesuspense.md`](./engine-components/enginesuspense.md) | Loading fallbacks and suspense helpers |
+| EngineForms | [`engineforms.md`](./engine-components/engineforms.md) | Native form primitives and named handlers |
+| EngineAPI | [`engineapi.md`](./engine-components/engineapi.md) | Request resolver, auth, `.api` configuration |
+| EngineMobile / Device | [`enginemobile.md`](./engine-components/enginemobile.md) | Server schema patching and device detection |
 
-| File | Component | Short description |
-|------|-----------|-------------------|
-| [`primitives.md`](./engine-components/primitives.md) | Box, Stack, Grid, Text, Heading, Card, Link, Section, Slot | Core layout building blocks |
-| [`enginecanvas.md`](./engine-components/enginecanvas.md) | EC — EngineCanvas | GPU canvas with RAF loop, adaptive DPR, pause-when-offscreen |
-| [`enginescroll.md`](./engine-components/enginescroll.md) | ES — EngineScroll | Point navigation, URL protocol (`#-es?`), `useEngineScroll` hook |
-| [`enginebrowser.md`](./engine-components/enginebrowser.md) | EB — EngineBrowser | Browser detection, clipboard, media, speech, network |
-| [`enginemanim.md`](./engine-components/enginemanim.md) | EM — EngineManim | 2D Manim-style animation + Three.js 3D renderer |
-| [`engineimage.md`](./engine-components/engineimage.md) | EI — EngineImage / EngineVideo | Lazy image (AVIF/WebP blur-up) + lazy video |
-| [`enginemarkdown.md`](./engine-components/enginemarkdown.md) | EMD — EngineMarkdown | Markdown with animations and heading scroll anchors |
-| [`enginenav.md`](./engine-components/enginenav.md) | EN — EngineNav | Nav bar, sticky, logo, dropdowns, mobile hamburger |
-| [`enginehero.md`](./engine-components/enginehero.md) | EH — EngineHero | Hero sections — centered, split, fullbleed, parallax |
-| [`enginesuspense.md`](./engine-components/enginesuspense.md) | ESU — EngineSuspense | Suspense with skeleton / shimmer / spinner / pulse / blur |
-| [`engineforms.md`](./engine-components/engineforms.md) | EF — EngineForms | Form, Input, Textarea, Checkbox, Label |
-| [`engineapi.md`](./engine-components/engineapi.md) | EA — EngineAPI | EngineAPIResolver + `.EngineAPIConfig` file format |
-| [`enginemobile.md`](./engine-components/enginemobile.md) | EMO — EngineMobile | Server-side UA patching + EngineDevice detection |
-| [`enginebrowser.md`](./engine-components/enginebrowser.md) | EB — EngineBrowser | Clipboard, interactions, media, speech, network |
-
----
-
-## Quick abbreviation guide
+## Abbreviations
 
 | Abbreviation | Module |
 |---|---|

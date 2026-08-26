@@ -1,17 +1,15 @@
 "use client";
 // ─────────────────────────────────────────────────────────────────────────────
 //  Engine — SchemaRenderer
-//
-//  Walks a PageSchema tree and renders each node to React elements.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { memo, type ReactNode, type CSSProperties } from "react";
+import React, { memo, type CSSProperties, type ReactNode } from "react";
 import {
 	BREAKPOINTS,
 	BREAKPOINT_ORDER,
 	type Breakpoint,
-	type SchemaNode,
 	type PageSchema,
+	type SchemaNode,
 } from "../schema/types";
 import { getComponent } from "./registry";
 import { validatePageSchema } from "./validateSchema";
@@ -90,6 +88,17 @@ function buildVisibilityClass(props: Record<string, unknown>): string | undefine
 	return className;
 }
 
+function getLazyAspectRatio(node: SchemaNode, props: Record<string, unknown>): string | undefined {
+	if (props.aspectRatio !== undefined && props.aspectRatio !== null) {
+		return String(props.aspectRatio);
+	}
+	if (node.type === "video") return "16 / 9";
+	if (node.type === "image" && typeof props.width === "number" && typeof props.height === "number" && props.height > 0) {
+		return `${props.width} / ${props.height}`;
+	}
+	return undefined;
+}
+
 interface NodeRendererProps {
 	node: SchemaNode;
 	depth: number;
@@ -153,12 +162,7 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 	const effectiveChildren = hasTreeChildren
 		? renderedChildren
 		: (originalProps.children as ReactNode | undefined) ?? null;
-
-	const element = (
-		<Component {...nodeProps}>
-			{effectiveChildren}
-		</Component>
-	);
+	const element = <Component {...nodeProps}>{effectiveChildren}</Component>;
 
 	if (!lazy.lazy) return element;
 
@@ -181,6 +185,7 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 		<LazyMount
 			className={visibilityClass}
 			height={lazy.placeholderHeight}
+			aspectRatio={getLazyAspectRatio(node, originalProps)}
 			rootMargin={lazy.rootMargin}
 		>
 			{element}

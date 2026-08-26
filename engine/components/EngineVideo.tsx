@@ -1,51 +1,26 @@
 "use client";
 // ─────────────────────────────────────────────────────────────────────────────
-//  Engine — EngineVideo
-//
-//  Videos are the heaviest asset type — they should NEVER start loading until
-//  the user is about to see them.
-//
-//  Strategy:
-//    1. Render an empty <div> placeholder (with poster image if provided)
-//    2. When the container enters the viewport (rootMargin 800px ahead),
-//       inject the <video> element with the real src
-//    3. The browser starts buffering only at that point
-//    4. While buffering, show the poster image + optional loading ring
-//    5. Once metadata is loaded, fade in the video
-//
-//  Supports:
-//    · MP4, WebM, HLS (via <source> tags)
-//    · Autoplay muted (safe — no browser block)
-//    · Poster image
-//    · Loop / controls toggle
-//    · Aspect ratio preservation (no CLS)
+// EngineVideo — viewport-aware video loading
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, {
-	useRef,
-	useState,
+	memo,
 	useCallback,
 	useEffect,
-	memo,
+	useRef,
+	useState,
 	type CSSProperties,
 } from "react";
 import { useInView } from "../hooks/useInView";
-
-// ── Source type ───────────────────────────────────────────────────────────────
 
 export interface VideoSource {
 	src: string;
 	type?: "video/mp4" | "video/webm" | "application/x-mpegURL" | string;
 }
 
-// ── Props ─────────────────────────────────────────────────────────────────────
-
 export interface EngineVideoProps {
-	/** Single src string or array of <source> objects */
 	src: string | VideoSource[];
-	/** Poster image shown while video is loading */
 	poster?: string;
-	/** Aspect ratio CSS value — default "16/9" */
 	aspectRatio?: string;
 	autoPlay?: boolean;
 	muted?: boolean;
@@ -53,20 +28,14 @@ export interface EngineVideoProps {
 	controls?: boolean;
 	playsInline?: boolean;
 	preload?: "none" | "metadata" | "auto";
-	/** Distance above viewport to start loading. Default: 800px */
 	rootMargin?: string;
-	/** Skip lazy loading — load immediately (above-fold videos) */
 	eager?: boolean;
 	className?: string;
 	style?: CSSProperties;
 	borderRadius?: string;
-	/** Called when the video can play */
 	onCanPlay?: () => void;
-	/** Called when the video ends */
 	onEnded?: () => void;
 }
-
-// ── Loading spinner ───────────────────────────────────────────────────────────
 
 function VideoSpinner() {
 	return (
@@ -79,6 +48,7 @@ function VideoSpinner() {
 				alignItems: "center",
 				justifyContent: "center",
 				background: "rgba(0,0,0,0.35)",
+				pointerEvents: "none",
 			}}
 		>
 			<svg
@@ -107,17 +77,19 @@ function VideoSpinner() {
 	);
 }
 
-// Inject spin keyframe once
 let spinInjected = false;
-function injectSpinCSS() {
+function injectSpinCSS(): void {
 	if (typeof document === "undefined" || spinInjected) return;
 	spinInjected = true;
-	const s = document.createElement("style");
-	s.textContent = `@keyframes e-spin { to { transform:rotate(360deg) } }`;
-	document.head.appendChild(s);
+	const style = document.createElement("style");
+	style.textContent = `
+		@keyframes e-spin { to { transform:rotate(360deg) } }
+		@media (prefers-reduced-motion: reduce) {
+			[aria-label="Loading video…"] svg { animation: none !important; }
+		}
+	`;
+	document.head.appendChild(style);
 }
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 export const EngineVideo = memo(function EngineVideo({
 	src,
@@ -128,7 +100,7 @@ export const EngineVideo = memo(function EngineVideo({
 	loop = false,
 	controls = true,
 	playsInline = true,
-	preload = "none",
+	preload,
 	rootMargin = "800px 0px",
 	eager = false,
 	className,
@@ -145,36 +117,33 @@ export const EngineVideo = memo(function EngineVideo({
 		injectSpinCSS();
 	}, []);
 
-	// Trigger IntersectionObserver — start loading 800px before entry
 	const { ref: wrapperRef, inView } = useInView<HTMLDivElement>({
 		rootMargin,
 		once: true,
 		initialInView: eager,
 	});
 
-	// When the video element is injected and starts buffering, show spinner
+	const resolvedPreload = preload ?? (autoPlay ? "auto" : "metadata");
+
 	useEffect(() => {
-		if (!inView) return;
+		if (!inView || !autoPlay) return;
 		setBuffering(true);
-	}, [inView]);
+	}, [autoPlay, inView]);
 
 	const handleCanPlay = useCallback(() => {
 		setVideoReady(true);
 		setBuffering(false);
 		onCanPlay?.();
-		// Autoplay after buffer if requested
 		if (autoPlay && videoRef.current) {
-			videoRef.current.play().catch(() => {/* autoplay blocked — silent */});
+			videoRef.current.play().catch(() => {
+				setBuffering(false);
+			});
 		}
 	}, [autoPlay, onCanPlay]);
-
-	// ── Source resolution ──────────────────────────────────────────────────────
 
 	const sources: VideoSource[] = Array.isArray(src)
 		? src
 		: [{ src, type: src.endsWith(".webm") ? "video/webm" : "video/mp4" }];
-
-	// ── Render ─────────────────────────────────────────────────────────────────
 
 	const wrapperStyle: CSSProperties = {
 		position: "relative",
@@ -188,7 +157,6 @@ export const EngineVideo = memo(function EngineVideo({
 
 	return (
 		<div ref={wrapperRef} className={className} style={wrapperStyle}>
-			{/* Poster image — always shown until video is ready */}
 			{poster && !videoReady && (
 				// eslint-disable-next-line @next/next/no-img-element
 				<img
@@ -204,10 +172,8 @@ export const EngineVideo = memo(function EngineVideo({
 				/>
 			)}
 
-			{/* Buffering spinner */}
 			{buffering && !videoReady && <VideoSpinner />}
 
-			{/* Video — only injected into DOM when in-view */}
 			{inView && (
 				<video
 					ref={videoRef}
@@ -215,7 +181,7 @@ export const EngineVideo = memo(function EngineVideo({
 					loop={loop}
 					controls={controls}
 					playsInline={playsInline}
-					preload={preload}
+					preload={resolvedPreload}
 					poster={poster}
 					onCanPlay={handleCanPlay}
 					onEnded={onEnded}
@@ -227,12 +193,12 @@ export const EngineVideo = memo(function EngineVideo({
 						width: "100%",
 						height: "100%",
 						objectFit: "cover",
-						opacity: videoReady ? 1 : 0,
-						transition: "opacity 0.4s ease",
+						opacity: autoPlay ? (videoReady ? 1 : 0) : 1,
+						transition: "opacity 0.25s ease",
 					}}
 				>
-					{sources.map((s, i) => (
-						<source key={i} src={s.src} type={s.type} />
+					{sources.map((source, index) => (
+						<source key={`${source.src}-${index}`} src={source.src} type={source.type} />
 					))}
 					Your browser does not support HTML5 video.
 				</video>
