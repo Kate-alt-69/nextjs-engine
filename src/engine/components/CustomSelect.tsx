@@ -213,7 +213,8 @@ export const CustomSelect = memo(function CustomSelect({
 	const handleTriggerKeyDown = useCallback((event: KeyboardEvent<HTMLButtonElement>): void => {
 		if (event.key === "Enter" || event.key === " ") {
 			event.preventDefault();
-			toggle();
+			if (isOpen) activateFocused();
+			else open();
 			return;
 		}
 		if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -224,7 +225,7 @@ export const CustomSelect = memo(function CustomSelect({
 		}
 		if (event.key === "Escape") close();
 		if (event.key === "Tab") close();
-	}, [toggle, isOpen, open, close, moveFocus]);
+	}, [isOpen, activateFocused, open, close, moveFocus]);
 
 	const handleListKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>): void => {
 		if (handleNavigationKey(event.key)) event.preventDefault();
