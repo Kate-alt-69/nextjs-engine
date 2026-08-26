@@ -44,6 +44,7 @@ function DefaultSkeleton({
 	return (
 		<div
 			aria-hidden="true"
+			className="e-lazy-skeleton"
 			style={{
 				width: resolvedWidth,
 				height: resolvedHeight ?? (aspectRatio ? "100%" : "200px"),
@@ -69,7 +70,7 @@ function injectShimmerCSS(): void {
 			100% { background-position: -200% 0 }
 		}
 		@media (prefers-reduced-motion: reduce) {
-			[aria-hidden="true"] { animation-duration: 0.001ms; animation-iteration-count: 1; }
+			.e-lazy-skeleton { animation-duration: 0.001ms; animation-iteration-count: 1; }
 		}
 	`;
 	document.head.appendChild(style);
@@ -123,8 +124,6 @@ export const LazyMount = memo(function LazyMount({
 		</div>
 	);
 });
-
-// ── LazySection ───────────────────────────────────────────────────────────────
 
 export interface LazySectionProps extends LazyMountProps {
 	contentVisibility?: boolean;
