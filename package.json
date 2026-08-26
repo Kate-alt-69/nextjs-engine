@@ -10,6 +10,11 @@
 			"types": "./index.ts",
 			"import": "./index.ts",
 			"default": "./index.ts"
+		},
+		"./server": {
+			"types": "./engine/server.ts",
+			"import": "./engine/server.ts",
+			"default": "./engine/server.ts"
 		}
 	},
 	"types": "./index.ts",
