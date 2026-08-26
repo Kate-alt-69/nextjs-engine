@@ -13,8 +13,6 @@ import { decideLazy } from "./lazyDetect";
 import { LazyMount, LazySection } from "../components/LazyMount";
 import { useSlot } from "../providers/EngineProvider";
 
-// ── Dev warning ───────────────────────────────────────────────────────────────
-
 function UnknownNodeWarning({ type }: { type: string }) {
 	if (process.env.NODE_ENV === "production") return null;
 	return (
@@ -29,13 +27,11 @@ function UnknownNodeWarning({ type }: { type: string }) {
 				fontSize: "0.8rem",
 			}}
 		>
-			⚠ Engine: Unknown node type <strong>"{type}"</strong> — register it
-			with <code>registerComponent("{type}", YourComponent)</code>
+			⚠ Engine: Unknown node type <strong>"{type}"</strong> — register it with{" "}
+			<code>registerComponent("{type}", YourComponent)</code>
 		</div>
 	);
 }
-
-// ── Slot node ─────────────────────────────────────────────────────────────────
 
 function SlotNode({ name, fallback, depth }: { name: string; fallback?: SchemaNode; depth: number }) {
 	const slotContent = useSlot(name);
@@ -44,85 +40,79 @@ function SlotNode({ name, fallback, depth }: { name: string; fallback?: SchemaNo
 	return null;
 }
 
-// ── Single node renderer ──────────────────────────────────────────────────────
-
 interface NodeRendererProps {
 	node: SchemaNode;
 	depth: number;
 }
 
-// FIX: Removed React.memo wrapper from NodeRenderer to ensure style collection 
-// fires reliably for matching layout targets during request loops.
 function NodeRenderer({ node, depth }: NodeRendererProps) {
-	// ── Slot handling ────────────────────────────────────────────────────────
 	if (node.type === "slot") {
-		const p = (node.props ?? {}) as { name?: string; fallback?: SchemaNode };
+		const props = (node.props ?? {}) as { name?: string; fallback?: SchemaNode };
 		return (
 			<SlotNode
-				name={p.name ?? ""}
-				fallback={p.fallback}
+				name={props.name ?? ""}
+				fallback={props.fallback}
 				depth={depth}
 			/>
 		);
 	}
 
-	// ── Resolve children first ────────────────────────────────────────────────
 	let renderedChildren: ReactNode = null;
+	const hasTreeChildren = node.children !== undefined;
 
 	if (typeof node.children === "string") {
 		renderedChildren = node.children;
 	} else if (Array.isArray(node.children) && node.children.length > 0) {
-		renderedChildren = node.children.map((child, i) => (
+		renderedChildren = node.children.map((child, index) => (
 			<NodeRenderer
-				key={child.key ?? `${child.type}-${i}`}
+				key={child.key ?? `${child.type}-${index}`}
 				node={child}
 				depth={depth + 1}
 			/>
 		));
 	}
 
-	// ── Look up component ─────────────────────────────────────────────────────
 	const Component = getComponent(node.type);
+	if (!Component) return <UnknownNodeWarning type={node.type} />;
 
-	if (!Component) {
-		return <UnknownNodeWarning type={node.type} />;
-	}
-
-	// ── Lazy detection ────────────────────────────────────────────────────────
 	const lazy = decideLazy(node, depth);
-
-	// ── Merge content-visibility hint into props ───────────────────────────────
 	const extraStyle: CSSProperties = lazy.contentVisibility && !lazy.lazy
 		? {
-				contentVisibility: "auto" as CSSProperties["contentVisibility"],
-				containIntrinsicHeight: lazy.placeholderHeight,
-			}
+			contentVisibility: "auto" as CSSProperties["contentVisibility"],
+			containIntrinsicHeight: lazy.placeholderHeight,
+		}
 		: {};
 
+	const originalProps = node.props ?? {};
 	const nodeProps = {
-		...(node.props ?? {}),
+		...originalProps,
 		...(Object.keys(extraStyle).length > 0
 			? {
-					style: {
-						...((node.props?.style as CSSProperties) ?? {}),
-						...extraStyle,
-					},
-				}
+				style: {
+					...((originalProps.style as CSSProperties) ?? {}),
+					...extraStyle,
+				},
+			}
 			: {}),
 	};
 
-	// ── Render the element ────────────────────────────────────────────────────
+	// Some existing schemas use props.children for leaf-like primitives such as
+	// label. JSX children used to overwrite that value with null whenever the
+	// SchemaNode.children field was absent. Preserve it as a backwards-compatible
+	// fallback while still giving the real tree-level children field priority.
+	const effectiveChildren = hasTreeChildren
+		? renderedChildren
+		: (originalProps.children as ReactNode | undefined) ?? null;
+
 	const element = (
 		<Component {...nodeProps}>
-			{renderedChildren}
+			{effectiveChildren}
 		</Component>
 	);
 
-	// ── Wrap in lazy mount if needed ──────────────────────────────────────────
 	if (!lazy.lazy) return element;
 
 	const isSection = node.type === "section" || node.type === "hero";
-
 	if (isSection) {
 		return (
 			<LazySection
@@ -137,26 +127,17 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 	}
 
 	return (
-		<LazyMount
-			height={lazy.placeholderHeight}
-			rootMargin={lazy.rootMargin}
-		>
+		<LazyMount height={lazy.placeholderHeight} rootMargin={lazy.rootMargin}>
 			{element}
 		</LazyMount>
 	);
 }
 
-// ── Tree renderer ─────────────────────────────────────────────────────────────
-
 interface SchemaRendererProps {
 	schema: PageSchema;
 }
 
-export const SchemaRenderer = memo(function SchemaRenderer({
-	schema,
-}: SchemaRendererProps) {
-	// TASK-009: Validate schema structure in dev. Emits console.warn per issue.
-	// Set NEXT_PUBLIC_ENGINE_VALIDATE=1 to enable in production builds.
+export const SchemaRenderer = memo(function SchemaRenderer({ schema }: SchemaRendererProps) {
 	if (
 		process.env.NODE_ENV !== "production" ||
 		process.env.NEXT_PUBLIC_ENGINE_VALIDATE === "1"
