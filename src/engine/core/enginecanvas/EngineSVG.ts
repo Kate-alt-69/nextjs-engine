@@ -2,161 +2,226 @@
 // EngineSVG.ts — DOM-backed SVG rendering engine
 // ============================================================================
 //
-//  Primary purpose: high-quality SVG import/export and editing. Unlike
-//  Engine2D (canvas pixels) and Engine3D (WebGL), EngineSVG renders directly
-//  into DOM <svg> nodes — giving crisp output at any zoom level and the
-//  ability to inspect/edit individual <path> elements after render.
-//
-//  As a RenderingEngine it still conforms to init/render/resize/dispose so
-//  it can be selected the same way as Engine2D/Engine3D, but its "canvas"
-//  is really an <svg> element injected next to (not replacing) the actual
-//  <canvas> the runtime created — EC's canvas stays as the layout anchor.
+// Retained-mode SVG renderer. DOM nodes are created once per EC node id and
+// then updated in place, avoiding full subtree destruction/recreation every RAF.
 // ============================================================================
 
 import type { ECGroup, ECMesh, ECNode, ECScene, ECVector2 } from "./ECTypes";
 import { ecPath } from "./ECGraphicsModel";
 import type { ECRenderContext, RenderingEngine } from "./RenderingEngine";
 
-export class EngineSVGEngine implements RenderingEngine {
+interface RetainedSVGNode {
+	type: ECNode["type"];
+	element: SVGElement;
+	vertices?: Float32Array;
+	topology?: ECMesh["topology"];
+}
 
+export class EngineSVGEngine implements RenderingEngine {
 	public readonly name = "svg";
 
-	private svg:       SVGSVGElement | null = null;
-	private container: HTMLElement | null = null;
-	private width  = 0;
+	private svg: SVGSVGElement | null = null;
+	private canvas: HTMLCanvasElement | null = null;
+	private previousCanvasDisplay = "";
+	private backgroundRect: SVGRectElement | null = null;
+	private readonly retainedNodes = new Map<string, RetainedSVGNode>();
+	private width = 0;
 	private height = 0;
 
 	// -------------------------------------------------------------------------
 
 	public init(context: ECRenderContext): void {
+		if (typeof document === "undefined") return;
 
-		if (typeof document === "undefined") return; // SSR guard
-
-		this.width  = context.width;
+		this.width = context.width;
 		this.height = context.height;
 
 		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-		svg.setAttribute("width",  String(this.width));
+		svg.setAttribute("width", String(this.width));
 		svg.setAttribute("height", String(this.height));
 		svg.setAttribute("viewBox", `${-this.width / 2} ${-this.height / 2} ${this.width} ${this.height}`);
 		svg.style.position = "absolute";
-		svg.style.inset    = "0";
+		svg.style.inset = "0";
 		svg.style.pointerEvents = "none";
 
 		context.canvas.parentElement?.appendChild(svg);
-		context.canvas.style.display = "none"; // SVG mode doesn't paint the canvas
-
-		this.svg       = svg;
-		this.container = context.canvas.parentElement;
-
+		this.canvas = context.canvas;
+		this.previousCanvasDisplay = context.canvas.style.display;
+		context.canvas.style.display = "none";
+		this.svg = svg;
 	}
 
 	// -------------------------------------------------------------------------
 
 	public resize(width: number, height: number): void {
-
-		this.width  = width;
+		this.width = width;
 		this.height = height;
 
 		if (this.svg) {
-			this.svg.setAttribute("width",  String(width));
+			this.svg.setAttribute("width", String(width));
 			this.svg.setAttribute("height", String(height));
 			this.svg.setAttribute("viewBox", `${-width / 2} ${-height / 2} ${width} ${height}`);
 		}
-
+		this.updateBackgroundRect();
 	}
 
 	// -------------------------------------------------------------------------
 
 	public render(scene: ECScene, _delta: number, _frame: number): void {
-
 		const svg = this.svg;
 		if (!svg) return;
 
-		while (svg.firstChild) svg.removeChild(svg.firstChild);
+		this.syncBackground(scene);
 
-		if (scene.environment === "void") {
-			// no background rect — transparent infinite space
-		} else if (scene.background) {
-			const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-			bg.setAttribute("x", String(-this.width / 2));
-			bg.setAttribute("y", String(-this.height / 2));
-			bg.setAttribute("width",  String(this.width));
-			bg.setAttribute("height", String(this.height));
-			bg.setAttribute("fill", scene.background);
-			svg.appendChild(bg);
-		}
-
+		const seenIds = new Set<string>();
 		for (const node of scene.children) {
-			const el = this.buildNode(node);
-			if (el) svg.appendChild(el);
+			this.syncNode(node, svg, seenIds);
 		}
-
+		this.removeMissingNodes(seenIds);
 	}
 
 	// -------------------------------------------------------------------------
 
-	private buildNode(node: ECNode): SVGElement | null {
-		if (node.type === "group") return this.buildGroup(node);
-		return this.buildMesh(node);
+	private syncBackground(scene: ECScene): void {
+		const svg = this.svg;
+		if (!svg) return;
+
+		if (scene.environment === "void" || !scene.background) {
+			this.backgroundRect?.remove();
+			this.backgroundRect = null;
+			return;
+		}
+
+		if (!this.backgroundRect) {
+			this.backgroundRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+			this.backgroundRect.setAttribute("data-engine-svg-background", "true");
+			svg.insertBefore(this.backgroundRect, svg.firstChild);
+		}
+
+		this.updateBackgroundRect();
+		this.setAttribute(this.backgroundRect, "fill", scene.background);
 	}
 
-	private buildGroup(group: ECGroup): SVGGElement {
+	private updateBackgroundRect(): void {
+		if (!this.backgroundRect) return;
+		this.setAttribute(this.backgroundRect, "x", String(-this.width / 2));
+		this.setAttribute(this.backgroundRect, "y", String(-this.height / 2));
+		this.setAttribute(this.backgroundRect, "width", String(this.width));
+		this.setAttribute(this.backgroundRect, "height", String(this.height));
+	}
 
-		const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-		const t = group.transform;
+	private syncNode(node: ECNode, parent: SVGElement, seenIds: Set<string>): SVGElement {
+		seenIds.add(node.id);
+		let retained = this.retainedNodes.get(node.id);
 
-		g.setAttribute(
-			"transform",
-			`translate(${t.position.x} ${t.position.y}) rotate(${t.rotation.z}) scale(${t.scale.x} ${t.scale.y})`,
-		);
+		if (retained && retained.type !== node.type) {
+			retained.element.remove();
+			this.retainedNodes.delete(node.id);
+			retained = undefined;
+		}
+
+		if (node.type === "group") {
+			return this.syncGroup(node, parent, retained, seenIds);
+		}
+		return this.syncMesh(node, parent, retained);
+	}
+
+	private syncGroup(
+		group: ECGroup,
+		parent: SVGElement,
+		retained: RetainedSVGNode | undefined,
+		seenIds: Set<string>,
+	): SVGGElement {
+		if (!retained) {
+			const element = document.createElementNS("http://www.w3.org/2000/svg", "g");
+			retained = { type: "group", element };
+			this.retainedNodes.set(group.id, retained);
+		}
+
+		const element = retained.element as SVGGElement;
+		this.attachToParent(element, parent);
+		this.setAttribute(element, "transform", this.transformString(group.transform));
 
 		for (const child of group.children) {
-			const el = this.buildNode(child);
-			if (el) g.appendChild(el);
+			this.syncNode(child, element, seenIds);
 		}
 
-		return g;
-
+		return element;
 	}
 
-	private buildMesh(mesh: ECMesh): SVGPathElement {
-
-		const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-		const t    = mesh.transform;
-
-		let d = "";
-		for (let i = 0; i < mesh.vertices.length; i += 3) {
-			const x = mesh.vertices[i], y = mesh.vertices[i + 1];
-			d += (i === 0 ? "M" : "L") + x + "," + y + " ";
+	private syncMesh(
+		mesh: ECMesh,
+		parent: SVGElement,
+		retained?: RetainedSVGNode,
+	): SVGPathElement {
+		if (!retained) {
+			const element = document.createElementNS("http://www.w3.org/2000/svg", "path");
+			retained = {
+				type: "mesh",
+				element,
+			};
+			this.retainedNodes.set(mesh.id, retained);
 		}
-		if (mesh.topology === "fan") d += "Z";
 
-		path.setAttribute("d", d.trim());
-		path.setAttribute(
-			"transform",
-			`translate(${t.position.x} ${t.position.y}) rotate(${t.rotation.z}) scale(${t.scale.x} ${t.scale.y})`,
-		);
+		const path = retained.element as SVGPathElement;
+		this.attachToParent(path, parent);
 
-		const mat = mesh.material;
-		path.setAttribute("fill",         mat.fill   ?? "none");
-		path.setAttribute("stroke",       mat.stroke ?? "none");
-		path.setAttribute("stroke-width", String(mat.strokeWidth ?? 1));
-		path.setAttribute("opacity",      String(mat.opacity ?? 1));
+		if (retained.vertices !== mesh.vertices || retained.topology !== mesh.topology) {
+			this.setAttribute(path, "d", this.pathData(mesh));
+			retained.vertices = mesh.vertices;
+			retained.topology = mesh.topology;
+		}
 
+		this.setAttribute(path, "transform", this.transformString(mesh.transform));
+		this.setAttribute(path, "fill", mesh.topology === "strip" ? "none" : mesh.material.fill ?? "none");
+		this.setAttribute(path, "stroke", mesh.material.stroke ?? "none");
+		this.setAttribute(path, "stroke-width", String(mesh.material.strokeWidth ?? 1));
+		this.setAttribute(path, "opacity", String(mesh.material.opacity ?? 1));
 		return path;
+	}
 
+	private pathData(mesh: ECMesh): string {
+		const segments: string[] = [];
+		for (let index = 0; index < mesh.vertices.length; index += 3) {
+			segments.push(`${index === 0 ? "M" : "L"}${mesh.vertices[index]},${mesh.vertices[index + 1]}`);
+		}
+		if (mesh.topology === "fan") segments.push("Z");
+		return segments.join(" ");
+	}
+
+	private transformString(transform: ECGroup["transform"]): string {
+		return `translate(${transform.position.x} ${transform.position.y}) rotate(${transform.rotation.z}) scale(${transform.scale.x} ${transform.scale.y})`;
+	}
+
+	private attachToParent(element: SVGElement, parent: SVGElement): void {
+		if (element.parentElement === parent) return;
+		parent.appendChild(element);
+	}
+
+	private setAttribute(element: Element, name: string, value: string): void {
+		if (element.getAttribute(name) === value) return;
+		element.setAttribute(name, value);
+	}
+
+	private removeMissingNodes(seenIds: Set<string>): void {
+		for (const [nodeId, retained] of this.retainedNodes) {
+			if (seenIds.has(nodeId)) continue;
+			retained.element.remove();
+			this.retainedNodes.delete(nodeId);
+		}
 	}
 
 	// -------------------------------------------------------------------------
 
 	public dispose(): void {
-
+		this.retainedNodes.clear();
+		this.backgroundRect = null;
 		this.svg?.remove();
 		this.svg = null;
-
+		if (this.canvas) this.canvas.style.display = this.previousCanvasDisplay;
+		this.canvas = null;
+		this.previousCanvasDisplay = "";
 	}
-
 }
 
 // ============================================================================
@@ -166,122 +231,132 @@ export class EngineSVGEngine implements RenderingEngine {
 /**
  * Parses an SVG source string into ECMesh nodes — one per <path>, <circle>,
  * <rect>, <line>, or <polygon> found. Groups (<g>) are flattened; nested
- * transforms are not currently composed (planned for a future revision).
+ * transforms are not currently composed.
  */
 export function importSVG(svgSource: string): ECNode[] {
-
 	if (typeof DOMParser === "undefined") {
 		throw new Error("[EngineSVG] importSVG() is browser-only (requires DOMParser).");
 	}
 
-	const doc = new DOMParser().parseFromString(svgSource, "image/svg+xml");
+	const documentNode = new DOMParser().parseFromString(svgSource, "image/svg+xml");
 	const nodes: ECNode[] = [];
 
-	doc.querySelectorAll("path, circle, rect, line, polygon").forEach((el) => {
-
-		if (el.tagName === "path") {
-			const d = el.getAttribute("d");
-			if (d) nodes.push(ecPath(d, { material: readMaterial(el) }));
+	documentNode.querySelectorAll("path, circle, rect, line, polygon").forEach((element) => {
+		if (element.tagName === "path") {
+			const pathData = element.getAttribute("d");
+			if (pathData) nodes.push(ecPath(pathData, { material: readMaterial(element) }));
 			return;
 		}
 
-		if (el.tagName === "circle") {
-			const cx = parseFloat(el.getAttribute("cx") ?? "0");
-			const cy = parseFloat(el.getAttribute("cy") ?? "0");
-			const r  = parseFloat(el.getAttribute("r")  ?? "0");
-			nodes.push(
-				ecPath(circlePoints(cx, cy, r), { material: readMaterial(el) }),
-			);
+		if (element.tagName === "circle") {
+			const centerX = parseFloat(element.getAttribute("cx") ?? "0");
+			const centerY = parseFloat(element.getAttribute("cy") ?? "0");
+			const radius = parseFloat(element.getAttribute("r") ?? "0");
+			nodes.push(ecPath(circlePoints(centerX, centerY, radius), { material: readMaterial(element) }));
 			return;
 		}
 
-		if (el.tagName === "polygon" || el.tagName === "line") {
-			const pointsAttr = el.getAttribute("points") ?? "";
-			const points = pointsAttr
+		if (element.tagName === "line") {
+			const x1 = parseFloat(element.getAttribute("x1") ?? "0");
+			const y1 = parseFloat(element.getAttribute("y1") ?? "0");
+			const x2 = parseFloat(element.getAttribute("x2") ?? "0");
+			const y2 = parseFloat(element.getAttribute("y2") ?? "0");
+			nodes.push(ecPath([{ x: x1, y: y1 }, { x: x2, y: y2 }], { material: readMaterial(element) }));
+			return;
+		}
+
+		if (element.tagName === "polygon") {
+			const points = (element.getAttribute("points") ?? "")
 				.trim()
 				.split(/\s+/)
+				.filter(Boolean)
 				.map((pair) => {
 					const [x, y] = pair.split(",").map(Number);
 					return { x, y };
 				});
-			nodes.push(ecPath(points, { material: readMaterial(el) }));
+			nodes.push(ecPath(points, { material: readMaterial(element) }));
 			return;
 		}
 
-		if (el.tagName === "rect") {
-			const x = parseFloat(el.getAttribute("x") ?? "0");
-			const y = parseFloat(el.getAttribute("y") ?? "0");
-			const w = parseFloat(el.getAttribute("width")  ?? "0");
-			const h = parseFloat(el.getAttribute("height") ?? "0");
+		if (element.tagName === "rect") {
+			const x = parseFloat(element.getAttribute("x") ?? "0");
+			const y = parseFloat(element.getAttribute("y") ?? "0");
+			const width = parseFloat(element.getAttribute("width") ?? "0");
+			const height = parseFloat(element.getAttribute("height") ?? "0");
 			nodes.push(
 				ecPath(
 					[
-						{ x, y }, { x: x + w, y }, { x: x + w, y: y + h }, { x, y: y + h }, { x, y },
+						{ x, y },
+						{ x: x + width, y },
+						{ x: x + width, y: y + height },
+						{ x, y: y + height },
+						{ x, y },
 					],
-					{ material: readMaterial(el) },
+					{ material: readMaterial(element) },
 				),
 			);
 		}
-
 	});
 
 	return nodes;
-
 }
 
-function circlePoints(cx: number, cy: number, r: number, segments = 32): ECVector2[] {
-	const pts: ECVector2[] = [];
-	for (let i = 0; i <= segments; i++) {
-		const a = (i / segments) * Math.PI * 2;
-		pts.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r });
+function circlePoints(centerX: number, centerY: number, radius: number, segments = 32): ECVector2[] {
+	const points: ECVector2[] = [];
+	for (let index = 0; index <= segments; index++) {
+		const angle = (index / segments) * Math.PI * 2;
+		points.push({
+			x: centerX + Math.cos(angle) * radius,
+			y: centerY + Math.sin(angle) * radius,
+		});
 	}
-	return pts;
+	return points;
 }
 
-function readMaterial(el: Element) {
+function readMaterial(element: Element) {
 	return {
-		fill:        el.getAttribute("fill")        ?? undefined,
-		stroke:      el.getAttribute("stroke")       ?? undefined,
-		strokeWidth: el.getAttribute("stroke-width") ? parseFloat(el.getAttribute("stroke-width")!) : undefined,
-		opacity:     el.getAttribute("opacity")      ? parseFloat(el.getAttribute("opacity")!)      : undefined,
+		fill: element.getAttribute("fill") ?? undefined,
+		stroke: element.getAttribute("stroke") ?? undefined,
+		strokeWidth: element.getAttribute("stroke-width")
+			? parseFloat(element.getAttribute("stroke-width")!)
+			: undefined,
+		opacity: element.getAttribute("opacity")
+			? parseFloat(element.getAttribute("opacity")!)
+			: undefined,
 	};
 }
 
 /** Serializes an ECScene into a standalone SVG document string. */
 export function exportSVG(scene: ECScene, width: number, height: number): string {
-
 	const body = scene.children.map(nodeToSVGString).join("\n");
-
 	return (
 		`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" ` +
 		`viewBox="${-width / 2} ${-height / 2} ${width} ${height}">\n${body}\n</svg>`
 	);
-
 }
 
 function nodeToSVGString(node: ECNode): string {
-
 	if (node.type === "group") {
-		const t = node.transform;
+		const transform = node.transform;
 		const inner = node.children.map(nodeToSVGString).join("\n");
 		return (
-			`<g transform="translate(${t.position.x} ${t.position.y}) ` +
-			`rotate(${t.rotation.z}) scale(${t.scale.x} ${t.scale.y})">\n${inner}\n</g>`
+			`<g transform="translate(${transform.position.x} ${transform.position.y}) ` +
+			`rotate(${transform.rotation.z}) scale(${transform.scale.x} ${transform.scale.y})">\n${inner}\n</g>`
 		);
 	}
 
-	let d = "";
-	for (let i = 0; i < node.vertices.length; i += 3) {
-		const x = node.vertices[i], y = node.vertices[i + 1];
-		d += (i === 0 ? "M" : "L") + x + "," + y + " ";
+	const pathSegments: string[] = [];
+	for (let index = 0; index < node.vertices.length; index += 3) {
+		pathSegments.push(`${index === 0 ? "M" : "L"}${node.vertices[index]},${node.vertices[index + 1]}`);
 	}
-	if (node.topology === "fan") d += "Z";
+	if (node.topology === "fan") pathSegments.push("Z");
 
-	const mat = node.material;
-
+	const material = node.material;
+	const transform = node.transform;
 	return (
-		`<path d="${d.trim()}" fill="${mat.fill ?? "none"}" stroke="${mat.stroke ?? "none"}" ` +
-		`stroke-width="${mat.strokeWidth ?? 1}" opacity="${mat.opacity ?? 1}" />`
+		`<path d="${pathSegments.join(" ")}" fill="${node.topology === "strip" ? "none" : material.fill ?? "none"}" ` +
+		`stroke="${material.stroke ?? "none"}" stroke-width="${material.strokeWidth ?? 1}" ` +
+		`opacity="${material.opacity ?? 1}" transform="translate(${transform.position.x} ${transform.position.y}) ` +
+		`rotate(${transform.rotation.z}) scale(${transform.scale.x} ${transform.scale.y})" />`
 	);
-
 }
