@@ -18,10 +18,7 @@ export type ManimAction =
 	| "FadeIn"
 	| "FadeOut"
 	| "Transform"
-	| "Wait"
-	| "MoveTo"
-	| "Scale"
-	| "Rotate";
+	| "Wait";
 
 export interface ManimCircle {
 	id:           string;

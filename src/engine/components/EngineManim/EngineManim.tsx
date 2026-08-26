@@ -203,9 +203,6 @@ export const EngineManim = memo(function EngineManim({
 							);
 							break;
 						}
-
-						case "Wait":
-							break;
 					}
 				}
 
