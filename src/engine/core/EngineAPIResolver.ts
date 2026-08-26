@@ -26,8 +26,10 @@ export interface EngineAPIConfig {
 
 export type EngineAPIFormData = Record<string, unknown> | FormData;
 
-function isMergeableObject(value: unknown): value is Record<string, unknown> {
-	return value !== null && typeof value === "object" && !Array.isArray(value);
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+	const prototype = Object.getPrototypeOf(value);
+	return prototype === Object.prototype || prototype === null;
 }
 
 function deepMerge(target: Record<string, unknown>, ...sources: Array<Record<string, unknown> | undefined>): Record<string, unknown> {
@@ -36,7 +38,7 @@ function deepMerge(target: Record<string, unknown>, ...sources: Array<Record<str
 		if (!source) continue;
 		for (const [key, value] of Object.entries(source)) {
 			const existingValue = result[key];
-			if (isMergeableObject(value) && isMergeableObject(existingValue)) {
+			if (isPlainObject(value) && isPlainObject(existingValue)) {
 				result[key] = deepMerge(existingValue, value);
 			} else {
 				result[key] = value;
@@ -88,17 +90,13 @@ function appendFormDataValue(target: FormData, key: string, value: unknown): voi
 
 function buildRequestBody(formData: EngineAPIFormData): BodyInit {
 	if (isNativeFormData(formData)) return formData;
-
 	const hasBinaryPayload = Object.values(formData).some(containsBinaryValue);
 	if (!hasBinaryPayload) return JSON.stringify(formData);
 	if (typeof FormData === "undefined") {
 		throw new Error("[EngineAPIResolver] Binary form data requires the FormData Web API.");
 	}
-
 	const nativeFormData = new FormData();
-	for (const [key, value] of Object.entries(formData)) {
-		appendFormDataValue(nativeFormData, key, value);
-	}
+	for (const [key, value] of Object.entries(formData)) appendFormDataValue(nativeFormData, key, value);
 	return nativeFormData;
 }
 
@@ -110,6 +108,20 @@ function encodeBytesBase64(bytes: Uint8Array): string {
 
 function encodeBase64Utf8(value: string): string {
 	return encodeBytesBase64(new TextEncoder().encode(value));
+}
+
+function deleteHeaderCaseInsensitive(headers: Record<string, string>, target: string): void {
+	const normalizedTarget = target.toLowerCase();
+	for (const key of Object.keys(headers)) {
+		if (key.toLowerCase() === normalizedTarget) delete headers[key];
+	}
+}
+
+function decodeBase64(value: string): Uint8Array {
+	const binary = atob(value);
+	const bytes = new Uint8Array(binary.length);
+	for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+	return bytes;
 }
 
 export class EngineAPIResolver {
@@ -142,22 +154,19 @@ export class EngineAPIResolver {
 			}
 		}
 
-		if (!url.trim()) {
-			throw new Error("[EngineAPIResolver] Cannot resolve a request without an endpoint.");
-		}
+		if (!url.trim()) throw new Error("[EngineAPIResolver] Cannot resolve a request without an endpoint.");
 
 		let body: BodyInit | undefined;
-		if (["POST", "PUT", "PATCH", "DELETE"].includes(method) && formData) {
-			body = buildRequestBody(formData);
-		}
+		if (!["GET", "HEAD"].includes(method) && formData !== undefined) body = buildRequestBody(formData);
 
 		const headers: Record<string, string> = {
 			...(typeof body === "string" ? { "Content-Type": "application/json" } : {}),
 			...(config.headers || {}),
 		};
+		if (isNativeFormData(body)) deleteHeaderCaseInsensitive(headers, "Content-Type");
 
 		const auth = config.auth || { type: "none" };
-		const timestamp = Math.floor(Date.now() / 1000).toString();
+		const timestamp = Date.now().toString();
 		const signatureBody = typeof body === "string" ? body : "";
 
 		switch (auth.type) {
@@ -178,23 +187,23 @@ export class EngineAPIResolver {
 				}
 				break;
 			case "hmac": {
-				if (auth.key && auth.secret) {
+				if (auth.secret) {
 					const algorithm = String(auth.algorithm).toUpperCase() === "SHA-512" ? "SHA-512" : "SHA-256";
 					const signaturePayload = `${method}\n${url}\n${timestamp}\n${signatureBody}`;
 					headers["X-Signature"] = await this.cryptoHMAC(signaturePayload, auth.secret, algorithm);
-					headers["X-Key"] = auth.key;
 					headers["X-Timestamp"] = timestamp;
+					if (auth.key) headers["X-Key"] = auth.key;
 				}
 				break;
 			}
 			case "pnp": {
-				if (auth.key && auth.privateKey) {
+				if (auth.privateKey) {
 					const signaturePayload = `${url}\n${timestamp}\n${signatureBody}`;
 					const signingKey = await this.resolvePrivateKey(auth.privateKey, auth.algorithm);
 					if (!signingKey) break;
 					headers["X-Signature"] = await this.cryptoAsymmetricSign(signaturePayload, signingKey);
-					headers["X-Key"] = auth.key;
 					headers["X-Timestamp"] = timestamp;
+					if (auth.key) headers["X-Key"] = auth.key;
 				}
 				break;
 			}
@@ -231,19 +240,26 @@ export class EngineAPIResolver {
 	): Promise<CryptoKey | undefined> {
 		if (typeof CryptoKey !== "undefined" && privateKey instanceof CryptoKey) return privateKey;
 
-		const jwk = typeof privateKey === "string" ? JSON.parse(privateKey) as JsonWebKey : privateKey;
 		const normalizedAlgorithm: AlgorithmIdentifier | RsaHashedImportParams =
 			String(algorithm).toUpperCase() === "RS256"
 				? { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }
 				: { name: "Ed25519" };
 
-		return (crypto.subtle.importKey as any)(
-			"jwk",
-			jwk,
-			normalizedAlgorithm,
-			false,
-			["sign"],
-		) as Promise<CryptoKey>;
+		if (typeof privateKey === "string") {
+			const trimmed = privateKey.trim();
+			if (trimmed.startsWith("-----BEGIN")) {
+				const encoded = trimmed
+					.replace(/-----BEGIN PRIVATE KEY-----/g, "")
+					.replace(/-----END PRIVATE KEY-----/g, "")
+					.replace(/\s+/g, "");
+				const pkcs8 = decodeBase64(encoded);
+				return crypto.subtle.importKey("pkcs8", pkcs8, normalizedAlgorithm, false, ["sign"]);
+			}
+			const jwk = JSON.parse(trimmed) as JsonWebKey;
+			return (crypto.subtle.importKey as any)("jwk", jwk, normalizedAlgorithm, false, ["sign"]) as Promise<CryptoKey>;
+		}
+
+		return (crypto.subtle.importKey as any)("jwk", privateKey, normalizedAlgorithm, false, ["sign"]) as Promise<CryptoKey>;
 	}
 
 	private async cryptoAsymmetricSign(payload: string, privateKey: CryptoKey): Promise<string> {
