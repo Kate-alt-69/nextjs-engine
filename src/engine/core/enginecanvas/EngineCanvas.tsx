@@ -156,8 +156,8 @@ function getCanvasCssSize(
 	height: number | undefined,
 ): { width: number; height: number } {
 	return {
-		width: width ?? canvas.clientWidth || 300,
-		height: height ?? canvas.clientHeight || 150,
+		width: (width ?? canvas.clientWidth) || 300,
+		height: (height ?? canvas.clientHeight) || 150,
 	};
 }
 
