@@ -1,58 +1,80 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Engine — EngineManim3D  (Tiers 1–4)
-//
-//  Three.js-based 3D renderer integrated with the EngineManim DSL.
-//
-//  Tier 1 — Static GLTF/GLB/OBJ mesh via WebGL
-//  Tier 2 — GLTF built-in animation clip playback
-//  Tier 2.5 — Animation routing: file clip | source DSL | per-bone overrides
-//  Tier 3 — DSL frame() blocks driving bone transforms
-//  Tier 4 — Constraint bindings: camera.look.content = boneName
-//
-//  Three.js is dynamically imported so it only ships to pages that use manim3d.
-//
-//  Schema type: "manim3d"
+//  Engine — EngineManim3D
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
-	useRef,
-	useEffect,
 	memo,
+	useEffect,
+	useRef,
 	type CSSProperties,
 } from "react";
-import type { Manim3DConfig }          from "./manimTypes";
-import { parseManimDSL }               from "./manimDSLParser";
+import type { Manim3DConfig } from "./manimTypes";
 import { routeAnimation, sampleBoneTrack } from "./manimAnimationRouter";
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Props
-// ─────────────────────────────────────────────────────────────────────────────
+type ThreeModule = typeof import("three");
+type ThreeObject = InstanceType<ThreeModule["Object3D"]>;
+
+type BoneBaseState = {
+	position: [number, number, number];
+	rotation: [number, number, number];
+	scale: [number, number, number];
+};
 
 export interface EngineManim3DProps {
 	cprop: { manim3d: Manim3DConfig };
-	width?:     number;
-	height?:    number;
+	width?: number;
+	height?: number;
 	className?: string;
-	style?:     CSSProperties;
+	style?: CSSProperties;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Helpers
-// ─────────────────────────────────────────────────────────────────────────────
+function toRad(degrees: number): number {
+	return (degrees * Math.PI) / 180;
+}
 
-function hexToThreeColor(color: string, THREE: any): any {
+function resolveThreeColor(color: string, THREE: ThreeModule): InstanceType<ThreeModule["Color"]> {
 	return new THREE.Color(color.startsWith("var(") ? "#ffffff" : color);
 }
 
-function toRad(deg: number): number {
-	return (deg * Math.PI) / 180;
+function disposeObjectTree(root: ThreeObject): void {
+	const disposedTextures = new Set<unknown>();
+	const disposedMaterials = new Set<unknown>();
+	const disposedGeometries = new Set<unknown>();
+
+	root.traverse((child: any) => {
+		const geometry = child.geometry;
+		if (geometry?.dispose && !disposedGeometries.has(geometry)) {
+			disposedGeometries.add(geometry);
+			geometry.dispose();
+		}
+
+		const materials = Array.isArray(child.material) ? child.material : [child.material];
+		for (const material of materials) {
+			if (!material || disposedMaterials.has(material)) continue;
+			disposedMaterials.add(material);
+			for (const value of Object.values(material)) {
+				if ((value as any)?.isTexture && !disposedTextures.has(value)) {
+					disposedTextures.add(value);
+					(value as any).dispose?.();
+				}
+			}
+			material.dispose?.();
+		}
+	});
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Component
-// ─────────────────────────────────────────────────────────────────────────────
+function setWireframe(root: ThreeObject, enabled: boolean): void {
+	if (!enabled) return;
+	root.traverse((child: any) => {
+		if (!child.isMesh) return;
+		const materials = Array.isArray(child.material) ? child.material : [child.material];
+		for (const material of materials) {
+			if (material && "wireframe" in material) material.wireframe = true;
+		}
+	});
+}
 
 export const EngineManim3D = memo(function EngineManim3D({
 	cprop,
@@ -62,259 +84,332 @@ export const EngineManim3D = memo(function EngineManim3D({
 	style,
 }: EngineManim3DProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const cfg       = cprop.manim3d;
+	const cfg = cprop.manim3d;
 
 	useEffect(() => {
-		if (!canvasRef.current) return;
-		const canvas = canvasRef.current;
-		let   raf    = 0;
-		let   stopped = false;
+		const mountedCanvas = canvasRef.current;
+		if (!mountedCanvas) return;
 
-		// ── Dynamic imports — keep Three.js out of main bundle ────────────────
-		async function init() {
-			const THREE       = await import("three" as any);
-			const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js" as any);
-			const { OBJLoader }  = await import("three/examples/jsm/loaders/OBJLoader.js"  as any);
+		let disposed = false;
+		let cleanupInitializedRuntime: (() => void) | undefined;
 
-			// ── Renderer ──────────────────────────────────────────────────────
+		async function init(canvas: HTMLCanvasElement): Promise<(() => void) | undefined> {
+			const THREE = await import("three");
+			if (disposed) return undefined;
+
+			const format = cfg.format ?? (cfg.src.toLowerCase().endsWith(".obj") ? "obj" : "gltf");
+			const measuredWidth = width ?? canvas.clientWidth;
+			const measuredHeight = height ?? canvas.clientHeight;
+			const initialWidth = Math.max(1, measuredWidth || 800);
+			const initialHeight = Math.max(1, measuredHeight || 600);
+
 			const renderer = new THREE.WebGLRenderer({
 				canvas,
 				antialias: true,
-				alpha:     true,
+				alpha: true,
 				powerPreference: "high-performance",
 			});
-			renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+			renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 			renderer.shadowMap.enabled = cfg.settings?.shadows ?? false;
-			renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+			renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+			renderer.setSize(initialWidth, initialHeight, false);
 
-			const w = width  ?? canvas.clientWidth  ?? 800;
-			const h = height ?? canvas.clientHeight ?? 600;
-			renderer.setSize(w, h, false);
-
-			// ── Scene ─────────────────────────────────────────────────────────
 			const scene = new THREE.Scene();
 			if (cfg.settings?.background && cfg.settings.background !== "transparent") {
-				scene.background = hexToThreeColor(cfg.settings.background, THREE);
+				scene.background = resolveThreeColor(cfg.settings.background, THREE);
 			}
 
-			// ── Camera ────────────────────────────────────────────────────────
-			const camCfg = cfg.camera ?? {};
+			const cameraConfig = cfg.camera ?? {};
 			const camera = new THREE.PerspectiveCamera(
-				camCfg.fov  ?? 60,
-				w / h,
-				camCfg.near ?? 0.1,
-				camCfg.far  ?? 1000,
+				cameraConfig.fov ?? 60,
+				initialWidth / initialHeight,
+				cameraConfig.near ?? 0.1,
+				cameraConfig.far ?? 1000,
 			);
-			const camPos = camCfg.position ?? [0, 2, 5];
-			camera.position.set(camPos[0], camPos[1], camPos[2]);
+			const cameraPosition = cameraConfig.position ?? [0, 2, 5];
+			camera.position.set(...cameraPosition);
 
-			// ── Lights ────────────────────────────────────────────────────────
 			const lights = cfg.lights ?? [
-				{ type: "ambient",     intensity: 0.4, color: "#ffffff" },
+				{ type: "ambient", intensity: 0.4, color: "#ffffff" },
 				{ type: "directional", intensity: 0.8, direction: [1, -1, 0.5] },
 			];
-
-			for (const lCfg of lights) {
-				const color = hexToThreeColor(lCfg.color ?? "#ffffff", THREE);
-				switch (lCfg.type) {
-					case "ambient": {
-						scene.add(new THREE.AmbientLight(color, lCfg.intensity ?? 0.4));
+			for (const lightConfig of lights) {
+				const color = resolveThreeColor(lightConfig.color ?? "#ffffff", THREE);
+				switch (lightConfig.type) {
+					case "ambient":
+						scene.add(new THREE.AmbientLight(color, lightConfig.intensity ?? 0.4));
 						break;
-					}
 					case "directional": {
-						const dl = new THREE.DirectionalLight(color, lCfg.intensity ?? 0.8);
-						if (lCfg.direction) {
-							const d = lCfg.direction;
-							dl.position.set(-d[0], -d[1], -d[2]).normalize();
+						const light = new THREE.DirectionalLight(color, lightConfig.intensity ?? 0.8);
+						if (lightConfig.direction) {
+							const direction = lightConfig.direction;
+							light.position.set(-direction[0], -direction[1], -direction[2]).normalize();
 						}
-						dl.castShadow = lCfg.castShadow ?? false;
-						scene.add(dl);
+						light.castShadow = lightConfig.castShadow ?? false;
+						scene.add(light);
 						break;
 					}
 					case "point": {
-						const pl = new THREE.PointLight(color, lCfg.intensity ?? 1);
-						if (lCfg.position) pl.position.set(...lCfg.position);
-						scene.add(pl);
+						const light = new THREE.PointLight(color, lightConfig.intensity ?? 1);
+						if (lightConfig.position) light.position.set(...lightConfig.position);
+						scene.add(light);
 						break;
 					}
 					case "spot": {
-						const sl = new THREE.SpotLight(color, lCfg.intensity ?? 1);
-						if (lCfg.position) sl.position.set(...lCfg.position);
-						scene.add(sl);
+						const light = new THREE.SpotLight(color, lightConfig.intensity ?? 1);
+						if (lightConfig.position) light.position.set(...lightConfig.position);
+						scene.add(light);
 						break;
 					}
 				}
 			}
 
-			// ── Load model ────────────────────────────────────────────────────
-			let mixer:     any       = null; // THREE.AnimationMixer
-			let boneMap:   Map<string, any>  = new Map();
-			let gltfClips: any[]     = [];
-			let activeAction: any    = null;
+			let modelRoot: ThreeObject | null = null;
+			let mixer: InstanceType<ThreeModule["AnimationMixer"]> | null = null;
+			let activeAction: InstanceType<ThreeModule["AnimationAction"]> | null = null;
+			const boneMap = new Map<string, any>();
+			const boneBaseState = new Map<string, BoneBaseState>();
+			let boneTracks: ReturnType<typeof routeAnimation>["boneTracks"] = [];
+			let lookTarget: any = null;
 
-			const fmt = cfg.format ?? (cfg.src.endsWith(".obj") ? "obj" : "gltf");
-
-			if (fmt === "obj") {
-				const loader   = new OBJLoader();
-				const object   = await loader.loadAsync(cfg.src);
-				if (cfg.settings?.wireframe) {
-					object.traverse((child: any) => {
-						if (child.isMesh) child.material.wireframe = true;
-					});
+			if (format === "obj") {
+				const { OBJLoader } = await import("three/examples/jsm/loaders/OBJLoader.js");
+				if (disposed) {
+					renderer.dispose();
+					return undefined;
 				}
-				scene.add(object);
-
+				modelRoot = await new OBJLoader().loadAsync(cfg.src);
 			} else {
-				// GLTF / GLB
-				const loader   = new GLTFLoader();
-				const gltf     = await loader.loadAsync(cfg.src);
-				const model    = gltf.scene;
-				gltfClips      = gltf.animations ?? [];
-
-				if (cfg.settings?.wireframe) {
-					model.traverse((child: any) => {
-						if (child.isMesh) child.material.wireframe = true;
-					});
+				const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
+				if (disposed) {
+					renderer.dispose();
+					return undefined;
 				}
-				scene.add(model);
+				const gltf = await new GLTFLoader().loadAsync(cfg.src);
+				modelRoot = gltf.scene;
 
-				// Build bone name → THREE.Bone map for DSL access
-				model.traverse((obj: any) => {
-					if (obj.isBone) boneMap.set(obj.name, obj);
+				modelRoot.traverse((object: any) => {
+					if (!object.isBone) return;
+					boneMap.set(object.name, object);
+					boneBaseState.set(object.name, {
+						position: [object.position.x, object.position.y, object.position.z],
+						rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
+						scale: [object.scale.x, object.scale.y, object.scale.z],
+					});
 				});
 
-				// ── Tier 2: GLTF clip playback ────────────────────────────────
-				if (gltfClips.length > 0 && cfg.animation) {
-					mixer = new THREE.AnimationMixer(model);
-					const route   = routeAnimation(cfg.animation, 240);
-
-					if (route.clipName) {
-						const clip = gltfClips.find((c: any) => c.name === route.clipName)
-							?? gltfClips[0];
+				if (cfg.animation) {
+					const route = routeAnimation(cfg.animation, 240);
+					boneTracks = route.boneTracks;
+					if (route.clipName && gltf.animations.length > 0) {
+						const clip = gltf.animations.find((candidate: any) => candidate.name === route.clipName)
+							?? gltf.animations[0];
 						if (clip) {
+							mixer = new THREE.AnimationMixer(modelRoot);
 							activeAction = mixer.clipAction(clip);
 							activeAction.timeScale = route.clipSpeed;
 							activeAction.play();
 						}
 					}
-
-					// ── Tier 2.5 / 3: Per-bone DSL overrides ─────────────────
-					if (route.boneTracks.length > 0) {
-						// Stored for per-frame sampling in the RAF loop
-						(renderer as any).__engineBoneTracks = route.boneTracks;
-					}
 				}
 
-				// ── Tier 4: Camera constraint — camera.look.content = boneName ─
 				const lookContent = cfg.camera?.look?.content;
-				if (lookContent && typeof lookContent === "string") {
-					(renderer as any).__engineLookTarget = boneMap.get(lookContent) ?? null;
-				}
+				if (typeof lookContent === "string") lookTarget = boneMap.get(lookContent) ?? null;
 			}
 
-			// ── ResizeObserver ────────────────────────────────────────────────
-			const ro = new ResizeObserver(() => {
-				const pw = canvas.clientWidth;
-				const ph = canvas.clientHeight;
-				camera.aspect = pw / ph;
-				camera.updateProjectionMatrix();
-				renderer.setSize(pw, ph, false);
-			});
-			ro.observe(canvas.parentElement ?? canvas);
+			if (!modelRoot) {
+				renderer.dispose();
+				return undefined;
+			}
 
-			// ── IntersectionObserver (pause when off-screen) ──────────────────
-			let visible = true;
-			const io = new IntersectionObserver(
-				([entry]) => { visible = entry.isIntersecting; },
-				{ threshold: 0.01 },
-			);
-			io.observe(canvas);
+			if (disposed) {
+				disposeObjectTree(modelRoot);
+				renderer.dispose();
+				return undefined;
+			}
 
-			// ── RAF loop ──────────────────────────────────────────────────────
-			const clock  = new THREE.Clock();
-			const fpsInterval = 1 / (cfg.settings?.fps ?? 60);
-			let   fpsAccum    = 0;
+			setWireframe(modelRoot, cfg.settings?.wireframe ?? false);
+			scene.add(modelRoot);
 
-			function tick() {
-				if (stopped) return;
-				raf = requestAnimationFrame(tick);
-				if (!visible) return;
+			let raf = 0;
+			let nearViewport = true;
+			let documentVisible = !document.hidden;
+			let running = false;
+			const clock = new THREE.Clock(false);
+			const fpsInterval = 1 / Math.max(1, cfg.settings?.fps ?? 60);
+			let fpsAccumulator = 0;
+			let sourceAnimationTime = 0;
+			const sourceDuration = 240 / Math.max(1, cfg.settings?.fps ?? 60);
+			const continuous = Boolean(mixer || boneTracks.length > 0);
 
-				const delta = clock.getDelta();
-				fpsAccum += delta;
-				if (fpsAccum < fpsInterval) return;
-				fpsAccum = 0;
+			const applyBoneTracks = (normalTime: number): void => {
+				for (const track of boneTracks) {
+					const bone = boneMap.get(track.bone);
+					if (!bone) continue;
+					const sampled = sampleBoneTrack(track, normalTime);
+					const base = boneBaseState.get(track.bone);
 
-				// Advance GLTF mixer
-				if (mixer) mixer.update(delta);
-
-				// ── Tier 3: Apply DSL bone transforms ────────────────────────
-				const boneTracks = (renderer as any).__engineBoneTracks;
-				if (boneTracks && mixer) {
-					const normalT = (mixer.time % (activeAction?.getClip()?.duration ?? 1))
-						/ (activeAction?.getClip()?.duration ?? 1);
-
-					for (const track of boneTracks) {
-						const bone = boneMap.get(track.bone);
-						if (!bone) continue;
-						const state = sampleBoneTrack(track, normalT);
-
-						if (state.move) {
-							bone.position.x += state.move[0] * (track.mode === "additive" ? 1 : 0);
-							if (track.mode === "replace") bone.position.set(...state.move);
-						}
-						if (state.rotate) {
-							bone.rotation.set(
-								toRad(state.rotate[0]),
-								toRad(state.rotate[1]),
-								toRad(state.rotate[2]),
+					if (sampled.move) {
+						if (track.mode === "additive") {
+							const origin = mixer ? [bone.position.x, bone.position.y, bone.position.z] : (base?.position ?? [0, 0, 0]);
+							bone.position.set(
+								origin[0] + sampled.move[0],
+								origin[1] + sampled.move[1],
+								origin[2] + sampled.move[2],
 							);
+						} else {
+							bone.position.set(...sampled.move);
 						}
-						if (state.scale) {
-							bone.scale.set(...state.scale);
+					}
+
+					if (sampled.rotate) {
+						const rotation = sampled.rotate.map(toRad) as [number, number, number];
+						if (track.mode === "additive") {
+							const origin = mixer ? [bone.rotation.x, bone.rotation.y, bone.rotation.z] : (base?.rotation ?? [0, 0, 0]);
+							bone.rotation.set(origin[0] + rotation[0], origin[1] + rotation[1], origin[2] + rotation[2]);
+						} else {
+							bone.rotation.set(...rotation);
+						}
+					}
+
+					if (sampled.scale) {
+						if (track.mode === "additive") {
+							const origin = mixer ? [bone.scale.x, bone.scale.y, bone.scale.z] : (base?.scale ?? [1, 1, 1]);
+							bone.scale.set(
+								origin[0] * sampled.scale[0],
+								origin[1] * sampled.scale[1],
+								origin[2] * sampled.scale[2],
+							);
+						} else {
+							bone.scale.set(...sampled.scale);
 						}
 					}
 				}
+			};
 
-				// ── Tier 4: Camera look constraint ────────────────────────────
-				const lookTarget = (renderer as any).__engineLookTarget;
+			const updateCameraConstraint = (): void => {
 				if (lookTarget) {
-					const worldPos = new THREE.Vector3();
-					lookTarget.getWorldPosition(worldPos);
-					camera.lookAt(worldPos);
-				} else if (cfg.camera?.look?.content && Array.isArray(cfg.camera.look.content)) {
-					camera.lookAt(...(cfg.camera.look.content as [number, number, number]));
+					const worldPosition = new THREE.Vector3();
+					lookTarget.getWorldPosition(worldPosition);
+					camera.lookAt(worldPosition);
+				} else if (Array.isArray(cfg.camera?.look?.content)) {
+					camera.lookAt(...(cfg.camera!.look!.content as [number, number, number]));
+				}
+			};
+
+			const renderOnce = (): void => {
+				if (disposed || !nearViewport || !documentVisible) return;
+				updateCameraConstraint();
+				renderer.render(scene, camera);
+			};
+
+			const tick = (): void => {
+				if (disposed || !running) return;
+				if (!nearViewport || !documentVisible) {
+					running = false;
+					clock.stop();
+					return;
 				}
 
-				renderer.render(scene, camera);
-			}
+				const delta = Math.min(clock.getDelta(), 0.1);
+				fpsAccumulator += delta;
+				if (fpsAccumulator >= fpsInterval) {
+					const step = fpsAccumulator;
+					fpsAccumulator %= fpsInterval;
+					if (mixer) mixer.update(step);
+					sourceAnimationTime += step;
 
-			tick();
+					if (boneTracks.length > 0) {
+						const clipDuration = activeAction?.getClip()?.duration;
+						const duration = Math.max(0.001, clipDuration ?? sourceDuration);
+						const normalTime = (mixer ? mixer.time : sourceAnimationTime) % duration / duration;
+						applyBoneTracks(normalTime);
+					}
+					updateCameraConstraint();
+					renderer.render(scene, camera);
+				}
 
-			// Cleanup
-			return () => {
-				stopped = true;
+				raf = requestAnimationFrame(tick);
+			};
+
+			const startLoop = (): void => {
+				if (!continuous) {
+					renderOnce();
+					return;
+				}
+				if (running || disposed || !nearViewport || !documentVisible) return;
+				running = true;
+				fpsAccumulator = 0;
+				clock.start();
+				raf = requestAnimationFrame(tick);
+			};
+
+			const stopLoop = (): void => {
+				if (!running && raf === 0) return;
+				running = false;
 				cancelAnimationFrame(raf);
-				ro.disconnect();
-				io.disconnect();
+				raf = 0;
+				clock.stop();
+			};
+
+			const resizeObserver = new ResizeObserver(() => {
+				const nextWidth = Math.max(1, (width ?? canvas.clientWidth) || initialWidth);
+				const nextHeight = Math.max(1, (height ?? canvas.clientHeight) || initialHeight);
+				camera.aspect = nextWidth / nextHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize(nextWidth, nextHeight, false);
+				if (!continuous) renderOnce();
+			});
+			resizeObserver.observe(canvas.parentElement ?? canvas);
+
+			const intersectionObserver = new IntersectionObserver(([entry]) => {
+				nearViewport = entry.isIntersecting;
+				if (nearViewport) startLoop();
+				else stopLoop();
+			}, { rootMargin: "200px 0px", threshold: 0.01 });
+			intersectionObserver.observe(canvas);
+
+			const onVisibilityChange = (): void => {
+				documentVisible = !document.hidden;
+				if (documentVisible) startLoop();
+				else stopLoop();
+			};
+			document.addEventListener("visibilitychange", onVisibilityChange);
+
+			startLoop();
+
+			return () => {
+				stopLoop();
+				resizeObserver.disconnect();
+				intersectionObserver.disconnect();
+				document.removeEventListener("visibilitychange", onVisibilityChange);
+				mixer?.stopAllAction();
+				if (mixer && modelRoot) mixer.uncacheRoot(modelRoot);
+				disposeObjectTree(modelRoot);
 				renderer.dispose();
 			};
 		}
 
-		let cleanup: (() => void) | undefined;
-		init().then((fn) => { cleanup = fn; });
+		void init(mountedCanvas)
+			.then((cleanup) => {
+				if (disposed) cleanup?.();
+				else cleanupInitializedRuntime = cleanup;
+			})
+			.catch((error) => {
+				if (!disposed) console.error("[EngineManim3D] Failed to initialize model renderer.", error);
+			});
 
 		return () => {
-			stopped = true;
-			cancelAnimationFrame(raf);
-			cleanup?.();
+			disposed = true;
+			cleanupInitializedRuntime?.();
 		};
 	}, [cfg, width, height]);
 
 	const canvasStyle: CSSProperties = {
 		display: "block",
-		width:   width  ? `${width}px`  : "100%",
-		height:  height ? `${height}px` : "100%",
+		width: width ? `${width}px` : "100%",
+		height: height ? `${height}px` : "100%",
+		minHeight: height ? undefined : "150px",
 		...style,
 	};
 

@@ -1,15 +1,11 @@
 # EngineManim — 2D & 3D Animation
 
-> Declarative Manim-style 2D animation on HTML Canvas (Float32Array geometry pools).
-> Three.js GLTF/OBJ 3D renderer with DSL bone animation.
-
----
+EngineManim provides a Manim-style 2D canvas runtime and a separate Three.js
+GLTF/GLB/OBJ renderer with clip/DSL bone animation.
 
 ## EngineManim 2D
 
-### manim
-
-Schema type: `"manim"` | `"EngineManim"` — Declarative 2D Manim-style animation on an HTML Canvas. Compiles `cprop.manim` into Float32Array geometry pools once (WeakMap cache) and drives `EngineCanvas` via a zero-allocation RAF loop.
+Schema types: `"manim"` and `"EngineManim"`.
 
 ```ts
 {
@@ -18,13 +14,13 @@ Schema type: `"manim"` | `"EngineManim"` — Declarative 2D Manim-style animatio
     cprop: {
       manim: {
         mobjects: [
-          { id: "ring",   type: "Circle", radius: 50, strokeColor: "var(--e-accent)", strokeWidth: 3 },
-          { id: "square", type: "Square", sideLength: 80, strokeColor: "var(--e-accent)", strokeWidth: 3 },
+          { id: "ring", type: "Circle", radius: 50, strokeColor: "#60a5fa", strokeWidth: 3 },
+          { id: "square", type: "Square", sideLength: 80, strokeColor: "#60a5fa", strokeWidth: 3 },
         ],
         timeline: [
-          { action: "Create",    target: "ring",   durationMs: 600 },
-          { action: "Transform", origin: "ring",   target: "square", durationMs: 800 },
-          { action: "FadeOut",   target: "square", durationMs: 400 },
+          { action: "Create", target: "ring", durationMs: 600 },
+          { action: "Transform", origin: "ring", target: "square", durationMs: 800 },
+          { action: "FadeOut", target: "square", durationMs: 400 },
         ],
         settings: { loop: true, fpsLimit: 60 },
       },
@@ -33,29 +29,20 @@ Schema type: `"manim"` | `"EngineManim"` — Declarative 2D Manim-style animatio
 }
 ```
 
-**Supported mobject types:** `Circle`, `Square`, `Rectangle`, `Line`, `Path` (SVG `d` string).
-
-**Supported actions:** `Create` (draw-on reveal), `FadeIn`, `FadeOut`, `Transform` (morphs geometry via equal-point interpolation), `Wait`.
-
-**Easing:** `linear` | `ease-in` | `ease-out` | `ease-in-out` | `bounce` | `elastic`.
-
----
-
----
+Supported mobjects include `Circle`, `Square`, `Rectangle`, `Line`, and `Path`.
+Supported actions include `Create`, `FadeIn`, `FadeOut`, `Transform`, and `Wait`.
 
 ## EngineManim 3D
 
-### manim3d
-
-Schema type: `"manim3d"` | `"EngineManim3D"` — Three.js-backed 3D renderer with GLTF/OBJ support and a DSL for bone animation.
+Schema types: `"manim3d"` and `"EngineManim3D"`.
 
 | Tier | Feature |
 |---|---|
 | 1 | Static GLTF / GLB / OBJ mesh → WebGL |
 | 2 | GLTF built-in animation clip playback |
-| 2.5 | Animation routing — clip from file OR full DSL override, per-bone overrides |
-| 3 | DSL `frame()` blocks driving bone transforms by name |
-| 4 | Constraint bindings: `camera.look.content = boneName` |
+| 2.5 | File clip plus per-bone overrides, or source-driven tracks |
+| 3 | DSL `frame()` blocks driving bone transforms |
+| 4 | Camera look constraint targeting a bone |
 
 ```ts
 {
@@ -64,54 +51,125 @@ Schema type: `"manim3d"` | `"EngineManim3D"` — Three.js-backed 3D renderer wit
     cprop: {
       manim3d: {
         src: "/models/character.glb",
-        camera: { position: [0, 2, 5], fov: 60, look: { content: "head" } },
+        camera: {
+          position: [0, 2, 5],
+          fov: 60,
+          look: { content: "head" },
+        },
         lights: [
-          { type: "ambient",     intensity: 0.4 },
+          { type: "ambient", intensity: 0.4 },
           { type: "directional", intensity: 0.8, direction: [1, -1, 0.5] },
         ],
         animation: {
           source: "file",
-          clip:   "walk_cycle",
+          clip: "walk_cycle",
           overrides: [
             {
-              bone:   "left.hand",
-              mode:   "replace",
-              frames: [{ frameStart: 0, frameEnd: 30, transforms: [{ bone: "left.hand", rotate: [0, 45, 0] }] }],
+              bone: "left.hand",
+              mode: "replace",
+              frames: [
+                {
+                  frameStart: 0,
+                  frameEnd: 30,
+                  transforms: [
+                    { bone: "left.hand", rotate: [0, 45, 0] },
+                  ],
+                },
+              ],
             },
           ],
         },
-        settings: { loop: true, fps: 60, shadows: true },
+        settings: { fps: 60, shadows: true },
       },
     },
   },
 }
 ```
 
-**DSL format** (inline via `animation.dsl` or a `.manim` file):
+### Loader and bundle behavior
 
-```
-# Frame blocks — Blender-style frame ranges
+Three.js is dynamically imported only by the 3D runtime. The model loader is
+also format-specific:
+
+- OBJ loads `OBJLoader` only.
+- GLTF/GLB loads `GLTFLoader` only.
+
+A page using ordinary engine primitives does not need either model loader merely
+because Manim3D is registered.
+
+### Static scenes are demand-rendered
+
+A Manim3D scene without a clip or bone tracks renders once after loading and
+again when its size changes. It does **not** keep a 60fps RAF alive just to draw
+the same frame repeatedly.
+
+Animated scenes use RAF only while both conditions are true:
+
+- the canvas is within a 200px viewport margin;
+- the document/tab is visible.
+
+Leaving the viewport or hiding the tab cancels the active RAF. Resuming restarts
+the Three clock so a long hidden period does not become one huge animation
+`delta`.
+
+### Size behavior
+
+Measured canvas dimensions are clamped to at least one pixel. When no explicit
+height exists, the component keeps a 150px CSS minimum rather than relying on a
+`height: 100%` parent that may resolve to zero.
+
+### Bone-track behavior
+
+`replace` tracks set sampled position/rotation/scale values directly.
+
+`additive` tracks layer sampled values over the current mixer pose when a file
+clip is active, or over the bone's captured base pose when no mixer is active.
+Movement applies all X/Y/Z axes; rotation is converted from DSL degrees to Three
+radians; additive scale is multiplicative against the base/current scale.
+
+Source-driven tracks can therefore animate even when there is no playing GLTF
+clip. Their fallback timeline is based on 240 frames at the configured Manim3D
+FPS when no clip duration is available.
+
+### Cleanup and async safety
+
+Unmount cleanup cancels RAF, disconnects resize/intersection observers, removes
+the Page Visibility listener, stops/uncaches the AnimationMixer, disposes model
+geometries/materials/textures, and disposes the WebGLRenderer.
+
+If the component unmounts while Three.js or a model loader is still resolving,
+the initialization path notices the disposed state and releases anything it has
+already created instead of installing a late observer/renderer after unmount.
+Initialization failures are reported with an `EngineManim3D` console error
+instead of becoming an unhandled promise rejection.
+
+### Wireframe materials
+
+Wireframe mode handles both a single Three material and a material array on a
+mesh.
+
+### CSS custom-property colors
+
+`THREE.Color` cannot resolve DOM CSS variables by itself. If a Manim3D light or
+background color is supplied as `var(...)`, the renderer currently falls back
+to white instead of throwing. Resolve the CSS variable to a concrete color in
+application code when exact WebGL color parity is required.
+
+## DSL shape
+
+```text
 frame (
   frame-start = 120
   frame-end   = 240
 ) {
-  left.hand.rotate  = [0, 45, 0]
-  right.leg.rotate  = [30, 0, 0]
-  2.tentacle.move   = [10, 0, 0]
+  left.hand.rotate = [0, 45, 0]
+  right.leg.rotate = [30, 0, 0]
 }
 
-# Camera constraints (Tier 4)
-camera.look.content   = head
-camera.focus.distance = 5
-camera.position       = [0, 2, 5]
-
-# Light settings
-light.sun.direction = [1, -1, 0.5]
-light.sun.intensity = 0.9
+camera.look.content = head
+camera.position = [0, 2, 5]
 ```
 
-Rules: bone transforms (`.move` / `.rotate` / `.scale`) are **only valid inside `frame()`**. Camera and light settings are **only valid at top level**. Bone name is everything before the last dot: `left.hand`, `2.tentacle`.
-
-**Three.js** is a peer dependency dynamically imported — only fetched on pages that actually use `manim3d`.
-
----
+Bone `.move`, `.rotate`, and `.scale` transforms belong inside `frame()` blocks.
+Camera/light declarations belong at the top level. Bone names may contain dots;
+the transform operation is the final dotted segment.
