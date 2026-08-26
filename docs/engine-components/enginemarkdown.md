@@ -1,108 +1,151 @@
 # EngineMarkdown
 
-> Markdown renderer with animations, heading anchor slugs, and file loading.
+Schema type: `"markdown"`.
 
----
+EngineMarkdown is a small semantic renderer for trusted/local Markdown content
+such as documentation, legal pages, and policy copy. It is intentionally not a
+full CommonMark/GFM implementation.
 
-### markdown
+## Supported Markdown
 
-Renders trusted Markdown content through the engine. This is intended for local content files such as legal pages, documentation, and policy copy.
-
-Supported Markdown:
-- `#` through `######` headings
+- headings `#` through `######`
 - paragraphs
-- unordered and ordered lists
-- `**bold**`, `*italic*`, and inline links like `[label](/path)`
+- unordered lists using `-` or `*`
+- ordered lists using `1.` style markers
+- `**bold**`
+- `*italic*`
+- inline links: `[label](href)`
 - horizontal rules using `---`
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `content` | `string` | Markdown source text |
-| `filePath` | `string` | Local Markdown file path. `createPage` reads it on the server before rendering. |
-| `textColor` | `string` | Paragraph/list text color |
-| `headingColor` | `string` | Heading color |
-| `linkColor` | `string` | Link color |
-| `mutedColor` | `string` | Divider/border color |
+Code fences, tables, blockquotes, nested-list syntax, raw HTML, images, and the
+full GFM extension set are not parsed by this component.
 
-### section
-
-Page section with a centered max-width content column.
-
-| Prop | Type | Default |
-|------|------|---------|
-| `contentMaxWidth` | `ResponsiveValue<string\|number>` | `"1200px"` |
-| `centered` | `boolean` | `true` |
-| `fullViewport` | `boolean` | `false` (sets `min-height: 100svh`) |
-| `snapAlign` | `"start" \| "center" \| "end"` | — |
-
-### markdown
-
-Renders a Markdown string as semantic HTML inside an `<article>`. Lazy-loaded when below the fold (400px rootMargin). Parsed blocks: headings `#`–`######`, paragraphs, `**bold**`, `*italic*`, `[links](url)`, unordered/ordered lists, `---` horizontal rules.
-
-**Content loading:**
+## Content loading
 
 ```ts
-// Inline string
-{ type: "markdown", props: { content: "# Hello\n\nParagraph text." } }
+// Inline
+{
+  type: "markdown",
+  props: { content: "# Hello\n\nParagraph text." },
+}
 
-// From a .md file (server-side only — resolved by createPage before render)
-{ type: "markdown", props: { filePath: "./content/about.md" } }
+// Local file — createPage resolves filePath on the server before EngineMarkdown mounts
+{
+  type: "markdown",
+  props: { filePath: "./content/about.md" },
+}
 ```
 
-**Colour props:**
+EngineMarkdown itself is a client component and receives the resolved `content`
+string. It does not read files from the browser.
 
-| Prop | Default | Description |
-|------|---------|-------------|
-| `textColor` | `"#30475f"` | Body paragraph colour |
-| `headingColor` | `"#07111f"` | Heading colour |
-| `linkColor` | `"#12304c"` | Inline link colour |
-| `mutedColor` | `"rgba(7,17,31,0.16)"` | `<hr>` / divider colour |
+## Props
 
-**Typography props:**
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `content` | `string` | `""` | Markdown source after server file resolution |
+| `filePath` | `string` | — | Local file path consumed by `createPage` |
+| `textColor` | `string` | `"#30475f"` | Paragraph/list color |
+| `headingColor` | `string` | `"#07111f"` | Heading color |
+| `linkColor` | `string` | `"#12304c"` | Inline link color |
+| `mutedColor` | `string` | `rgba(7,17,31,0.16)` | Horizontal-rule color |
+| `fontFamily` | `ResponsiveValue<CSSProperties["fontFamily"]>` | inherited | Article font family, including breakpoint values |
+| `bodySize` | `string` | `"1rem"` | Paragraph/list font size |
+| `bodyLineHeight` | `string \| number` | `1.8` | Paragraph/list line height |
+| `headingSizes` | partial `h1`…`h6` map | built-in scale | Per-level heading-size overrides |
+| `headingIdPrefix` | `string` | — | Prefix for generated heading ids |
+| `textAnimation` | `"none" \| "fade-in" \| "slide-up"` | — | Whole-article entrance animation |
+| `blockAnimation` | same | — | Per-block staggered animation |
+| `animationDuration` | CSS time | `"0.4s"` | Animation duration |
+| `animationStagger` | number | `50` | Extra delay per block in ms |
+| `disablepointformarkdownhash` | `boolean` | `false` | Stops h1 headings from being EngineScroll points |
+| `disablepointformarkdownhashhash` | `boolean` | `false` | Stops h2 headings from being EngineScroll points |
 
-| Prop | Default | Description |
-|------|---------|-------------|
-| `fontFamily` | inherited | Font family for the whole article |
-| `bodySize` | `"1rem"` | Paragraph font-size |
-| `bodyLineHeight` | `1.8` | Paragraph line-height |
-| `headingSizes` | scale defaults | Per-level overrides — `{ h1: "clamp(2rem,5vw,3.5rem)", h2: "1.75rem" }` |
-| `headingIdPrefix` | — | Optional prefix for generated heading ids used by `href="#..."` navigation |
+Shared styling/identity props apply to the actual `<article>`. `id` wins over
+`point` for the article id; `className` is preserved and merged with `cprop`
+state classes and any article animation class.
 
-Markdown headings automatically receive slug ids based on their text. For example, `## Use of Services` renders with `id="use-of-services"`, so an engine button or link can point to `href: "#use-of-services"`. Add `html { scroll-behavior: smooth; }` in page `theme.globalStyles` for smooth jumps.
+## Responsive font family
 
-**Animation props:**
-
-| Prop | Values | Default | Description |
-|------|--------|---------|-------------|
-| `textAnimation` | `"none" \| "fade-in" \| "slide-up"` | — | Animates the whole article on mount |
-| `blockAnimation` | `"none" \| "fade-in" \| "slide-up"` | — | Staggered per-block animation |
-| `animationDuration` | CSS time string | `"0.4s"` | Duration per animation |
-| `animationStagger` | number (ms) | `50` | Extra delay added per block |
-
-All animations respect `prefers-reduced-motion: reduce` — set to `animation: none !important` automatically.
+`fontFamily` goes through the same engine style resolver as other responsive CSS
+values instead of being reduced to a scalar inline style:
 
 ```ts
 {
   type: "markdown",
   props: {
-    filePath: "./content/post.md",
-    blockAnimation: "slide-up",
-    animationDuration: "0.5s",
-    animationStagger: 60,
-    headingColor: "#9bcf3a",
-    bodySize: "1.05rem",
-  }
+    fontFamily: {
+      xs: "system-ui, sans-serif",
+      lg: "var(--font-reading)",
+    },
+  },
 }
 ```
 
-Renders a `<button>` or `<a>`. Note: For advanced routing and smooth transitions, use the `link` component.
+## Heading ids and EngineScroll points
 
-| Variant | Style |
-|---------|-------|
-| `solid` | Filled with accent colour |
-| `outline` | Transparent with accent border |
-| `ghost` | Transparent, no border |
-| `elevated` | Solid with glowing shadow |
-| `link` | Underlined text, no padding |
+Heading ids are deterministic slugs. Duplicate headings receive numeric suffixes:
 
-Sizes: `xs`, `sm`, `md`, `lg`, `xl`.
+```md
+## API
+## API
+```
+
+becomes roughly:
+
+```html
+<h2 id="api">...</h2>
+<h2 id="api-2">...</h2>
+```
+
+`headingIdPrefix: "guide"` turns those into `guide-api` and `guide-api-2`.
+
+H1 and H2 point participation can be disabled independently with the two legacy
+`disablepoint...` flags above. H3–H6 still receive ids and are currently emitted
+as scroll points.
+
+## Link safety
+
+EngineMarkdown renders text through React; it does not inject raw Markdown as
+HTML. Inline links additionally validate their URL before an anchor is emitted.
+Allowed explicit schemes are:
+
+- `http:`
+- `https:`
+- `mailto:`
+- `tel:`
+
+Normal relative paths and hashes are allowed. Protocol-relative URLs such as
+`//example.com`, backslash-prefixed network paths, and explicit schemes such as
+`javascript:` or `data:` are rejected and replaced with `#`.
+
+HTTP(S) links open in a new tab with `rel="noopener noreferrer"`. Relative,
+hash, mail, and telephone links stay in the current browsing context.
+
+## Parsing/runtime behavior
+
+The block parse is memoized by the `content` string. Changing an unrelated style
+or color prop therefore does not rescan the full Markdown document. Inline token
+rendering remains intentionally small and happens during the React render of each
+block.
+
+The parser is deterministic for the same `content`; EngineMarkdown does not
+suppress React hydration warnings to hide content mismatches.
+
+## Animations
+
+```ts
+{
+  type: "markdown",
+  props: {
+    content: "# Animated\n\nSome copy.",
+    blockAnimation: "slide-up",
+    animationDuration: "0.5s",
+    animationStagger: 60,
+  },
+}
+```
+
+The injected animation stylesheet respects `prefers-reduced-motion: reduce`.
+It also uses a stable DOM id, so development hot reloads do not intentionally
+append duplicate Markdown keyframe style elements.
