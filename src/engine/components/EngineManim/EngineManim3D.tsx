@@ -35,8 +35,6 @@ function toRad(degrees: number): number {
 }
 
 function resolveThreeColor(color: string, THREE: ThreeModule): InstanceType<ThreeModule["Color"]> {
-	// Three.js cannot resolve CSS custom properties from a WebGL canvas. Keep the
-	// fallback explicit instead of handing `var(...)` to THREE.Color and throwing.
 	return new THREE.Color(color.startsWith("var(") ? "#ffffff" : color);
 }
 
@@ -89,13 +87,13 @@ export const EngineManim3D = memo(function EngineManim3D({
 	const cfg = cprop.manim3d;
 
 	useEffect(() => {
-		const canvas = canvasRef.current;
-		if (!canvas) return;
+		const mountedCanvas = canvasRef.current;
+		if (!mountedCanvas) return;
 
 		let disposed = false;
 		let cleanupInitializedRuntime: (() => void) | undefined;
 
-		async function init(): Promise<(() => void) | undefined> {
+		async function init(canvas: HTMLCanvasElement): Promise<(() => void) | undefined> {
 			const THREE = await import("three");
 			if (disposed) return undefined;
 
@@ -139,8 +137,8 @@ export const EngineManim3D = memo(function EngineManim3D({
 				const color = resolveThreeColor(lightConfig.color ?? "#ffffff", THREE);
 				switch (lightConfig.type) {
 					case "ambient":
-					scene.add(new THREE.AmbientLight(color, lightConfig.intensity ?? 0.4));
-					break;
+						scene.add(new THREE.AmbientLight(color, lightConfig.intensity ?? 0.4));
+						break;
 					case "directional": {
 						const light = new THREE.DirectionalLight(color, lightConfig.intensity ?? 0.8);
 						if (lightConfig.direction) {
@@ -392,7 +390,7 @@ export const EngineManim3D = memo(function EngineManim3D({
 			};
 		}
 
-		void init()
+		void init(mountedCanvas)
 			.then((cleanup) => {
 				if (disposed) cleanup?.();
 				else cleanupInitializedRuntime = cleanup;
