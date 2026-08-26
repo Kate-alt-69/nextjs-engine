@@ -3,11 +3,11 @@
 	"version": "1.1.0",
 	"private": false,
 	"scripts": {
-		"build": "npm run type-check && npm install && next build",
+		"build": "npm run type-check && next build",
 		"dev": "next dev",
 		"start": "next start",
 		"type-check": "tsc --noEmit",
-		"clear": "pwsh -Command \"clear; Remove-Item ./.next, ./dist, -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item package-lock.json -Force -ErrorAction SilentlyContinue; Remove-Item tsconfig.tsbuildinfo -Force -ErrorAction SilentlyContinue\""
+		"clear": "pwsh -Command \"clear; Remove-Item ./.next, ./dist, -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item tsconfig.tsbuildinfo -Force -ErrorAction SilentlyContinue\""
 	},
 	"dependencies": {
 		"next": "^16.2.9",
