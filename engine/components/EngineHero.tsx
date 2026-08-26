@@ -109,15 +109,6 @@ export const EngineHero = memo(
 			overflow: "hidden",
 			...(fullViewport ? { minHeight: "100svh" } : {}),
 			...(snapAlign ? { scrollSnapAlign: snapAlign } : {}),
-			...(backgroundImage
-				? {
-					backgroundImage,
-					backgroundSize: backgroundSize ?? "cover",
-					backgroundPosition: backgroundPosition ?? "center",
-					backgroundRepeat: backgroundRepeat ?? "no-repeat",
-					...(parallax ? { backgroundAttachment: "fixed" } : {}),
-				}
-				: {}),
 		};
 
 		const innerBase: CSSProperties = {
@@ -155,18 +146,26 @@ export const EngineHero = memo(
 			} as any,
 			innerBase,
 		);
-		const resolvedOuter = usePropStyles(props as any, { ...sectionBase, ...style });
+
+		// Background controls are routed through usePropStyles so breakpoint maps
+		// compile to CSS variables instead of being forced into CSSProperties.
+		const resolvedOuter = usePropStyles(
+			{
+				...props,
+				backgroundImage,
+				backgroundSize: backgroundImage ? (backgroundSize ?? "cover") : backgroundSize,
+				backgroundPosition: backgroundImage ? (backgroundPosition ?? "center") : backgroundPosition,
+				backgroundRepeat: backgroundImage ? (backgroundRepeat ?? "no-repeat") : backgroundRepeat,
+				...(backgroundImage && parallax ? { backgroundAttachment: "fixed" } : {}),
+			} as any,
+			{ ...sectionBase, ...style },
+		);
 		const hoverClass = cpropClass(cprop);
 		const mergedClass = [className, hoverClass].filter(Boolean).join(" ") || undefined;
 		const resolvedId = id ?? point;
 
 		const element = (
-			<section
-				ref={handleRef}
-				id={resolvedId}
-				className={mergedClass}
-				style={resolvedOuter}
-			>
+			<section ref={handleRef} id={resolvedId} className={mergedClass} style={resolvedOuter}>
 				{overlay && (
 					<div
 						aria-hidden="true"
