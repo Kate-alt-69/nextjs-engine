@@ -9,6 +9,13 @@ import type { EngineScrollMoveOptions } from "./EngineScrollTypes";
 
 export class EngineScrollAnimation {
 	private static readonly DEFAULT_DURATION = 550;
+	private static readonly PROGRAMMATIC_SCROLL_GUARD_MS = 100;
+
+	private static markProgrammaticScroll(): void {
+		const cache = EngineScrollRuntime.get().getCache();
+		cache.programmaticScrollUntil = performance.now()
+			+ this.PROGRAMMATIC_SCROLL_GUARD_MS;
+	}
 
 	public static isAnimating(): boolean {
 		return EngineScrollRuntime.get().getState().animation.active;
@@ -52,6 +59,7 @@ export class EngineScrollAnimation {
 
 		if (safeDuration <= 0 || Math.abs(safeTargetPoint - state.viewport.top) < 0.0001) {
 			const spacing = state.page.pointSpacing > 0 ? state.page.pointSpacing : 1;
+			this.markProgrammaticScroll();
 			window.scrollTo({
 				top: safeTargetPoint * spacing,
 				left: window.scrollX,
@@ -77,7 +85,9 @@ export class EngineScrollAnimation {
 
 	public static interrupt(): boolean {
 		if (!this.isInterruptible()) return false;
+		const cache = EngineScrollRuntime.get().getCache();
 		this.stop();
+		cache.programmaticScrollUntil = 0;
 		return true;
 	}
 
@@ -97,6 +107,7 @@ export class EngineScrollAnimation {
 
 		animation.currentPoint = animation.startPoint
 			+ (animation.targetPoint - animation.startPoint) * eased;
+		this.markProgrammaticScroll();
 		window.scrollTo({
 			top: animation.currentPoint * spacing,
 			left: window.scrollX,

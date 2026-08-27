@@ -11,9 +11,11 @@ import { EngineScrollObserver } from "./EngineScrollObserver";
 import { EngineScrollPhysics } from "./EngineScrollPhysics";
 import { EngineScrollPointManager } from "./EngineScrollPointManager";
 import { EngineScrollRuntime } from "./EngineScrollRuntime";
+import { EngineScrollSnap } from "./EngineScrollSnap";
 import { EngineScrollTimeline } from "./EngineScrollTimeline";
 import { BrowserEvents } from "./browser/BrowserEvents";
 import { Viewport } from "./viewport/Viewport";
+import type { EngineScrollSnapOptions } from "./EngineScrollSnap";
 import type { EngineScrollTimelineConfig } from "./EngineScrollTimeline";
 import type { EngineScrollMoveOptions } from "./EngineScrollTypes";
 
@@ -75,6 +77,24 @@ export class EngineScroll {
 
 	public static previous(options?: EngineScrollMoveOptions & { wrap?: boolean }): boolean {
 		return EngineScrollNavigator.previous(options);
+	}
+
+	public static snap(options?: EngineScrollSnapOptions): boolean {
+		this.initialize();
+		return EngineScrollSnap.now(options);
+	}
+
+	public static enableSnap(options?: EngineScrollSnapOptions): () => void {
+		this.initialize();
+		return EngineScrollSnap.enable(options);
+	}
+
+	public static disableSnap(): void {
+		EngineScrollSnap.disable();
+	}
+
+	public static isSnapEnabled(): boolean {
+		return EngineScrollSnap.isEnabled();
 	}
 
 	public static moveBy(offset: number, options?: number | EngineScrollMoveOptions): void {

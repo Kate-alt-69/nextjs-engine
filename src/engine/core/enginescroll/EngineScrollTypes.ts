@@ -68,6 +68,7 @@ export interface EngineScrollRuntimeCache {
 	isUserScrolling: boolean;
 	isAnimating: boolean;
 	lastUserScrollTime: number;
+	programmaticScrollUntil: number;
 }
 
 export interface EngineScrollState {
