@@ -14,7 +14,7 @@ import React, {
 	type ReactNode,
 } from "react";
 import type { MarkdownProps } from "../schema/types";
-import { cpropClass, usePropStyles } from "../hooks/usePropStyles";
+import { useCpropClass, usePropStyles } from "../hooks/usePropStyles";
 
 const MARKDOWN_STYLE_ID = "__engine_md__";
 let mdCSSInjected = false;
@@ -268,7 +268,7 @@ export const EngineMarkdown = memo(function EngineMarkdown({
 		...style,
 	});
 	const articleAnimationClass = animClass(textAnimation);
-	const stateClass = cpropClass(cprop);
+	const stateClass = useCpropClass(cprop);
 	const mergedClass = [className, stateClass, articleAnimationClass].filter(Boolean).join(" ") || undefined;
 	const resolvedId = id ?? point;
 	const articleAnimStyle: CSSProperties = textAnimation && textAnimation !== "none"
