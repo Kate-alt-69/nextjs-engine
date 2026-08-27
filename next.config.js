@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const withEngineAPI = require("./src/engine/plugins/engineApiPlugin");
+const withEngine = require("./src/engine/plugins/enginePlugin");
 
 // ── Engine 404 fallback guard ─────────────────────────────────────────────────
 const appNotFound = path.join(__dirname, "app", "not-found.tsx");
@@ -59,4 +59,4 @@ const nextConfig = {
 	},
 };
 
-module.exports = withEngineAPI(nextConfig);
+module.exports = withEngine(nextConfig);

@@ -69,17 +69,30 @@ jobs:
           if (!fs.existsSync("./package/engine/server.ts")) {
             throw new Error("Package server export points to a missing engine/server.ts");
           }
-          if (!fs.existsSync("./package/engine/plugins/engineApiPlugin.js")) {
-            throw new Error("Package is missing engineApiPlugin.js");
-          }
-          if (!fs.existsSync("./package/engine/plugins/apiStaticCompiler.js")) {
-            throw new Error("Package is missing apiStaticCompiler.js");
+          for (const requiredFile of [
+            "./package/engine/plugins/enginePlugin.js",
+            "./package/engine/plugins/engineApiPlugin.js",
+            "./package/engine/plugins/apiStaticCompiler.js",
+            "./package/engine/plugins/engineShaderPlugin.js",
+            "./package/engine/plugins/engineShaderCompiler.js"
+          ]) {
+            if (!fs.existsSync(requiredFile)) {
+              throw new Error(`Package is missing ${requiredFile}`);
+            }
           }
 
           packageJson.exports = packageJson.exports || {};
           packageJson.exports["./plugin"] = {
+            require: "./engine/plugins/enginePlugin.js",
+            default: "./engine/plugins/enginePlugin.js"
+          };
+          packageJson.exports["./api-plugin"] = {
             require: "./engine/plugins/engineApiPlugin.js",
             default: "./engine/plugins/engineApiPlugin.js"
+          };
+          packageJson.exports["./shader-plugin"] = {
+            require: "./engine/plugins/engineShaderPlugin.js",
+            default: "./engine/plugins/engineShaderPlugin.js"
           };
 
           const typescriptVersion = packageJson.dependencies?.typescript
