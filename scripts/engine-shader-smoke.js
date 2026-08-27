@@ -25,6 +25,7 @@ const animatedSource = `
 shader <= pixelAurora => [
 	var <= speed => .55
 	const <= pixelSize => 4
+	const <= unused => 99
 
 	render => [
 		resolution => .25
@@ -54,8 +55,12 @@ shader <= pixelAurora => [
 const animated = compileEngineShaderSource(animatedSource, "pixel-aurora", "pixel-aurora.shed");
 assert.strictEqual(animated.execution, "animated");
 assert.deepStrictEqual(animated.dependencies, ["system.time"]);
+assert.deepStrictEqual({ ...animated.constants }, { pixelSize: 4 });
 assert.strictEqual(animated.render.resolution, 0.25);
 assert.strictEqual(animated.render.filter, "nearest");
+assert.ok(animated.fragment.includes("uniform float e_time;"));
+assert.ok(!animated.fragment.includes("uniform vec2 e_pointer;"));
+assert.ok(!animated.fragment.includes("uniform float e_scroll;"));
 assert.ok(animated.fragment.includes("u_var_speed"));
 assert.ok(!animated.fragment.includes("u_var_pixelSize"));
 assert.ok(animated.fragment.includes("4.0"));
@@ -81,6 +86,10 @@ assert.deepStrictEqual(parsedMultilineColors.ast.before.gradient.colors, ["#0711
 const multilineColorPlan = compileEngineShaderSource(multilineColorSource, "multiline-colors");
 assert.strictEqual(multilineColorPlan.execution, "static");
 assert.ok(multilineColorPlan.fragment.includes("color=mix(vec3("));
+assert.ok(!multilineColorPlan.fragment.includes("uniform float e_time;"));
+assert.ok(!multilineColorPlan.fragment.includes("uniform vec2 e_pointer;"));
+assert.ok(!multilineColorPlan.fragment.includes("uniform float e_scroll;"));
+assert.ok(!multilineColorPlan.fragment.includes("float e_hash("));
 
 const eventSource = `
 shader <= pointerGlow => [
@@ -97,6 +106,8 @@ shader <= pointerGlow => [
 const eventPlan = compileEngineShaderSource(eventSource, "pointer-glow");
 assert.strictEqual(eventPlan.execution, "event");
 assert.deepStrictEqual(eventPlan.dependencies, ["pointer.x"]);
+assert.ok(eventPlan.fragment.includes("uniform vec2 e_pointer;"));
+assert.ok(!eventPlan.fragment.includes("uniform float e_time;"));
 
 const staticSource = `
 shader <= staticGradient => [
@@ -107,6 +118,12 @@ shader <= staticGradient => [
 `;
 const staticPlan = compileEngineShaderSource(staticSource, "static-gradient");
 assert.strictEqual(staticPlan.execution, "static");
+assert.ok(!staticPlan.fragment.includes("uniform float e_time;"));
+assert.ok(!staticPlan.fragment.includes("uniform float e_delta;"));
+assert.ok(!staticPlan.fragment.includes("uniform float e_frame;"));
+assert.ok(!staticPlan.fragment.includes("uniform vec2 e_pointer;"));
+assert.ok(!staticPlan.fragment.includes("uniform float e_scroll;"));
+assert.ok(!staticPlan.fragment.includes("float e_hash("));
 
 const orderedSource = `
 shader <= ordered => [
@@ -128,6 +145,32 @@ shader <= ordered => [
 `;
 const orderedPlan = compileEngineShaderSource(orderedSource, "ordered");
 assert.ok(orderedPlan.fragment.indexOf("e_hash(floor(gl_FragCoord.xy))") < orderedPlan.fragment.indexOf("floor(color*max(12.0"));
+assert.ok(orderedPlan.fragment.includes("float e_hash("));
+
+const crossStageSource = `
+shader <= crossStage => [
+	before.gradient => [
+		colors => [#000000 #ffffff]
+	]
+	after.grade => [
+		use => palette
+		colors => 8
+	]
+	overlay.scan => [
+		use => scanlines
+		strength => .04
+	]
+	frame.color => after.grade
+	after.grade => overlay.scan
+	overlay.scan => screen
+]
+`;
+const crossStagePlan = compileEngineShaderSource(crossStageSource, "cross-stage");
+assert.deepStrictEqual(crossStagePlan.flows, [
+	{ from: "frame.color", to: "after.grade" },
+	{ from: "after.grade", to: "overlay.scan" },
+	{ from: "overlay.scan", to: "screen" },
+]);
 
 const deadPassSource = `
 shader <= deadPass => [
@@ -157,6 +200,9 @@ assert.strictEqual(deadPassPlan.execution, "static");
 assert.deepStrictEqual(deadPassPlan.dependencies, []);
 assert.ok(!deadPassPlan.fragment.includes("0.91"));
 assert.ok(!deadPassPlan.fragment.includes("0.73"));
+assert.ok(!deadPassPlan.fragment.includes("uniform vec2 e_pointer;"));
+assert.ok(!deadPassPlan.fragment.includes("uniform float e_time;"));
+assert.ok(!deadPassPlan.fragment.includes("float e_hash("));
 assert.deepStrictEqual(deadPassPlan.flows, [
 	{ from: "frame.color", to: "after.used" },
 	{ from: "after.used", to: "screen" },
@@ -202,6 +248,33 @@ shader <= invalidFlow => [
 `, "invalid-flow"), /render graph contains a cycle/);
 
 assert.throws(() => compileEngineShaderSource(`
+shader <= backwardFlow => [
+	before.gradient => [
+		colors => [#000000 #ffffff]
+	]
+	after.grade => [
+		use => palette
+	]
+	overlay.scan => [
+		use => scanlines
+	]
+	overlay.scan => after.grade
+]
+`, "backward-flow"), /cannot flow backward/);
+
+assert.throws(() => compileEngineShaderSource(`
+shader <= beforeFlow => [
+	before.gradient => [
+		colors => [#000000 #ffffff]
+	]
+	after.grade => [
+		use => palette
+	]
+	before.gradient => after.grade
+]
+`, "before-flow"), /connect frame\.color instead of before\.\*/);
+
+assert.throws(() => compileEngineShaderSource(`
 shader <= invalidDeadEffect => [
 	before.gradient => [
 		colors => [#000000 #ffffff]
@@ -233,6 +306,7 @@ try {
 	const decoded = decodeArtifact(artifact);
 	assert.strictEqual(decoded.name, "pixelAurora");
 	assert.strictEqual(decoded.execution, "animated");
+	assert.deepStrictEqual({ ...decoded.constants }, { pixelSize: 4 });
 
 	const firstHash = manifest.shaders.aurora.hash;
 	const firstFile = manifest.shaders.aurora.file;
