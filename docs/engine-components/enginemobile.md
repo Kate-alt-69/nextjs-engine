@@ -153,6 +153,12 @@ interface DeviceInfo {
 }
 ```
 
+`DESKTOP_DEVICE` is the shared fallback used for SSR, missing User-Agent values,
+and desktop detection. The exported singleton is runtime-frozen; treat device
+results as read-only observations rather than mutating them. Freezing the shared
+fallback prevents one consumer from changing the default seen by later requests
+or client hooks without forcing an allocation for every desktop detection.
+
 Detected Android brands include Samsung, Xiaomi/Poco, Huawei/Honor, OnePlus,
 OPPO, Realme, Vivo, Google Pixel/Nexus, Motorola, and Nokia/HMD. Apple iPhone,
 iPod, and iPad detection is handled separately.
