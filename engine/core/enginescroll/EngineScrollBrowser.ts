@@ -2,6 +2,7 @@
 // EngineScrollBrowser.ts
 // ============================================================================
 
+import { EngineScrollPointManager } from "./EngineScrollPointManager";
 import { EngineScrollRuntime } from "./EngineScrollRuntime";
 
 /** Browser compatibility and measurement helpers used by EngineScroll. */
@@ -15,10 +16,6 @@ export class EngineScrollBrowser {
 	public static readonly isSafari = /safari/i.test(this.ua)
 		&& !/chrome|chromium|crios|edg/i.test(this.ua);
 
-	/**
-	 * Historical opt-in hook for applications that intentionally want to own
-	 * browser scroll restoration. Core EngineScroll does not call this for you.
-	 */
 	public static initialize(): void {
 		if (typeof window === "undefined") return;
 		if ("scrollRestoration" in history) history.scrollRestoration = "manual";
@@ -26,6 +23,11 @@ export class EngineScrollBrowser {
 
 	public static update(): void {
 		const cache = EngineScrollRuntime.get().getCache();
+		const previousDocumentHeight = cache.documentHeight;
+		const previousDocumentWidth = cache.documentWidth;
+		const previousViewportHeight = cache.viewportHeight;
+		const previousViewportWidth = cache.viewportWidth;
+
 		cache.scrollX = window.scrollX;
 		cache.scrollY = window.scrollY;
 		cache.viewportWidth = window.innerWidth;
@@ -33,6 +35,15 @@ export class EngineScrollBrowser {
 		cache.documentWidth = document.documentElement.scrollWidth;
 		cache.documentHeight = document.documentElement.scrollHeight;
 		cache.devicePixelRatio = window.devicePixelRatio;
+
+		if (
+			previousDocumentHeight !== cache.documentHeight
+			|| previousDocumentWidth !== cache.documentWidth
+			|| previousViewportHeight !== cache.viewportHeight
+			|| previousViewportWidth !== cache.viewportWidth
+		) {
+			EngineScrollPointManager.invalidateAll();
+		}
 	}
 
 	public static scrollTo(top: number, left = window.scrollX): void {
