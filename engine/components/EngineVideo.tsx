@@ -8,6 +8,7 @@ import React, {
 	useCallback,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 	type CSSProperties,
 } from "react";
@@ -109,8 +110,10 @@ export const EngineVideo = memo(function EngineVideo({
 	onCanPlay,
 	onEnded,
 }: EngineVideoProps) {
+	const [activated, setActivated] = useState(eager);
 	const [videoReady, setVideoReady] = useState(false);
 	const [buffering, setBuffering] = useState(false);
+	const videoRef = useRef<HTMLVideoElement>(null);
 
 	useEffect(() => {
 		injectSpinCSS();
@@ -118,9 +121,13 @@ export const EngineVideo = memo(function EngineVideo({
 
 	const { ref: wrapperRef, inView } = useInView<HTMLDivElement>({
 		rootMargin,
-		once: true,
+		once: false,
 		initialInView: eager,
 	});
+
+	useEffect(() => {
+		if (inView) setActivated(true);
+	}, [inView]);
 
 	const resolvedPreload = preload ?? (autoPlay ? "auto" : "metadata");
 	const sources = useMemo<VideoSource[]>(() => Array.isArray(src)
@@ -142,6 +149,25 @@ export const EngineVideo = memo(function EngineVideo({
 		setBuffering(true);
 	}, [autoPlay, inView, sourceKey]);
 
+	useEffect(() => {
+		if (!activated || !autoPlay) return;
+		const video = videoRef.current;
+		if (!video) return;
+
+		if (!inView) {
+			video.pause();
+			setBuffering(false);
+			return;
+		}
+
+		const playResult = video.play();
+		if (playResult && typeof playResult.catch === "function") {
+			void playResult.catch(() => {
+				// Browser autoplay policy may reject playback; native controls remain usable.
+			});
+		}
+	}, [activated, autoPlay, inView, sourceKey]);
+
 	const handleCanPlay = useCallback(() => {
 		setVideoReady(true);
 		setBuffering(false);
@@ -157,7 +183,7 @@ export const EngineVideo = memo(function EngineVideo({
 		borderRadius: borderRadius ?? undefined,
 		...style,
 	};
-	const showExternalPoster = Boolean(poster && !videoReady && (!inView || autoPlay));
+	const showExternalPoster = Boolean(poster && !videoReady && (!activated || autoPlay));
 
 	return (
 		<div ref={wrapperRef} className={className} style={wrapperStyle}>
@@ -178,8 +204,9 @@ export const EngineVideo = memo(function EngineVideo({
 
 			{buffering && !videoReady && <VideoSpinner />}
 
-			{inView && (
+			{activated && (
 				<video
+					ref={videoRef}
 					key={sourceKey}
 					autoPlay={autoPlay}
 					muted={muted}
