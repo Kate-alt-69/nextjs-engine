@@ -25,6 +25,8 @@ jobs:
         run: |
           node scripts/api-static-smoke.js
           node scripts/api-static-artifact-smoke.js
+      - name: Test EngineBrowser SSR safety
+        run: node scripts/engine-browser-smoke.js
       - name: Type-check engine
         run: npm run type-check
       - name: Build Next.js integration app

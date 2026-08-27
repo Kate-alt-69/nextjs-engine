@@ -132,7 +132,7 @@ export type {
 	EngineRegisteredPoint,
 } from "./core/enginescroll";
 
-export { EngineBrowser, useBrowser } from "./core/EngineBrowser";
+export { EngineBrowser, useBrowser } from "./core/EngineBrowserSafe";
 export type {
 	BrowserInfo, BrowserIs, BrowserSupports, BrowserName,
 	RenderingEngine, BrowserConditions,
@@ -141,7 +141,7 @@ export type {
 	BrowserMedia, MediaCameraOptions,
 	BrowserSpeech, SpeakOptions, ListenOptions,
 	BrowserNetwork, NetworkStatus, NetworkType,
-} from "./core/EngineBrowser";
+} from "./core/EngineBrowserSafe";
 
 // Device detection. Request-aware helpers such as getServerDevice live in the
 // server-only entrypoint (`nextjs-engine/server` in the package build).
