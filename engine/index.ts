@@ -44,6 +44,24 @@ export type { EngineNavProps, EngineNavItem, EngineNavLogo, EngineNavVariant, En
 export { EngineImage } from "./components/EngineImage";
 export { EngineVideo } from "./components/EngineVideo";
 export { EngineCanvas, useEngineCanvas } from "./components/EngineCanvas";
+export { EngineShader } from "./components/EngineShader";
+export type { EngineShaderProps } from "./components/EngineShader";
+export {
+	EngineShaderScheduler,
+	clearEngineShaderCache,
+	loadEngineShader,
+	normalizeEngineShaderName,
+} from "./core/engineshader";
+export type {
+	EngineShaderConfig,
+	EngineShaderExecution,
+	EngineShaderInput,
+	EngineShaderManifest,
+	EngineShaderManifestEntry,
+	EngineShaderRenderPlan,
+	EngineShaderVariableDefinition,
+	EngineShaderVariableValue,
+} from "./core/engineshader";
 
 export {
 	ecVec2, ecVec3, ecTransform, ecMaterial,

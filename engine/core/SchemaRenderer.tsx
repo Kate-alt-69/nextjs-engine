@@ -3,7 +3,7 @@
 //  Engine — SchemaRenderer
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { memo, Suspense, useEffect, type CSSProperties, type ReactNode } from "react";
+import React, { lazy, memo, Suspense, useEffect, type CSSProperties, type ReactNode } from "react";
 import {
 	BREAKPOINTS,
 	BREAKPOINT_ORDER,
@@ -11,6 +11,7 @@ import {
 	type PageSchema,
 	type SchemaNode,
 } from "../schema/types";
+import type { EngineShaderInput } from "./engineshader/EngineShaderTypes";
 import { getComponent, isSplitComponent } from "./registry";
 import { validatePageSchema } from "./validateSchema";
 import { decideLazy } from "./lazyDetect";
@@ -25,6 +26,15 @@ interface VisibilityRule {
 }
 
 const visibilityRuleCache = new Map<string, VisibilityRule>();
+const SHADER_SURFACE_TYPES = new Set(["box", "stack", "grid", "section", "hero", "card"]);
+const SHADER_PENDING_CLASS = "e-shader-pending";
+const SHADER_PENDING_CSS = [
+	`.${SHADER_PENDING_CLASS}:not([data-engine-shader-ready="true"]){opacity:0!important}`,
+	`@media (scripting: none){.${SHADER_PENDING_CLASS}{opacity:1!important}}`,
+].join("\n");
+const LazyEngineShaderSurface = lazy(() =>
+	import("../components/EngineShaderSurface").then((module) => ({ default: module.EngineShaderSurface })),
+);
 
 function shortHash(value: string): string {
 	let hashValue = 5381;
@@ -54,10 +64,20 @@ function UnknownNodeWarning({ type }: { type: string }) {
 	);
 }
 
-function SlotNode({ name, fallback, depth }: { name: string; fallback?: SchemaNode; depth: number }) {
+function SlotNode({
+	name,
+	fallback,
+	depth,
+	path,
+}: {
+	name: string;
+	fallback?: SchemaNode;
+	depth: number;
+	path: string;
+}) {
 	const slotContent = useSlot(name);
 	if (slotContent != null) return <>{slotContent}</>;
-	if (fallback) return <NodeRenderer node={fallback} depth={depth} />;
+	if (fallback) return <NodeRenderer node={fallback} depth={depth} path={`${path}.fallback`} />;
 	return null;
 }
 
@@ -119,9 +139,7 @@ function buildVisibilityClass(props: Record<string, unknown>): string | undefine
 }
 
 function getLazyAspectRatio(node: SchemaNode, props: Record<string, unknown>): string | undefined {
-	if (props.aspectRatio !== undefined && props.aspectRatio !== null) {
-		return String(props.aspectRatio);
-	}
+	if (props.aspectRatio !== undefined && props.aspectRatio !== null) return String(props.aspectRatio);
 	if (node.type === "video") return "16 / 9";
 	if (node.type === "image" && typeof props.width === "number" && typeof props.height === "number" && props.height > 0) {
 		return `${props.width} / ${props.height}`;
@@ -169,9 +187,10 @@ function SplitModuleFallback({
 interface NodeRendererProps {
 	node: SchemaNode;
 	depth: number;
+	path: string;
 }
 
-function NodeRenderer({ node, depth }: NodeRendererProps) {
+function NodeRenderer({ node, depth, path }: NodeRendererProps) {
 	if (node.type === "slot") {
 		const props = (node.props ?? {}) as { name?: string; fallback?: SchemaNode };
 		return (
@@ -179,6 +198,7 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 				name={props.name ?? ""}
 				fallback={props.fallback}
 				depth={depth}
+				path={path}
 			/>
 		);
 	}
@@ -194,6 +214,7 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 				key={child.key ?? `${child.type}-${index}`}
 				node={child}
 				depth={depth + 1}
+				path={`${path}.${child.key ?? index}`}
 			/>
 		));
 	}
@@ -210,19 +231,30 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 		}
 		: {};
 
-	const originalProps = node.props ?? {};
+	const originalProps = (node.props ?? {}) as Record<string, unknown>;
+	const shader = originalProps.shader as EngineShaderInput | undefined;
+	const hasShader = shader !== undefined && shader !== null && SHADER_SURFACE_TYPES.has(String(node.type));
+	const componentProps = { ...originalProps };
+	delete componentProps.shader;
+	if (hasShader) globalStyleCollector.add(SHADER_PENDING_CSS);
+
 	const visibilityClass = buildVisibilityClass(originalProps);
 	const originalClassName = typeof originalProps.className === "string" ? originalProps.className : undefined;
-	const mergedClassName = [originalClassName, visibilityClass].filter(Boolean).join(" ") || undefined;
+	const mergedClassName = [
+		originalClassName,
+		visibilityClass,
+		hasShader ? SHADER_PENDING_CLASS : undefined,
+	].filter(Boolean).join(" ") || undefined;
 	const pointName = typeof originalProps.point === "string" && originalProps.point.length > 0
 		? originalProps.point
 		: undefined;
 	const explicitId = typeof originalProps.id === "string" && originalProps.id.length > 0
 		? originalProps.id
 		: undefined;
-	const resolvedDomId = explicitId ?? pointName;
+	const shaderId = hasShader ? `e-shader-${shortHash(`${path}|${String(node.type)}|${node.name ?? ""}`)}` : undefined;
+	const resolvedDomId = explicitId ?? pointName ?? shaderId;
 	const nodeProps = {
-		...originalProps,
+		...componentProps,
 		...(resolvedDomId ? { id: resolvedDomId } : {}),
 		...(mergedClassName ? { className: mergedClassName } : {}),
 		...(Object.keys(extraStyle).length > 0
@@ -239,14 +271,22 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 		? renderedChildren
 		: (originalProps.children as ReactNode | undefined) ?? null;
 	const element = <Component {...nodeProps}>{effectiveChildren}</Component>;
+	const shaderSurface = hasShader && resolvedDomId
+		? (
+			<Suspense fallback={null}>
+				<LazyEngineShaderSurface targetId={resolvedDomId} shader={shader!} />
+			</Suspense>
+		)
+		: null;
 	const anchoredElement = pointName && resolvedDomId
 		? (
 			<>
 				<PointRegistration name={pointName} domId={resolvedDomId} />
 				{element}
+				{shaderSurface}
 			</>
 		)
-		: element;
+		: <>{element}{shaderSurface}</>;
 
 	if (!lazy.lazy) {
 		if (!splitComponent) return anchoredElement;
@@ -278,7 +318,7 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 			>
 				{anchoredElement}
 			</LazySection>
-			);
+		);
 	}
 
 	return (
@@ -305,5 +345,5 @@ export const SchemaRenderer = memo(function SchemaRenderer({ schema }: SchemaRen
 		validatePageSchema(schema);
 	}
 
-	return <NodeRenderer node={schema.root} depth={0} />;
+	return <NodeRenderer node={schema.root} depth={0} path="root" />;
 });

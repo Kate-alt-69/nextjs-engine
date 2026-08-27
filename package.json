@@ -23,8 +23,16 @@
 			"default": "./engine/server.ts"
 		},
 		"./plugin": {
+			"require": "./engine/plugins/enginePlugin.js",
+			"default": "./engine/plugins/enginePlugin.js"
+		},
+		"./api-plugin": {
 			"require": "./engine/plugins/engineApiPlugin.js",
 			"default": "./engine/plugins/engineApiPlugin.js"
+		},
+		"./shader-plugin": {
+			"require": "./engine/plugins/engineShaderPlugin.js",
+			"default": "./engine/plugins/engineShaderPlugin.js"
 		}
 	},
 	"types": "./index.ts",
