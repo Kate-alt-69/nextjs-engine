@@ -1,12 +1,48 @@
 # EngineOverlay
 
-EngineOverlay adds three first-class interaction primitives to Next.js Engine:
+> **Status:** first-class Overlay UI is implemented and available through both schema nodes and direct React exports.
+>
+> **Built-ins:** `dialog`, `drawer`, `popover`
+>
+> **React exports:** `EngineDialog`, `EngineDrawer`, `EnginePopover`
 
-- `dialog` / `EngineDialog` — modal dialogs and confirmation windows;
-- `drawer` / `EngineDrawer` — side or edge panels;
-- `popover` / `EnginePopover` — anchored floating content.
+EngineOverlay is Next.js Engine's shared interaction layer for UI that visually sits above the normal document flow. It provides modal dialogs, edge drawers and anchored popovers without requiring every page to rebuild focus handling, portals, Escape behavior, stacking and positioning by hand.
 
-The three components share one overlay runtime for focus handling, Escape behavior, overlay stacking, scroll locking and popover positioning. They are lazy-loaded through the Engine registry, so pages that do not render overlays do not eagerly load their React modules.
+The three primitives share one runtime, but each keeps a different interaction model:
+
+| Primitive | Best for | Modal by default | Anchored |
+|---|---|---:|---:|
+| `dialog` | confirms, editors, prompts, command surfaces | yes | no |
+| `drawer` | settings, inspectors, filters, mobile sheets | yes | screen edge |
+| `popover` | menus, options, small contextual panels | no | yes |
+
+The overlay components are lazy-loaded through the Engine registry. A page that never renders an overlay does not eagerly load the Overlay React component modules.
+
+---
+
+## Mental model
+
+```text
+Schema / JSX
+	↓
+EngineDialog / EngineDrawer / EnginePopover
+	↓
+shared EngineOverlay runtime
+	├── overlay stack
+	├── Escape ownership
+	├── focus discovery / focus trap
+	├── focus restoration
+	├── body scroll locking
+	└── popover collision positioning
+	↓
+React portal
+	↓
+document.body or portalTargetId
+```
+
+This makes Overlay UI a primitive system. Higher-level patterns such as command palettes and context menus should normally be compositions built from these primitives rather than additional Engine node types.
+
+---
 
 ## Quick start
 
@@ -31,7 +67,7 @@ The three components share one overlay runtime for focus handling, Escape behavi
 }
 ```
 
-The named action is resolved from `createPage({ handlers })`:
+Named actions resolve through `createPage({ handlers })`:
 
 ```ts
 export default createPage({
@@ -61,8 +97,6 @@ export default createPage({
 }
 ```
 
-`side` accepts `left`, `right`, `top` and `bottom`.
-
 ### Popover
 
 ```ts
@@ -81,11 +115,11 @@ export default createPage({
 }
 ```
 
-Popover placement automatically flips to the opposite side when the requested side does not have enough room, then clamps the panel inside the viewport.
+Popover positioning automatically tries the preferred side, flips to the opposite side when that side has more usable room, then clamps the panel inside the viewport.
+
+---
 
 ## Direct React use
-
-All three components are also public React exports:
 
 ```tsx
 "use client";
@@ -98,9 +132,11 @@ export function OverlayExamples() {
 			<EngineDialog triggerLabel="Open dialog" title="Hello">
 				Dialog content
 			</EngineDialog>
+
 			<EngineDrawer triggerLabel="Open drawer" side="left">
 				Drawer content
 			</EngineDrawer>
+
 			<EnginePopover triggerLabel="Open popover" placement="top">
 				Popover content
 			</EnginePopover>
@@ -109,15 +145,58 @@ export function OverlayExamples() {
 }
 ```
 
-## Open state
+All three also accept normal Engine styling props through `BaseNodeProps`.
 
-Use `defaultOpen` for uncontrolled state:
+---
+
+## Shared props
+
+These props are shared by Dialog, Drawer and Popover unless noted otherwise.
+
+| Prop | Type | Default / behavior |
+|---|---|---|
+| `open` | `boolean` | controlled open state |
+| `defaultOpen` | `boolean` | `false` |
+| `onOpenChange` | handler name or function | called with the new boolean state |
+| `trigger` | `ReactNode` | custom trigger content |
+| `triggerLabel` | `string` | generated trigger text |
+| `triggerClassName` | `string` | class for generated trigger button |
+| `triggerStyle` | `CSSProperties` | style for generated trigger button |
+| `triggerDisabled` | `boolean` | disables generated trigger |
+| `triggerAriaLabel` | `string` | accessible trigger label |
+| `title` | `ReactNode` | visible heading + ARIA label source |
+| `description` | `ReactNode` | visible description + ARIA description source |
+| `actions` | `EngineOverlayAction[]` | footer actions |
+| `showCloseButton` | `boolean` | Dialog/Drawer `true`, Popover `false` |
+| `closeLabel` | `string` | accessible close-button label |
+| `closeOnEscape` | `boolean` | `true` |
+| `restoreFocus` | `boolean` | `true` |
+| `initialFocus` | `string` | selector searched inside the panel |
+| `duration` | `number` | transition ms, clamped to `0..1200` |
+| `portalTargetId` | `string` | portal element id; falls back to `document.body` |
+| `ariaLabel` | `string` | fallback label when there is no visible title |
+| `style` | Engine style | styles the panel |
+| `className` | `string` | panel class |
+| `cprop` | Engine CPROP | state styling for the panel |
+| `zIndex` | `number` | Dialog/Drawer `1000`, Popover `1100` by default |
+
+If both `trigger` and `triggerLabel` are missing, no generated trigger button is rendered. That is useful when the overlay is controlled by external application state.
+
+---
+
+## Controlled and uncontrolled state
+
+Use `defaultOpen` when EngineOverlay should own the state:
 
 ```tsx
-<EngineDialog defaultOpen triggerLabel="Open" />
+<EngineDialog
+	defaultOpen
+	triggerLabel="Open"
+	title="Welcome"
+/>
 ```
 
-Use `open` and `onOpenChange` for controlled state:
+Use `open` + `onOpenChange` when the application owns the state:
 
 ```tsx
 <EngineDialog
@@ -127,21 +206,23 @@ Use `open` and `onOpenChange` for controlled state:
 />
 ```
 
-In schema, `onOpenChange` can be a named Engine handler:
+Schema can point `onOpenChange` at a named Engine handler:
 
 ```ts
 {
 	type: "drawer",
 	props: {
-		open: true,
+		open: drawerOpen,
 		onOpenChange: "drawerChanged",
 	},
 }
 ```
 
-## Actions
+The named handler receives the new boolean value.
 
-Dialogs and drawers commonly use `actions`, but actions work on all three overlay types.
+---
+
+## Actions
 
 ```ts
 props: {
@@ -153,9 +234,16 @@ props: {
 }
 ```
 
-Action variants are `primary`, `secondary`, `danger` and `ghost`.
+Action variants:
 
-Actions close the overlay after running by default. Set `close: false` when an action should keep the overlay open:
+```text
+primary
+secondary
+danger
+ghost
+```
+
+An action closes the overlay after running unless `close: false` is set:
 
 ```ts
 {
@@ -165,31 +253,52 @@ Actions close the overlay after running by default. Set `close: false` when an a
 }
 ```
 
-## Dialog options
+Use `disabled: true` to disable an action.
 
-Important dialog props:
+---
+
+## Dialog
+
+Dialog is the default primitive for modal interaction.
 
 | Prop | Default | Meaning |
 |---|---|---|
-| `closeOnEscape` | `true` | Escape closes the top overlay |
-| `closeOnBackdrop` | `true` | clicking the backdrop closes |
-| `lockScroll` | `true` | locks document body scrolling |
-| `trapFocus` | `true` | Tab stays inside the dialog |
-| `restoreFocus` | `true` | returns focus to the trigger |
-| `showCloseButton` | `true` | shows the × close control |
 | `role` | `dialog` | `dialog` or `alertdialog` |
-| `duration` | `180` | transition duration in ms |
+| `closeOnBackdrop` | `true` | backdrop press closes |
+| `lockScroll` | `true` | locks document scrolling while open |
+| `trapFocus` | `true` | Tab stays inside the panel |
+| `duration` | `180` | animation duration in ms |
 
-## Drawer options
+Use `alertdialog` for a decision that needs immediate user attention:
 
-Drawer adds:
-
-```text
-side: left | right | top | bottom
-size: CSS size or number
+```ts
+{
+	type: "dialog",
+	props: {
+		role: "alertdialog",
+		triggerLabel: "Remove account",
+		title: "Remove this account?",
+		description: "This action cannot be undone.",
+	},
+}
 ```
 
-Example mobile sheet:
+---
+
+## Drawer
+
+Drawer uses the same modal behavior as Dialog but enters from a screen edge.
+
+| Prop | Default | Meaning |
+|---|---|---|
+| `side` | `right` | `left`, `right`, `top`, `bottom` |
+| `size` | `min(26rem, 92vw)` | drawer width/height depending on side |
+| `closeOnBackdrop` | `true` | backdrop press closes |
+| `lockScroll` | `true` | locks document scrolling |
+| `trapFocus` | `true` | keeps focus inside |
+| `duration` | `220` | animation duration in ms |
+
+A mobile sheet is simply a bottom Drawer:
 
 ```ts
 {
@@ -203,52 +312,101 @@ Example mobile sheet:
 }
 ```
 
-This is why a separate `sheet` primitive is not necessary: a bottom Drawer is the same interaction model.
+There is intentionally no separate `sheet` primitive because it would duplicate Drawer behavior.
 
-## Popover options
+---
 
-Popover adds:
+## Popover
+
+Popover is anchored to its generated trigger and is non-modal by default.
 
 | Prop | Default | Meaning |
 |---|---|---|
-| `placement` | `bottom` | preferred side |
+| `placement` | `bottom` | `top`, `right`, `bottom`, `left` |
 | `align` | `center` | `start`, `center`, `end` |
 | `offset` | `8` | trigger-to-panel distance |
 | `viewportPadding` | `8` | minimum viewport edge gap |
-| `closeOnOutsideClick` | `true` | outside pointer press closes |
-| `matchTriggerWidth` | `false` | panel min-width follows trigger |
-| `autoFocus` | `false` | focus first panel control |
-| `trapFocus` | `false` | keep Tab inside the popover |
-| `role` | `dialog` | `dialog`, `menu`, or `listbox` |
+| `closeOnOutsideClick` | `true` | outside pointer closes the top popover |
+| `matchTriggerWidth` | `false` | panel min-width follows trigger width |
+| `autoFocus` | `false` | focuses the first panel control |
+| `trapFocus` | `false` | keeps Tab inside the popover |
+| `role` | `dialog` | `dialog`, `menu`, `listbox` |
+| `duration` | `140` | animation duration in ms |
 
-The runtime repositions open popovers on viewport resize, page/container scrolling and trigger/panel ResizeObserver changes. Repeated events are coalesced through `requestAnimationFrame`.
+The open Popover repositions when:
 
-## Initial focus
+- the viewport resizes;
+- the page or a scroll container scrolls;
+- the trigger changes size;
+- the panel changes size.
 
-`initialFocus` is a selector searched inside the panel:
+Resize/scroll updates are coalesced through `requestAnimationFrame`, and `ResizeObserver` exists only while the Popover is present.
+
+---
+
+## Focus behavior
+
+`initialFocus` accepts a CSS selector searched inside the panel:
 
 ```tsx
 <EngineDialog
-	triggerLabel="Edit"
+	triggerLabel="Edit project"
+	title="Edit project"
 	initialFocus="#project-name"
 >
 	<input id="project-name" />
 </EngineDialog>
 ```
 
-If the selector does not match, EngineOverlay focuses the first focusable control, then the panel itself as a final fallback.
+Focus selection order is:
 
-## Nested overlays
+```text
+initialFocus match
+	↓
+first focusable descendant
+	↓
+panel itself
+```
 
-The runtime keeps an overlay stack. Escape and outside-click behavior only act on the top overlay. This prevents a Popover inside a Dialog from closing the Dialog first.
+When a modal closes, focus returns to its trigger when possible. If the trigger is unavailable, EngineOverlay falls back to the element that was focused before opening.
 
-Body scroll locking is reference-counted, so closing one modal overlay does not unlock the page while another scroll-locking overlay is still open.
+Dialog and Drawer trap Tab by default. Popover does not, because a normal contextual menu should not automatically behave like a modal dialog.
+
+---
+
+## Overlay stacking
+
+EngineOverlay maintains one shared stack. The latest registered overlay is considered the top overlay for keyboard and contextual outside-click handling.
+
+This allows combinations such as:
+
+```text
+Dialog
+	└── Popover
+		└── contextual controls
+```
+
+Escape is handled by the top overlay first. Body scroll locking is reference-counted, so nested modal overlays cannot accidentally unlock document scrolling while another modal still needs the lock.
+
+---
+
+## Portals
+
+Overlay panels portal to `document.body` by default. This prevents a parent element's `overflow`, transform or stacking context from clipping the overlay.
+
+```tsx
+<EngineDialog portalTargetId="app-overlay-root" />
+```
+
+When the requested target is missing, EngineOverlay safely falls back to `document.body`.
+
+The portal runtime is client-side only; the trigger can still participate in normal SSR/hydration.
+
+---
 
 ## Styling
 
-Normal Engine props such as `style`, `className`, `bg`, `border`, `borderRadius`, spacing and size props can style the panel.
-
-Shared CSS variables:
+Normal Engine styling props style the panel. Shared visual defaults use CSS variables:
 
 ```css
 --e-overlay-bg
@@ -275,58 +433,109 @@ Example:
 />
 ```
 
-Use `overlayStyle` on Dialog/Drawer to style the backdrop. `triggerStyle` and `triggerClassName` style the generated trigger button.
+`triggerStyle` and `triggerClassName` style the generated trigger. `overlayStyle` styles the Dialog/Drawer backdrop.
 
-## Portals
+---
 
-Overlays portal to `document.body` by default, avoiding clipping from parent `overflow`, transforms and stacking contexts.
+## Reduced motion
 
-To portal into a specific element:
+When the browser reports:
 
-```tsx
-<EngineDialog portalTargetId="app-overlay-root" />
+```css
+@media (prefers-reduced-motion: reduce)
 ```
 
-If the requested target does not exist, EngineOverlay safely falls back to `document.body`.
+EngineOverlay resolves its transition duration to zero. Functionality remains unchanged; only the decorative transition is removed.
 
-## Accessibility behavior
+---
 
-EngineDialog and EngineDrawer use modal dialog semantics, focus trapping and focus restoration by default. Titles and descriptions automatically wire `aria-labelledby` and `aria-describedby`. When no visible title exists, `ariaLabel` or the trigger label is used.
+## Composition recipes
 
-Popover is non-modal by default because menus/tooltips/options normally should not lock the rest of the page. Turn on `autoFocus` or `trapFocus` only when the popover behaves like an interactive mini-dialog.
-
-`prefers-reduced-motion: reduce` changes overlay transition duration to zero.
-
-## Composition instead of extra primitive types
-
-Several common UI patterns should be compositions, not new Engine node types:
+Do not create a new core primitive merely because a product pattern has a familiar name. Compose Overlay primitives with existing Engine components:
 
 ```text
-Command palette = Dialog + Input + list
-Context menu    = Popover + menu items
-Dropdown menu   = Popover + stack/buttons
-Mobile sheet    = Drawer(side="bottom")
-Inspector panel = Drawer
-Confirm prompt  = Dialog + actions
+Command Palette = Dialog + Input + result list
+Context Menu    = Popover(role="menu") + menu actions
+Dropdown Menu   = Popover + Stack + Buttons
+Account Menu    = Popover + links/actions
+Mobile Sheet    = Drawer(side="bottom")
+Inspector       = Drawer(side="right")
+Navigation Rail = Drawer(side="left")
+Confirm Prompt  = Dialog + actions
+Edit Form       = Dialog + EngineForm
+Filter Panel    = Drawer + EngineForm
 ```
 
-This keeps the Engine primitive set small while making higher-level UI patterns easy to build.
+This is the intended Overlay UI architecture: a small number of strong primitives with reusable compositions on top.
 
-## Performance notes
+---
 
-- Overlay component modules are code-split by the registry.
-- Closed overlays do not keep portal DOM mounted.
-- Dialog/Drawer scroll locking uses one shared reference-counted runtime.
-- Popover resize/scroll positioning is RAF-coalesced.
-- ResizeObserver is only attached while a Popover is present.
-- no animation loop runs while an overlay is idle.
+## Performance
 
-## Low-level positioning API
+- Overlay React modules are registry split-points.
+- Closed overlays do not keep portal DOM mounted after their exit duration.
+- No persistent animation loop runs while overlays are idle.
+- Dialog/Drawer share one reference-counted body-scroll lock.
+- Popover positioning work is RAF-coalesced.
+- Popover `ResizeObserver` instances exist only while the panel is present.
+- `prefers-reduced-motion` avoids unnecessary animation work.
 
-Advanced callers can use the same positioning helper:
+---
+
+## Low-level API
+
+Advanced callers can use the positioning runtime directly:
 
 ```ts
-import { computePopoverPosition } from "nextjs-engine";
+import {
+	computePopoverPosition,
+	getFocusableElements,
+	isTopOverlay,
+	lockBodyScroll,
+	registerOverlay,
+} from "nextjs-engine";
 ```
 
-It accepts trigger/panel rectangles plus viewport size, placement, alignment, offset and viewport padding, and returns `{ top, left, placement }`.
+`computePopoverPosition()` accepts trigger and panel rectangles plus viewport width/height, preferred placement, alignment, offset and viewport padding. It returns:
+
+```ts
+{
+	top: number,
+	left: number,
+	placement: "top" | "right" | "bottom" | "left"
+}
+```
+
+The other low-level helpers are exported mainly for advanced integrations. Normal application code should prefer `EngineDialog`, `EngineDrawer` and `EnginePopover`.
+
+---
+
+## Troubleshooting
+
+### The overlay has no button
+
+Provide `triggerLabel` or `trigger`. If neither is supplied, EngineOverlay assumes the open state is controlled externally and intentionally renders no generated trigger.
+
+### A Popover opens on another side
+
+That is collision handling. The requested `placement` is a preference, not a promise. If the opposite side has more usable room, the Popover flips automatically.
+
+### Focus does not move to `initialFocus`
+
+`initialFocus` must be a selector matching an element inside the overlay panel. If it does not match, the runtime uses the first focusable element or the panel itself.
+
+### Page scrolling is locked
+
+Dialog and Drawer lock body scrolling by default. Set `lockScroll: false` only when the product interaction genuinely requires the background page to stay scrollable.
+
+### I need a command palette / context menu / sheet
+
+Build it as a composition. Those are product patterns; Dialog, Popover and Drawer are the core interaction primitives.
+
+---
+
+## CI coverage
+
+The repository includes `scripts/engine-overlay-smoke.js`, and the main Engine CI runs it before TypeScript and the full Next.js integration build. The smoke test covers placement, flipping, viewport clamping and overlay-stack registration behavior.
+
+That keeps the shared runtime protected independently from the React rendering layer.
