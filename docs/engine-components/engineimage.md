@@ -13,15 +13,15 @@ avoid CLS.
 
 ```ts
 {
-  type: "image",
-  props: {
-    src: "/hero.jpg",
-    alt: "Product preview",
-    width: 1600,
-    height: 900,
-    qualityPreset: "balanced",
-    rounded: "1rem",
-  },
+	type: "image",
+	props: {
+		src: "/hero.jpg",
+		alt: "Product preview",
+		width: 1600,
+		height: 900,
+		qualityPreset: "balanced",
+		rounded: "1rem",
+	},
 }
 ```
 
@@ -31,7 +31,7 @@ avoid CLS.
 |---|---|---|---|
 | `src` | `string` | required | Next.js-compatible image source |
 | `alt` | `string` | required | Accessible alternative text |
-| `width` / `height` | `number` | `800 / 600` fallback | Used for intrinsic size and preload-distance estimation |
+| `width` / `height` | `number` | `800 / 600` fallback | Used for intrinsic size, preload-distance estimation, and automatic aspect-ratio reservation when both are supplied |
 | `fill` | `boolean` | `false` | Uses Next Image fill mode |
 | `priority` | `boolean` | `false` | Mount immediately instead of waiting for IntersectionObserver |
 | `quality` | `number` | preset value | Explicit Next image quality |
@@ -39,11 +39,22 @@ avoid CLS.
 | `qualityMobile` | `number` | — | Mobile quality for `<768px` |
 | `qualityDesktop` | `number` | — | Desktop quality for `>=768px` |
 | `objectFit` | CSS `object-fit` value | `"cover"` | Applied to the rendered image |
-| `aspectRatio` | `string` | — | Reserves responsive layout space |
+| `aspectRatio` | `string` | inferred from `width / height` when possible | Explicit layout reservation; overrides the inferred ratio |
 | `sizes` | `string` | generated | Passed to Next image selection |
 | `blurDataURL` | `string` | — | Optional blur-up placeholder |
 | `rounded` | `boolean \| string` | — | `true` = `8px` |
 | `caption` | `string` | — | Wraps image in `<figure>` with `<figcaption>` |
+
+### Layout reservation
+
+When a non-fill image provides positive numeric `width` and `height`, EngineImage
+uses those dimensions to reserve the same aspect ratio before the actual image
+mounts. This also applies to small images that do not receive an outer
+`LazyMount`, so known dimensions do not need a separate `aspectRatio` prop just
+to avoid a layout jump.
+
+An explicit `aspectRatio` still wins when the visual crop/container ratio should
+be different from the source dimensions.
 
 ### Responsive quality does not render two images
 
@@ -53,16 +64,24 @@ The browser selects one candidate. NE does **not** render two CSS-hidden Next
 Image elements, so responsive quality does not intentionally double-download
 the asset.
 
+The generated mobile/desktop Next image candidate data is memoized from the
+request-defining props. Placeholder/opacity state changes therefore do not
+rebuild both srcset payloads just because the image finished loading.
+
 ```ts
 props: {
-  src: "/feature.png",
-  alt: "Feature",
-  width: 1400,
-  height: 900,
-  qualityMobile: 65,
-  qualityDesktop: 86,
+	src: "/feature.png",
+	alt: "Feature",
+	width: 1400,
+	height: 900,
+	qualityMobile: 65,
+	qualityDesktop: 86,
 }
 ```
+
+Readiness is tied to the current `src`. Replacing the image source immediately
+returns the wrapper to its placeholder/transparent state until the new source
+finishes loading; it does not inherit the previous image's ready state.
 
 ### Viewport distance
 
@@ -86,13 +105,13 @@ EngineVideo does not create the `<video>` element until its wrapper is within
 
 ```ts
 {
-  type: "video",
-  props: {
-    src: "/demo.mp4",
-    poster: "/demo-poster.jpg",
-    aspectRatio: "16/9",
-    controls: true,
-  },
+	type: "video",
+	props: {
+		src: "/demo.mp4",
+		poster: "/demo-poster.jpg",
+		aspectRatio: "16/9",
+		controls: true,
+	},
 }
 ```
 
@@ -122,9 +141,19 @@ passed through unchanged, but `autoPlay: true` also sets the native `autoplay`
 attribute; browsers may therefore fetch enough media to honor the playback
 request even when `preload="none"` was supplied.
 
+### Poster ownership
+
+Before the video mounts, EngineVideo may render its lightweight poster surface
+so the reserved media area is not blank. Once a normal non-autoplay `<video>` is
+mounted, the native `poster` attribute owns that surface instead of keeping a
+second poster `<img>` stacked over the media element.
+
+Autoplay keeps the external poster only while the video is intentionally
+transparent and waiting to become playable.
+
 ### Changing video sources
 
-Updating `src` after EngineVideo has mounted now creates a fresh native media
+Updating `src` after EngineVideo has mounted creates a fresh native media
 element keyed by the ordered source list. This matters because changing React
 `<source>` children alone does not reliably make an existing `<video>` run the
 HTML media resource-selection algorithm again.
@@ -137,7 +166,9 @@ On a source change NE:
 4. lets the native element apply the current preload/autoplay policy.
 
 The source key is based on source URL, MIME type, and order, so recreating an
-array with identical entries does not intentionally restart playback.
+array with identical entries does not intentionally restart playback. Source
+normalization and the fingerprint are memoized so readiness/buffering rerenders
+do not repeatedly rebuild the same source list.
 
 ## Automatic lazy policy
 

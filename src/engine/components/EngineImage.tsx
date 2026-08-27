@@ -7,6 +7,7 @@ import React, {
 	memo,
 	useCallback,
 	useEffect,
+	useMemo,
 	useState,
 	type CSSProperties,
 } from "react";
@@ -87,7 +88,8 @@ export const EngineImage = memo(function EngineImage({
 	style,
 	className,
 }: EngineImageProps) {
-	const [loaded, setLoaded] = useState(false);
+	const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+	const loaded = loadedSrc === src;
 
 	useEffect(() => {
 		injectImageCSS();
@@ -99,27 +101,70 @@ export const EngineImage = memo(function EngineImage({
 		initialInView: priority,
 	});
 	const handleLoad = useCallback(() => {
-		setLoaded(true);
+		setLoadedSrc(src);
 		onLoad?.();
-	}, [onLoad]);
+	}, [onLoad, src]);
 
 	const usePerViewport = qualityMobile !== undefined || qualityDesktop !== undefined;
 	const mobileQuality = qualityMobile ?? 70;
 	const desktopQuality = qualityDesktop ?? (quality ?? QUALITY_PRESET[qualityPreset] ?? 78);
 	const resolvedQuality = quality ?? QUALITY_PRESET[qualityPreset] ?? 78;
 	const resolvedSizes = sizes ?? autoSizes(fill, width);
+	const resolvedAspectRatio = aspectRatio ?? (
+		!fill &&
+		typeof width === "number" && width > 0 &&
+		typeof height === "number" && height > 0
+			? `${width} / ${height}`
+			: undefined
+	);
 	const borderRadius = rounded === true
 		? "8px"
 		: typeof rounded === "string"
 			? rounded
 			: undefined;
 
+	const responsiveProps = useMemo(() => {
+		if (!usePerViewport) return null;
+		const sizing = fill
+			? { fill: true as const }
+			: { width: width ?? 800, height: height ?? 600 };
+		const baseProps = {
+			src,
+			alt,
+			sizes: resolvedSizes,
+			priority,
+			...sizing,
+		};
+
+		return {
+			mobile: getImageProps({
+				...baseProps,
+				quality: mobileQuality,
+			}),
+			desktop: getImageProps({
+				...baseProps,
+				quality: desktopQuality,
+			}),
+		};
+	}, [
+		alt,
+		desktopQuality,
+		fill,
+		height,
+		mobileQuality,
+		priority,
+		resolvedSizes,
+		src,
+		usePerViewport,
+		width,
+	]);
+
 	const wrapperStyle: CSSProperties = {
 		position: "relative",
 		overflow: "hidden",
 		borderRadius,
 		contain: "layout paint",
-		...(aspectRatio && !fill ? { aspectRatio, width: "100%" } : {}),
+		...(resolvedAspectRatio && !fill ? { aspectRatio: resolvedAspectRatio, width: "100%" } : {}),
 		...(fill ? { width: "100%", height: "100%" } : {}),
 		...(style ?? {}),
 	};
@@ -158,29 +203,22 @@ export const EngineImage = memo(function EngineImage({
 
 	let imageNode: React.ReactNode = null;
 	if (inView) {
-		if (usePerViewport) {
-			const mobile = getImageProps({
-				...commonImageProps,
-				quality: mobileQuality,
-			});
-			const desktop = getImageProps({
-				...commonImageProps,
-				quality: desktopQuality,
-			});
+		if (responsiveProps) {
 			imageNode = (
 				<picture>
 					<source
 						media="(max-width: 767px)"
-						srcSet={mobile.props.srcSet}
-						sizes={mobile.props.sizes}
+						srcSet={responsiveProps.mobile.props.srcSet}
+						sizes={responsiveProps.mobile.props.sizes}
 					/>
 					<source
 						media="(min-width: 768px)"
-						srcSet={desktop.props.srcSet}
-						sizes={desktop.props.sizes}
+						srcSet={responsiveProps.desktop.props.srcSet}
+						sizes={responsiveProps.desktop.props.sizes}
 					/>
 					<img
-						{...desktop.props}
+						{...responsiveProps.desktop.props}
+						style={imageStyle}
 						onLoad={handleLoad}
 					/>
 				</picture>
