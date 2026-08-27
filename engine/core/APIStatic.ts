@@ -49,6 +49,8 @@ export interface APIStaticOptions {
 	basePath?: string;
 	loadTimeoutMs?: number;
 	proxy?: APIStaticProxyHandler;
+	/** Add a changing query token when loading generated modules. Defaults to true in development. */
+	cacheBust?: boolean;
 }
 
 export interface APIStaticExecuteOptions {
@@ -123,13 +125,9 @@ function formDataToRecord(formData: FormData): Record<string, unknown> {
 	const output: Record<string, unknown> = {};
 	for (const [key, value] of formData.entries()) {
 		const existing = output[key];
-		if (existing === undefined) {
-			output[key] = value;
-		} else if (Array.isArray(existing)) {
-			existing.push(value);
-		} else {
-			output[key] = [existing, value];
-		}
+		if (existing === undefined) output[key] = value;
+		else if (Array.isArray(existing)) existing.push(value);
+		else output[key] = [existing, value];
 	}
 	return output;
 }
@@ -232,23 +230,10 @@ function applySchema(schema: APIStaticInputSchema | undefined, input: unknown): 
 	return output;
 }
 
-async function defaultProxy(target: string, input?: unknown, init: RequestInit = {}): Promise<unknown> {
-	const requestInit: RequestInit = { ...init };
-	if (input !== undefined && requestInit.body === undefined) {
-		requestInit.method = requestInit.method || "POST";
-		requestInit.headers = {
-			"Content-Type": "application/json",
-			...(requestInit.headers || {}),
-		};
-		requestInit.body = JSON.stringify(input);
-	}
-
-	const response = await fetch(target, requestInit);
-	if (!response.ok) throw new Error(`[APIStatic] Proxy returned ${response.status}.`);
-	if (response.status === 204) return undefined;
-
-	const contentType = response.headers.get("content-type") || "";
-	return contentType.includes("application/json") ? response.json() : response.text();
+async function unconfiguredProxy(): Promise<never> {
+	throw new Error(
+		"[APIStatic] proxy() has no backend bridge. Configure one with configureAPIStatic({ proxy }) or use fetch() for a public browser API.",
+	);
 }
 
 function isResponseDescriptor(value: unknown): value is APIStaticResponseDescriptor {
@@ -276,34 +261,49 @@ function toResponse(value: unknown): Response {
 	});
 }
 
+function isProductionRuntime(): boolean {
+	return typeof process !== "undefined" && process.env?.NODE_ENV === "production";
+}
+
 function errorResponse(reason: unknown): Response {
 	const candidate = reason as APIStaticErrorDescriptor;
-	const status = candidate?.__engine_api_static_error__ === true
+	const isStaticError = candidate?.__engine_api_static_error__ === true;
+	const isValidationError = reason instanceof APIStaticValidationError;
+	const status = isStaticError
 		? candidate.status ?? 500
-		: reason instanceof APIStaticValidationError
+		: isValidationError
 			? reason.status
 			: 500;
-	const message = reason instanceof Error ? reason.message : "APIStatic operation failed.";
+	const message = isStaticError || isValidationError || !isProductionRuntime()
+		? reason instanceof Error ? reason.message : "APIStatic operation failed."
+		: "APIStatic operation failed.";
 	const payload: Record<string, unknown> = { error: message };
-	if (candidate?.__engine_api_static_error__ === true && candidate.details !== undefined) {
-		payload.details = candidate.details;
-	}
+	if (isStaticError && candidate.details !== undefined) payload.details = candidate.details;
 	return new Response(JSON.stringify(payload), {
 		status,
 		headers: { "Content-Type": "application/json; charset=utf-8" },
 	});
 }
 
+function removeLoadedScripts(route?: string): void {
+	if (typeof document === "undefined") return;
+	for (const script of Array.from(document.querySelectorAll("script[data-engine-api-static]"))) {
+		if (!route || (script instanceof HTMLScriptElement && script.dataset.engineApiStatic === route)) script.remove();
+	}
+}
+
 export class APIStatic {
 	private readonly basePath: string;
 	private readonly loadTimeoutMs: number;
 	private readonly proxyHandler: APIStaticProxyHandler;
+	private readonly cacheBust: boolean;
 	private readonly pendingLoads = new Map<string, Promise<APIStaticRouteModule>>();
 
 	constructor(options: APIStaticOptions = {}) {
 		this.basePath = options.basePath || DEFAULT_BASE_PATH;
 		this.loadTimeoutMs = options.loadTimeoutMs ?? DEFAULT_LOAD_TIMEOUT_MS;
-		this.proxyHandler = options.proxy || defaultProxy;
+		this.proxyHandler = options.proxy || unconfiguredProxy;
+		this.cacheBust = options.cacheBust ?? !isProductionRuntime();
 	}
 
 	getURL(route: string): string {
@@ -315,11 +315,13 @@ export class APIStatic {
 		if (!route) {
 			registry.clear();
 			this.pendingLoads.clear();
+			removeLoadedScripts();
 			return;
 		}
 		const normalized = normalizeAPIStaticRoute(route);
 		registry.delete(normalized);
 		this.pendingLoads.delete(normalized);
+		removeLoadedScripts(normalized);
 	}
 
 	async execute(route: string, options: APIStaticExecuteOptions = {}): Promise<unknown> {
@@ -364,10 +366,13 @@ export class APIStatic {
 
 	private loadBrowserModule(route: string): Promise<APIStaticRouteModule> {
 		if (typeof document === "undefined") {
-			return Promise.reject(new Error("[APIStatic] Static endpoints execute in the browser. Use a proxy for server-only work."));
+			return Promise.reject(new Error("[APIStatic] Static endpoints execute in the browser. Use a configured proxy/backend for server-only work."));
 		}
 
-		const source = this.getURL(route);
+		const stableSource = this.getURL(route);
+		const source = this.cacheBust
+			? `${stableSource}${stableSource.includes("?") ? "&" : "?"}__eas=${Date.now().toString(36)}`
+			: stableSource;
 		return new Promise<APIStaticRouteModule>((resolve, reject) => {
 			const script = document.createElement("script");
 			script.type = "module";
@@ -384,15 +389,17 @@ export class APIStatic {
 			script.onerror = () => {
 				finish();
 				script.remove();
-				reject(new Error(`[APIStatic] Could not load ${source}. Did the .route compiler run?`));
+				reject(new Error(`[APIStatic] Could not load ${stableSource}. Did the .route compiler run?`));
 			};
 			script.onload = () => {
 				finish();
 				const loaded = getRegistry().get(route);
 				if (!loaded) {
-					reject(new Error(`[APIStatic] ${source} loaded without registering ${route}.`));
+					script.remove();
+					reject(new Error(`[APIStatic] ${stableSource} loaded without registering ${route}.`));
 					return;
 				}
+				script.remove();
 				resolve(loaded);
 			};
 

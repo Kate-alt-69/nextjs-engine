@@ -10,6 +10,8 @@ const fs = require("fs");
 const path = require("path");
 const { compileAPIStaticDir } = require("./apiStaticCompiler");
 
+const WATCH_STATE_KEY = Symbol.for("nextjs-engine.engine-api-watch-state");
+
 function parseScalar(raw) {
 	const value = raw.trim();
 	if (value.startsWith('"') && value.endsWith('"')) return value.slice(1, -1);
@@ -164,6 +166,74 @@ function compileProviderConfig(projectRoot, configDir, outputFile) {
 	fs.writeFileSync(outputPath, JSON.stringify(compileAPIConfig(combinedSource), null, "\t"), "utf8");
 }
 
+function getWatchState() {
+	const root = globalThis;
+	if (!root[WATCH_STATE_KEY]) root[WATCH_STATE_KEY] = new Map();
+	return root[WATCH_STATE_KEY];
+}
+
+function watchEngineAPISources({ projectRoot, configDir, endpointDir, compileEngineAPI }) {
+	const watchOverride = process.env.NEXTJS_ENGINE_API_WATCH;
+	const isNextDev = process.env.NODE_ENV === "development" && process.argv.includes("dev");
+	if (watchOverride === "0" || (watchOverride !== "1" && !isNextDev)) return;
+
+	const absoluteConfigDir = path.resolve(projectRoot, configDir);
+	const absoluteEndpointDir = path.resolve(projectRoot, endpointDir);
+	const stateKey = `${projectRoot}\n${absoluteConfigDir}\n${absoluteEndpointDir}`;
+	const state = getWatchState();
+	if (state.has(stateKey)) return;
+
+	const watchers = [];
+	let timer = null;
+	let compiling = false;
+	let compileAgain = false;
+
+	const queueCompile = () => {
+		if (timer) clearTimeout(timer);
+		timer = setTimeout(() => {
+			timer = null;
+			if (compiling) {
+				compileAgain = true;
+				return;
+			}
+
+			compiling = true;
+			try {
+				compileEngineAPI();
+			} catch (reason) {
+				console.error("[engine:api] Failed to recompile API sources:", reason);
+			} finally {
+				compiling = false;
+				if (compileAgain) {
+					compileAgain = false;
+					queueCompile();
+				}
+			}
+		}, 50);
+	};
+
+	const addWatcher = (directory, extension, recursive) => {
+		if (!fs.existsSync(directory)) return;
+		try {
+			const watcher = fs.watch(directory, { recursive }, (_eventType, fileName) => {
+				const name = typeof fileName === "string" ? fileName : fileName?.toString() || "";
+				if (!name || name.endsWith(extension)) queueCompile();
+			});
+			watcher.on("error", (reason) => {
+				console.warn(`[engine:api] Watcher failed for ${directory}:`, reason);
+			});
+			watcher.unref?.();
+			watchers.push(watcher);
+		} catch (reason) {
+			console.warn(`[engine:api] Could not watch ${directory}:`, reason);
+		}
+	};
+
+	addWatcher(absoluteEndpointDir, ".route", true);
+	addWatcher(absoluteConfigDir, ".api", false);
+	state.set(stateKey, watchers);
+}
+
 function withEngineAPI(nextConfig = {}, pluginOptions = {}) {
 	const {
 		configDir = ".EngineAPIConfig",
@@ -182,9 +252,11 @@ function withEngineAPI(nextConfig = {}, pluginOptions = {}) {
 		});
 	};
 
-	// next.config is evaluated for both Turbopack and webpack. Compiling here
-	// makes APIStatic available to `next dev` without relying on a webpack hook.
+	// next.config is evaluated for both Turbopack and webpack. Compile once here,
+	// then keep source directories watched during next dev so .route edits do not
+	// require restarting the development server.
 	compileEngineAPI();
+	watchEngineAPISources({ projectRoot, configDir, endpointDir, compileEngineAPI });
 
 	return {
 		...nextConfig,
