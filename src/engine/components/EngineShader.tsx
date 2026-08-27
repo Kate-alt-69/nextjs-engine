@@ -145,13 +145,23 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 	const variablesRef = useRef<Record<string, EngineShaderVariableValue>>(config?.variables ?? {});
 	const requestDrawRef = useRef<() => void>(() => {});
 	const readyRef = useRef(false);
+	const onReadyRef = useRef(props.onReady);
+	const onErrorRef = useRef(props.onError);
 	const lastGoodPlanRef = useRef<EngineShaderRenderPlan | null>(null);
+	const lastGoodSourceRef = useRef<string | null>(null);
 	const [plan, setPlan] = useState<EngineShaderRenderPlan | null>(null);
 	const [contextVersion, setContextVersion] = useState(0);
 	variablesRef.current = config?.variables ?? {};
+	onReadyRef.current = props.onReady;
+	onErrorRef.current = props.onError;
 
 	useEffect(() => {
 		if (!config) return;
+		if (lastGoodSourceRef.current !== config.src) {
+			lastGoodSourceRef.current = config.src;
+			lastGoodPlanRef.current = null;
+			readyRef.current = false;
+		}
 		let alive = true;
 		const load = async (forceManifest = false) => {
 			try {
@@ -159,7 +169,7 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 				if (alive) setPlan(result.plan);
 			} catch (reason) {
 				if (!alive) return;
-				props.onError?.(reason);
+				onErrorRef.current?.(reason);
 				if (process.env.NODE_ENV !== "production") console.error(reason);
 			}
 		};
@@ -169,7 +179,7 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 			alive = false;
 			unsubscribe();
 		};
-	}, [config?.src, props.onError]);
+	}, [config?.src]);
 
 	useEffect(() => {
 		requestDrawRef.current();
@@ -187,7 +197,7 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 			powerPreference: config.powerPreference ?? (props.layer ? "low-power" : "high-performance"),
 		}) as GLContext | null;
 		if (!gl) {
-			props.onError?.(new Error("[EngineShader] WebGL is unavailable in this browser/device."));
+			onErrorRef.current?.(new Error("[EngineShader] WebGL is unavailable in this browser/device."));
 			return;
 		}
 
@@ -199,7 +209,7 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 			if (lastGoodPlan && lastGoodPlan !== plan) {
 				setPlan(lastGoodPlan);
 			}
-			props.onError?.(reason);
+			onErrorRef.current?.(reason);
 			if (process.env.NODE_ENV !== "production") console.error(reason);
 			return;
 		}
@@ -208,7 +218,7 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 		const positionBuffer = gl.createBuffer();
 		if (!positionBuffer) {
 			gl.deleteProgram(program);
-			props.onError?.(new Error("[EngineShader] Failed to allocate fullscreen triangle."));
+			onErrorRef.current?.(new Error("[EngineShader] Failed to allocate fullscreen triangle."));
 			return;
 		}
 		gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -217,7 +227,7 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 		if (position < 0) {
 			gl.deleteBuffer(positionBuffer);
 			gl.deleteProgram(program);
-			props.onError?.(new Error("[EngineShader] Compiled plan is missing a_position."));
+			onErrorRef.current?.(new Error("[EngineShader] Compiled plan is missing a_position."));
 			return;
 		}
 		gl.useProgram(program);
@@ -315,7 +325,7 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 			gl.drawArrays(gl.TRIANGLES, 0, 3);
 			if (!readyRef.current) {
 				readyRef.current = true;
-				props.onReady?.();
+				onReadyRef.current?.();
 			}
 		};
 
@@ -459,8 +469,6 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 		config?.respectReducedMotion,
 		config?.powerPreference,
 		props.layer,
-		props.onReady,
-		props.onError,
 		contextVersion,
 	]);
 
