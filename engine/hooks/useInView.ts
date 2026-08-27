@@ -2,43 +2,28 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  Engine — useInView
 //
-//  SSR-safe IntersectionObserver hook.
-//  Returns a [ref, inView, entry] tuple.
-//
-//  Features:
-//    · Configurable rootMargin for pre-loading before viewport entry
-//    · threshold array for fine-grained visibility callbacks
-//    · once mode — stops observing after first intersection (perfect for lazy mount)
-//    · Gracefully degrades when IntersectionObserver is unavailable (old browsers)
-//      by treating everything as "in view"
+//  SSR-safe IntersectionObserver hook. Native observers are pooled by matching
+//  root/rootMargin/threshold options so large lazy pages do not allocate one
+//  IntersectionObserver instance per element.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
 	useEffect,
 	useRef,
 	useState,
-	useCallback,
 	type RefObject,
 } from "react";
 
 export interface UseInViewOptions {
-	/**
-	 * CSS margin around the root (viewport).
-	 * Use positive values to trigger BEFORE the element enters the viewport.
-	 * Default: "200px 0px" — start loading 200 px before entering view.
-	 */
+	/** CSS margin around the root. Default: "200px 0px". */
 	rootMargin?: string;
-	/** Intersection ratio thresholds. Default: [0] */
+	/** Intersection ratio thresholds. Default: 0. */
 	threshold?: number | number[];
-	/**
-	 * If true, the observer disconnects after the first intersection.
-	 * Use this for lazy-mount — no need to keep watching once loaded.
-	 * Default: true
-	 */
+	/** Disconnect this element after its first intersection. Default: true. */
 	once?: boolean;
-	/** Custom root element (default: browser viewport) */
+	/** Custom root element (default: browser viewport). */
 	root?: Element | null;
-	/** Start as in-view — useful for above-fold elements. Default: false */
+	/** Start as in-view — useful for above-fold elements. Default: false. */
 	initialInView?: boolean;
 }
 
@@ -46,6 +31,85 @@ export interface UseInViewReturn<T extends Element = Element> {
 	ref: RefObject<T | null>;
 	inView: boolean;
 	entry: IntersectionObserverEntry | null;
+}
+
+type IntersectionListener = (entry: IntersectionObserverEntry) => void;
+
+interface ObserverPool {
+	observer: IntersectionObserver;
+	listeners: Map<Element, Set<IntersectionListener>>;
+}
+
+const viewportObserverPools = new Map<string, ObserverPool>();
+const rootedObserverPools = new WeakMap<Element, Map<string, ObserverPool>>();
+
+function thresholdKey(threshold: number | number[]): string {
+	return Array.isArray(threshold) ? threshold.join(",") : String(threshold);
+}
+
+function getPoolMap(root: Element | null): Map<string, ObserverPool> {
+	if (!root) return viewportObserverPools;
+	let pools = rootedObserverPools.get(root);
+	if (!pools) {
+		pools = new Map();
+		rootedObserverPools.set(root, pools);
+	}
+	return pools;
+}
+
+function observePooled(
+	element: Element,
+	root: Element | null,
+	rootMargin: string,
+	threshold: number | number[],
+	listener: IntersectionListener,
+): () => void {
+	const pools = getPoolMap(root);
+	const poolKey = `${rootMargin}|${thresholdKey(threshold)}`;
+	let pool = pools.get(poolKey);
+
+	if (!pool) {
+		const listeners = new Map<Element, Set<IntersectionListener>>();
+		const observer = new IntersectionObserver((entries) => {
+			for (const entry of entries) {
+				const targetListeners = listeners.get(entry.target);
+				if (!targetListeners) continue;
+				for (const targetListener of [...targetListeners]) {
+					targetListener(entry);
+				}
+			}
+		}, { root, rootMargin, threshold });
+		pool = { observer, listeners };
+		pools.set(poolKey, pool);
+	}
+
+	let targetListeners = pool.listeners.get(element);
+	if (!targetListeners) {
+		targetListeners = new Set();
+		pool.listeners.set(element, targetListeners);
+		pool.observer.observe(element);
+	}
+	targetListeners.add(listener);
+
+	let active = true;
+	return () => {
+		if (!active) return;
+		active = false;
+
+		const listeners = pool!.listeners.get(element);
+		if (listeners) {
+			listeners.delete(listener);
+			if (listeners.size === 0) {
+				pool!.listeners.delete(element);
+				pool!.observer.unobserve(element);
+			}
+		}
+
+		if (pool!.listeners.size === 0) {
+			pool!.observer.disconnect();
+			pools.delete(poolKey);
+		}
+	};
 }
 
 export function useInView<T extends Element = Element>({
@@ -58,59 +122,47 @@ export function useInView<T extends Element = Element>({
 	const ref = useRef<T | null>(null);
 	const [inView, setInView] = useState(initialInView);
 	const [entry, setEntry] = useState<IntersectionObserverEntry | null>(null);
-	// Keep a ref to the observer so we can disconnect in cleanup
-	const observerRef = useRef<IntersectionObserver | null>(null);
-
-	const disconnect = useCallback(() => {
-		if (observerRef.current) {
-			observerRef.current.disconnect();
-			observerRef.current = null;
-		}
-	}, []);
+	const hasIntersectedRef = useRef(initialInView);
+	const thresholdSignature = thresholdKey(threshold);
 
 	useEffect(() => {
-		// SSR guard
 		if (typeof window === "undefined") return;
-		// Already in view (once mode hit) — nothing to do
-		if (once && inView) return;
+		if (once && hasIntersectedRef.current) return;
 
-		// Graceful degradation — treat as in-view if IO not supported
 		if (!("IntersectionObserver" in window)) {
+			hasIntersectedRef.current = true;
 			setInView(true);
 			return;
 		}
 
-		const el = ref.current;
-		if (!el) return;
+		const element = ref.current;
+		if (!element) return;
 
-		disconnect();
-
-		observerRef.current = new IntersectionObserver(
-			(entries) => {
-				const e = entries[0];
-				if (!e) return;
-				setEntry(e);
-				if (e.isIntersecting) {
+		let unsubscribe: () => void = () => undefined;
+		unsubscribe = observePooled(
+			element,
+			root,
+			rootMargin,
+			threshold,
+			(nextEntry) => {
+				setEntry(nextEntry);
+				if (nextEntry.isIntersecting) {
+					hasIntersectedRef.current = true;
 					setInView(true);
-					if (once) disconnect();
+					if (once) unsubscribe();
 				} else if (!once) {
 					setInView(false);
 				}
 			},
-			{ rootMargin, threshold, root },
 		);
 
-		observerRef.current.observe(el);
-
-		return disconnect;
-	}, [rootMargin, threshold, root, once, inView, disconnect]);
+		return unsubscribe;
+	}, [once, root, rootMargin, thresholdSignature]);
 
 	return { ref, inView, entry };
 }
 
-// ── Convenience variants ──────────────────────────────────────────────────────
-
-/** Pre-load 400 px before entry — good for images */
+/** Pre-load 400 px before entry — good for images. */
 export function useImageInView<T extends Element = Element>(priority = false) {
 	return useInView<T>({
 		rootMargin: "400px 0px",
@@ -119,7 +171,7 @@ export function useImageInView<T extends Element = Element>(priority = false) {
 	});
 }
 
-/** Pre-load 600 px before entry — good for heavy sections */
+/** Pre-load 600 px before entry — good for heavy sections. */
 export function useSectionInView<T extends Element = Element>(eager = false) {
 	return useInView<T>({
 		rootMargin: "600px 0px",
@@ -128,7 +180,7 @@ export function useSectionInView<T extends Element = Element>(eager = false) {
 	});
 }
 
-/** Only trigger when actually visible — good for analytics / animations */
+/** Only trigger when actually visible — good for analytics / animations. */
 export function useVisibleInView<T extends Element = Element>() {
 	return useInView<T>({
 		rootMargin: "0px",

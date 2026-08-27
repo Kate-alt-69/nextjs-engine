@@ -10,8 +10,8 @@ A responsive value is a scalar or a mobile-first breakpoint map:
 
 ```ts
 type ResponsiveValue<T> = T | Partial<Record<
-  "xs" | "sm" | "md" | "lg" | "xl" | "2xl",
-  T
+	"xs" | "sm" | "md" | "lg" | "xl" | "2xl",
+	T
 >>;
 ```
 
@@ -19,13 +19,13 @@ Breakpoint values cascade forward. For example:
 
 ```ts
 {
-  type: "box",
-  props: {
-    bg: { xs: "#111827", md: "#030712" },
-    color: { xs: "#e5e7eb", lg: "#ffffff" },
-    px: { xs: 16, md: 32 },
-    backgroundPosition: { xs: "center top", lg: "center" },
-  },
+	type: "box",
+	props: {
+		bg: { xs: "#111827", md: "#030712" },
+		color: { xs: "#e5e7eb", lg: "#ffffff" },
+		px: { xs: 16, md: 32 },
+		backgroundPosition: { xs: "center top", lg: "center" },
+	},
 }
 ```
 
@@ -67,7 +67,7 @@ background: var(--e-at-abc-background, #111827);
 /* collected stylesheet */
 :root { --e-at-abc-background: #111827; }
 @media (min-width: 768px) {
-  :root { --e-at-abc-background: #030712; }
+	:root { --e-at-abc-background: #030712; }
 }
 ```
 
@@ -82,10 +82,10 @@ Many standard CSS properties can be placed directly beside engine shorthands:
 
 ```ts
 props: {
-  bg: "#111",
-  transform: "translateY(-2px)",
-  filter: "blur(2px)",
-  willChange: "transform",
+	bg: "#111",
+	transform: "translateY(-2px)",
+	filter: "blur(2px)",
+	willChange: "transform",
 }
 ```
 
@@ -93,8 +93,8 @@ For background surfaces, both the shorthand and normal CSS names are supported:
 
 ```ts
 props: {
-  background: { xs: "#111", md: "#000" },
-  backgroundColor: { xs: "rgb(17 24 39)", md: "rgb(3 7 18)" },
+	background: { xs: "#111", md: "#000" },
+	backgroundColor: { xs: "rgb(17 24 39)", md: "rgb(3 7 18)" },
 }
 ```
 
@@ -108,14 +108,14 @@ CSS properties:
 
 ```ts
 style: {
-  background: "#111827",
-  color: "#e5e7eb",
-  "@media (min-width: 768px)": {
-    background: "#030712",
-  },
-  "@supports (backdrop-filter: blur(8px))": {
-    backdropFilter: "blur(8px)",
-  },
+	background: "#111827",
+	color: "#e5e7eb",
+	"@media (min-width: 768px)": {
+		background: "#030712",
+	},
+	"@supports (backdrop-filter: blur(8px))": {
+		backdropFilter: "blur(8px)",
+	},
 }
 ```
 
@@ -130,9 +130,9 @@ handlers:
 
 ```ts
 cprop: {
-  onHover: { transform: "scale(1.02)", background: "#1f2937" },
-  onFocus: { outline: "2px solid #60a5fa" },
-  onActive: { transform: "scale(0.98)" },
+	onHover: { transform: "scale(1.02)", background: "#1f2937" },
+	onFocus: { outline: "2px solid #60a5fa" },
+	onActive: { transform: "scale(0.98)" },
 }
 ```
 
@@ -141,8 +141,16 @@ Supported state bags are `onHover`, `onFocus`, `onActive`, `onChecked`,
 
 ## Styling and the collector
 
-Generated responsive/pseudo/at-rule CSS is deduplicated inside the current
-style collector and emitted through the engine stylesheet. The current runtime
-still uses a process-level `globalStyleCollector` for generated styles, so full
-per-request concurrency isolation remains a known architectural limitation. See
-[`runtime-performance.md`](./runtime-performance.md) for the current status.
+Generated responsive/pseudo/at-rule CSS is deduplicated by **exact CSS content**
+inside the current style collector and emitted through the engine stylesheet.
+Ordinary generated CSS is not retained in a process-wide cross-render cache:
+every response still needs its own stylesheet, so retaining and hashing those
+blocks across renders would add memory/CPU without removing output.
+
+Only CSS explicitly added with `StyleCollector.addGlobal()` is retained across
+render passes for `EngineGlobalStyles()`.
+
+The current runtime still uses a process-level `globalStyleCollector` for normal
+generated styles, so full per-request concurrency isolation remains a known
+architectural limitation. See [`runtime-performance.md`](./runtime-performance.md)
+for the current status.
