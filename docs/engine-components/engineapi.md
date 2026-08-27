@@ -40,7 +40,7 @@ resolveRequest.pageOverrides
 resolveRequest.nodeOverrides
 ```
 
-Only plain objects are recursively merged. Platform objects such as `CryptoKey`, `Blob`, `FileList`, and `FormData` are preserved.
+Only plain option objects are recursively merged. Platform objects such as `CryptoKey`, `Blob`, `FileList`, and `FormData` are preserved. **`endpoint` is an atomic routing field**: a later endpoint replaces the earlier endpoint as a whole. Static endpoint descriptors are never recursively combined, so an `operation` from one route cannot leak into a different overridden route.
 
 For methods other than `GET` and `HEAD`, plain objects are JSON serialized. Native `FormData` passes through unchanged. Plain objects containing browser binary values are converted to native `FormData`; a manually supplied multipart `Content-Type` is removed so the browser can add the correct boundary.
 
@@ -83,6 +83,8 @@ const resolver = new EngineAPIResolver({
 ```
 
 The logical name (`math`) comes from `data/endpoint/math.route`. Application code should not hardcode the generated hashed JavaScript URL. See [`apistatic.md`](./apistatic.md).
+
+When dispatching to APIStatic, `resolveRequest({ input })` uses `formData` only when `input` is **undefined**. Explicit values such as `null`, `false`, `0`, and `""` remain real APIStatic input and are not replaced by the compatibility fallback.
 
 ---
 
