@@ -10,11 +10,123 @@ import type { ECGroup, ECMesh, ECNode, ECScene, ECVector2 } from "./ECTypes";
 import { ecPath } from "./ECGraphicsModel";
 import type { ECRenderContext, RenderingEngine } from "./RenderingEngine";
 
+interface MeshPathData {
+	fill: string;
+	stroke: string;
+}
+
 interface RetainedSVGNode {
 	type: ECNode["type"];
 	element: SVGElement;
+	fillPath?: SVGPathElement;
+	strokePath?: SVGPathElement;
 	vertices?: Float32Array;
+	indices?: Uint16Array | Uint32Array;
 	topology?: ECMesh["topology"];
+}
+
+function vertexPoint(mesh: ECMesh, vertexIndex: number): string {
+	return `${mesh.vertices[vertexIndex * 3]},${mesh.vertices[vertexIndex * 3 + 1]}`;
+}
+
+function triangleIndices(mesh: ECMesh): number[] {
+	const triangles: number[] = [];
+	const vertexCount = Math.floor(mesh.vertices.length / 3);
+
+	if (mesh.indices && mesh.indices.length >= 3 && mesh.topology !== "strip") {
+		for (let index = 0; index + 2 < mesh.indices.length; index += 3) {
+			triangles.push(mesh.indices[index], mesh.indices[index + 1], mesh.indices[index + 2]);
+		}
+		return triangles;
+	}
+
+	if (mesh.topology === "fan") {
+		for (let vertex = 1; vertex + 1 < vertexCount; vertex++) {
+			triangles.push(0, vertex, vertex + 1);
+		}
+		return triangles;
+	}
+
+	if (mesh.topology === "triangles") {
+		for (let vertex = 0; vertex + 2 < vertexCount; vertex += 3) {
+			triangles.push(vertex, vertex + 1, vertex + 2);
+		}
+	}
+
+	return triangles;
+}
+
+function stripPathData(mesh: ECMesh): string {
+	const count = mesh.indices?.length ?? Math.floor(mesh.vertices.length / 3);
+	const segments: string[] = [];
+	for (let position = 0; position < count; position++) {
+		const vertexIndex = mesh.indices ? mesh.indices[position] : position;
+		segments.push(`${position === 0 ? "M" : "L"}${vertexPoint(mesh, vertexIndex)}`);
+	}
+	return segments.join(" ");
+}
+
+function triangleFillPathData(mesh: ECMesh, triangles: number[]): string {
+	const segments: string[] = [];
+	for (let index = 0; index + 2 < triangles.length; index += 3) {
+		segments.push(
+			`M${vertexPoint(mesh, triangles[index])}`,
+			`L${vertexPoint(mesh, triangles[index + 1])}`,
+			`L${vertexPoint(mesh, triangles[index + 2])}`,
+			"Z",
+		);
+	}
+	return segments.join(" ");
+}
+
+function boundaryPathData(mesh: ECMesh, triangles: number[]): string {
+	const edgeCounts = new Map<string, { count: number; a: number; b: number }>();
+	const recordEdge = (a: number, b: number): void => {
+		const low = Math.min(a, b);
+		const high = Math.max(a, b);
+		const key = `${low}:${high}`;
+		const existing = edgeCounts.get(key);
+		if (existing) {
+			existing.count++;
+			return;
+		}
+		edgeCounts.set(key, { count: 1, a, b });
+	};
+
+	for (let index = 0; index + 2 < triangles.length; index += 3) {
+		const a = triangles[index];
+		const b = triangles[index + 1];
+		const c = triangles[index + 2];
+		recordEdge(a, b);
+		recordEdge(b, c);
+		recordEdge(c, a);
+	}
+
+	const segments: string[] = [];
+	for (const edge of edgeCounts.values()) {
+		if (edge.count !== 1) continue;
+		segments.push(`M${vertexPoint(mesh, edge.a)}`, `L${vertexPoint(mesh, edge.b)}`);
+	}
+	return segments.join(" ");
+}
+
+function meshPathData(mesh: ECMesh): MeshPathData {
+	if (mesh.topology === "strip") {
+		return { fill: "", stroke: stripPathData(mesh) };
+	}
+	const triangles = triangleIndices(mesh);
+	return {
+		fill: triangleFillPathData(mesh, triangles),
+		stroke: boundaryPathData(mesh, triangles),
+	};
+}
+
+function escapeXMLAttribute(value: string): string {
+	return value
+		.replace(/&/g, "&amp;")
+		.replace(/"/g, "&quot;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;");
 }
 
 export class EngineSVGEngine implements RenderingEngine {
@@ -145,37 +257,50 @@ export class EngineSVGEngine implements RenderingEngine {
 		mesh: ECMesh,
 		parent: SVGElement,
 		retained?: RetainedSVGNode,
-	): SVGPathElement {
+	): SVGGElement {
 		if (!retained) {
-			const element = document.createElementNS("http://www.w3.org/2000/svg", "path");
-			retained = { type: "mesh", element };
+			const element = document.createElementNS("http://www.w3.org/2000/svg", "g");
+			const fillPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+			const strokePath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+			fillPath.setAttribute("data-engine-svg-fill", "true");
+			strokePath.setAttribute("data-engine-svg-stroke", "true");
+			element.append(fillPath, strokePath);
+			retained = { type: "mesh", element, fillPath, strokePath };
 			this.retainedNodes.set(mesh.id, retained);
 		}
 
-		const path = retained.element as SVGPathElement;
-		this.attachToParent(path, parent);
+		const element = retained.element as SVGGElement;
+		const fillPath = retained.fillPath!;
+		const strokePath = retained.strokePath!;
+		this.attachToParent(element, parent);
 
-		if (retained.vertices !== mesh.vertices || retained.topology !== mesh.topology) {
-			this.setAttribute(path, "d", this.pathData(mesh));
+		if (
+			retained.vertices !== mesh.vertices
+			|| retained.indices !== mesh.indices
+			|| retained.topology !== mesh.topology
+		) {
+			const geometry = meshPathData(mesh);
+			this.setAttribute(fillPath, "d", geometry.fill);
+			this.setAttribute(strokePath, "d", geometry.stroke);
 			retained.vertices = mesh.vertices;
+			retained.indices = mesh.indices;
 			retained.topology = mesh.topology;
 		}
 
-		this.setAttribute(path, "transform", this.transformString(mesh.transform));
-		this.setAttribute(path, "fill", mesh.topology === "strip" ? "none" : mesh.material.fill ?? "none");
-		this.setAttribute(path, "stroke", mesh.material.stroke ?? "none");
-		this.setAttribute(path, "stroke-width", String(mesh.material.strokeWidth ?? 1));
-		this.setAttribute(path, "opacity", String(mesh.material.opacity ?? 1));
-		return path;
-	}
-
-	private pathData(mesh: ECMesh): string {
-		const segments: string[] = [];
-		for (let index = 0; index < mesh.vertices.length; index += 3) {
-			segments.push(`${index === 0 ? "M" : "L"}${mesh.vertices[index]},${mesh.vertices[index + 1]}`);
-		}
-		if (mesh.topology === "fan") segments.push("Z");
-		return segments.join(" ");
+		this.setAttribute(element, "transform", this.transformString(mesh.transform));
+		this.setAttribute(element, "opacity", String(mesh.material.opacity ?? 1));
+		this.setAttribute(fillPath, "fill", mesh.topology === "strip" ? "none" : mesh.material.fill ?? "none");
+		this.setAttribute(fillPath, "stroke", "none");
+		this.setAttribute(strokePath, "fill", "none");
+		this.setAttribute(
+			strokePath,
+			"stroke",
+			mesh.topology === "strip"
+				? mesh.material.stroke ?? mesh.material.fill ?? "none"
+				: mesh.material.stroke ?? "none",
+		);
+		this.setAttribute(strokePath, "stroke-width", String(mesh.material.strokeWidth ?? 1));
+		return element;
 	}
 
 	private transformString(transform: ECGroup["transform"]): string {
@@ -305,10 +430,13 @@ function readMaterial(element: Element) {
 }
 
 export function exportSVG(scene: ECScene, width: number, height: number): string {
+	const background = scene.environment !== "void" && scene.background
+		? `\n<rect x="${-width / 2}" y="${-height / 2}" width="${width}" height="${height}" fill="${escapeXMLAttribute(scene.background)}" />`
+		: "";
 	const body = scene.children.map(nodeToSVGString).join("\n");
 	return (
 		`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" ` +
-		`viewBox="${-width / 2} ${-height / 2} ${width} ${height}">\n${body}\n</svg>`
+		`viewBox="${-width / 2} ${-height / 2} ${width} ${height}">${background}\n${body}\n</svg>`
 	);
 }
 
@@ -322,18 +450,21 @@ function nodeToSVGString(node: ECNode): string {
 		);
 	}
 
-	const pathSegments: string[] = [];
-	for (let index = 0; index < node.vertices.length; index += 3) {
-		pathSegments.push(`${index === 0 ? "M" : "L"}${node.vertices[index]},${node.vertices[index + 1]}`);
-	}
-	if (node.topology === "fan") pathSegments.push("Z");
-
+	const geometry = meshPathData(node);
 	const material = node.material;
 	const transform = node.transform;
+	const transformValue = `translate(${transform.position.x} ${transform.position.y}) rotate(${transform.rotation.z}) scale(${transform.scale.x} ${transform.scale.y})`;
+	const fill = node.topology === "strip" ? "none" : escapeXMLAttribute(material.fill ?? "none");
+	const stroke = node.topology === "strip"
+		? escapeXMLAttribute(material.stroke ?? material.fill ?? "none")
+		: escapeXMLAttribute(material.stroke ?? "none");
+	const opacity = material.opacity ?? 1;
+	const strokeWidth = material.strokeWidth ?? 1;
+
 	return (
-		`<path d="${pathSegments.join(" ")}" fill="${node.topology === "strip" ? "none" : material.fill ?? "none"}" ` +
-		`stroke="${material.stroke ?? "none"}" stroke-width="${material.strokeWidth ?? 1}" ` +
-		`opacity="${material.opacity ?? 1}" transform="translate(${transform.position.x} ${transform.position.y}) ` +
-		`rotate(${transform.rotation.z}) scale(${transform.scale.x} ${transform.scale.y})" />`
+		`<g transform="${transformValue}" opacity="${opacity}">` +
+		`<path d="${geometry.fill}" fill="${fill}" stroke="none" />` +
+		`<path d="${geometry.stroke}" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" />` +
+		`</g>`
 	);
 }
