@@ -163,6 +163,8 @@ export {
 	EngineScroll,
 	EngineScrollProvider,
 	useEngineScroll,
+	useEngineScrollTimeline,
+	EngineScrollTimeline,
 	EngineScrollNavigator,
 	EngineScrollURL,
 	EngineScrollMovement,
@@ -173,9 +175,22 @@ export {
 export type {
 	EngineScrollCtx,
 	EngineScrollTarget,
+	EngineScrollNavigationOptions,
 	EngineScrollState,
 	EngineScrollPoint,
 	EngineRegisteredPoint,
+	EngineScrollPointOptions,
+	EngineScrollRegisteredPoint,
+	EngineScrollResolvedPoint,
+	EngineScrollAlignment,
+	EngineScrollDirection,
+	EngineScrollEasingName,
+	EngineScrollMoveOptions,
+	EngineScrollTimelineConfig,
+	EngineScrollTimelineFrame,
+	EngineScrollTimelineSource,
+	EngineScrollTimelineSubscriber,
+	EngineScrollTimelineTarget,
 } from "./core/enginescroll";
 
 export { EngineBrowser, useBrowser } from "./core/EngineBrowserSafe";

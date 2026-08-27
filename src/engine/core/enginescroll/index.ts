@@ -14,6 +14,16 @@ export type {
 	EngineScrollProviderProps,
 } from "./EngineScrollProvider";
 
+export { useEngineScrollTimeline } from "./useEngineScrollTimeline";
+export { EngineScrollTimeline } from "./EngineScrollTimeline";
+export type {
+	EngineScrollTimelineConfig,
+	EngineScrollTimelineFrame,
+	EngineScrollTimelineSource,
+	EngineScrollTimelineSubscriber,
+	EngineScrollTimelineTarget,
+} from "./EngineScrollTimeline";
+
 export { EngineScrollNavigator } from "./EngineScrollNavigator";
 export type {
 	EngineScrollNavigationOptions,

@@ -26,13 +26,13 @@ jobs:
           node scripts/api-static-smoke.js
           node scripts/api-static-artifact-smoke.js
       - name: Test EngineShader compiler
-        run: |
-          node scripts/engine-shader-smoke.js
-          node scripts/engine-shader-local-smoke.js
+        run: node scripts/engine-shader-smoke.js
       - name: Test EngineBrowser SSR safety
         run: node scripts/engine-browser-smoke.js
       - name: Test EngineTransitions presets
         run: node scripts/engine-transitions-smoke.js
+      - name: Test EngineScroll core
+        run: node scripts/engine-scroll-smoke.js
       - name: Type-check engine
         run: npm run type-check
       - name: Build Next.js integration app

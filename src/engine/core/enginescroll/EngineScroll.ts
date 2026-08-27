@@ -11,8 +11,10 @@ import { EngineScrollObserver } from "./EngineScrollObserver";
 import { EngineScrollPhysics } from "./EngineScrollPhysics";
 import { EngineScrollPointManager } from "./EngineScrollPointManager";
 import { EngineScrollRuntime } from "./EngineScrollRuntime";
+import { EngineScrollTimeline } from "./EngineScrollTimeline";
 import { BrowserEvents } from "./browser/BrowserEvents";
 import { Viewport } from "./viewport/Viewport";
+import type { EngineScrollTimelineConfig } from "./EngineScrollTimeline";
 import type { EngineScrollMoveOptions } from "./EngineScrollTypes";
 
 export class EngineScroll {
@@ -49,6 +51,11 @@ export class EngineScroll {
 	public static subscribe = (
 		callback: Parameters<EngineScrollRuntime["subscribe"]>[0],
 	) => this.runtime().subscribe(callback);
+
+	public static timeline(config: EngineScrollTimelineConfig): EngineScrollTimeline {
+		this.initialize();
+		return new EngineScrollTimeline(config);
+	}
 
 	public static move(
 		target: Parameters<typeof EngineScrollNavigator.move>[0],
