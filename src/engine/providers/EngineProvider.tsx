@@ -3,7 +3,7 @@
 //  Engine — EngineProvider
 //
 //  Root React context for the engine. Carries config, handlers, slots, and the
-//  style collector currently used by generated engine styles.
+//  style collector used by generated engine styles.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, {
@@ -26,7 +26,7 @@ export interface EngineContextValue {
 	handlers: Record<string, (...args: unknown[]) => void>;
 	/** Named slot content — keyed by string matching SlotProps.name. */
 	slots: Record<string, ReactNode>;
-	/** Collector used by the current engine style pipeline. */
+	/** Collector owned by the current EngineProvider render boundary. */
 	styleCollector: StyleCollector;
 }
 
@@ -62,10 +62,11 @@ export function EngineProvider({
 	styleCollector,
 	children,
 }: EngineProviderProps) {
-	// Generated style helpers still use the process-level collector today. Point
-	// the context at that real collector by default instead of allocating a new
-	// unused StyleCollector for every provider instance.
-	const collector = styleCollector ?? globalStyleCollector;
+	const ownedStyleCollectorRef = React.useRef<StyleCollector | null>(null);
+	if (ownedStyleCollectorRef.current === null) {
+		ownedStyleCollectorRef.current = new StyleCollector();
+	}
+	const collector = styleCollector ?? ownedStyleCollectorRef.current;
 	const resolvedHandlers = handlers ?? EMPTY_HANDLERS;
 	const resolvedSlots = slots ?? EMPTY_SLOTS;
 
@@ -101,12 +102,37 @@ export function useEngineConfig(): Required<EngineConfig> {
 	return useContext(EngineContext).config;
 }
 
+export function useStyleCollector(): StyleCollector {
+	return useContext(EngineContext).styleCollector;
+}
+
 export function useHandler(name: string): ((...args: unknown[]) => void) | undefined {
 	return useContext(EngineContext).handlers[name];
 }
 
 export function useSlot(name: string): ReactNode | undefined {
 	return useContext(EngineContext).slots[name];
+}
+
+export interface EngineCollectedStylesProps {
+	/** Preserve the historical page-level style id when createPage owns emission. */
+	id?: string;
+}
+
+/** Emit only CSS collected by the nearest EngineProvider. */
+export function EngineCollectedStyles({ id }: EngineCollectedStylesProps) {
+	const styleCollector = useStyleCollector();
+	const generatedId = React.useId().replace(/:/g, "");
+	const css = styleCollector.collect();
+	if (!css) return null;
+
+	return (
+		<style
+			id={id ?? `__engine_styles_${generatedId}`}
+			precedence="default"
+			dangerouslySetInnerHTML={{ __html: css }}
+		/>
+	);
 }
 
 // ── Shared viewport-width subscription ────────────────────────────────────────
