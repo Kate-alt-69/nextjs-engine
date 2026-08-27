@@ -23,12 +23,13 @@ This engine does all of it by default. You write a schema. The engine produces a
 | Images not optimised | Always uses `next/image` |
 | Images loading too early or too late | `IntersectionObserver` with size-aware pre-load distance |
 | No blur placeholder on images | Blur-up progressive loading built in |
-| Videos fetching on page load | `src` never injected into DOM until 800px before viewport |
+| Videos fetching on page load | `src` never injected into DOM until near viewport |
 | Off-screen sections wasting render budget | `content-visibility: auto` applied automatically |
 | Heavy sections blocking interactivity | `LazyMount` — children don't exist in DOM until near viewport |
 | Layout shift from lazy content | Reserved placeholder height on every lazy element |
 | No Suspense boundaries | Auto-wrapped around every lazy subtree |
 | Scattered CSS | One deduplicated `<style>` tag per page |
+| Repetitive in-house API files | APIStatic compiles `data/endpoint/**/*.route` to static endpoint programs |
 
 ---
 
@@ -40,11 +41,11 @@ Drop the `src/engine/` folder into any Next.js project, add the path alias, and 
 
 ```json
 {
-  "compilerOptions": {
-    "paths": {
-      "@/engine": ["./src/engine/index.ts"]
-    }
-  }
+	"compilerOptions": {
+		"paths": {
+			"@/engine": ["./src/engine/index.ts"]
+		}
+	}
 }
 ```
 
@@ -52,52 +53,141 @@ Drop the `src/engine/` folder into any Next.js project, add the path alias, and 
 
 ```ts
 // app/page.tsx
-import { createPage, defineSchema } from "@/engine";
+import { createPage, defineSchema } from "@/engine"
 
 const HomeSchema = defineSchema({
-  meta: {
-    title: "My Site",
-    description: "Built with the Next.js Engine",
-  },
-  root: {
-    type: "section",
-    props: { contentMaxWidth: "1100px" },
-    children: [
-      {
-        type: "heading",
-        props: {
-          level: 1,
-          content: "Hello World",
-          subheading: "Fast by default.",
-          align: "center",
-        },
-      },
-      {
-        type: "image",
-        props: {
-          src: "/hero.jpg",
-          alt: "Hero image",
-          width: 1200,
-          height: 600,
-          priority: true,   // above fold — loads immediately
-        },
-      },
-      {
-        type: "video",
-        props: {
-          src: "/demo.mp4",
-          poster: "/demo-thumb.jpg",
-          // lazy by default — src never fetches until near viewport
-        },
-      },
-    ],
-  },
-});
+	meta: {
+		title: "My Site",
+		description: "Built with the Next.js Engine"
+	},
+	root: {
+		type: "section",
+		props: { contentMaxWidth: "1100px" },
+		children: [
+			{
+				type: "heading",
+				props: {
+					level: 1,
+					content: "Hello World",
+					subheading: "Fast by default.",
+					align: "center"
+				}
+			},
+			{
+				type: "image",
+				props: {
+					src: "/hero.jpg",
+					alt: "Hero image",
+					width: 1200,
+					height: 600,
+					priority: true
+				}
+			},
+			{
+				type: "video",
+				props: {
+					src: "/demo.mp4",
+					poster: "/demo-thumb.jpg"
+				}
+			}
+		]
+	}
+})
 
-export default createPage({ schema: HomeSchema });
+export default createPage({ schema: HomeSchema })
 ```
 
 That's it. The engine handles the rest.
+
+---
+
+## APIStatic — In-house Static APIs
+
+APIStatic removes the need to create a new Next.js `route.ts` for small browser-safe in-house API operations.
+
+Create files under:
+
+```text
+data/endpoint/**/*.route
+```
+
+For example:
+
+```text
+data/endpoint/math.route
+```
+
+```ts
+createEndpoint([
+	{
+		name: "add"
+		query: {
+			a: "number"
+			b: "number"
+		}
+		run.query(query.a + query.b)
+	}
+])
+```
+
+The plugin compiles that to a stable hashed module under `/_static/endpoint/*`, but application code uses only the logical route name:
+
+```ts
+import { APIStatic } from "nextjs-engine"
+
+const response = await APIStatic.resolve(
+	"math",
+	"add",
+	{ a: 20, b: 30 }
+)
+```
+
+Or use the normal resolver explicitly:
+
+```ts
+import { APIStatic, EngineAPIResolver } from "nextjs-engine"
+
+const resolver = new EngineAPIResolver({
+	endpoint: APIStatic.endpoint("math", "add")
+})
+
+const response = await resolver.resolveRequest({
+	input: { a: 20, b: 30 }
+})
+```
+
+Discover compiled logical names when needed:
+
+```ts
+await APIStatic.names()
+await APIStatic.has("math")
+await APIStatic.getEndpoints()
+```
+
+Normal execution does not require discovery first. APIStatic owns the hash and generated `/_static/endpoint/...js` path internally.
+
+`.route` programs execute in the browser. Do not put secrets or private server state in them; use an explicitly configured `proxy()` bridge for server-only work.
+
+See [`docs/engine-components/apistatic.md`](./docs/engine-components/apistatic.md) for the full DSL, manifest, proxy, response, error, and plugin reference.
+
+---
+
+## EngineAPIResolver
+
+For external HTTP APIs, auth, provider config, version macros, HMAC/PNP signing, and `.EngineAPIConfig/*.api`, use `EngineAPIResolver`.
+
+```ts
+import { EngineAPIResolver } from "nextjs-engine"
+
+const resolver = new EngineAPIResolver({
+	endpoint: "https://api.example.com/users",
+	method: "GET"
+})
+
+const response = await resolver.resolveRequest()
+```
+
+See [`docs/engine-components/engineapi.md`](./docs/engine-components/engineapi.md).
 
 ---
 
@@ -107,9 +197,9 @@ Pass a breakpoint map to any spacing, sizing, or layout prop. The engine convert
 
 ```ts
 props: {
-  px:      { xs: "1rem", md: "2rem", xl: "3rem" },
-  columns: { xs: 1, md: 2, lg: 3 },
-  display: { xs: "block", md: "flex" },
+	px: { xs: "1rem", md: "2rem", xl: "3rem" },
+	columns: { xs: 1, md: 2, lg: 3 },
+	display: { xs: "block", md: "flex" }
 }
 ```
 
@@ -123,21 +213,21 @@ Set CSS custom properties once, used everywhere:
 
 ```ts
 defineSchema({
-  theme: {
-    vars: {
-      "--e-accent":  "#7c3aed",
-      "--e-bg":      "#0f0f1a",
-      "--e-card-bg": "#1a1a2e",
-      "--e-muted":   "#94a3b8",
-    },
-    fonts: [
-      "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap"
-    ],
-    globalStyles: `
-      body { background: var(--e-bg); font-family: 'Inter', sans-serif; }
-    `,
-  },
-  root: { … }
+	theme: {
+		vars: {
+			"--e-accent": "#7c3aed",
+			"--e-bg": "#0f0f1a",
+			"--e-card-bg": "#1a1a2e",
+			"--e-muted": "#94a3b8"
+		},
+		fonts: [
+			"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap"
+		],
+		globalStyles: `
+			body { background: var(--e-bg); font-family: 'Inter', sans-serif; }
+		`
+	},
+	root: { … }
 })
 ```
 
@@ -148,19 +238,18 @@ defineSchema({
 Register any React component under a custom node type:
 
 ```ts
-import { memo } from "react";
-import { registerComponent } from "@/engine";
+import { memo } from "react"
+import { registerComponent } from "@/engine"
 
 registerComponent(
-  "my-card",
-  memo(function MyCard({ title, children }) {
-    return <div className="card"><h3>{title}</h3>{children}</div>;
-  })
-);
+	"my-card",
+	memo(function MyCard({ title, children }) {
+		return <div className="card"><h3>{title}</h3>{children}</div>
+	})
+)
 ```
 
 ```ts
-// In any schema:
 { type: "my-card", props: { title: "Hello" }, children: […] }
 ```
 
@@ -168,7 +257,7 @@ registerComponent(
 
 ## Lazy Loading Rules
 
-The engine decides laziness automatically based on element type and position in the tree. Override with `props.priority = true` (always eager) or `props.lazy = true/false`.
+The engine decides laziness automatically based on element type and position in the tree. Override with `props.priority = true` or `props.lazy = true/false`.
 
 | Type | Default Behaviour |
 |------|------------------|
@@ -197,13 +286,14 @@ Named handlers are provided at the `createPage` level and referenced by name in 
 
 ```ts
 export default createPage({
-  schema: MySchema,
-  handlers: {
-    openModal: () => setOpen(true),
-  },
-});
+	schema: MySchema,
+	handlers: {
+		openModal: () => setOpen(true)
+	}
+})
+```
 
-// In schema:
+```ts
 { type: "button", props: { label: "Open", onClick: "openModal" } }
 ```
 
@@ -215,11 +305,12 @@ Inject React components into specific points in the schema tree:
 
 ```ts
 createPage({
-  schema: MySchema,
-  slots: { sidebar: <MySidebar /> },
+	schema: MySchema,
+	slots: { sidebar: <MySidebar /> }
 })
+```
 
-// In schema:
+```ts
 { type: "slot", props: { name: "sidebar" } }
 ```
 
@@ -227,34 +318,37 @@ createPage({
 
 ## File Structure
 
-```
+```text
 src/engine/
-├── schema/types.ts          All TypeScript types
+├── schema/types.ts
 ├── core/
-│   ├── resolver.ts          ResponsiveValue → CSS vars
-│   ├── StyleCollector.ts    Collects + deduplicates CSS
-│   ├── registry.ts          NodeType → component map
-│   ├── lazyDetect.ts        Auto lazy strategy per node
-│   └── SchemaRenderer.tsx   Schema tree → React elements
+│   ├── resolver.ts
+│   ├── StyleCollector.ts
+│   ├── registry.ts
+│   ├── lazyDetect.ts
+│   ├── SchemaRenderer.tsx
+│   ├── EngineAPIResolver.ts
+│   └── APIStatic.ts
+├── plugins/
+│   ├── engineApiPlugin.js
+│   └── apiStaticCompiler.js
 ├── hooks/
-│   ├── useInView.ts         IntersectionObserver hook
-│   └── usePropStyles.ts     Props → inline CSS
 ├── providers/
-│   └── EngineProvider.tsx   Context + breakpoint hook
 ├── components/
-│   ├── primitives.tsx       Box, Stack, Grid, Text, Section, Button…
-│   ├── EngineImage.tsx      Smart lazy image
-│   ├── EngineVideo.tsx      Lazy video
-│   └── LazyMount.tsx        Lazy mount wrapper
-├── createPage.tsx           Page factory
-└── index.ts                 Public exports
+├── createPage.tsx
+└── index.ts
+
+data/endpoint/**/*.route
+	↓ compile
+public/_static/endpoint/*.js
+public/_static/endpoint/manifest.json
 ```
 
 ---
 
 ## Docs
 
-Full technical documentation including all prop tables, the CSS resolver internals, lazy detection rules, and integration guides is in `DOCUMENT.md`.
+Start with [`docs/index.md`](./docs/index.md). The large technical reference remains in `DOCUMENT.md`, while current component/runtime-specific behavior lives under `docs/engine-components/`.
 
 ---
 
