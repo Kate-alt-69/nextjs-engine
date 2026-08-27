@@ -10,12 +10,20 @@ EngineLink.
 
 Navigation uses three paths:
 
-1. external URLs / `_blank` → normal `<a>` with `rel="noopener noreferrer"`;
-2. `cprop.link.transition = "page-to-page"` → `next-view-transitions` link;
-3. everything else → native `<a>`.
+1. external URLs / `_blank` / non-HTTP URI schemes such as `mailto:` → native `<a>`;
+2. `cprop.link.transition = "page-to-page"` → lazily loaded `next-view-transitions` link;
+3. normal internal URLs → `next/link`.
 
-The default path intentionally remains a native anchor rather than forcing the
-transition library onto every item.
+The default internal path stays inside the Next.js client router and gets normal
+client-side navigation/prefetch behavior. It does **not** require a
+`<ViewTransitions>` provider.
+
+`next-view-transitions` is loaded only when a `page-to-page` link is actually
+rendered. While that optional module is loading, the link falls back to the same
+`next/link` behavior instead of suspending the whole navigation tree.
+
+This means ordinary EngineLink/EngineNav usage no longer pays the transition
+runtime cost merely because animated navigation is supported by the package.
 
 ## Props
 
@@ -25,7 +33,7 @@ transition library onto every item.
 | `sticky` | `false` | Sticky positioning plus configured backdrop blur |
 | `logo` | — | `{ src, href, alt, width, height }` |
 | `items` | `[]` | `EngineNavItem[]` |
-| `mobileBreakpoint` | `768` | px threshold used by the generated media rule |
+| `mobileBreakpoint` | `768` | px threshold used by generated desktop/mobile media rules |
 | `children` | — | Extra content inserted inside the nav's inner row |
 
 EngineNav also accepts shared engine styling props (`bg`, responsive spacing,
@@ -35,17 +43,35 @@ prevents schema shorthands or breakpoint objects from leaking into DOM markup.
 
 ```ts
 interface EngineNavItem {
-  label: string;
-  href?: string;
-  target?: string;
-  cprop?: { link?: { transition?: string; href?: string } };
-  active?: boolean;
-  children?: EngineNavItem[];
+	label: string;
+	href?: string;
+	target?: string;
+	cprop?: { link?: { transition?: string; href?: string } };
+	active?: boolean;
+	children?: EngineNavItem[];
 }
 ```
 
 `active` is pathname-derived when omitted. A root `/` item is active only on
 `/`; other hrefs use prefix matching.
+
+## Runtime style behavior
+
+Nav structural classes are generated during the initial render rather than being
+created only after a menu opens. Interactive state does not depend on a new
+post-hydration StyleCollector flush:
+
+- dropdown structure has one stable class; open/closed display is controlled by
+  the element's current inline display value;
+- the mobile-menu class is generated even while the menu is closed, then reused
+  when the menu mounts;
+- mobile toggle/menu classes include a desktop media rule, so the hamburger and
+  open mobile menu disappear at `mobileBreakpoint` and above;
+- stable structural class calculations are memoized so toggling a menu does not
+  rebuild every static Nav CSS block.
+
+This is important while generated styles still use the engine's render-collected
+stylesheet rather than a general-purpose client-side runtime CSS injector.
 
 ## CSS custom properties
 
@@ -67,25 +93,25 @@ interface EngineNavItem {
 
 ```ts
 {
-  type: "nav",
-  props: {
-    sticky: true,
-    bg: { xs: "#080b12", md: "rgba(8,11,18,.8)" },
-    logo: { src: "/logo.svg", href: "/", alt: "Brand" },
-    items: [
-      { label: "Home", href: "/" },
-      {
-        label: "Docs",
-        href: "/docs",
-        cprop: { link: { transition: "page-to-page" } },
-      },
-      { label: "GitHub", href: "https://github.com/...", target: "_blank" },
-      {
-        label: "More",
-        children: [{ label: "Blog", href: "/blog" }],
-      },
-    ],
-  },
+	type: "nav",
+	props: {
+		sticky: true,
+		bg: { xs: "#080b12", md: "rgba(8,11,18,.8)" },
+		logo: { src: "/logo.svg", href: "/", alt: "Brand" },
+		items: [
+			{ label: "Home", href: "/" },
+			{
+				label: "Docs",
+				href: "/docs",
+				cprop: { link: { transition: "page-to-page" } },
+			},
+			{ label: "GitHub", href: "https://github.com/...", target: "_blank" },
+			{
+				label: "More",
+				children: [{ label: "Blog", href: "/blog" }],
+			},
+		],
+	},
 }
 ```
 
