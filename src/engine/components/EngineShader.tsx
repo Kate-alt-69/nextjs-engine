@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import React, { memo, useEffect, useRef, useState, type CSSProperties } from "react";
 import { EngineScroll } from "../core/enginescroll";
 import {
 	EngineShaderScheduler,
@@ -27,15 +27,18 @@ export interface EngineShaderProps extends Omit<Partial<EngineShaderConfig>, "sr
 type GLContext = WebGLRenderingContext;
 
 function normalizeConfig(props: EngineShaderProps): EngineShaderConfig | null {
-	const nested = typeof props.shader === "string" ? { src: props.shader } : (props.shader ?? {});
+	const nested: Partial<EngineShaderConfig> = typeof props.shader === "string"
+		? { src: props.shader }
+		: (props.shader ?? {});
 	const src = props.src ?? nested.src;
 	if (!src) return null;
+	const direct = props as Partial<EngineShaderConfig>;
 	return {
 		...nested,
-		...props,
+		...direct,
 		src: normalizeEngineShaderName(src),
 		variables: { ...(nested.variables ?? {}), ...(props.variables ?? {}) },
-	} as EngineShaderConfig;
+	};
 }
 
 function createShader(gl: GLContext, type: number, source: string): WebGLShader {
@@ -76,7 +79,9 @@ function createProgram(gl: GLContext, plan: EngineShaderRenderPlan): WebGLProgra
 function parseColor(value: string): number[] | null {
 	const normalized = value.trim().replace(/^#/, "");
 	if (![3, 4, 6, 8].includes(normalized.length) || !/^[0-9a-f]+$/i.test(normalized)) return null;
-	const expanded = normalized.length <= 4 ? normalized.split("").map((character) => `${character}${character}`).join("") : normalized;
+	const expanded = normalized.length <= 4
+		? normalized.split("").map((character) => `${character}${character}`).join("")
+		: normalized;
 	return [
 		parseInt(expanded.slice(0, 2), 16) / 255,
 		parseInt(expanded.slice(2, 4), 16) / 255,
@@ -135,9 +140,10 @@ function desiredDpr(maxDpr: number, resolutionScale: number): number {
 }
 
 export const EngineShader = memo(function EngineShader(props: EngineShaderProps) {
-	const config = useMemo(() => normalizeConfig(props), [props]);
+	const config = normalizeConfig(props);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const variablesRef = useRef<Record<string, EngineShaderVariableValue>>(config?.variables ?? {});
+	const requestDrawRef = useRef<() => void>(() => {});
 	const readyRef = useRef(false);
 	const [plan, setPlan] = useState<EngineShaderRenderPlan | null>(null);
 	const [contextVersion, setContextVersion] = useState(0);
@@ -163,6 +169,10 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 			unsubscribe();
 		};
 	}, [config?.src, props.onError]);
+
+	useEffect(() => {
+		requestDrawRef.current();
+	}, [props.variables, props.shader]);
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -228,8 +238,12 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 		const frameInterval = 1000 / targetFps;
 		const maxDpr = Math.max(0.5, config.maxDpr ?? (layer ? 1.5 : 2));
 		const resolutionScale = Math.max(0.125, Math.min(2, plan.render.resolution || 1));
-		const reducedMotion = (config.respectReducedMotion ?? true) && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+		const reducedMotion = (config.respectReducedMotion ?? true)
+			&& window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+		const host = props.layer ? canvas.parentElement ?? canvas : canvas;
 		let currentDpr = desiredDpr(maxDpr, resolutionScale);
+		let cssWidth = Math.max(1, host.clientWidth || canvas.clientWidth || 1);
+		let cssHeight = Math.max(1, host.clientHeight || canvas.clientHeight || 1);
 		let lastTimestamp = 0;
 		let lastDrawTimestamp = 0;
 		let frameNumber = 0;
@@ -238,20 +252,19 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 		let scrollProgress = 0;
 		let offscreen = false;
 		let disposed = false;
+		let eventFrame = 0;
 		let adaptiveWindowStart = performance.now();
 		let adaptiveSamples = 0;
 		let adaptiveTotal = 0;
-		const host = props.layer ? canvas.parentElement ?? canvas : canvas;
 
-		const resize = () => {
-			const rect = canvas.getBoundingClientRect();
-			const width = Math.max(1, Math.round((rect.width || 1) * currentDpr));
-			const height = Math.max(1, Math.round((rect.height || 1) * currentDpr));
+		const resizeBackingStore = () => {
+			const width = Math.max(1, Math.round(cssWidth * currentDpr));
+			const height = Math.max(1, Math.round(cssHeight * currentDpr));
 			if (canvas.width !== width) canvas.width = width;
 			if (canvas.height !== height) canvas.height = height;
 			gl.viewport(0, 0, width, height);
 		};
-		resize();
+		resizeBackingStore();
 
 		const uploadVariables = () => {
 			for (const [name, state] of variableStates) {
@@ -264,8 +277,7 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 		};
 
 		const draw = (timestamp: number) => {
-			if (disposed || offscreen || (config.pauseWhenHidden ?? true) && document.hidden) return;
-			resize();
+			if (disposed || offscreen || ((config.pauseWhenHidden ?? true) && document.hidden)) return;
 			const delta = lastDrawTimestamp === 0 ? 0 : timestamp - lastDrawTimestamp;
 			lastDrawTimestamp = timestamp;
 			frameNumber += 1;
@@ -288,11 +300,19 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 			}
 		};
 
-		const requestEventDraw = () => requestAnimationFrame((timestamp) => draw(timestamp));
+		const requestEventDraw = () => {
+			if (eventFrame !== 0) return;
+			eventFrame = requestAnimationFrame((timestamp) => {
+				eventFrame = 0;
+				draw(timestamp);
+			});
+		};
+		requestDrawRef.current = requestEventDraw;
 		const cleanups: Array<() => void> = [];
+
 		if (dependencySet.has("pointer.x") || dependencySet.has("pointer.y")) {
 			const pointerMove = (event: PointerEvent) => {
-				const rect = canvas.getBoundingClientRect();
+				const rect = host.getBoundingClientRect();
 				pointerX = rect.width > 0 ? (event.clientX - rect.left) / rect.width : 0.5;
 				pointerY = rect.height > 0 ? 1 - (event.clientY - rect.top) / rect.height : 0.5;
 				if (plan.execution === "event") requestEventDraw();
@@ -302,28 +322,32 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 		}
 		if (dependencySet.has("scroll.position")) {
 			EngineScroll.initialize();
-			const unsubscribe = EngineScroll.subscribe(() => {
+			const updateScroll = () => {
 				const total = Math.max(1, EngineScroll.totalPoints());
 				scrollProgress = Math.max(0, Math.min(1, EngineScroll.currentPoint() / total));
 				if (plan.execution === "event") requestEventDraw();
-			});
-			cleanups.push(unsubscribe);
+			};
+			updateScroll();
+			cleanups.push(EngineScroll.subscribe(updateScroll));
 		}
 		if (typeof ResizeObserver !== "undefined") {
-			const observer = new ResizeObserver(() => {
-				resize();
+			const resizeObserver = new ResizeObserver(([entry]) => {
+				if (!entry) return;
+				cssWidth = Math.max(1, entry.contentRect.width || host.clientWidth || 1);
+				cssHeight = Math.max(1, entry.contentRect.height || host.clientHeight || 1);
+				resizeBackingStore();
 				if (plan.execution !== "animated") requestEventDraw();
 			});
-			observer.observe(host);
-			cleanups.push(() => observer.disconnect());
+			resizeObserver.observe(host);
+			cleanups.push(() => resizeObserver.disconnect());
 		}
 		if ((config.pauseWhenOffscreen ?? true) && typeof IntersectionObserver !== "undefined") {
-			const observer = new IntersectionObserver(([entry]) => {
+			const intersectionObserver = new IntersectionObserver(([entry]) => {
 				offscreen = !entry?.isIntersecting;
 				if (!offscreen && plan.execution !== "animated") requestEventDraw();
 			}, { rootMargin: "180px" });
-			observer.observe(host);
-			cleanups.push(() => observer.disconnect());
+			intersectionObserver.observe(host);
+			cleanups.push(() => intersectionObserver.disconnect());
 		}
 
 		if (plan.execution === "animated" && !reducedMotion) {
@@ -339,14 +363,21 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 				if ((config.adaptive ?? true) && timestamp - adaptiveWindowStart >= 1200 && adaptiveSamples > 0) {
 					const average = adaptiveTotal / adaptiveSamples;
 					const target = desiredDpr(maxDpr, resolutionScale);
-					if (average > frameInterval * 1.5 && currentDpr > 0.125) currentDpr = Math.max(0.125, currentDpr - 0.125);
-					else if (average < frameInterval * 1.15 && currentDpr < target - 0.05) currentDpr = Math.min(target, currentDpr + 0.125);
+					let nextDpr = currentDpr;
+					if (average > frameInterval * 1.5 && currentDpr > 0.125) nextDpr = Math.max(0.125, currentDpr - 0.125);
+					else if (average < frameInterval * 1.15 && currentDpr < target - 0.05) nextDpr = Math.min(target, currentDpr + 0.125);
+					if (Math.abs(nextDpr - currentDpr) >= 0.05) {
+						currentDpr = nextDpr;
+						resizeBackingStore();
+					}
 					adaptiveWindowStart = timestamp;
 					adaptiveSamples = 0;
 					adaptiveTotal = 0;
 				}
 			}));
-		} else requestEventDraw();
+		} else {
+			requestEventDraw();
+		}
 
 		const onContextLost = (event: Event) => event.preventDefault();
 		const onContextRestored = () => setContextVersion((version) => version + 1);
@@ -359,11 +390,27 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 
 		return () => {
 			disposed = true;
+			requestDrawRef.current = () => {};
+			if (eventFrame !== 0) cancelAnimationFrame(eventFrame);
 			for (const cleanup of cleanups) cleanup();
 			gl.deleteBuffer(positionBuffer);
 			gl.deleteProgram(program);
 		};
-	}, [plan, config?.src, config?.fps, config?.maxDpr, config?.adaptive, config?.pauseWhenOffscreen, config?.pauseWhenHidden, config?.respectReducedMotion, config?.powerPreference, props.layer, props.onReady, props.onError, contextVersion]);
+	}, [
+		plan,
+		config?.src,
+		config?.fps,
+		config?.maxDpr,
+		config?.adaptive,
+		config?.pauseWhenOffscreen,
+		config?.pauseWhenHidden,
+		config?.respectReducedMotion,
+		config?.powerPreference,
+		props.layer,
+		props.onReady,
+		props.onError,
+		contextVersion,
+	]);
 
 	const fallback = plan?.fallback && plan.fallback !== "transparent" ? plan.fallback : undefined;
 	const style: CSSProperties = {
