@@ -156,6 +156,21 @@ const resolver = new EngineAPIResolver({
 
 `ensureAPIConfig()` is a server/build helper because it can read files and expand environment variables. Do not call it from client code.
 
+### Config loading and cache identity
+
+The no-argument `ensureAPIConfig()` call represents the default `.EngineAPIConfig` build/runtime configuration. `setCompiledAPIConfig()` may provide that default config directly, and `getCompiledAPIConfig()` reads the same default slot.
+
+Explicit directories are independent:
+
+```ts
+const internal = await ensureAPIConfig(".EngineAPIConfig/internal")
+const publicApi = await ensureAPIConfig(".EngineAPIConfig/public")
+```
+
+A load from one explicit directory cannot become the result for another directory or overwrite the build-injected default config. Concurrent requests for the **same** directory share one in-process load promise instead of repeating filesystem work.
+
+When reading a directory from disk, `.api` filenames are sorted first to preserve deterministic merge order. Their contents are then read concurrently and joined in that sorted order before compilation, avoiding unnecessary serial filesystem latency without changing override semantics.
+
 ---
 
 ## Authentication

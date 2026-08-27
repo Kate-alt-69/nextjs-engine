@@ -171,27 +171,39 @@ export async function loadAPIConfigDir(
 		const { readdir, readFile } = await import("fs/promises");
 		const { join } = await import("path");
 		const directoryPath = join(process.cwd(), configDir);
-		let combinedSource = "";
 
 		try {
-			const files = await readdir(directoryPath);
-			for (const file of files.filter((entry) => entry.endsWith(".api")).sort()) {
-				combinedSource += `${await readFile(join(directoryPath, file), "utf8")}\n`;
-			}
+			const files = (await readdir(directoryPath))
+				.filter((entry) => entry.endsWith(".api"))
+				.sort();
+			const sources = await Promise.all(
+				files.map((file) => readFile(join(directoryPath, file), "utf8")),
+			);
+			return compileAPIConfig(sources.join("\n"));
 		} catch {
-			// Missing config directory means an empty config, not a runtime failure.
+			// Missing/unreadable config directory means an empty config, not a runtime failure.
+			return { providers: {}, versions: {} };
 		}
-
-		return compileAPIConfig(combinedSource);
 	} catch {
 		return { providers: {}, versions: {} };
 	}
 }
 
+// The no-argument path preserves the existing build/default injected-config
+// semantics. Explicit directory requests are cached independently so one custom
+// config directory can never poison another one.
 let cachedCompiledConfig: EngineAPICompiledConfig | null = null;
+let defaultConfigLoad: Promise<EngineAPICompiledConfig> | null = null;
+const directoryConfigLoads = new Map<string, Promise<EngineAPICompiledConfig>>();
+
+function directoryCacheKey(configDir: string): string {
+	const cwd = typeof process !== "undefined" ? process.cwd() : "";
+	return `${cwd}\u0000${configDir}`;
+}
 
 export function setCompiledAPIConfig(config: EngineAPICompiledConfig): void {
 	cachedCompiledConfig = config;
+	defaultConfigLoad = Promise.resolve(config);
 }
 
 export function getCompiledAPIConfig(): EngineAPICompiledConfig | null {
@@ -199,7 +211,22 @@ export function getCompiledAPIConfig(): EngineAPICompiledConfig | null {
 }
 
 export async function ensureAPIConfig(configDir?: string): Promise<EngineAPICompiledConfig> {
-	if (cachedCompiledConfig) return cachedCompiledConfig;
-	cachedCompiledConfig = await loadAPIConfigDir(configDir);
-	return cachedCompiledConfig;
+	if (configDir === undefined) {
+		if (cachedCompiledConfig) return cachedCompiledConfig;
+		if (!defaultConfigLoad) {
+			defaultConfigLoad = loadAPIConfigDir().then((config) => {
+				cachedCompiledConfig = config;
+				return config;
+			});
+		}
+		return defaultConfigLoad;
+	}
+
+	const cacheKey = directoryCacheKey(configDir);
+	let load = directoryConfigLoads.get(cacheKey);
+	if (!load) {
+		load = loadAPIConfigDir(configDir);
+		directoryConfigLoads.set(cacheKey, load);
+	}
+	return load;
 }
