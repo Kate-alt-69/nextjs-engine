@@ -145,6 +145,7 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 	const variablesRef = useRef<Record<string, EngineShaderVariableValue>>(config?.variables ?? {});
 	const requestDrawRef = useRef<() => void>(() => {});
 	const readyRef = useRef(false);
+	const lastGoodPlanRef = useRef<EngineShaderRenderPlan | null>(null);
 	const [plan, setPlan] = useState<EngineShaderRenderPlan | null>(null);
 	const [contextVersion, setContextVersion] = useState(0);
 	variablesRef.current = config?.variables ?? {};
@@ -194,10 +195,15 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 		try {
 			program = createProgram(gl, plan);
 		} catch (reason) {
+			const lastGoodPlan = lastGoodPlanRef.current;
+			if (lastGoodPlan && lastGoodPlan !== plan) {
+				setPlan(lastGoodPlan);
+			}
 			props.onError?.(reason);
 			if (process.env.NODE_ENV !== "production") console.error(reason);
 			return;
 		}
+		lastGoodPlanRef.current = plan;
 
 		const positionBuffer = gl.createBuffer();
 		if (!positionBuffer) {
@@ -249,10 +255,14 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 		let frameNumber = 0;
 		let pointerX = 0.5;
 		let pointerY = 0.5;
+		let pointerClientX = 0;
+		let pointerClientY = 0;
+		let pointerDirty = false;
 		let scrollProgress = 0;
 		let offscreen = false;
 		let disposed = false;
 		let eventFrame = 0;
+		let animationCleanup: (() => void) | null = null;
 		let adaptiveWindowStart = performance.now();
 		let adaptiveSamples = 0;
 		let adaptiveTotal = 0;
@@ -276,9 +286,18 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 			}
 		};
 
+		const syncPointer = () => {
+			if (!pointerDirty) return;
+			const rect = host.getBoundingClientRect();
+			pointerX = rect.width > 0 ? (pointerClientX - rect.left) / rect.width : 0.5;
+			pointerY = rect.height > 0 ? 1 - (pointerClientY - rect.top) / rect.height : 0.5;
+			pointerDirty = false;
+		};
+
 		const draw = (timestamp: number) => {
 			if (disposed || offscreen || ((config.pauseWhenHidden ?? true) && document.hidden)) return;
-			const delta = lastDrawTimestamp === 0 ? 0 : timestamp - lastDrawTimestamp;
+			syncPointer();
+			const delta = lastDrawTimestamp === 0 ? 0 : Math.min(250, timestamp - lastDrawTimestamp);
 			lastDrawTimestamp = timestamp;
 			frameNumber += 1;
 			gl.useProgram(program);
@@ -310,11 +329,54 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 		requestDrawRef.current = requestEventDraw;
 		const cleanups: Array<() => void> = [];
 
+		const animationFrame = (timestamp: number) => {
+			if (lastTimestamp !== 0) {
+				const interval = timestamp - lastTimestamp;
+				if (interval + 0.5 < frameInterval) return;
+				adaptiveTotal += interval;
+				adaptiveSamples += 1;
+			}
+			lastTimestamp = timestamp;
+			draw(timestamp);
+			if ((config.adaptive ?? true) && timestamp - adaptiveWindowStart >= 1200 && adaptiveSamples > 0) {
+				const average = adaptiveTotal / adaptiveSamples;
+				const target = desiredDpr(maxDpr, resolutionScale);
+				let nextDpr = currentDpr;
+				if (average > frameInterval * 1.5 && currentDpr > 0.125) {
+					nextDpr = Math.max(0.125, currentDpr - 0.125);
+				} else if (average < frameInterval * 1.15 && currentDpr < target - 0.05) {
+					nextDpr = Math.min(target, currentDpr + 0.125);
+				}
+				if (Math.abs(nextDpr - currentDpr) >= 0.05) {
+					currentDpr = nextDpr;
+					resizeBackingStore();
+				}
+				adaptiveWindowStart = timestamp;
+				adaptiveSamples = 0;
+				adaptiveTotal = 0;
+			}
+		};
+
+		const syncAnimationSubscription = () => {
+			const shouldAnimate = plan.execution === "animated"
+				&& !reducedMotion
+				&& !offscreen
+				&& !((config.pauseWhenHidden ?? true) && document.hidden);
+			if (shouldAnimate && !animationCleanup) {
+				lastTimestamp = 0;
+				lastDrawTimestamp = 0;
+				animationCleanup = EngineShaderScheduler.add(animationFrame);
+			} else if (!shouldAnimate && animationCleanup) {
+				animationCleanup();
+				animationCleanup = null;
+			}
+		};
+
 		if (dependencySet.has("pointer.x") || dependencySet.has("pointer.y")) {
 			const pointerMove = (event: PointerEvent) => {
-				const rect = host.getBoundingClientRect();
-				pointerX = rect.width > 0 ? (event.clientX - rect.left) / rect.width : 0.5;
-				pointerY = rect.height > 0 ? 1 - (event.clientY - rect.top) / rect.height : 0.5;
+				pointerClientX = event.clientX;
+				pointerClientY = event.clientY;
+				pointerDirty = true;
 				if (plan.execution === "event") requestEventDraw();
 			};
 			host.addEventListener("pointermove", pointerMove, { passive: true });
@@ -323,8 +385,9 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 		if (dependencySet.has("scroll.position")) {
 			EngineScroll.initialize();
 			const updateScroll = () => {
-				const total = Math.max(1, EngineScroll.totalPoints());
-				scrollProgress = Math.max(0, Math.min(1, EngineScroll.currentPoint() / total));
+				const cache = EngineScroll.runtime().getCache();
+				const scrollRange = Math.max(1, cache.documentHeight - cache.viewportHeight);
+				scrollProgress = Math.max(0, Math.min(1, cache.scrollY / scrollRange));
 				if (plan.execution === "event") requestEventDraw();
 			};
 			updateScroll();
@@ -344,37 +407,24 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 		if ((config.pauseWhenOffscreen ?? true) && typeof IntersectionObserver !== "undefined") {
 			const intersectionObserver = new IntersectionObserver(([entry]) => {
 				offscreen = !entry?.isIntersecting;
+				syncAnimationSubscription();
 				if (!offscreen && plan.execution !== "animated") requestEventDraw();
 			}, { rootMargin: "180px" });
 			intersectionObserver.observe(host);
 			cleanups.push(() => intersectionObserver.disconnect());
 		}
 
+		const visibilityChange = () => {
+			syncAnimationSubscription();
+			if (!document.hidden && plan.execution !== "animated") requestEventDraw();
+		};
+		if (config.pauseWhenHidden ?? true) {
+			document.addEventListener("visibilitychange", visibilityChange);
+			cleanups.push(() => document.removeEventListener("visibilitychange", visibilityChange));
+		}
+
 		if (plan.execution === "animated" && !reducedMotion) {
-			cleanups.push(EngineShaderScheduler.add((timestamp) => {
-				if (lastTimestamp !== 0) {
-					const interval = timestamp - lastTimestamp;
-					if (interval + 0.5 < frameInterval) return;
-					adaptiveTotal += interval;
-					adaptiveSamples += 1;
-				}
-				lastTimestamp = timestamp;
-				draw(timestamp);
-				if ((config.adaptive ?? true) && timestamp - adaptiveWindowStart >= 1200 && adaptiveSamples > 0) {
-					const average = adaptiveTotal / adaptiveSamples;
-					const target = desiredDpr(maxDpr, resolutionScale);
-					let nextDpr = currentDpr;
-					if (average > frameInterval * 1.5 && currentDpr > 0.125) nextDpr = Math.max(0.125, currentDpr - 0.125);
-					else if (average < frameInterval * 1.15 && currentDpr < target - 0.05) nextDpr = Math.min(target, currentDpr + 0.125);
-					if (Math.abs(nextDpr - currentDpr) >= 0.05) {
-						currentDpr = nextDpr;
-						resizeBackingStore();
-					}
-					adaptiveWindowStart = timestamp;
-					adaptiveSamples = 0;
-					adaptiveTotal = 0;
-				}
-			}));
+			syncAnimationSubscription();
 		} else {
 			requestEventDraw();
 		}
@@ -392,6 +442,8 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 			disposed = true;
 			requestDrawRef.current = () => {};
 			if (eventFrame !== 0) cancelAnimationFrame(eventFrame);
+			animationCleanup?.();
+			animationCleanup = null;
 			for (const cleanup of cleanups) cleanup();
 			gl.deleteBuffer(positionBuffer);
 			gl.deleteProgram(program);
