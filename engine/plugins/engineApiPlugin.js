@@ -166,9 +166,25 @@ function compileProviderConfig(projectRoot, configDir, outputFile) {
 	fs.writeFileSync(outputPath, JSON.stringify(compileAPIConfig(combinedSource), null, "\t"), "utf8");
 }
 
+function resolveManifestPath(outputDirectory, staticManifestFile) {
+	const manifestName = String(staticManifestFile || "").trim();
+	if (!manifestName) throw new Error("[engine:api] staticManifestFile cannot be empty.");
+	if (path.isAbsolute(manifestName)) {
+		throw new Error("[engine:api] staticManifestFile must stay inside staticOutputDir.");
+	}
+
+	const resolvedOutput = path.resolve(outputDirectory);
+	const manifestPath = path.resolve(resolvedOutput, manifestName);
+	const relative = path.relative(resolvedOutput, manifestPath);
+	if (!relative || relative === "." || relative.startsWith("..") || path.isAbsolute(relative)) {
+		throw new Error("[engine:api] staticManifestFile must name a file inside staticOutputDir.");
+	}
+	return manifestPath;
+}
+
 function writeAPIStaticManifest(projectRoot, staticOutputDir, staticManifestFile, compiledRoutes) {
 	const outputDirectory = path.resolve(projectRoot, staticOutputDir);
-	const manifestPath = path.join(outputDirectory, staticManifestFile);
+	const manifestPath = resolveManifestPath(outputDirectory, staticManifestFile);
 	const endpoints = Object.create(null);
 
 	for (const route of compiledRoutes) {
@@ -179,11 +195,91 @@ function writeAPIStaticManifest(projectRoot, staticOutputDir, staticManifestFile
 	}
 
 	fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
-	fs.writeFileSync(
-		manifestPath,
-		`${JSON.stringify({ version: 1, endpoints }, null, "\t")}\n`,
-		"utf8",
-	);
+	const nonce = `${process.pid}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+	const temporaryPath = `${manifestPath}.tmp-${nonce}`;
+	const backupPath = `${manifestPath}.backup-${nonce}`;
+	let backedUp = false;
+	let installed = false;
+
+	try {
+		fs.writeFileSync(
+			temporaryPath,
+			`${JSON.stringify({ version: 1, endpoints }, null, "\t")}\n`,
+			"utf8",
+		);
+		if (fs.existsSync(manifestPath)) {
+			fs.renameSync(manifestPath, backupPath);
+			backedUp = true;
+		}
+		fs.renameSync(temporaryPath, manifestPath);
+		installed = true;
+	} catch (reason) {
+		if (!installed && backedUp && !fs.existsSync(manifestPath) && fs.existsSync(backupPath)) {
+			fs.renameSync(backupPath, manifestPath);
+			backedUp = false;
+		}
+		throw reason;
+	} finally {
+		if (fs.existsSync(temporaryPath)) fs.rmSync(temporaryPath, { force: true });
+		if (installed && backedUp && fs.existsSync(backupPath)) {
+			fs.rmSync(backupPath, { force: true });
+		}
+	}
+}
+
+function swapArtifactDirectory(stagingDirectory, outputDirectory) {
+	const backupDirectory = `${outputDirectory}.backup-${process.pid}-${Date.now().toString(36)}`;
+	const hadExistingOutput = fs.existsSync(outputDirectory);
+	let backedUp = false;
+	let installed = false;
+
+	try {
+		if (hadExistingOutput) {
+			fs.renameSync(outputDirectory, backupDirectory);
+			backedUp = true;
+		}
+		fs.renameSync(stagingDirectory, outputDirectory);
+		installed = true;
+	} catch (reason) {
+		if (!installed) {
+			if (fs.existsSync(outputDirectory)) fs.rmSync(outputDirectory, { recursive: true, force: true });
+			if (backedUp && fs.existsSync(backupDirectory)) {
+				fs.renameSync(backupDirectory, outputDirectory);
+				backedUp = false;
+			}
+		}
+		throw reason;
+	} finally {
+		if (fs.existsSync(stagingDirectory)) fs.rmSync(stagingDirectory, { recursive: true, force: true });
+		if (installed && backedUp && fs.existsSync(backupDirectory)) {
+			fs.rmSync(backupDirectory, { recursive: true, force: true });
+		}
+	}
+}
+
+function compileAPIStaticArtifacts(projectRoot, endpointDir, staticOutputDir, staticManifestFile) {
+	const outputDirectory = path.resolve(projectRoot, staticOutputDir);
+	// Validate containment before compiling anything so bad config cannot touch
+	// the last-known-good output tree.
+	resolveManifestPath(outputDirectory, staticManifestFile);
+
+	const stagingDirectory = `${outputDirectory}.artifact-staging-${process.pid}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+	fs.rmSync(stagingDirectory, { recursive: true, force: true });
+
+	try {
+		const compiledRoutes = compileAPIStaticDir({
+			projectRoot,
+			endpointDir,
+			outputDir: stagingDirectory,
+		});
+		fs.mkdirSync(stagingDirectory, { recursive: true });
+		writeAPIStaticManifest(projectRoot, stagingDirectory, staticManifestFile, compiledRoutes);
+		swapArtifactDirectory(stagingDirectory, outputDirectory);
+		return compiledRoutes;
+	} catch (reason) {
+		fs.rmSync(stagingDirectory, { recursive: true, force: true });
+		throw reason;
+	}
 }
 
 function getWatchState() {
@@ -266,12 +362,7 @@ function withEngineAPI(nextConfig = {}, pluginOptions = {}) {
 
 	const compileEngineAPI = () => {
 		compileProviderConfig(projectRoot, configDir, outputFile);
-		const compiledRoutes = compileAPIStaticDir({
-			projectRoot,
-			endpointDir,
-			outputDir: staticOutputDir,
-		});
-		writeAPIStaticManifest(projectRoot, staticOutputDir, staticManifestFile, compiledRoutes);
+		compileAPIStaticArtifacts(projectRoot, endpointDir, staticOutputDir, staticManifestFile);
 	};
 
 	// next.config is evaluated for both Turbopack and webpack. Compile once here,
@@ -284,7 +375,6 @@ function withEngineAPI(nextConfig = {}, pluginOptions = {}) {
 		...nextConfig,
 
 		webpack(webpackConfig, context) {
-			if (context.isServer) compileEngineAPI();
 			if (typeof nextConfig.webpack === "function") {
 				return nextConfig.webpack(webpackConfig, context);
 			}
@@ -297,4 +387,5 @@ module.exports = withEngineAPI;
 module.exports.withEngineAPI = withEngineAPI;
 module.exports.compileAPIConfig = compileAPIConfig;
 module.exports.compileAPIStaticDir = compileAPIStaticDir;
+module.exports.compileAPIStaticArtifacts = compileAPIStaticArtifacts;
 module.exports.writeAPIStaticManifest = writeAPIStaticManifest;
