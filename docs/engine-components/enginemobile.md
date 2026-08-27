@@ -50,6 +50,8 @@ Selectors:
 | `"children#feature-grid"` | Find named nodes anywhere in the tree |
 | `"#feature-grid"` | Short form |
 
+Whitespace around selectors is ignored.
+
 Patch directives:
 
 | Directive | Meaning |
@@ -57,13 +59,52 @@ Patch directives:
 | `"remove-all-prop": true` | Clear existing props before applying replacements |
 | `"remove-all-cprop": true` | Clear only `props.cprop` before merging |
 
+### Repeated patches compose in array order
+
+When the same named node appears more than once in `mobile`, each patch is
+applied to the result of the previous patch. Later entries override only the
+values they actually specify rather than replacing the earlier directive object.
+
+```ts
+mobile: [
+	{
+		"#feature-grid": {
+			props: { columns: 2, gap: "1rem" },
+		},
+	},
+	{
+		"#feature-grid": {
+			props: { columns: 1 },
+			cprop: { onHover: { opacity: 0.9 } },
+		},
+	},
+]
+```
+
+The final node keeps `gap: "1rem"`, receives `columns: 1`, and gets the hover
+style. `patch.props.cprop` and `patch.cprop` also merge against the same current
+cprop value, so combining the two forms does not restore stale pre-patch state.
+
 Unmatched selectors produce development-only warnings with a close-name
-suggestion where possible.
+suggestion where possible. When named nodes exist but none are close enough, the
+warning says that no close match was found rather than claiming the schema has no
+named nodes.
 
 Names are not required to be globally unique, but a selector is intentionally
 applied to **every** node with that name. `analyzeSchema()` emits W007 when it
 finds a duplicate name so accidental multi-target patches are visible before
 runtime. Use unique names when a patch is supposed to affect one node only.
+
+## Patch performance
+
+Mobile patching uses structural sharing. The patcher still walks the tree to find
+matching named nodes, but it clones only nodes that are directly patched or are
+ancestors of a changed node. Untouched branches keep their original node and
+children-array references instead of being deep-cloned for every mobile request.
+
+The development-only typo matcher uses two rolling Levenshtein rows rather than
+a full distance matrix, keeping suggestion allocations small even in schemas with
+many named nodes.
 
 ## Device imports
 
