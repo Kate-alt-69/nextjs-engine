@@ -4,7 +4,27 @@ const fs = require("fs");
 const path = require("path");
 
 const SAFE_ROUTE_SEGMENT = /^[A-Za-z0-9._-]+$/;
-const RESERVED_HELPERS = ["response", "error"];
+const RESERVED_MODULE_BINDINGS = new Set([
+	"createEndpoint",
+	"response",
+	"error",
+	"__engineApiStaticRoute",
+	"__engineApiStaticGlobal",
+]);
+const RESERVED_RUN_BINDINGS = new Set(["__context", "query", "body", "input", "proxy"]);
+let cachedTypeScript = null;
+
+function getTypeScript() {
+	if (cachedTypeScript) return cachedTypeScript;
+	try {
+		cachedTypeScript = require("typescript");
+		return cachedTypeScript;
+	} catch {
+		throw new Error(
+			"[APIStaticCompiler] TypeScript is required to compile .route files. Install nextjs-engine with its dependencies or add typescript to the project.",
+		);
+	}
+}
 
 function normalizeRouteId(routeId) {
 	const normalized = String(routeId).trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
@@ -72,6 +92,14 @@ function previousSignificantIndex(source, index) {
 	let cursor = index - 1;
 	while (cursor >= 0 && /\s/.test(source[cursor])) cursor -= 1;
 	return cursor;
+}
+
+function previousSignificantWord(source, index) {
+	let cursor = previousSignificantIndex(source, index);
+	if (source[cursor] === "*") cursor = previousSignificantIndex(source, cursor);
+	const end = cursor + 1;
+	while (cursor >= 0 && isJavaScriptIdentifierPart(source[cursor])) cursor -= 1;
+	return source.slice(cursor + 1, end);
 }
 
 function isRegexStart(source, index) {
@@ -198,6 +226,10 @@ function readString(source, index) {
 
 function findCreateEndpoint(source) {
 	let index = 0;
+	let braceDepth = 0;
+	let parenDepth = 0;
+	let bracketDepth = 0;
+
 	while (index < source.length) {
 		const char = source[index];
 		if (char === '"' || char === "'" || char === "`") {
@@ -216,19 +248,30 @@ function findCreateEndpoint(source) {
 			index = skipRegex(source, index);
 			continue;
 		}
-		if (source.startsWith("createEndpoint", index)) {
+
+		const isTopLevel = braceDepth === 0 && parenDepth === 0 && bracketDepth === 0;
+		if (isTopLevel && source.startsWith("createEndpoint", index)) {
 			const before = source[index - 1];
 			const after = source[index + "createEndpoint".length];
-			if (!isIdentifierPart(before) && before !== "." && !isIdentifierPart(after)) {
+			const isIdentifier = !isIdentifierPart(before) && before !== "." && !isIdentifierPart(after);
+			if (isIdentifier && previousSignificantWord(source, index) !== "function") {
 				const cursor = skipTrivia(source, index + "createEndpoint".length, false);
-				if (source[cursor] !== "(") throw new Error("[APIStaticCompiler] createEndpoint must be called with (...).");
-				const callEnd = findMatching(source, cursor, "(", ")");
-				return { start: index, open: cursor, end: callEnd + 1 };
+				if (source[cursor] === "(") {
+					const callEnd = findMatching(source, cursor, "(", ")");
+					return { start: index, open: cursor, end: callEnd + 1 };
+				}
 			}
 		}
+
+		if (char === "{") braceDepth += 1;
+		else if (char === "}") braceDepth = Math.max(0, braceDepth - 1);
+		else if (char === "(") parenDepth += 1;
+		else if (char === ")") parenDepth = Math.max(0, parenDepth - 1);
+		else if (char === "[") bracketDepth += 1;
+		else if (char === "]") bracketDepth = Math.max(0, bracketDepth - 1);
 		index += 1;
 	}
-	throw new Error("[APIStaticCompiler] Missing createEndpoint([...]) declaration.");
+	throw new Error("[APIStaticCompiler] Missing top-level createEndpoint([...]) declaration.");
 }
 
 function parseSchema(source, start, end) {
@@ -257,44 +300,172 @@ function parseSchema(source, start, end) {
 	return schema;
 }
 
-function stripIgnoredText(source) {
-	const output = source.split("");
-	let index = 0;
-	while (index < source.length) {
-		const char = source[index];
-		let end = index + 1;
-		if (char === '"' || char === "'" || char === "`") end = skipQuoted(source, index, char);
-		else if (source.startsWith("//", index)) end = skipLineComment(source, index);
-		else if (source.startsWith("/*", index)) end = skipBlockComment(source, index);
-		else if (isRegexStart(source, index)) end = skipRegex(source, index);
-		else {
-			index += 1;
+function hasDeclareModifier(node, typescript) {
+	return node.modifiers?.some((modifier) => modifier.kind === typescript.SyntaxKind.DeclareKeyword) ?? false;
+}
+
+function addBindingName(name, typescript, output) {
+	if (typescript.isIdentifier(name)) {
+		output.add(name.text);
+		return;
+	}
+	if (!typescript.isObjectBindingPattern(name) && !typescript.isArrayBindingPattern(name)) return;
+	for (const element of name.elements) {
+		if (typescript.isOmittedExpression(element)) continue;
+		addBindingName(element.name, typescript, output);
+	}
+}
+
+function isRuntimeScopeBoundary(node, typescript) {
+	return typescript.isFunctionDeclaration(node)
+		|| typescript.isFunctionExpression(node)
+		|| typescript.isArrowFunction(node)
+		|| typescript.isMethodDeclaration(node)
+		|| typescript.isConstructorDeclaration(node)
+		|| typescript.isGetAccessorDeclaration(node)
+		|| typescript.isSetAccessorDeclaration(node)
+		|| typescript.isClassDeclaration(node)
+		|| typescript.isClassExpression(node)
+		|| typescript.isModuleDeclaration(node);
+}
+
+function collectFunctionScopedVarBindings(node, typescript, output, rootNode = node) {
+	if (node !== rootNode && isRuntimeScopeBoundary(node, typescript)) return;
+	if (typescript.isVariableDeclarationList(node) && (node.flags & typescript.NodeFlags.BlockScoped) === 0) {
+		for (const declaration of node.declarations) addBindingName(declaration.name, typescript, output);
+	}
+	typescript.forEachChild(node, (child) => collectFunctionScopedVarBindings(child, typescript, output, rootNode));
+}
+
+function collectImportBindings(statement, typescript, output) {
+	const clause = statement.importClause;
+	if (!clause || clause.isTypeOnly) return;
+	if (clause.name) output.add(clause.name.text);
+	const bindings = clause.namedBindings;
+	if (!bindings) return;
+	if (typescript.isNamespaceImport(bindings)) {
+		output.add(bindings.name.text);
+		return;
+	}
+	for (const element of bindings.elements) {
+		if (!element.isTypeOnly) output.add(element.name.text);
+	}
+}
+
+function collectDirectRuntimeBindings(scopeNode, typescript) {
+	const output = new Set();
+	for (const statement of scopeNode.statements ?? []) {
+		if (hasDeclareModifier(statement, typescript)) continue;
+		if (typescript.isVariableStatement(statement)) {
+			for (const declaration of statement.declarationList.declarations) {
+				addBindingName(declaration.name, typescript, output);
+			}
 			continue;
 		}
-
-		for (let cursor = index; cursor < end; cursor += 1) {
-			if (output[cursor] !== "\n" && output[cursor] !== "\r") output[cursor] = " ";
+		if (
+			typescript.isFunctionDeclaration(statement)
+			|| typescript.isClassDeclaration(statement)
+			|| typescript.isEnumDeclaration(statement)
+		) {
+			if (statement.name) output.add(statement.name.text);
+			continue;
 		}
-		index = end;
+		if (typescript.isModuleDeclaration(statement)) {
+			if (typescript.isIdentifier(statement.name)) output.add(statement.name.text);
+			continue;
+		}
+		if (typescript.isImportDeclaration(statement)) {
+			collectImportBindings(statement, typescript, output);
+			continue;
+		}
+		if (typescript.isImportEqualsDeclaration(statement) && !statement.isTypeOnly) {
+			output.add(statement.name.text);
+		}
 	}
-	return output.join("");
+	collectFunctionScopedVarBindings(scopeNode, typescript, output);
+	return output;
+}
+
+function createTypeScriptSource(source, fileName) {
+	const typescript = getTypeScript();
+	const sourceFile = typescript.createSourceFile(
+		fileName,
+		source,
+		typescript.ScriptTarget.Latest,
+		true,
+		typescript.ScriptKind.TS,
+	);
+	return { typescript, sourceFile };
+}
+
+function unwrapCallableInitializer(expression, typescript) {
+	let current = expression;
+	while (
+		current
+		&& (
+			typescript.isParenthesizedExpression(current)
+			|| typescript.isAsExpression(current)
+			|| typescript.isTypeAssertionExpression(current)
+			|| typescript.isNonNullExpression(current)
+		)
+	) {
+		current = current.expression;
+	}
+	return current;
 }
 
 function collectFunctionNames(source) {
-	const names = new Set(["proxy", "fetch"]);
-	const searchable = stripIgnoredText(source);
-	const declarationPattern = /\b(?:async\s+)?function\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/g;
-	const functionExpressionPattern = /\b(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(?:async\s+)?function\b/g;
-	const arrowPattern = /\b(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(?:async\s*)?(?:\([^)]*\)|[A-Za-z_$][A-Za-z0-9_$]*)\s*=>/g;
-	for (const pattern of [declarationPattern, functionExpressionPattern, arrowPattern]) {
-		let match;
-		while ((match = pattern.exec(searchable))) names.add(match[1]);
+	const { typescript, sourceFile } = createTypeScriptSource(source, "api-static-user.ts");
+	const runtimeBindings = collectDirectRuntimeBindings(sourceFile, typescript);
+	const names = new Set(["proxy"]);
+	if (!runtimeBindings.has("fetch")) names.add("fetch");
+
+	for (const statement of sourceFile.statements) {
+		if (hasDeclareModifier(statement, typescript)) continue;
+		if (typescript.isFunctionDeclaration(statement) && statement.name) {
+			names.add(statement.name.text);
+			continue;
+		}
+		if (!typescript.isVariableStatement(statement)) continue;
+		for (const declaration of statement.declarationList.declarations) {
+			if (!typescript.isIdentifier(declaration.name) || !declaration.initializer) continue;
+			const initializer = unwrapCallableInitializer(declaration.initializer, typescript);
+			if (initializer && (typescript.isFunctionExpression(initializer) || typescript.isArrowFunction(initializer))) {
+				names.add(declaration.name.text);
+			}
+		}
 	}
 	return names;
 }
 
-function escapeRegExp(value) {
-	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function ensureNoReservedModuleBindings(source) {
+	const { typescript, sourceFile } = createTypeScriptSource(source, "api-static-user.ts");
+	const bindings = collectDirectRuntimeBindings(sourceFile, typescript);
+	for (const name of RESERVED_MODULE_BINDINGS) {
+		if (!bindings.has(name)) continue;
+		throw new Error(
+			`[APIStaticCompiler] Top-level binding "${name}" is reserved by the .route runtime. Local bindings inside functions or nested blocks are allowed.`,
+		);
+	}
+}
+
+function collectRunScopeBindings(source) {
+	const wrapped = `async function __engineApiStaticRun(__context) {\n${source}\n}`;
+	const { typescript, sourceFile } = createTypeScriptSource(wrapped, "api-static-run.ts");
+	const declaration = sourceFile.statements.find((statement) => typescript.isFunctionDeclaration(statement));
+	if (!declaration?.body) return new Set();
+	return collectDirectRuntimeBindings(declaration.body, typescript);
+}
+
+function ensureNoReservedRunBindings(run, operationName) {
+	if (run.kind !== "block") return;
+	const bindings = collectRunScopeBindings(run.code);
+	for (const name of RESERVED_RUN_BINDINGS) {
+		if (!bindings.has(name)) continue;
+		throw new Error(
+			`[APIStaticCompiler] Run block for ${operationName} redeclares runtime binding "${name}". Use the provided binding or shadow it only inside a nested block/function scope.`,
+		);
+	}
 }
 
 function previousSignificantChar(source) {
@@ -474,6 +645,7 @@ function parseOperation(source, start, end, functionNames) {
 
 	if (!name.trim()) throw new Error("[APIStaticCompiler] Every endpoint operation needs name: \"...\".");
 	if (!run) throw new Error(`[APIStaticCompiler] Operation ${name} needs run.query(...), run.body(...), run.input(...), or run.proxy(...).`);
+	ensureNoReservedRunBindings(run, name);
 	const schema = schemas[run.source] || schemas.input;
 	return { name, source: run.source, schema, run };
 }
@@ -498,14 +670,6 @@ function parseEndpointArray(source, start, end, functionNames) {
 	return operations;
 }
 
-function ensureNoReservedHelperDeclarations(source) {
-	const searchable = stripIgnoredText(source);
-	for (const name of RESERVED_HELPERS) {
-		const pattern = new RegExp(`\\b(?:const|let|var|function|class)\\s+${escapeRegExp(name)}\\b`);
-		if (pattern.test(searchable)) throw new Error(`[APIStaticCompiler] ${name} is reserved by the .route runtime.`);
-	}
-}
-
 function makeRunFunction(run) {
 	const aliases = [
 		"const query = __context.query;",
@@ -522,12 +686,12 @@ function makeRunFunction(run) {
 function generateModuleSource(routeId, routeHash, userSource, operations) {
 	const call = findCreateEndpoint(userSource);
 	const userCode = `${userSource.slice(0, call.start)}\n${userSource.slice(call.end)}`.trim();
-	ensureNoReservedHelperDeclarations(userCode);
+	ensureNoReservedModuleBindings(userCode);
 	try {
 		findCreateEndpoint(userCode);
-		throw new Error("[APIStaticCompiler] A .route file may only contain one createEndpoint([...]) declaration.");
+		throw new Error("[APIStaticCompiler] A .route file may only contain one top-level createEndpoint([...]) declaration.");
 	} catch (reason) {
-		if (!(reason instanceof Error) || !reason.message.includes("Missing createEndpoint")) throw reason;
+		if (!(reason instanceof Error) || !reason.message.includes("Missing top-level createEndpoint")) throw reason;
 	}
 	const operationSource = operations.map((operation) => {
 		return `\t{\n\t\tname: ${JSON.stringify(operation.name)},\n\t\tsource: ${JSON.stringify(operation.source)},\n\t\tschema: ${JSON.stringify(operation.schema || {})},\n\t\trun: ${makeRunFunction(operation.run)},\n\t}`;
@@ -537,15 +701,7 @@ function generateModuleSource(routeId, routeHash, userSource, operations) {
 }
 
 function transpileRoute(moduleSource, fileName) {
-	let typescript;
-	try {
-		typescript = require("typescript");
-	} catch {
-		throw new Error(
-			"[APIStaticCompiler] TypeScript is required to compile .route files. Install nextjs-engine with its dependencies or add typescript to the project.",
-		);
-	}
-
+	const typescript = getTypeScript();
 	const result = typescript.transpileModule(moduleSource, {
 		fileName,
 		reportDiagnostics: true,
@@ -572,7 +728,8 @@ function compileAPIStaticSource(source, routeId, fileName = `${routeId}.route`) 
 	const arrayEnd = findMatching(source, cursor, "[", "]");
 	const afterArray = skipTrivia(source, arrayEnd + 1, false);
 	if (afterArray !== call.end - 1) throw new Error("[APIStaticCompiler] createEndpoint accepts exactly one array argument.");
-	const functionNames = collectFunctionNames(`${source.slice(0, call.start)}\n${source.slice(call.end)}`);
+	const userCode = `${source.slice(0, call.start)}\n${source.slice(call.end)}`;
+	const functionNames = collectFunctionNames(userCode);
 	const operations = parseEndpointArray(source, cursor + 1, arrayEnd, functionNames);
 	const hash = getRouteHash(normalizedRoute);
 	const moduleSource = generateModuleSource(normalizedRoute, hash, source, operations);
