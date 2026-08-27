@@ -7,7 +7,7 @@ import React, {
 	memo,
 	useCallback,
 	useEffect,
-	useRef,
+	useMemo,
 	useState,
 	type CSSProperties,
 } from "react";
@@ -109,7 +109,6 @@ export const EngineVideo = memo(function EngineVideo({
 	onCanPlay,
 	onEnded,
 }: EngineVideoProps) {
-	const videoRef = useRef<HTMLVideoElement | null>(null);
 	const [videoReady, setVideoReady] = useState(false);
 	const [buffering, setBuffering] = useState(false);
 
@@ -124,12 +123,12 @@ export const EngineVideo = memo(function EngineVideo({
 	});
 
 	const resolvedPreload = preload ?? (autoPlay ? "auto" : "metadata");
-	const sources: VideoSource[] = Array.isArray(src)
+	const sources = useMemo<VideoSource[]>(() => Array.isArray(src)
 		? src
-		: [{ src, type: src.endsWith(".webm") ? "video/webm" : "video/mp4" }];
-	const sourceKey = sources
+		: [{ src, type: src.endsWith(".webm") ? "video/webm" : "video/mp4" }], [src]);
+	const sourceKey = useMemo(() => sources
 		.map((source, index) => `${index}\u001f${source.src}\u001f${source.type ?? ""}`)
-		.join("\u001e");
+		.join("\u001e"), [sources]);
 
 	// A <video> element does not reliably reselect changed <source> children.
 	// sourceKey remounts the media element, while this resets wrapper readiness.
@@ -158,10 +157,11 @@ export const EngineVideo = memo(function EngineVideo({
 		borderRadius: borderRadius ?? undefined,
 		...style,
 	};
+	const showExternalPoster = Boolean(poster && !videoReady && (!inView || autoPlay));
 
 	return (
 		<div ref={wrapperRef} className={className} style={wrapperStyle}>
-			{poster && !videoReady && (
+			{showExternalPoster && (
 				// eslint-disable-next-line @next/next/no-img-element
 				<img
 					src={poster}
@@ -181,7 +181,6 @@ export const EngineVideo = memo(function EngineVideo({
 			{inView && (
 				<video
 					key={sourceKey}
-					ref={videoRef}
 					autoPlay={autoPlay}
 					muted={muted}
 					loop={loop}
