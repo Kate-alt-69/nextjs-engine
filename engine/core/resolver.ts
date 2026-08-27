@@ -2,32 +2,8 @@
 //  Engine — CSS Resolver
 //
 //  Converts ResponsiveValue<T> props into CSS custom property declarations +
-//  @media query blocks. The browser handles ALL responsive behaviour — no JS
-//  breakpoint detection at runtime, no layout shifts, no re-renders.
-//
-//  Strategy:
-//    Input:  padding = { xs: "1rem", md: "2rem", xl: "3rem" }
-//    Output: --e-pa-x7k2: 1rem;
-//            @media (min-width: 768px)  { :root { --e-pa-x7k2: 2rem } }
-//            @media (min-width: 1280px) { :root { --e-pa-x7k2: 3rem } }
-//    Inline: style={{ padding: "var(--e-pa-x7k2, 1rem)" }}
-//                                        ↑ fallback = xs/base value
-//
-//  PRODUCTION FIX (TASK-002 / Layout collapse on compiled / SSG):
-//    Every var() reference now includes the base (xs / scalar) value as a CSS
-//    var fallback:  var(--e-pa-x7k2, 1rem)
-//
-//    Without this, production SSG HTML has the <style id="__engine_styles__">
-//    tag at the bottom of <body>. The browser paints content BEFORE reaching
-//    that tag, so CSS vars are undefined and layout collapses (zero padding,
-//    no columns, stacked rows). The fallback ensures every element has a valid
-//    computed value on first paint, regardless of when the style tag loads.
-//
-//    In dev mode, React's hydration re-render masked this — the styles were
-//    applied during client-side hydration before the user noticed. In
-//    production SSG there is no re-render, exposing the FOUC permanently.
-//
-//  CSS vars are deterministically hashed so duplicate values share one var.
+//  @media query blocks. Responsive maps emit rules only for explicitly supplied
+//  breakpoints; CSS cascade carries each value forward until the next override.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
@@ -39,42 +15,55 @@ import {
 
 // ── Value normalisation ───────────────────────────────────────────────────────
 
-export function normalizeSpacingValue(v: string | number): string {
-	if (typeof v === "number") return v === 0 ? "0" : `${v / 16}rem`;
-	return v;
+export function normalizeSpacingValue(value: string | number): string {
+	if (typeof value === "number") return value === 0 ? "0" : `${value / 16}rem`;
+	return value;
 }
 
-export function normalizeColumns(v: string | number): string {
-	if (typeof v === "number") return `repeat(${v}, 1fr)`;
-	return v;
+export function normalizeColumns(value: string | number): string {
+	if (typeof value === "number") return `repeat(${value}, 1fr)`;
+	return value;
 }
 
-// ── Hash ──────────────────────────────────────────────────────────────────────
+// ── Stable serialization + hash ───────────────────────────────────────────────
+
+function serializeResponsiveValue(value: ResponsiveValue<string | number>): string {
+	if (typeof value !== "object" || value === null) return JSON.stringify(value);
+
+	const parts: string[] = [];
+	for (const breakpoint of BREAKPOINT_ORDER) {
+		const breakpointValue = (value as Partial<Record<Breakpoint, string | number>>)[breakpoint];
+		if (breakpointValue === undefined) continue;
+		parts.push(`${breakpoint}:${JSON.stringify(breakpointValue)}`);
+	}
+	return parts.join("|");
+}
 
 function shortHash(input: string): string {
-	let h = 5381;
-	for (let i = 0; i < input.length; i++) {
-		h = ((h << 5) + h + input.charCodeAt(i)) | 0;
+	let primary = 5381;
+	let secondary = 2166136261;
+
+	for (let index = 0; index < input.length; index++) {
+		const code = input.charCodeAt(index);
+		primary = ((primary << 5) + primary + code) | 0;
+		secondary ^= code;
+		secondary = Math.imul(secondary, 16777619);
 	}
-	return Math.abs(h).toString(36).slice(0, 5);
+
+	return `${(primary >>> 0).toString(36)}${(secondary >>> 0).toString(36)}`;
 }
 
 // ── Resolved type ─────────────────────────────────────────────────────────────
 
 export interface ResolvedVar {
-	varName:  string;
-	/**
-	 * var() reference with fallback for inline styles.
-	 * e.g. "var(--e-pa-abc12, 1rem)"
-	 * The fallback is the xs/base value — guarantees layout on first paint
-	 * even before the <style> tag has been processed by the browser.
-	 */
-	ref:      string;
+	varName: string;
+	/** var() reference with an xs/scalar first-paint fallback when available. */
+	ref: string;
 	cssBlock: string;
 }
 
-// Module-level cache — shared across an SSR render pass.
-// Cleared explicitly by createPage before each page render.
+// Module-level memoization avoids recompiling the same responsive value inside a
+// render pass. createPage clears it before rendering a new page.
 const _varCache = new Map<string, ResolvedVar>();
 
 export function clearResolverCache(): void {
@@ -88,45 +77,41 @@ export function resolveVar(
 	value: ResponsiveValue<string | number>,
 	normalize = true,
 ): ResolvedVar {
-	const cacheKey = `${shortProp}|${JSON.stringify(value)}`;
-	const cached   = _varCache.get(cacheKey);
+	const cacheKey = `${shortProp}|${normalize ? "normalized" : "raw"}|${serializeResponsiveValue(value)}`;
+	const cached = _varCache.get(cacheKey);
 	if (cached) return cached;
 
-	const hash    = shortHash(cacheKey);
+	const hash = shortHash(cacheKey);
 	const varName = `--e-${shortProp}-${hash}`;
-
-	let cssBlock  = "";
-	let fallback  = "";  // ← base value used as var() fallback
+	let cssBlock = "";
+	let fallback = "";
 
 	if (typeof value !== "object" || value === null) {
-		// ── Scalar value ──────────────────────────────────────────────────────
-		const v   = normalize
+		const resolvedValue = normalize
 			? normalizeSpacingValue(value as string | number)
 			: String(value);
-		fallback  = v;
-		cssBlock  = `:root{${varName}:${v}}`;
+		fallback = resolvedValue;
+		cssBlock = `:root{${varName}:${resolvedValue}}`;
 	} else {
-		// ── Responsive map ────────────────────────────────────────────────────
-		let cascade: string | undefined;
 		const lines: string[] = [];
 
-		for (const bp of BREAKPOINT_ORDER) {
-			const raw = (value as Partial<Record<Breakpoint, string | number>>)[bp];
-			const v   = raw !== undefined
-				? (normalize ? normalizeSpacingValue(raw) : String(raw))
-				: cascade;
+		for (const breakpoint of BREAKPOINT_ORDER) {
+			const rawValue = (value as Partial<Record<Breakpoint, string | number>>)[breakpoint];
+			if (rawValue === undefined) continue;
 
-			if (v === undefined) continue;
-			if (raw !== undefined) cascade = v;
+			const resolvedValue = normalize
+				? normalizeSpacingValue(rawValue)
+				: String(rawValue);
 
-			// Capture the xs/first value as the fallback for var()
-			if (!fallback) fallback = v;
+			// Only an explicit xs value is valid below the first media query. Using
+			// md/lg as a fallback would incorrectly apply that value on mobile.
+			if (breakpoint === "xs") fallback = resolvedValue;
 
-			if (bp === "xs") {
-				lines.push(`:root{${varName}:${v}}`);
+			if (breakpoint === "xs") {
+				lines.push(`:root{${varName}:${resolvedValue}}`);
 			} else {
 				lines.push(
-					`@media(min-width:${BREAKPOINTS[bp]}px){:root{${varName}:${v}}}`,
+					`@media(min-width:${BREAKPOINTS[breakpoint]}px){:root{${varName}:${resolvedValue}}}`,
 				);
 			}
 		}
@@ -134,9 +119,6 @@ export function resolveVar(
 		cssBlock = lines.join("\n");
 	}
 
-	// ── var() reference with fallback ─────────────────────────────────────────
-	// fallback ensures layout is correct on first paint even before the
-	// __engine_styles__ <style> tag has been parsed (critical for SSG/Netlify).
 	const ref = fallback
 		? `var(${varName}, ${fallback})`
 		: `var(${varName})`;
@@ -159,9 +141,12 @@ export function resolveColumns(
 	value: ResponsiveValue<string | number>,
 ): ResolvedVar {
 	if (typeof value === "object" && value !== null) {
-		const mapped = Object.fromEntries(
-			Object.entries(value).map(([k, v]) => [k, normalizeColumns(v as string | number)]),
-		) as Partial<Record<Breakpoint, string>>;
+		const mapped: Partial<Record<Breakpoint, string>> = {};
+		for (const breakpoint of BREAKPOINT_ORDER) {
+			const breakpointValue = value[breakpoint];
+			if (breakpointValue === undefined) continue;
+			mapped[breakpoint] = normalizeColumns(breakpointValue);
+		}
 		return resolveVar("co", mapped as ResponsiveValue<string | number>, false);
 	}
 	return resolveVar("co", normalizeColumns(value as string | number), false);
@@ -177,22 +162,22 @@ export function resolveGeneric(
 // ── Prop-to-CSS-property mapping ──────────────────────────────────────────────
 
 export const CSS_PROP_MAP: Record<string, string> = {
-	m:  "margin",       mt: "margin-top",       mr: "margin-right",
+	m: "margin", mt: "margin-top", mr: "margin-right",
 	mb: "margin-bottom", ml: "margin-left",
-	mx: undefined!,     my: undefined!,
-	p:  "padding",      pt: "padding-top",       pr: "padding-right",
+	mx: undefined!, my: undefined!,
+	p: "padding", pt: "padding-top", pr: "padding-right",
 	pb: "padding-bottom", pl: "padding-left",
-	px: undefined!,     py: undefined!,
-	w:    "width",       h:    "height",
-	minW: "min-width",   minH: "min-height",
-	maxW: "max-width",   maxH: "max-height",
-	gap:    "gap",       colGap: "column-gap",    rowGap: "row-gap",
-	display:  "display", flexDir:  "flex-direction",
-	align:    "align-items", justify: "justify-content", wrap: "flex-wrap",
-	columns:  "grid-template-columns", rows: "grid-template-rows",
+	px: undefined!, py: undefined!,
+	w: "width", h: "height",
+	minW: "min-width", minH: "min-height",
+	maxW: "max-width", maxH: "max-height",
+	gap: "gap", colGap: "column-gap", rowGap: "row-gap",
+	display: "display", flexDir: "flex-direction",
+	align: "align-items", justify: "justify-content", wrap: "flex-wrap",
+	columns: "grid-template-columns", rows: "grid-template-rows",
 	borderRadius: "border-radius",
-	size:   "font-size", weight: "font-weight",
-	lineHeight:    "line-height", letterSpacing: "letter-spacing",
+	size: "font-size", weight: "font-weight",
+	lineHeight: "line-height", letterSpacing: "letter-spacing",
 	order: "order",
 };
 
@@ -205,6 +190,6 @@ export function isResponsive<T>(
 		typeof value === "object" &&
 		value !== null &&
 		!Array.isArray(value) &&
-		BREAKPOINT_ORDER.some((bp) => bp in (value as object))
+		BREAKPOINT_ORDER.some((breakpoint) => breakpoint in (value as object))
 	);
 }
