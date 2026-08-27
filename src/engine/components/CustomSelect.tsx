@@ -10,6 +10,7 @@ import React, {
 	useEffect,
 	useCallback,
 	useId,
+	useMemo,
 	type CSSProperties,
 	type KeyboardEvent,
 } from "react";
@@ -85,6 +86,16 @@ function SearchIcon({ size }: { size: number }) {
 	);
 }
 
+function firstEnabledIndex(options: SelectOption[]): number {
+	return options.findIndex((option) => !option.disabled);
+}
+
+function filterOptions(options: SelectOption[], searchable: boolean, search: string): SelectOption[] {
+	const query = search.trim().toLowerCase();
+	if (!searchable || !query) return options;
+	return options.filter((option) => option.label.toLowerCase().includes(query));
+}
+
 function nextEnabledIndex(
 	options: SelectOption[],
 	currentIndex: number,
@@ -118,13 +129,19 @@ export const CustomSelect = memo(function CustomSelect({
 	...props
 }: CustomSelectProps) {
 	const generatedId = useId();
-	const inputId = externalId ?? `cs-${generatedId.replace(/:/g, "")}`;
-	const listboxId = `${inputId}-listbox`;
+	const resolvedId = externalId ?? point;
+	const internalBaseId = resolvedId
+		? `${resolvedId}-custom-select`
+		: `cs-${generatedId.replace(/:/g, "")}`;
+	const triggerId = `${internalBaseId}-trigger`;
+	const listboxId = `${internalBaseId}-listbox`;
 	const changeHandler = useHandler(onChange ?? "");
 
 	const [isOpen, setIsOpen] = useState(false);
 	const [selected, setSelected] = useState<SelectOption | null>(() =>
-		defaultValue ? (options.find((option) => option.value === defaultValue) ?? null) : null,
+		defaultValue !== undefined
+			? (options.find((option) => option.value === defaultValue) ?? null)
+			: null,
 	);
 	const [search, setSearch] = useState("");
 	const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -134,13 +151,13 @@ export const CustomSelect = memo(function CustomSelect({
 	const listRef = useRef<HTMLDivElement>(null);
 	const cfg = SIZE_CONFIG[size] ?? SIZE_CONFIG.md;
 
-	const filteredOptions = searchable && search
-		? options.filter((option) => option.label.toLowerCase().includes(search.toLowerCase()))
-		: options;
-
-	const firstEnabledIndex = useCallback((entries: SelectOption[]): number => {
-		return entries.findIndex((option) => !option.disabled);
-	}, []);
+	const filteredOptions = useMemo(
+		() => filterOptions(options, searchable, search),
+		[options, searchable, search],
+	);
+	const activeOptionId = isOpen && focusedIndex >= 0 && filteredOptions[focusedIndex]
+		? `${listboxId}-option-${focusedIndex}`
+		: undefined;
 
 	const open = useCallback((): void => {
 		setIsOpen(true);
@@ -149,7 +166,7 @@ export const CustomSelect = memo(function CustomSelect({
 			: -1;
 		setFocusedIndex(selectedIndex >= 0 ? selectedIndex : firstEnabledIndex(options));
 		if (searchable) window.setTimeout(() => searchRef.current?.focus(), 0);
-	}, [selected, options, searchable, firstEnabledIndex]);
+	}, [selected, options, searchable]);
 
 	const close = useCallback((): void => {
 		setIsOpen(false);
@@ -169,9 +186,8 @@ export const CustomSelect = memo(function CustomSelect({
 		close();
 	}, [changeHandler, close]);
 
-	const clearSelection = useCallback((event: React.MouseEvent): void => {
+	const clearSelection = useCallback((event: React.MouseEvent<HTMLButtonElement>): void => {
 		event.preventDefault();
-		event.stopPropagation();
 		setSelected(null);
 		changeHandler?.("", null);
 		close();
@@ -182,7 +198,7 @@ export const CustomSelect = memo(function CustomSelect({
 			if (previousIndex < 0) return firstEnabledIndex(filteredOptions);
 			return nextEnabledIndex(filteredOptions, previousIndex, direction);
 		});
-	}, [filteredOptions, firstEnabledIndex]);
+	}, [filteredOptions]);
 
 	const activateFocused = useCallback((): void => {
 		if (focusedIndex >= 0 && filteredOptions[focusedIndex]) {
@@ -265,6 +281,9 @@ export const CustomSelect = memo(function CustomSelect({
 				background: var(--e-divider, rgba(7,17,31,0.16));
 				border-radius: 4px;
 			}
+			@media (prefers-reduced-motion: reduce) {
+				.e-select-dropdown { animation: none !important; }
+			}
 		`.trim();
 		document.head.appendChild(styleElement);
 	}, []);
@@ -308,6 +327,19 @@ export const CustomSelect = memo(function CustomSelect({
 		transition: "border-color 0.15s ease, box-shadow 0.15s ease",
 		userSelect: "none",
 		outline: "none",
+		fontFamily: "inherit",
+	};
+
+	const clearButtonStyle: CSSProperties = {
+		border: "1.5px solid var(--e-divider, rgba(7,17,31,0.16))",
+		borderRadius: cfg.borderRadius,
+		background: "var(--e-card-bg, #ffffff)",
+		color: "var(--e-muted, #94a3b8)",
+		cursor: "pointer",
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+		padding: "0 0.7rem",
 		fontFamily: "inherit",
 	};
 
@@ -361,47 +393,49 @@ export const CustomSelect = memo(function CustomSelect({
 	};
 
 	return (
-		<div ref={containerRef} id={point} className={mergedClass} style={containerStyle}>
-			{label && <label htmlFor={inputId} style={labelStyle}>{label}</label>}
+		<div ref={containerRef} id={resolvedId} className={mergedClass} style={containerStyle}>
+			{label && <label htmlFor={triggerId} style={labelStyle}>{label}</label>}
 
-			<button
-				id={inputId}
-				type="button"
-				role="combobox"
-				aria-haspopup="listbox"
-				aria-expanded={isOpen}
-				aria-controls={listboxId}
-				aria-label={label ?? placeholder}
-				onClick={toggle}
-				onKeyDown={handleTriggerKeyDown}
-				style={triggerStyle}
+			<div
+				style={{
+					display: "grid",
+					gridTemplateColumns: clearable && selected ? "minmax(0, 1fr) auto" : "minmax(0, 1fr)",
+					gap: "0.375rem",
+				}}
 			>
-				<span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-					{selected ? selected.label : placeholder}
-				</span>
-				<span style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>
-					{clearable && selected && (
-						<span
-							role="button"
-							aria-label="Clear selection"
-							onClick={clearSelection}
-							style={{
-								display: "flex",
-								alignItems: "center",
-								padding: "2px",
-								borderRadius: "4px",
-								color: "var(--e-muted, #94a3b8)",
-							}}
-						>
-							<ClearIcon size={cfg.iconSize - 2} />
-						</span>
-					)}
+				<button
+					id={triggerId}
+					type="button"
+					role="combobox"
+					aria-haspopup="listbox"
+					aria-expanded={isOpen}
+					aria-controls={listboxId}
+					aria-activedescendant={activeOptionId}
+					aria-label={label ?? placeholder}
+					onClick={toggle}
+					onKeyDown={handleTriggerKeyDown}
+					style={triggerStyle}
+				>
+					<span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+						{selected ? selected.label : placeholder}
+					</span>
 					<ChevronIcon size={cfg.iconSize} open={isOpen} />
-				</span>
-			</button>
+				</button>
+
+				{clearable && selected && (
+					<button
+						type="button"
+						aria-label="Clear selection"
+						onClick={clearSelection}
+						style={clearButtonStyle}
+					>
+						<ClearIcon size={cfg.iconSize - 2} />
+					</button>
+				)}
+			</div>
 
 			{isOpen && (
-				<div style={dropdownStyle}>
+				<div className="e-select-dropdown" style={dropdownStyle}>
 					{searchable && (
 						<div style={{ padding: "0.5rem 0.5rem 0.25rem", borderBottom: "1px solid var(--e-divider, rgba(7,17,31,0.08))" }}>
 							<div style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "var(--e-hover-bg, rgba(7,17,31,0.03))", borderRadius: "6px", padding: "0.375rem 0.625rem" }}>
@@ -411,9 +445,13 @@ export const CustomSelect = memo(function CustomSelect({
 									type="text"
 									placeholder="Search…"
 									value={search}
+									aria-label={`Search ${label ?? name}`}
+									aria-controls={listboxId}
+									aria-activedescendant={activeOptionId}
 									onChange={(event) => {
-										setSearch(event.target.value);
-										setFocusedIndex(firstEnabledIndex(options.filter((option) => option.label.toLowerCase().includes(event.target.value.toLowerCase()))));
+										const nextSearch = event.target.value;
+										setSearch(nextSearch);
+										setFocusedIndex(firstEnabledIndex(filterOptions(options, searchable, nextSearch)));
 									}}
 									onKeyDown={handleSearchKeyDown}
 									style={{ border: "none", outline: "none", background: "transparent", fontSize: cfg.fontSize, color: "var(--e-text-color, #30475f)", width: "100%", fontFamily: "inherit" }}
@@ -427,6 +465,7 @@ export const CustomSelect = memo(function CustomSelect({
 						ref={listRef}
 						role="listbox"
 						aria-label={label ?? placeholder}
+						aria-activedescendant={activeOptionId}
 						className="e-select-scroll"
 						style={listStyle}
 						onKeyDown={handleListKeyDown}
@@ -438,7 +477,8 @@ export const CustomSelect = memo(function CustomSelect({
 							</div>
 						) : filteredOptions.map((option, index) => (
 							<div
-								key={option.value}
+								id={`${listboxId}-option-${index}`}
+								key={`${option.value}:${index}`}
 								data-option
 								role="option"
 								aria-selected={selected?.value === option.value}
