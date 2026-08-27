@@ -233,17 +233,19 @@ function NodeRenderer({ node, depth, path }: NodeRendererProps) {
 
 	const originalProps = (node.props ?? {}) as Record<string, unknown>;
 	const shader = originalProps.shader as EngineShaderInput | undefined;
-	const hasShader = shader !== undefined && shader !== null && SHADER_SURFACE_TYPES.has(String(node.type));
+	const hasLayerShader = shader !== undefined && shader !== null && SHADER_SURFACE_TYPES.has(String(node.type));
 	const componentProps = { ...originalProps };
-	delete componentProps.shader;
-	if (hasShader) globalStyleCollector.add(SHADER_PENDING_CSS);
+	// Layer-capable surfaces consume `shader` here. Canvas owns its shader
+	// directly, and custom components keep unrelated props named `shader`.
+	if (hasLayerShader) delete componentProps.shader;
+	if (hasLayerShader) globalStyleCollector.add(SHADER_PENDING_CSS);
 
 	const visibilityClass = buildVisibilityClass(originalProps);
 	const originalClassName = typeof originalProps.className === "string" ? originalProps.className : undefined;
 	const mergedClassName = [
 		originalClassName,
 		visibilityClass,
-		hasShader ? SHADER_PENDING_CLASS : undefined,
+		hasLayerShader ? SHADER_PENDING_CLASS : undefined,
 	].filter(Boolean).join(" ") || undefined;
 	const pointName = typeof originalProps.point === "string" && originalProps.point.length > 0
 		? originalProps.point
@@ -251,7 +253,7 @@ function NodeRenderer({ node, depth, path }: NodeRendererProps) {
 	const explicitId = typeof originalProps.id === "string" && originalProps.id.length > 0
 		? originalProps.id
 		: undefined;
-	const shaderId = hasShader ? `e-shader-${shortHash(`${path}|${String(node.type)}|${node.name ?? ""}`)}` : undefined;
+	const shaderId = hasLayerShader ? `e-shader-${shortHash(`${path}|${String(node.type)}|${node.name ?? ""}`)}` : undefined;
 	const resolvedDomId = explicitId ?? pointName ?? shaderId;
 	const nodeProps = {
 		...componentProps,
@@ -271,7 +273,7 @@ function NodeRenderer({ node, depth, path }: NodeRendererProps) {
 		? renderedChildren
 		: (originalProps.children as ReactNode | undefined) ?? null;
 	const element = <Component {...nodeProps}>{effectiveChildren}</Component>;
-	const shaderSurface = hasShader && resolvedDomId
+	const shaderSurface = hasLayerShader && resolvedDomId
 		? (
 			<Suspense fallback={null}>
 				<LazyEngineShaderSurface targetId={resolvedDomId} shader={shader!} />
