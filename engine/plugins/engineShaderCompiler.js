@@ -8,6 +8,16 @@ const SHADER_FORMAT_VERSION = 1;
 const BINARY_MAGIC = Buffer.from("ESH1", "ascii");
 const PIPELINE_ROOTS = new Set(["before", "render", "after", "overlay", "frame", "screen"]);
 const DYNAMIC_ROOTS = new Set(["system", "pointer", "scroll", "viewport"]);
+const SUPPORTED_DYNAMIC_SOURCES = new Set([
+	"system.time",
+	"system.delta",
+	"system.frame",
+	"pointer.x",
+	"pointer.y",
+	"scroll.position",
+	"viewport.width",
+	"viewport.height",
+]);
 const UNSUPPORTED_FRAME_SOURCES = new Set([
 	"frame.depth",
 	"frame.normal",
@@ -49,8 +59,7 @@ function listShaderFiles(directory) {
 }
 
 function stripComment(line) {
-	const trimmed = line.trimStart();
-	return trimmed.startsWith("#") ? "" : line;
+	return line.trimStart().startsWith("#") ? "" : line;
 }
 
 function parseInlineList(raw) {
@@ -139,6 +148,32 @@ function isPipelineReference(value) {
 	return PIPELINE_ROOTS.has(topSegment(value));
 }
 
+function validateBindingSource(sourcePath, variables, constants, filename, lineNumber) {
+	if (sourcePath.startsWith("const.")) {
+		const name = sourcePath.slice(6);
+		if (!Object.prototype.hasOwnProperty.call(constants, name)) {
+			throw new Error(`[EngineShaderCompiler] ${filename}:${lineNumber} unknown const ${name}.`);
+		}
+		return;
+	}
+	if (sourcePath.startsWith("var.")) {
+		const name = sourcePath.slice(4);
+		if (!Object.prototype.hasOwnProperty.call(variables, name)) {
+			throw new Error(`[EngineShaderCompiler] ${filename}:${lineNumber} unknown var ${name}.`);
+		}
+		return;
+	}
+	if (UNSUPPORTED_FRAME_SOURCES.has(sourcePath)) {
+		throw new Error(`[EngineShaderCompiler] ${filename}:${lineNumber} ${sourcePath} requires an EngineCanvas/compositor buffer that surface ESH v1 does not provide yet.`);
+	}
+	if (sourcePath === "frame.color") {
+		throw new Error(`[EngineShaderCompiler] ${filename}:${lineNumber} frame.color is a render-graph surface. Connect it with => instead of reading it with <=.`);
+	}
+	if (DYNAMIC_ROOTS.has(topSegment(sourcePath)) && !SUPPORTED_DYNAMIC_SOURCES.has(sourcePath)) {
+		throw new Error(`[EngineShaderCompiler] ${filename}:${lineNumber} unsupported runtime source ${sourcePath}.`);
+	}
+}
+
 function parseEngineShaderSource(source, filename = "<inline>") {
 	const lines = String(source).replace(/\r\n/g, "\n").split("\n");
 	const ast = {};
@@ -153,6 +188,7 @@ function parseEngineShaderSource(source, filename = "<inline>") {
 
 	const currentScope = () => stack[stack.length - 1];
 	for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+		const lineNumber = lineIndex + 1;
 		const line = stripComment(lines[lineIndex]).trim();
 		if (!line) continue;
 
@@ -162,12 +198,12 @@ function parseEngineShaderSource(source, filename = "<inline>") {
 					shaderClosed = true;
 					continue;
 				}
-				throw new Error(`[EngineShaderCompiler] ${filename}:${lineIndex + 1} unexpected ].`);
+				throw new Error(`[EngineShaderCompiler] ${filename}:${lineNumber} unexpected ].`);
 			}
 			const closed = stack.pop();
 			if (closed.listItems.length > 0) {
 				if (Object.keys(closed.node).length > 0) {
-					throw new Error(`[EngineShaderCompiler] ${filename}:${lineIndex + 1} cannot mix list values and named fields in one [].`);
+					throw new Error(`[EngineShaderCompiler] ${filename}:${lineNumber} cannot mix list values and named fields in one [].`);
 				}
 				const parentPath = closed.path.split(".").slice(0, -1).join(".");
 				const key = closed.path.split(".").pop();
@@ -179,7 +215,7 @@ function parseEngineShaderSource(source, filename = "<inline>") {
 
 		const shaderDeclaration = line.match(/^shader\s*<=\s*([A-Za-z_][A-Za-z0-9_-]*)\s*=>\s*\[$/);
 		if (shaderDeclaration) {
-			if (shaderName) throw new Error(`[EngineShaderCompiler] ${filename}:${lineIndex + 1} only one shader declaration is allowed.`);
+			if (shaderName) throw new Error(`[EngineShaderCompiler] ${filename}:${lineNumber} only one shader declaration is allowed.`);
 			shaderName = shaderDeclaration[1];
 			shaderOpen = true;
 			continue;
@@ -189,9 +225,15 @@ function parseEngineShaderSource(source, filename = "<inline>") {
 		if (declaration) {
 			const [, kind, name, rawValue] = declaration;
 			const table = kind === "var" ? variables : constants;
-			if (Object.prototype.hasOwnProperty.call(table, name)) throw new Error(`[EngineShaderCompiler] ${filename}:${lineIndex + 1} duplicate ${kind} ${name}.`);
-			if (kind === "const" && Object.prototype.hasOwnProperty.call(variables, name)) throw new Error(`[EngineShaderCompiler] ${filename}:${lineIndex + 1} ${name} is already declared as var.`);
-			if (kind === "var" && Object.prototype.hasOwnProperty.call(constants, name)) throw new Error(`[EngineShaderCompiler] ${filename}:${lineIndex + 1} ${name} is already declared as const.`);
+			if (Object.prototype.hasOwnProperty.call(table, name)) {
+				throw new Error(`[EngineShaderCompiler] ${filename}:${lineNumber} duplicate ${kind} ${name}.`);
+			}
+			if (kind === "const" && Object.prototype.hasOwnProperty.call(variables, name)) {
+				throw new Error(`[EngineShaderCompiler] ${filename}:${lineNumber} ${name} is already declared as var.`);
+			}
+			if (kind === "var" && Object.prototype.hasOwnProperty.call(constants, name)) {
+				throw new Error(`[EngineShaderCompiler] ${filename}:${lineNumber} ${name} is already declared as const.`);
+			}
 			table[name] = parseValue(rawValue);
 			continue;
 		}
@@ -209,15 +251,7 @@ function parseEngineShaderSource(source, filename = "<inline>") {
 		if (binding) {
 			const target = resolveScopedPath(currentScope().path, binding[1]);
 			const sourcePath = binding[2];
-			if (sourcePath.startsWith("const.")) {
-				const name = sourcePath.slice(6);
-				if (!Object.prototype.hasOwnProperty.call(constants, name)) throw new Error(`[EngineShaderCompiler] ${filename}:${lineIndex + 1} unknown const ${name}.`);
-			}
-			if (sourcePath.startsWith("var.")) {
-				const name = sourcePath.slice(4);
-				if (!Object.prototype.hasOwnProperty.call(variables, name)) throw new Error(`[EngineShaderCompiler] ${filename}:${lineIndex + 1} unknown var ${name}.`);
-			}
-			if (UNSUPPORTED_FRAME_SOURCES.has(sourcePath)) throw new Error(`[EngineShaderCompiler] ${filename}:${lineIndex + 1} ${sourcePath} requires an EngineCanvas/compositor buffer that surface ESH v1 does not provide yet.`);
+			validateBindingSource(sourcePath, variables, constants, filename, lineNumber);
 			bindings.push({ target, source: sourcePath });
 			continue;
 		}
@@ -226,10 +260,14 @@ function parseEngineShaderSource(source, filename = "<inline>") {
 		if (assignment) {
 			const left = resolveScopedPath(currentScope().path, assignment[1]);
 			const rawRight = assignment[2].trim();
-			if (left.startsWith("const.")) throw new Error(`[EngineShaderCompiler] ${filename}:${lineIndex + 1} constants cannot be reassigned.`);
+			if (left.startsWith("const.")) {
+				throw new Error(`[EngineShaderCompiler] ${filename}:${lineNumber} constants cannot be reassigned.`);
+			}
 			if (left.startsWith("var.")) {
 				const name = left.slice(4);
-				if (!Object.prototype.hasOwnProperty.call(variables, name)) throw new Error(`[EngineShaderCompiler] ${filename}:${lineIndex + 1} unknown var ${name}.`);
+				if (!Object.prototype.hasOwnProperty.call(variables, name)) {
+					throw new Error(`[EngineShaderCompiler] ${filename}:${lineNumber} unknown var ${name}.`);
+				}
 				variables[name] = parseValue(rawRight);
 				continue;
 			}
@@ -245,10 +283,12 @@ function parseEngineShaderSource(source, filename = "<inline>") {
 			currentScope().listItems.push(parseValue(line));
 			continue;
 		}
-		throw new Error(`[EngineShaderCompiler] ${filename}:${lineIndex + 1} could not parse: ${line}`);
+		throw new Error(`[EngineShaderCompiler] ${filename}:${lineNumber} could not parse: ${line}`);
 	}
 
-	if (stack.length !== 1 || (shaderOpen && !shaderClosed)) throw new Error(`[EngineShaderCompiler] ${filename} is missing a closing ].`);
+	if (stack.length !== 1 || (shaderOpen && !shaderClosed)) {
+		throw new Error(`[EngineShaderCompiler] ${filename} is missing a closing ].`);
+	}
 	if (!shaderName) throw new Error(`[EngineShaderCompiler] ${filename} requires: shader <= name => [`);
 	return { shaderName, ast, variables, constants, bindings, flows };
 }
@@ -262,7 +302,9 @@ function glslNumber(value, fallback = 0) {
 function parseHexColor(value) {
 	const normalized = String(value || "").trim().replace(/^#/, "");
 	if (![3, 4, 6, 8].includes(normalized.length) || !/^[0-9a-f]+$/i.test(normalized)) return null;
-	const expanded = normalized.length <= 4 ? normalized.split("").map((character) => `${character}${character}`).join("") : normalized;
+	const expanded = normalized.length <= 4
+		? normalized.split("").map((character) => `${character}${character}`).join("")
+		: normalized;
 	return [
 		parseInt(expanded.slice(0, 2), 16) / 255,
 		parseInt(expanded.slice(2, 4), 16) / 255,
@@ -295,18 +337,80 @@ function literalExpression(value, preferred = "float") {
 	return glslNumber(value);
 }
 
+function effectName(key, node) {
+	return String(node.use || key).toLowerCase();
+}
+
+function orderedStageKeys(stageName, stage, flows) {
+	const keys = isObject(stage) ? Object.keys(stage) : [];
+	if (keys.length < 2) return keys;
+	const indegree = new Map(keys.map((key) => [key, 0]));
+	const edges = new Map(keys.map((key) => [key, []]));
+	for (const flow of flows) {
+		const prefix = `${stageName}.`;
+		if (!flow.from.startsWith(prefix) || !flow.to.startsWith(prefix)) continue;
+		const from = flow.from.slice(prefix.length).split(".")[0];
+		const to = flow.to.slice(prefix.length).split(".")[0];
+		if (!indegree.has(from) || !indegree.has(to) || from === to) continue;
+		edges.get(from).push(to);
+		indegree.set(to, indegree.get(to) + 1);
+	}
+	const queue = keys.filter((key) => indegree.get(key) === 0);
+	const ordered = [];
+	while (queue.length > 0) {
+		const key = queue.shift();
+		ordered.push(key);
+		for (const next of edges.get(key)) {
+			indegree.set(next, indegree.get(next) - 1);
+			if (indegree.get(next) === 0) queue.push(next);
+		}
+	}
+	if (ordered.length !== keys.length) {
+		throw new Error(`[EngineShaderCompiler] Shader render graph contains a cycle in ${stageName}.`);
+	}
+	return ordered;
+}
+
+function validateFlows(parsed, logicalName) {
+	const known = new Set(["frame.color", "screen"]);
+	for (const stageName of ["before", "after", "overlay"]) {
+		const stage = getNested(parsed.ast, stageName);
+		if (!isObject(stage)) continue;
+		for (const key of Object.keys(stage)) known.add(`${stageName}.${key}`);
+	}
+	for (const flow of parsed.flows) {
+		if (!known.has(flow.from)) {
+			throw new Error(`[EngineShaderCompiler] Shader ${logicalName} flow source does not exist: ${flow.from}`);
+		}
+		if (!known.has(flow.to)) {
+			throw new Error(`[EngineShaderCompiler] Shader ${logicalName} flow target does not exist: ${flow.to}`);
+		}
+	}
+}
+
 function compilePlan(parsed, logicalName) {
+	validateFlows(parsed, logicalName);
 	const bindings = new Map(parsed.bindings.map((binding) => [binding.target, binding.source]));
 	const dependencies = new Set();
 	for (const binding of parsed.bindings) {
-		if (["system.", "pointer.", "scroll.", "viewport."].some((prefix) => binding.source.startsWith(prefix))) dependencies.add(binding.source);
+		if (SUPPORTED_DYNAMIC_SOURCES.has(binding.source)) dependencies.add(binding.source);
 	}
-	const referencedVariables = new Set(parsed.bindings.filter((binding) => binding.source.startsWith("var.")).map((binding) => binding.source.slice(4)));
-	const variables = [...referencedVariables].map((name) => ({ name, type: inferUniformType(parsed.variables[name]), defaultValue: parsed.variables[name] }));
+	const referencedVariables = new Set(
+		parsed.bindings
+			.filter((binding) => binding.source.startsWith("var."))
+			.map((binding) => binding.source.slice(4)),
+	);
+	const variables = [...referencedVariables].map((name) => ({
+		name,
+		type: inferUniformType(parsed.variables[name]),
+		defaultValue: parsed.variables[name],
+	}));
 
 	const resolveProperty = (pathValue, fallback, preferred = "float") => {
 		const sourcePath = bindings.get(pathValue);
-		if (sourcePath?.startsWith("const.")) return literalExpression(parsed.constants[sourcePath.slice(6)], preferred);
+		if (sourcePath?.startsWith("const.")) {
+			return literalExpression(parsed.constants[sourcePath.slice(6)], preferred);
+		}
 		if (sourcePath?.startsWith("var.")) {
 			const name = sourcePath.slice(4);
 			return inferUniformType(parsed.variables[name]) === "color" ? `u_var_${name}.rgb` : `u_var_${name}`;
@@ -323,9 +427,25 @@ function compilePlan(parsed, logicalName) {
 		return literalExpression(assigned === undefined ? fallback : assigned, preferred);
 	};
 
-	const renderResolution = Number(getNested(parsed.ast, "render.resolution") ?? 1);
-	const renderFilter = String(getNested(parsed.ast, "render.filter") ?? "linear");
-	const fallback = String(getNested(parsed.ast, "render.fallback") ?? getNested(parsed.ast, "fallback") ?? "transparent");
+	const resolveCompileTimeValue = (pathValue, fallback) => {
+		const sourcePath = bindings.get(pathValue);
+		if (sourcePath?.startsWith("const.")) return parsed.constants[sourcePath.slice(6)];
+		if (sourcePath) {
+			throw new Error(`[EngineShaderCompiler] ${logicalName} ${pathValue} must be compile-time data; bind it to const.* or assign a literal.`);
+		}
+		const assigned = getNested(parsed.ast, pathValue);
+		return assigned === undefined ? fallback : assigned;
+	};
+
+	const renderResolution = Number(resolveCompileTimeValue("render.resolution", 1));
+	const renderFilter = String(resolveCompileTimeValue("render.filter", "linear"));
+	const fallback = String(resolveCompileTimeValue("render.fallback", getNested(parsed.ast, "fallback") ?? "transparent"));
+	const before = getNested(parsed.ast, "before") || {};
+	const after = getNested(parsed.ast, "after") || {};
+	const overlay = getNested(parsed.ast, "overlay") || {};
+	const afterKeys = orderedStageKeys("after", after, parsed.flows);
+	const overlayKeys = orderedStageKeys("overlay", overlay, parsed.flows);
+
 	const glsl = [
 		"precision highp float;",
 		"uniform vec2 e_resolution;",
@@ -342,15 +462,29 @@ function compilePlan(parsed, logicalName) {
 	glsl.push("float e_hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}");
 	glsl.push("void main(){");
 	glsl.push("\tvec2 uv=gl_FragCoord.xy/max(e_resolution.xy,vec2(1.0));");
+
+	// Surface ESH v1 is a single fragment program. Pixelation is lowered into a
+	// coordinate prepass so procedural BEFORE effects are genuinely sampled on
+	// the pixel grid instead of mutating `uv` after the color was already made.
+	for (const key of afterKeys) {
+		const node = after[key];
+		if (!isObject(node)) continue;
+		const effect = effectName(key, node);
+		if (effect !== "pixel" && effect !== "pixelate") continue;
+		const size = resolveProperty(`after.${key}.size`, 4);
+		glsl.push(`\tvec2 e_pixelGrid_${key.replace(/[^A-Za-z0-9_]/g, "_")}=max(e_resolution/max(${size},1.0),vec2(1.0));`);
+		glsl.push(`\tuv=floor(uv*e_pixelGrid_${key.replace(/[^A-Za-z0-9_]/g, "_")})/e_pixelGrid_${key.replace(/[^A-Za-z0-9_]/g, "_")};`);
+	}
+
 	glsl.push("\tvec2 p=uv-0.5;");
+	glsl.push("\tvec2 e_sampleCoord=floor(uv*e_resolution); ");
 	glsl.push("\tvec3 color=vec3(0.0);");
 	glsl.push("\tfloat alpha=1.0;");
 
-	const before = getNested(parsed.ast, "before") || {};
 	for (const key of isObject(before) ? Object.keys(before) : []) {
 		const node = before[key];
 		if (!isObject(node)) continue;
-		const effect = String(node.use || key).toLowerCase();
+		const effect = effectName(key, node);
 		const base = `before.${key}`;
 		if (effect === "gradient") {
 			const colors = Array.isArray(node.colors) ? node.colors : [];
@@ -366,21 +500,20 @@ function compilePlan(parsed, logicalName) {
 		} else if (effect === "noise") {
 			const amount = resolveProperty(`${base}.amount`, 0.12);
 			const time = resolveProperty(`${base}.time`, 0);
-			glsl.push(`\tfloat e_noise=e_hash(floor(gl_FragCoord.xy)+floor((${time})*60.0));`);
+			glsl.push(`\tfloat e_noise=e_hash(e_sampleCoord+floor((${time})*60.0));`);
 			glsl.push(`\tcolor=vec3(0.08,0.10,0.16)+(e_noise-0.5)*${amount};`);
-		} else throw new Error(`[EngineShaderCompiler] Shader ${logicalName} uses unsupported before effect: ${effect}`);
+		} else {
+			throw new Error(`[EngineShaderCompiler] Shader ${logicalName} uses unsupported before effect: ${effect}`);
+		}
 	}
 
-	const after = getNested(parsed.ast, "after") || {};
-	for (const key of isObject(after) ? Object.keys(after) : []) {
+	for (const key of afterKeys) {
 		const node = after[key];
 		if (!isObject(node)) continue;
-		const effect = String(node.use || key).toLowerCase();
+		const effect = effectName(key, node);
 		const base = `after.${key}`;
 		if (effect === "pixel" || effect === "pixelate") {
-			const size = resolveProperty(`${base}.size`, 4);
-			glsl.push(`\tvec2 e_pixelGrid=max(e_resolution/max(${size},1.0),vec2(1.0));`);
-			glsl.push("\tuv=floor(uv*e_pixelGrid)/e_pixelGrid;");
+			continue;
 		} else if (effect === "palette") {
 			const count = resolveProperty(`${base}.colors`, 24);
 			glsl.push(`\tcolor=floor(color*max(${count},2.0))/max(${count}-1.0,1.0);`);
@@ -388,14 +521,15 @@ function compilePlan(parsed, logicalName) {
 			glsl.push(`\tcolor+=(e_hash(floor(gl_FragCoord.xy))-0.5)*${resolveProperty(`${base}.strength`, 0.04)};`);
 		} else if (effect === "glow" || effect === "bloom") {
 			glsl.push(`\tcolor+=color*max(${resolveProperty(`${base}.strength`, 0.2)},0.0);`);
-		} else throw new Error(`[EngineShaderCompiler] Shader ${logicalName} uses unsupported after effect: ${effect}`);
+		} else {
+			throw new Error(`[EngineShaderCompiler] Shader ${logicalName} uses unsupported after effect: ${effect}`);
+		}
 	}
 
-	const overlay = getNested(parsed.ast, "overlay") || {};
-	for (const key of isObject(overlay) ? Object.keys(overlay) : []) {
+	for (const key of overlayKeys) {
 		const node = overlay[key];
 		if (!isObject(node)) continue;
-		const effect = String(node.use || key).toLowerCase();
+		const effect = effectName(key, node);
 		const base = `overlay.${key}`;
 		if (effect === "grain") {
 			glsl.push(`\tcolor+=(e_hash(gl_FragCoord.xy+(${resolveProperty(`${base}.time`, 0)}*23.0))-0.5)*${resolveProperty(`${base}.strength`, 0.02)};`);
@@ -403,7 +537,9 @@ function compilePlan(parsed, logicalName) {
 			glsl.push(`\tcolor*=1.0-${resolveProperty(`${base}.strength`, 0.05)}*(0.5+0.5*sin(gl_FragCoord.y*3.14159265));`);
 		} else if (effect === "vignette") {
 			glsl.push(`\tcolor*=1.0-${resolveProperty(`${base}.strength`, 0.25)}*smoothstep(0.25,0.75,length(p));`);
-		} else throw new Error(`[EngineShaderCompiler] Shader ${logicalName} uses unsupported overlay effect: ${effect}`);
+		} else {
+			throw new Error(`[EngineShaderCompiler] Shader ${logicalName} uses unsupported overlay effect: ${effect}`);
+		}
 	}
 	glsl.push("\tgl_FragColor=vec4(clamp(color,0.0,1.0),alpha);");
 	glsl.push("}");
@@ -438,11 +574,17 @@ function encodeArtifact(plan) {
 
 function decodeArtifact(buffer) {
 	const data = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
-	if (data.length < 8 || data.subarray(0, 4).compare(BINARY_MAGIC) !== 0) throw new Error("[EngineShaderCompiler] Invalid ESH binary header.");
+	if (data.length < 8 || data.subarray(0, 4).compare(BINARY_MAGIC) !== 0) {
+		throw new Error("[EngineShaderCompiler] Invalid ESH binary header.");
+	}
 	const length = data.readUInt32LE(4);
-	if (length !== data.length - 8) throw new Error("[EngineShaderCompiler] Invalid ESH binary payload length.");
+	if (length !== data.length - 8) {
+		throw new Error("[EngineShaderCompiler] Invalid ESH binary payload length.");
+	}
 	const plan = JSON.parse(data.subarray(8).toString("utf8"));
-	if (!plan || plan.version !== SHADER_FORMAT_VERSION) throw new Error("[EngineShaderCompiler] Unsupported ESH artifact version.");
+	if (!plan || plan.version !== SHADER_FORMAT_VERSION) {
+		throw new Error("[EngineShaderCompiler] Unsupported ESH artifact version.");
+	}
 	return plan;
 }
 
@@ -450,7 +592,11 @@ function compileEngineShaderSource(source, logicalName = "inline", filename = "<
 	return compilePlan(parseEngineShaderSource(source, filename), normalizeLogicalName(logicalName));
 }
 
-function compileShaderDirectory({ projectRoot, shaderDir = "data/shader/public", outputDir = "public/_static/shader" } = {}) {
+function compileShaderDirectory({
+	projectRoot,
+	shaderDir = "data/shader/public",
+	outputDir = "public/_static/shader",
+} = {}) {
 	const root = path.resolve(projectRoot || process.cwd());
 	const sourceDirectory = path.resolve(root, shaderDir);
 	const outputDirectory = path.resolve(root, outputDir);
@@ -467,10 +613,19 @@ function compileShaderDirectory({ projectRoot, shaderDir = "data/shader/public",
 		const artifactPath = path.join(outputDirectory, ...artifactRelativePath.split("/"));
 		fs.mkdirSync(path.dirname(artifactPath), { recursive: true });
 		fs.writeFileSync(artifactPath, artifact);
-		shaders[logicalName] = { hash, file: artifactRelativePath, execution: plan.execution, dependencies: plan.dependencies };
+		shaders[logicalName] = {
+			hash,
+			file: artifactRelativePath,
+			execution: plan.execution,
+			dependencies: plan.dependencies,
+		};
 	}
 	const revision = crypto.createHash("sha256").update(JSON.stringify(shaders)).digest("hex").slice(0, 12);
-	fs.writeFileSync(path.join(outputDirectory, "manifest.json"), `${JSON.stringify({ version: SHADER_FORMAT_VERSION, revision, shaders }, null, "\t")}\n`, "utf8");
+	fs.writeFileSync(
+		path.join(outputDirectory, "manifest.json"),
+		`${JSON.stringify({ version: SHADER_FORMAT_VERSION, revision, shaders }, null, "\t")}\n`,
+		"utf8",
+	);
 	return { revision, shaders };
 }
 

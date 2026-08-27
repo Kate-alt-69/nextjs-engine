@@ -1,11 +1,76 @@
 "use client";
 // ─────────────────────────────────────────────────────────────────────────────
-//	EngineCanvas compatibility facade
+//	EngineCanvas compatibility + EngineShader facade
 //
-//	The primary implementation lives in core/enginecanvas so the schema
-//	registry, direct component imports, EngineManim, and the public package all
-//	share one rendering runtime instead of drifting between two implementations.
+//	Normal callback/graphics canvases stay on the shared core EngineCanvas
+//	runtime. Supplying `shader` switches the canvas into ESH-owned GPU mode
+//	without layering a second canvas or starting another render loop.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export { EngineCanvas, useEngineCanvas } from "../core/enginecanvas/EngineCanvas";
-export type { EngineCanvasProps } from "../core/enginecanvas/EngineCanvas";
+import React, { memo, type CSSProperties } from "react";
+import {
+	EngineCanvas as CoreEngineCanvas,
+	useEngineCanvas,
+	type EngineCanvasProps as CoreEngineCanvasProps,
+} from "../core/enginecanvas/EngineCanvas";
+import { EngineShader } from "./EngineShader";
+import type { EngineShaderInput } from "../core/engineshader/EngineShaderTypes";
+
+export interface EngineCanvasProps extends CoreEngineCanvasProps {
+	/** Use a compiled `data/shader/public/*.shed` program as the canvas renderer. */
+	shader?: EngineShaderInput;
+}
+
+function resolveShaderMaxDpr(
+	dpr: number | "auto",
+	maxDpr: number,
+): number {
+	if (dpr === "auto") return maxDpr;
+	return Math.min(maxDpr, Math.max(0.5, dpr));
+}
+
+export const EngineCanvas = memo(function EngineCanvas({
+	shader,
+	...props
+}: EngineCanvasProps) {
+	if (!shader) return <CoreEngineCanvas {...props} />;
+
+	const {
+		width,
+		height,
+		responsive,
+		dpr = "auto",
+		maxDpr = 2,
+		adaptive = true,
+		pauseWhenOffscreen = true,
+		pauseWhenHidden = true,
+		powerPreference = "high-performance",
+		className,
+		style,
+	} = props;
+	const isResponsive = responsive ?? (width === undefined && height === undefined);
+	const shaderStyle: CSSProperties = {
+		transform: "translateZ(0)",
+		contain: "strict",
+		display: "block",
+		...(isResponsive ? { width: "100%", height: "100%", minHeight: "150px" } : {}),
+		...(width !== undefined ? { width: `${width}px` } : {}),
+		...(height !== undefined ? { height: `${height}px` } : {}),
+		...style,
+	};
+
+	return (
+		<EngineShader
+			shader={shader}
+			className={className}
+			style={shaderStyle}
+			maxDpr={resolveShaderMaxDpr(dpr, maxDpr)}
+			adaptive={adaptive}
+			pauseWhenOffscreen={pauseWhenOffscreen}
+			pauseWhenHidden={pauseWhenHidden}
+			powerPreference={powerPreference}
+		/>
+	);
+});
+
+export { useEngineCanvas };
