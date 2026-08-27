@@ -189,6 +189,51 @@ Supported auth types:
 
 HMAC supports SHA-256 and SHA-512. PNP supports Ed25519 and RS256.
 
+### Authentication fails closed
+
+Selecting an auth type other than `none` means its required credential must be present and non-empty. EngineAPI does **not** silently downgrade a configured authenticated request to an anonymous request.
+
+For example, these are configuration errors and throw before `fetch()`:
+
+```ts
+{ type: "bearer", token: "" }
+{ type: "ak", key: "" }
+{ type: "hmac", secret: "" }
+{ type: "pnp", privateKey: "" }
+```
+
+This also protects `.EngineAPIConfig` deployments where a required environment variable expands to an empty string. A missing secret fails visibly instead of quietly sending an unsigned production request.
+
+Basic auth requires non-empty `username` and `password` values. JWT uses the same non-empty token requirement as bearer auth.
+
+### Signed request bodies
+
+HMAC signs:
+
+```text
+HTTP method
+URL
+Unix-millisecond timestamp
+request body
+```
+
+JSON request bodies therefore participate in the signature exactly as serialized by EngineAPI.
+
+HMAC and PNP intentionally reject multipart `FormData` bodies. Browsers generate multipart boundaries and the final wire representation inside `fetch()`, so EngineAPI cannot deterministically sign the exact multipart request body beforehand. Sending a signature over an empty or invented representation would make uploaded fields/files unauthenticated while appearing signed.
+
+Use a JSON body for HMAC/PNP requests, or use an authentication mode that does not promise body signing for multipart uploads.
+
+### PNP private keys
+
+PNP accepts:
+
+- an already-imported `CryptoKey`;
+- a `JsonWebKey` object;
+- a string containing JWK JSON;
+- a PKCS#8 PEM string using `BEGIN PRIVATE KEY` / `END PRIVATE KEY` markers.
+
+Malformed JWK/PEM input fails with an EngineAPI-specific import error rather than leaking a raw JSON/base64 decoder exception. PKCS#1 `BEGIN RSA PRIVATE KEY` and other PEM container formats are not implicitly converted to PKCS#8.
+
 EngineAPI strips outgoing engine/framework fingerprint headers, including matching `X-Engine-*`, `X-Powered-By`, and `X-Framework` values, before the request is sent.
 
 ---
