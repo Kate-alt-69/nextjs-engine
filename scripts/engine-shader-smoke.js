@@ -48,6 +48,7 @@ assert.strictEqual(animated.render.filter, "nearest");
 assert.ok(animated.fragment.includes("u_var_speed"));
 assert.ok(!animated.fragment.includes("u_var_pixelSize"));
 assert.ok(animated.fragment.includes("4.0"));
+assert.ok(animated.fragment.indexOf("e_pixelGrid_pixel") < animated.fragment.indexOf("e_aurora"));
 assert.deepStrictEqual(animated.flows, [
 	{ from: "frame.color", to: "after.pixel" },
 	{ from: "after.pixel", to: "screen" },
@@ -79,6 +80,27 @@ shader <= staticGradient => [
 const staticPlan = compileEngineShaderSource(staticSource, "static-gradient");
 assert.strictEqual(staticPlan.execution, "static");
 
+const orderedSource = `
+shader <= ordered => [
+	before.gradient => [
+		colors => [#000000 #ffffff]
+	]
+	after.grade => [
+		use => palette
+		colors => 12
+	]
+	after.noise => [
+		use => dither
+		strength => .02
+	]
+	frame.color => after.noise
+	after.noise => after.grade
+	after.grade => screen
+]
+`;
+const orderedPlan = compileEngineShaderSource(orderedSource, "ordered");
+assert.ok(orderedPlan.fragment.indexOf("e_hash(floor(gl_FragCoord.xy))") < orderedPlan.fragment.indexOf("floor(color*max(12.0"));
+
 assert.throws(() => compileEngineShaderSource(`
 shader <= invalid => [
 	before.gradient => [
@@ -93,6 +115,30 @@ shader <= invalidConst => [
 	const.quality => 2
 ]
 `, "invalid-const"), /constants cannot be reassigned/);
+
+assert.throws(() => compileEngineShaderSource(`
+shader <= invalidSource => [
+	before.gradient => [
+		value <= pointer.z
+	]
+]
+`, "invalid-source"), /unsupported runtime source pointer\.z/);
+
+assert.throws(() => compileEngineShaderSource(`
+shader <= invalidFlow => [
+	before.gradient => [
+		colors => [#000000 #ffffff]
+	]
+	after.one => [
+		use => palette
+	]
+	after.two => [
+		use => dither
+	]
+	after.one => after.two
+	after.two => after.one
+]
+`, "invalid-flow"), /render graph contains a cycle/);
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "engine-shader-"));
 try {
