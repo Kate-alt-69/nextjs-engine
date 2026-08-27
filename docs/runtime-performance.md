@@ -93,15 +93,41 @@ consumer on every pixel.
 Custom EngineProvider breakpoint maps remain supported; each subscriber resolves
 against its own provider configuration while sharing the same browser listener.
 
+## Provider context stability
+
+`EngineProvider` uses stable shared empty handler/slot maps when those props are
+omitted. It does not create fresh `{}` defaults on every provider render. This
+matters because a new handler/slot object changes the context value and can wake
+all context consumers below the provider even when the application supplied no
+handlers or slots at all.
+
+Applications that construct their own handler or slot maps dynamically should
+still memoize those maps when their contents are unchanged if provider rerenders
+are frequent.
+
 ## Images and video
 
 Responsive image quality uses `<picture>/<source>` selection with one fallback
-image rather than rendering two CSS-hidden Next Image instances.
+image rather than rendering two CSS-hidden Next Image instances. The generated
+mobile/desktop candidate data is memoized from request-defining image props so a
+placeholder/opacity state change does not rebuild both srcset payloads.
+
+For non-fill images, positive numeric `width` + `height` automatically reserve
+that aspect ratio before the image mounts. This also covers small images that do
+not receive an outer LazyMount, reducing avoidable CLS. Image readiness is keyed
+to the current `src`, so changing the source does not inherit the old image's
+loaded state.
 
 Ordinary video defaults to metadata preload once it is near the viewport.
 Autoplay video defaults to auto preload and shows a loading indicator until it
 can play. This avoids displaying a perpetual buffering state for a video that
 was explicitly configured not to preload.
+
+Before mount, EngineVideo may use its own poster surface. Once a normal
+non-autoplay video exists, the native `<video poster>` owns that image instead of
+keeping a duplicate poster element stacked over the video. Autoplay retains the
+external poster only while the video is intentionally transparent and becoming
+playable.
 
 ## Hero parallax
 
@@ -140,7 +166,7 @@ render passes for `EngineGlobalStyles()`.
 instead of allocating a fresh collector that generated style helpers would never
 write to.
 
-### Remaining architectural limitation
+### Remaining architectural limitations
 
 Most generated style helpers still write through the process-level
 `globalStyleCollector`. `createPage()` resets it at the start of its render pass.
@@ -152,9 +178,18 @@ Do not interpret current per-render deduplication as a guarantee that the global
 collector is concurrency-isolated across every possible server rendering model.
 
 There is also a remaining output concern around nested `createComponent()` style
-emission: until collector ownership is redesigned, repeated component boundaries
-must be audited for duplicate serialization of already-collected CSS. This is
-tracked as an architecture/performance issue rather than being hidden behind an
+emission: each component boundary can ask the same process collector to serialize
+already-collected CSS again. Removing the component style boundary outright would
+break standalone `createComponent()` usage, so this needs an emission-ownership
+solution rather than a blind deletion.
+
+A related client-side limitation is dynamic generated CSS after hydration. Style
+helpers can add a newly generated responsive/pseudo rule to the client collector,
+but collector ownership and DOM flushing are still server-oriented. A proper fix
+must avoid render-time DOM side effects and avoid duplicating the full SSR
+stylesheet during hydration.
+
+These style issues are tracked explicitly rather than being hidden behind an
 unsupported quick fix.
 
 ## Measuring instead of guessing

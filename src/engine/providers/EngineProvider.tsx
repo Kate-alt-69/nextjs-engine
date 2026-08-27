@@ -37,10 +37,13 @@ const DEFAULT_CONFIG: Required<EngineConfig> = {
 	spacingScale: (n: number) => `${n * 0.25}rem`,
 };
 
+const EMPTY_HANDLERS: Record<string, (...args: unknown[]) => void> = {};
+const EMPTY_SLOTS: Record<string, ReactNode> = {};
+
 const EngineContext = createContext<EngineContextValue>({
 	config: DEFAULT_CONFIG,
-	handlers: {},
-	slots: {},
+	handlers: EMPTY_HANDLERS,
+	slots: EMPTY_SLOTS,
 	styleCollector: globalStyleCollector,
 });
 
@@ -54,8 +57,8 @@ export interface EngineProviderProps {
 
 export function EngineProvider({
 	config,
-	handlers = {},
-	slots = {},
+	handlers,
+	slots,
 	styleCollector,
 	children,
 }: EngineProviderProps) {
@@ -63,6 +66,8 @@ export function EngineProvider({
 	// the context at that real collector by default instead of allocating a new
 	// unused StyleCollector for every provider instance.
 	const collector = styleCollector ?? globalStyleCollector;
+	const resolvedHandlers = handlers ?? EMPTY_HANDLERS;
+	const resolvedSlots = slots ?? EMPTY_SLOTS;
 
 	const mergedConfig = useMemo<Required<EngineConfig>>(
 		() => ({
@@ -76,11 +81,11 @@ export function EngineProvider({
 	const value = useMemo<EngineContextValue>(
 		() => ({
 			config: mergedConfig,
-			handlers,
-			slots,
+			handlers: resolvedHandlers,
+			slots: resolvedSlots,
 			styleCollector: collector,
 		}),
-		[mergedConfig, handlers, slots, collector],
+		[mergedConfig, resolvedHandlers, resolvedSlots, collector],
 	);
 
 	return (
