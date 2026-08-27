@@ -4,9 +4,9 @@ EngineScroll provides point-based navigation, named targets, a URL protocol,
 and a React hook. Its browser runtime coalesces scroll/resize work and smooth
 programmatic movement through one RAF scheduler.
 
-`createPage()` already wraps rendered pages in `EngineScrollProvider`. Add your
-own provider only when you are using the core scroll API outside a page created
-by `createPage` or you intentionally want a higher app-wide provider.
+`createPage()` wraps rendered pages in `EngineScrollProvider`. Add your own
+provider only when using the core scroll API outside a page created by
+`createPage`, or when intentionally placing one higher in the application tree.
 
 ## Hook
 
@@ -15,9 +15,13 @@ import { useEngineScroll } from "@/engine";
 
 function NavButton() {
   const scroll = useEngineScroll();
-  return <button onClick={() => scroll.move("pricing")}>Pricing</button>;
+  return <button onClick={() => scroll.move("#pricing")}>Pricing</button>;
 }
 ```
+
+`EngineScrollProvider` is safe under React Strict Mode. Each effect setup owns
+its URL-protocol subscription, while the underlying browser runtime remains a
+singleton.
 
 ## Navigation
 
@@ -42,10 +46,26 @@ type EngineScrollTarget =
   | `#${string}`;
 ```
 
-For `#name`, the navigator first checks `EngineScrollPointManager`; if there is
-no registered point it falls back to the matching DOM id.
+### Coordinate model
 
-## Named points
+Movement and animation coordinates represent the **top scroll edge** of the
+page. `viewport.top` is therefore the correct starting point for an animation
+or relative movement.
+
+`viewport.current` remains an observational value, normally the center of the
+visible viewport. It is useful for state/telemetry, but it is not written
+directly to `window.scrollY`.
+
+`page.totalPoints` is the maximum reachable top-edge point:
+
+```text
+(documentHeight - viewportHeight) / pointSpacing
+```
+
+This keeps `bottom()` and percentage movement inside the browser's actual
+scrollable range.
+
+## Named points and DOM ids
 
 Any schema node can expose a scroll anchor through `point`:
 
@@ -60,21 +80,33 @@ Manual registration is also available:
 
 ```ts
 EngineScrollPointManager.register("pricing", point, element);
+EngineScrollPointManager.registerElement("pricing", element);
 EngineScrollPointManager.unregister("pricing");
 EngineScrollPointManager.recalculate();
 EngineScrollPointManager.get("pricing");
 EngineScrollPointManager.names();
 ```
 
+Before navigating to a registered point, EngineScroll refreshes its coordinate
+from the current DOM layout. This prevents stale targets after fonts, images,
+accordions, or other content move the element.
+
+For `#name`, the navigator first checks the point manager and then falls back to
+a literal DOM id. The fallback uses `getElementById`, not CSS selector parsing,
+so valid ids containing characters such as `:` are supported. URL-encoded hash
+ids are decoded before lookup. Offsets apply to both registered points and DOM
+id fallbacks.
+
 ## URL protocol
 
-EngineScroll commands use `#-es?` so normal `#section` anchors remain normal
+EngineScroll commands use `#-es?` so ordinary `#section` anchors remain normal
 browser anchors.
 
 ```text
 #-es?move=pricing
 #-es?move=current&offset=10
 #-es?move=footer&duration=600
+#-es?move=120.5
 #-es?move=top
 ```
 
@@ -86,24 +118,46 @@ EngineScrollURL.execute();
 const stopListening = EngineScrollURL.listen();
 ```
 
+Protocol numbers are parsed as complete finite decimal values. A semantic id
+such as `12monkeys` remains an id instead of being partially parsed as point 12.
+Invalid offsets fall back to zero; invalid durations fall back to the normal
+animation duration; negative durations are clamped to zero.
+
 After a command executes, EngineScroll removes the command from the address bar
 with `history.replaceState()`.
 
 ## RAF ownership
 
-Programmatic movement starts the scheduler immediately. It does **not** wait for
-an unrelated native `scroll` or `resize` event to wake the animation.
+Programmatic movement wakes the scheduler itself. It does not wait for an
+unrelated native `scroll` or `resize` event.
 
 The scheduler behavior is:
 
-1. `EngineScrollAnimation.start()` marks the animation active and requests the first frame.
-2. the single BrowserScheduler RAF updates viewport state, physics, observers, and animation;
-3. while animation remains active, the scheduler requests the next frame itself;
-4. native scroll/resize events request the same scheduler and are coalesced when a frame is already pending;
+1. `EngineScrollAnimation.start()` marks animation active and requests a frame.
+2. the single BrowserScheduler RAF updates browser measurements, viewport state, physics, observers, and animation;
+3. requests made while a frame is running are coalesced into one follow-up frame;
+4. native scroll/resize events use the same scheduler instead of creating parallel RAF loops;
 5. when there is no animation and no pending browser work, there is no permanent RAF loop.
 
-This means EngineScroll does not intentionally burn one animation frame forever
-on an idle page.
+Scheduler cleanup preserves ownership of the currently scheduled RAF id, so
+`cancel()` cannot lose a frame that was requested from inside another frame.
+State cleanup also runs when an update callback throws.
+
+When the document becomes hidden, the active RAF is cancelled. If a smooth
+animation is active, its elapsed timeline is paused for the hidden interval.
+On resume EngineScroll refreshes once and continues without treating the entire
+background interval as one giant frame delta.
+
+## Initial browser state
+
+EngineScroll snapshots `scrollX`, `scrollY`, viewport size, document size, and
+DPR during its first runtime update. A page restored or mounted at a non-zero
+scroll position therefore starts with truthful viewport point state instead of
+waiting for the next native scroll event.
+
+`EngineScrollBrowser.initialize()` remains an explicit opt-in helper for apps
+that want `history.scrollRestoration = "manual"`; normal EngineScroll startup
+does not silently take ownership of browser history restoration.
 
 ## Easing
 
@@ -121,8 +175,8 @@ Smooth movement defaults to roughly `550ms` unless a duration is supplied.
 
 ## EngineMarkdown anchors
 
-EngineMarkdown can register generated heading ids as EngineScroll points.
-Current compatibility flags are:
+EngineMarkdown generates stable heading ids. Compatibility flags can disable
+EngineScroll point metadata without removing those HTML ids:
 
 ```ts
 props: {
@@ -131,11 +185,9 @@ props: {
 }
 ```
 
-The HTML heading id remains available even when EngineScroll point registration
-is disabled.
-
 ## Legacy schema `"scroll"`
 
-The schema `"scroll"` component remains for compatibility. New imperative
+The schema `"scroll"` component remains for compatibility and is separate from
+the core runtime automatically installed by `createPage()`. New imperative
 navigation should prefer `EngineScrollProvider`, `useEngineScroll`, and the core
 navigator APIs.

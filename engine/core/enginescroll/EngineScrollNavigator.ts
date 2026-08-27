@@ -2,10 +2,10 @@
 // EngineScrollNavigator.ts
 // ============================================================================
 
-import { EngineScrollMovement }     from "./EngineScrollMovement";
-import { EngineScrollHash }         from "./EngineScrollHash";
+import { EngineScrollMovement } from "./EngineScrollMovement";
+import { EngineScrollHash } from "./EngineScrollHash";
 import { EngineScrollPointManager } from "./EngineScrollPointManager";
-import { EngineScrollRuntime }      from "./EngineScrollRuntime";
+import { EngineScrollRuntime } from "./EngineScrollRuntime";
 
 export type EngineScrollTarget =
 	| number
@@ -15,94 +15,52 @@ export type EngineScrollTarget =
 	| `#${string}`;
 
 export class EngineScrollNavigator {
-
-	// -------------------------------------------------------------------------
-
 	public static move(
 		target: EngineScrollTarget,
 		offset = 0,
 		duration?: number,
 	): boolean {
+		const safeOffset = Number.isFinite(offset) ? offset : 0;
+		const safeDuration = duration === undefined || !Number.isFinite(duration)
+			? undefined
+			: Math.max(0, duration);
 
 		if (typeof target === "number") {
-
-			EngineScrollMovement.move(
-				target + offset,
-				duration,
-			);
-
+			if (!Number.isFinite(target)) return false;
+			EngineScrollMovement.move(target + safeOffset, safeDuration);
 			return true;
-
 		}
 
 		switch (target) {
-
 			case "top":
-
-				EngineScrollMovement.top(duration);
+				EngineScrollMovement.top(safeDuration);
 				return true;
-
 			case "bottom":
-
-				EngineScrollMovement.bottom(duration);
+				EngineScrollMovement.bottom(safeDuration);
 				return true;
-
 			case "current":
-
-				EngineScrollMovement.moveBy(offset, duration);
+				EngineScrollMovement.moveBy(safeOffset, safeDuration);
 				return true;
-
 		}
 
 		if (target.startsWith("#")) {
-
 			const name = target.slice(1);
-
-			// Named point registered via EngineScrollPointManager / point prop
-			if (EngineScrollPointManager.has(name)) {
-
-				const registered = EngineScrollPointManager.get(name)!;
-
-				EngineScrollMovement.move(
-					registered.point + offset,
-					duration,
-				);
-
+			const registered = EngineScrollPointManager.refresh(name);
+			if (registered) {
+				EngineScrollMovement.move(registered.point + safeOffset, safeDuration);
 				return true;
-
 			}
-
-			// Fall back to DOM id lookup
-			return EngineScrollHash.moveToHash(target, duration);
-
+			return EngineScrollHash.moveToHash(target, safeDuration, safeOffset);
 		}
 
 		return false;
-
 	}
-
-	// -------------------------------------------------------------------------
 
 	public static current(): number {
-
-		return EngineScrollRuntime
-			.get()
-			.getState()
-			.viewport
-			.current;
-
+		return EngineScrollRuntime.get().getState().viewport.current;
 	}
-
-	// -------------------------------------------------------------------------
 
 	public static maximum(): number {
-
-		return EngineScrollRuntime
-			.get()
-			.getState()
-			.page
-			.totalPoints;
-
+		return EngineScrollRuntime.get().getState().page.totalPoints;
 	}
-
 }

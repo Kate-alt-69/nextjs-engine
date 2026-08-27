@@ -18,17 +18,24 @@ export class EngineScrollAnimation {
 		const state = runtime.getMutableState();
 		const animation = state.animation;
 		const cache = runtime.getCache();
+		const safeTargetPoint = Number.isFinite(targetPoint)
+			? targetPoint
+			: state.viewport.top;
+		const safeDuration = Number.isFinite(duration)
+			? Math.max(duration, 0)
+			: this.DEFAULT_DURATION;
 
 		animation.active = true;
 		cache.isAnimating = true;
-		animation.startPoint = state.viewport.current;
-		animation.currentPoint = state.viewport.current;
-		animation.targetPoint = targetPoint;
-		animation.duration = Math.max(duration, 0);
+		// Animation coordinates represent the page's top scroll edge. The
+		// viewport.current value is normally the viewport center and must not be
+		// written directly to window.scrollY.
+		animation.startPoint = state.viewport.top;
+		animation.currentPoint = state.viewport.top;
+		animation.targetPoint = safeTargetPoint;
+		animation.duration = safeDuration;
 		animation.startTime = performance.now();
 
-		// Programmatic/URL movement must wake the scheduler itself. Waiting for a
-		// native scroll event means the first animation frame may never happen.
 		BrowserScheduler.request();
 	}
 
@@ -50,12 +57,13 @@ export class EngineScrollAnimation {
 			: Math.min(Math.max(elapsed / animation.duration, 0), 1);
 		const eased = EngineScrollEasing.easeInOutCubic(progress);
 		const cache = runtime.getCache();
+		const spacing = state.page.pointSpacing > 0 ? state.page.pointSpacing : 1;
 
 		animation.currentPoint = animation.startPoint
 			+ (animation.targetPoint - animation.startPoint) * eased;
 
 		window.scrollTo({
-			top: animation.currentPoint * state.page.pointSpacing,
+			top: animation.currentPoint * spacing,
 			left: window.scrollX,
 			behavior: "auto",
 		});
@@ -68,9 +76,7 @@ export class EngineScrollAnimation {
 	}
 
 	public static moveToCurrent(offset: number, duration = this.DEFAULT_DURATION): void {
-		this.start(
-			EngineScrollRuntime.get().getState().viewport.current + offset,
-			duration,
-		);
+		const topPoint = EngineScrollRuntime.get().getState().viewport.top;
+		this.start(topPoint + (Number.isFinite(offset) ? offset : 0), duration);
 	}
 }
