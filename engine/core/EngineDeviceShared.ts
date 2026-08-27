@@ -27,7 +27,7 @@ export interface DeviceInfo {
 	type: string;
 }
 
-export const DESKTOP_DEVICE: DeviceInfo = {
+const desktopDevice: DeviceInfo = {
 	isMobile: false,
 	isTablet: false,
 	isDesktop: true,
@@ -35,6 +35,11 @@ export const DESKTOP_DEVICE: DeviceInfo = {
 	brand: "unknown",
 	type: "desktop",
 };
+
+// Desktop is the shared SSR/client fallback. Freeze the singleton so a consumer
+// cannot mutate one detection result and corrupt every later fallback globally.
+Object.freeze(desktopDevice);
+export const DESKTOP_DEVICE: DeviceInfo = desktopDevice;
 
 function resolveAndroidBrand(ua: string): DeviceBrand {
 	if (/samsungbrowser|samsung|sm-[a-z]|gt-[a-z]|galaxy/.test(ua)) return "samsung";
