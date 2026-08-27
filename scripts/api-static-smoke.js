@@ -106,6 +106,63 @@ const nestedFunctionNameSource = [
 	'])',
 ].join("\n");
 
+const lexicalCallableShadowSource = [
+	'function values(index: number) {',
+	'\treturn index + 100',
+	'}',
+	'',
+	'createEndpoint([',
+	'\t{',
+	'\t\tname: "shadow"',
+	'\t\trun.input {',
+	'\t\t\tconst values = [10, 20]',
+	'\t\t\treturn values[0]',
+	'\t\t}',
+	'\t}',
+	'])',
+].join("\n");
+
+const nestedLexicalShadowSource = [
+	'function format(value: string) {',
+	'\treturn "outer:" + value',
+	'}',
+	'',
+	'createEndpoint([',
+	'\t{',
+	'\t\tname: "nested-shadow"',
+	'\t\tinput: {',
+	'\t\t\tvalue: "string"',
+	'\t\t}',
+	'\t\trun.input {',
+	'\t\t\tlet local = ""',
+	'\t\t\t{',
+	'\t\t\t\tconst format = ["local"]',
+	'\t\t\t\tlocal = format[0]',
+	'\t\t\t}',
+	'\t\t\treturn local + "/" + format[input.value]',
+	'\t\t}',
+	'\t}',
+	'])',
+].join("\n");
+
+const localRunCallableSource = [
+	'createEndpoint([',
+	'\t{',
+	'\t\tname: "local-callable"',
+	'\t\tinput: {',
+	'\t\t\tvalue: "number"',
+	'\t\t}',
+	'\t\trun.input {',
+	'\t\t\tconst double = (value: number) => value * 2',
+	'\t\t\tfunction plusOne(value: number) {',
+	'\t\t\t\treturn value + 1',
+	'\t\t\t}',
+	'\t\t\treturn plusOne[double[input.value]]',
+	'\t\t}',
+	'\t}',
+	'])',
+].join("\n");
+
 const nestedRunShadowSource = [
 	'createEndpoint([',
 	'\t{',
@@ -124,6 +181,18 @@ const nestedRunShadowSource = [
 	'])',
 ].join("\n");
 
+const escapedDslStringSource = [
+	'createEndpoint([',
+	'\t{',
+	"\t\tname: 'line\\u002dname'",
+	'\t\tinput: {',
+	"\t\t\tvalue: 'number\\u003d1'",
+	'\t\t}',
+	'\t\trun.input(input.value)',
+	'\t}',
+	'])',
+].join("\n");
+
 function singleOperationSource(prefix, runSource = "run.input(1)") {
 	return `${prefix}\ncreateEndpoint([{ name: "test" ${runSource} }])`;
 }
@@ -137,16 +206,29 @@ async function waitFor(check, timeoutMs = 2_000) {
 	throw new Error("Timed out waiting for APIStatic watcher output.");
 }
 
+function loadCompiledRoute(compiled, routeName) {
+	const context = vm.createContext({ Map, globalThis: {} });
+	context.globalThis = context;
+	vm.runInContext(compiled.code, context, { filename: `${routeName}.js` });
+	return context.__NEXTJS_ENGINE_API_STATIC__.get(routeName);
+}
+
+async function runOperation(route, input = {}) {
+	return route.operations[0].run({
+		query: input,
+		body: input,
+		input,
+		proxy: async () => undefined,
+	});
+}
+
 async function main() {
 	const compiled = compileAPIStaticSource(source, "math");
 	assert.equal(compiled.hash, getRouteHash("math"));
 	assert.deepEqual(compiled.operations, ["calculate", "inline"]);
 	assert.match(compiled.code, /calculateTotal\(query\.price, query\.quantity\)/);
 
-	const context = vm.createContext({ Map, globalThis: {} });
-	context.globalThis = context;
-	vm.runInContext(compiled.code, context, { filename: "math.js" });
-	const route = context.__NEXTJS_ENGINE_API_STATIC__.get("math");
+	const route = loadCompiledRoute(compiled, "math");
 	assert(route);
 	assert.equal(route.hash, compiled.hash);
 
@@ -174,17 +256,7 @@ async function main() {
 	assert.match(safetyCompiled.code, /wrap\(input\.value\)/);
 	assert.match(safetyCompiled.code, /wrap\[input\.value\]/);
 	assert.match(safetyCompiled.code, /holder\.wrap\[0\]/);
-
-	const safetyContext = vm.createContext({ Map, globalThis: {} });
-	safetyContext.globalThis = safetyContext;
-	vm.runInContext(safetyCompiled.code, safetyContext, { filename: "safe-shorthand.js" });
-	const safetyRoute = safetyContext.__NEXTJS_ENGINE_API_STATIC__.get("safe-shorthand");
-	const safetyResult = await safetyRoute.operations[0].run({
-		query: {},
-		body: {},
-		input: { value: "abc" },
-		proxy: async () => undefined,
-	});
+	const safetyResult = await runOperation(loadCompiledRoute(safetyCompiled, "safe-shorthand"), { value: "abc" });
 	assert.deepEqual(JSON.parse(JSON.stringify(safetyResult)), {
 		literal: "wrap[input.value]",
 		commentProbe: 1,
@@ -222,17 +294,27 @@ async function main() {
 
 	const nestedFunctionCompiled = compileAPIStaticSource(nestedFunctionNameSource, "nested-function-name");
 	assert.match(nestedFunctionCompiled.code, /return values\[0\]/);
-	const nestedFunctionContext = vm.createContext({ Map, globalThis: {} });
-	nestedFunctionContext.globalThis = nestedFunctionContext;
-	vm.runInContext(nestedFunctionCompiled.code, nestedFunctionContext, { filename: "nested-function-name.js" });
-	const nestedFunctionRoute = nestedFunctionContext.__NEXTJS_ENGINE_API_STATIC__.get("nested-function-name");
-	const nestedFunctionResult = await nestedFunctionRoute.operations[0].run({
-		query: {},
-		body: {},
-		input: {},
-		proxy: async () => undefined,
-	});
-	assert.equal(nestedFunctionResult, 10);
+	assert.equal(await runOperation(loadCompiledRoute(nestedFunctionCompiled, "nested-function-name")), 10);
+
+	const lexicalShadowCompiled = compileAPIStaticSource(lexicalCallableShadowSource, "lexical-callable-shadow");
+	assert.match(lexicalShadowCompiled.code, /return values\[0\]/);
+	assert.equal(await runOperation(loadCompiledRoute(lexicalShadowCompiled, "lexical-callable-shadow")), 10);
+
+	const nestedLexicalCompiled = compileAPIStaticSource(nestedLexicalShadowSource, "nested-lexical-shadow");
+	assert.match(nestedLexicalCompiled.code, /local = format\[0\]/);
+	assert.match(nestedLexicalCompiled.code, /format\(input\.value\)/);
+	assert.equal(
+		await runOperation(loadCompiledRoute(nestedLexicalCompiled, "nested-lexical-shadow"), { value: "abc" }),
+		"local/outer:abc",
+	);
+
+	const localCallableCompiled = compileAPIStaticSource(localRunCallableSource, "local-run-callable");
+	assert.match(localCallableCompiled.code, /double\(input\.value\)/);
+	assert.match(localCallableCompiled.code, /plusOne\(double\(input\.value\)\)/);
+	assert.equal(
+		await runOperation(loadCompiledRoute(localCallableCompiled, "local-run-callable"), { value: 7 }),
+		15,
+	);
 
 	assert.throws(
 		() => compileAPIStaticSource(singleOperationSource("", "run.input { const input = {}; return input }"), "reserved-run-input"),
@@ -244,17 +326,27 @@ async function main() {
 	);
 
 	const nestedShadowCompiled = compileAPIStaticSource(nestedRunShadowSource, "nested-run-shadow");
-	const nestedShadowContext = vm.createContext({ Map, globalThis: {} });
-	nestedShadowContext.globalThis = nestedShadowContext;
-	vm.runInContext(nestedShadowCompiled.code, nestedShadowContext, { filename: "nested-run-shadow.js" });
-	const nestedShadowRoute = nestedShadowContext.__NEXTJS_ENGINE_API_STATIC__.get("nested-run-shadow");
-	const nestedShadowResult = await nestedShadowRoute.operations[0].run({
-		query: {},
-		body: {},
-		input: { value: 42 },
-		proxy: async () => undefined,
-	});
-	assert.equal(nestedShadowResult, 42);
+	assert.equal(await runOperation(loadCompiledRoute(nestedShadowCompiled, "nested-run-shadow"), { value: 42 }), 42);
+
+	const escapedCompiled = compileAPIStaticSource(escapedDslStringSource, "escaped-dsl-string");
+	assert.deepEqual(escapedCompiled.operations, ["line-name"]);
+	const escapedRoute = loadCompiledRoute(escapedCompiled, "escaped-dsl-string");
+	assert.equal(escapedRoute.operations[0].schema.value, "number=1");
+
+	assert.throws(
+		() => compileAPIStaticSource(
+			'createEndpoint([{ name: "one" name: "two" run.input(1) }])',
+			"duplicate-operation-property",
+		),
+		/Duplicate createEndpoint property: name/,
+	);
+	assert.throws(
+		() => compileAPIStaticSource(
+			'createEndpoint([{ name: "test" input: { value: "number" value: "string" } run.input(1) }])',
+			"duplicate-schema-field",
+		),
+		/Duplicate input schema field: value/,
+	);
 
 	const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "engine-api-static-"));
 	const endpointDirectory = path.join(temporaryRoot, "data", "endpoint", "nested");
