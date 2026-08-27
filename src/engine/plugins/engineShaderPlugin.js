@@ -6,6 +6,32 @@ const { compileShaderDirectory } = require("./engineShaderCompiler");
 
 const WATCH_STATE_KEY = Symbol.for("nextjs-engine.engine-shader-watch-state");
 
+function normalizeShaderBasePath(value) {
+	const normalized = String(value || "")
+		.trim()
+		.replace(/\\/g, "/")
+		.replace(/\/+$/g, "");
+	if (!normalized || normalized === "/") return "";
+	return normalized.startsWith("/") || /^[a-z][a-z0-9+.-]*:\/\//i.test(normalized)
+		? normalized
+		: `/${normalized}`;
+}
+
+function resolveShaderBasePath(projectRoot, shaderOutputDir, explicitBasePath) {
+	if (explicitBasePath !== undefined && explicitBasePath !== null) {
+		return normalizeShaderBasePath(explicitBasePath);
+	}
+	const publicDirectory = path.resolve(projectRoot, "public");
+	const outputDirectory = path.resolve(projectRoot, shaderOutputDir);
+	const relative = path.relative(publicDirectory, outputDirectory);
+	if (relative.startsWith("..") || path.isAbsolute(relative)) {
+		throw new Error(
+			`[engine:shader] shaderOutputDir must be inside public/ so the browser can fetch compiled shaders. Received: ${shaderOutputDir}`,
+		);
+	}
+	return normalizeShaderBasePath(relative.split(path.sep).join("/"));
+}
+
 function swapDirectory(stagingDirectory, outputDirectory) {
 	const backupDirectory = `${outputDirectory}.backup-${process.pid}-${Date.now().toString(36)}`;
 	const hadExistingOutput = fs.existsSync(outputDirectory);
@@ -56,7 +82,8 @@ function watchShaderSources({ projectRoot, shaderDir, compile }) {
 	const root = globalThis;
 	if (!root[WATCH_STATE_KEY]) root[WATCH_STATE_KEY] = new Map();
 	const state = root[WATCH_STATE_KEY];
-	if (state.has(absoluteShaderDir) || !fs.existsSync(absoluteShaderDir)) return;
+	if (state.has(absoluteShaderDir)) return;
+	fs.mkdirSync(absoluteShaderDir, { recursive: true });
 	let timer = null;
 	let compiling = false;
 	let compileAgain = false;
@@ -99,14 +126,23 @@ function withEngineShader(nextConfig = {}, pluginOptions = {}) {
 	const {
 		shaderDir = "data/shader/public",
 		shaderOutputDir = "public/_static/shader",
+		shaderBasePath,
 	} = pluginOptions;
 	const projectRoot = process.cwd();
+	const resolvedBasePath = resolveShaderBasePath(projectRoot, shaderOutputDir, shaderBasePath);
 	const compile = () => compileShaderArtifacts(projectRoot, shaderDir, shaderOutputDir);
 	compile();
 	watchShaderSources({ projectRoot, shaderDir, compile });
-	return nextConfig;
+	return {
+		...nextConfig,
+		env: {
+			...(nextConfig.env || {}),
+			NEXT_PUBLIC_ENGINE_SHADER_BASE_PATH: resolvedBasePath,
+		},
+	};
 }
 
 module.exports = withEngineShader;
 module.exports.withEngineShader = withEngineShader;
 module.exports.compileShaderArtifacts = compileShaderArtifacts;
+module.exports.resolveShaderBasePath = resolveShaderBasePath;

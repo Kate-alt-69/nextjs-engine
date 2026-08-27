@@ -9,6 +9,16 @@ const {
 	compileShaderDirectory,
 	decodeArtifact,
 } = require("../src/engine/plugins/engineShaderCompiler");
+const { resolveShaderBasePath } = require("../src/engine/plugins/engineShaderPlugin");
+
+assert.strictEqual(resolveShaderBasePath("/project", "public/_static/shader"), "/_static/shader");
+assert.strictEqual(resolveShaderBasePath("/project", "public/assets/esh"), "/assets/esh");
+assert.strictEqual(resolveShaderBasePath("/project", "public/assets/esh", "/custom/esh/"), "/custom/esh");
+assert.strictEqual(resolveShaderBasePath("/project", "public/assets/esh", "https://cdn.example.com/esh/"), "https://cdn.example.com/esh");
+assert.throws(
+	() => resolveShaderBasePath("/project", "dist/shader"),
+	/shaderOutputDir must be inside public/,
+);
 
 const animatedSource = `
 shader <= pixelAurora => [
