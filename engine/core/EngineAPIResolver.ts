@@ -45,8 +45,6 @@ function deepMerge(target: Record<string, unknown>, ...sources: Array<Record<str
 	for (const source of sources) {
 		if (!source) continue;
 		for (const [key, value] of Object.entries(source)) {
-			// Endpoint descriptors are routing identities, not option bags. Deep-
-			// merging them can leak an operation from one static route into another.
 			if (key === "endpoint") {
 				result[key] = value;
 				continue;
@@ -140,6 +138,31 @@ function decodeBase64(value: string): ArrayBuffer {
 	return buffer;
 }
 
+function requireAuthString(
+	authType: EngineAPIAuthConfig["type"],
+	field: string,
+	value: unknown,
+): string {
+	if (typeof value !== "string" || value.trim().length === 0) {
+		throw new Error(`[EngineAPIResolver] auth.type "${authType}" requires a non-empty ${field}.`);
+	}
+	return value;
+}
+
+function requirePrivateKey(privateKey: EngineAPIAuthConfig["privateKey"]): CryptoKey | JsonWebKey | string {
+	if (privateKey === undefined || privateKey === null) {
+		throw new Error('[EngineAPIResolver] auth.type "pnp" requires a privateKey.');
+	}
+	if (typeof privateKey === "string" && privateKey.trim().length === 0) {
+		throw new Error('[EngineAPIResolver] auth.type "pnp" requires a non-empty privateKey.');
+	}
+	return privateKey;
+}
+
+function isSigningAuth(type: EngineAPIAuthConfig["type"]): type is "hmac" | "pnp" {
+	return type === "hmac" || type === "pnp";
+}
+
 export class EngineAPIResolver {
 	private globalConfig: EngineAPIConfig;
 
@@ -192,6 +215,12 @@ export class EngineAPIResolver {
 		if (isNativeFormData(body)) deleteHeaderCaseInsensitive(headers, "Content-Type");
 
 		const auth = config.auth || { type: "none" };
+		if (isNativeFormData(body) && isSigningAuth(auth.type)) {
+			throw new Error(
+				`[EngineAPIResolver] auth.type "${auth.type}" cannot sign multipart FormData because the browser-generated request body is not deterministically available before fetch(). Use a JSON body or a non-body-signing auth mode.`,
+			);
+		}
+
 		const timestamp = Date.now().toString();
 		const signatureBody = typeof body === "string" ? body : "";
 
@@ -199,43 +228,44 @@ export class EngineAPIResolver {
 			case "none":
 				break;
 			case "ak": {
+				const key = requireAuthString("ak", "key", auth.key);
 				const destinationHeader = auth.destinationHeader || "X-Key";
-				if (auth.key) headers[destinationHeader] = auth.key;
+				headers[destinationHeader] = key;
 				break;
 			}
 			case "bearer":
-			case "jwt":
-				if (auth.token) headers.Authorization = `Bearer ${auth.token}`;
+			case "jwt": {
+				const token = requireAuthString(auth.type, "token", auth.token);
+				headers.Authorization = `Bearer ${token}`;
 				break;
-			case "basic":
-				if (auth.username !== undefined && auth.password !== undefined) {
-					headers.Authorization = `Basic ${encodeBase64Utf8(`${auth.username}:${auth.password}`)}`;
-				}
+			}
+			case "basic": {
+				const username = requireAuthString("basic", "username", auth.username);
+				const password = requireAuthString("basic", "password", auth.password);
+				headers.Authorization = `Basic ${encodeBase64Utf8(`${username}:${password}`)}`;
 				break;
+			}
 			case "hmac": {
-				if (auth.secret) {
-					const algorithm = String(auth.algorithm).toUpperCase() === "SHA-512" ? "SHA-512" : "SHA-256";
-					const signaturePayload = `${method}\n${url}\n${timestamp}\n${signatureBody}`;
-					headers["X-Signature"] = await this.cryptoHMAC(signaturePayload, auth.secret, algorithm);
-					headers["X-Timestamp"] = timestamp;
-					if (auth.key) headers["X-Key"] = auth.key;
-				}
+				const secret = requireAuthString("hmac", "secret", auth.secret);
+				const algorithm = String(auth.algorithm).toUpperCase() === "SHA-512" ? "SHA-512" : "SHA-256";
+				const signaturePayload = `${method}\n${url}\n${timestamp}\n${signatureBody}`;
+				headers["X-Signature"] = await this.cryptoHMAC(signaturePayload, secret, algorithm);
+				headers["X-Timestamp"] = timestamp;
+				if (auth.key) headers["X-Key"] = auth.key;
 				break;
 			}
 			case "pnp": {
-				if (auth.privateKey) {
-					const signaturePayload = `${url}\n${timestamp}\n${signatureBody}`;
-					const signingKey = await this.resolvePrivateKey(auth.privateKey, auth.algorithm);
-					if (!signingKey) break;
-					headers["X-Signature"] = await this.cryptoAsymmetricSign(signaturePayload, signingKey);
-					headers["X-Timestamp"] = timestamp;
-					if (auth.key) headers["X-Key"] = auth.key;
-				}
+				const privateKey = requirePrivateKey(auth.privateKey);
+				const signaturePayload = `${url}\n${timestamp}\n${signatureBody}`;
+				const signingKey = await this.resolvePrivateKey(privateKey, auth.algorithm);
+				headers["X-Signature"] = await this.cryptoAsymmetricSign(signaturePayload, signingKey);
+				headers["X-Timestamp"] = timestamp;
+				if (auth.key) headers["X-Key"] = auth.key;
 				break;
 			}
 		}
 
-		const fingerprintPatterns = [/x-engine-/i, /x-powered-by/i, /x-framework/i];
+		const fingerprintPatterns = [/^x-engine-/i, /^x-powered-by$/i, /^x-framework$/i];
 		for (const key of Object.keys(headers)) {
 			if (fingerprintPatterns.some((pattern) => pattern.test(key))) delete headers[key];
 		}
@@ -263,7 +293,7 @@ export class EngineAPIResolver {
 	private async resolvePrivateKey(
 		privateKey: CryptoKey | JsonWebKey | string,
 		algorithm?: string,
-	): Promise<CryptoKey | undefined> {
+	): Promise<CryptoKey> {
 		if (typeof CryptoKey !== "undefined" && privateKey instanceof CryptoKey) return privateKey;
 
 		const normalizedAlgorithm: AlgorithmIdentifier | RsaHashedImportParams =
@@ -274,18 +304,39 @@ export class EngineAPIResolver {
 		if (typeof privateKey === "string") {
 			const trimmed = privateKey.trim();
 			if (trimmed.startsWith("-----BEGIN")) {
-				const encoded = trimmed
-					.replace(/-----BEGIN PRIVATE KEY-----/g, "")
-					.replace(/-----END PRIVATE KEY-----/g, "")
-					.replace(/\s+/g, "");
-				const pkcs8 = decodeBase64(encoded);
-				return crypto.subtle.importKey("pkcs8", pkcs8, normalizedAlgorithm, false, ["sign"]);
+				if (!trimmed.includes("-----BEGIN PRIVATE KEY-----") || !trimmed.includes("-----END PRIVATE KEY-----")) {
+					throw new Error("[EngineAPIResolver] PNP PEM privateKey must use PKCS#8 PRIVATE KEY markers.");
+				}
+				try {
+					const encoded = trimmed
+						.replace(/-----BEGIN PRIVATE KEY-----/g, "")
+						.replace(/-----END PRIVATE KEY-----/g, "")
+						.replace(/\s+/g, "");
+					const pkcs8 = decodeBase64(encoded);
+					return await crypto.subtle.importKey("pkcs8", pkcs8, normalizedAlgorithm, false, ["sign"]);
+				} catch {
+					throw new Error("[EngineAPIResolver] Failed to import PNP PKCS#8 privateKey.");
+				}
 			}
-			const jwk = JSON.parse(trimmed) as JsonWebKey;
-			return (crypto.subtle.importKey as any)("jwk", jwk, normalizedAlgorithm, false, ["sign"]) as Promise<CryptoKey>;
+
+			let jwk: JsonWebKey;
+			try {
+				jwk = JSON.parse(trimmed) as JsonWebKey;
+			} catch {
+				throw new Error("[EngineAPIResolver] PNP string privateKey must be PKCS#8 PEM or valid JWK JSON.");
+			}
+			try {
+				return await (crypto.subtle.importKey as any)("jwk", jwk, normalizedAlgorithm, false, ["sign"]) as CryptoKey;
+			} catch {
+				throw new Error("[EngineAPIResolver] Failed to import PNP JWK privateKey.");
+			}
 		}
 
-		return (crypto.subtle.importKey as any)("jwk", privateKey, normalizedAlgorithm, false, ["sign"]) as Promise<CryptoKey>;
+		try {
+			return await (crypto.subtle.importKey as any)("jwk", privateKey, normalizedAlgorithm, false, ["sign"]) as CryptoKey;
+		} catch {
+			throw new Error("[EngineAPIResolver] Failed to import PNP JWK privateKey.");
+		}
 	}
 
 	private async cryptoAsymmetricSign(payload: string, privateKey: CryptoKey): Promise<string> {
