@@ -14,6 +14,14 @@ types are registered.
 
 Three.js remains dynamically imported by the 3D render paths.
 
+A split registry component can still be **layout-eager** (for example a priority
+image, root Canvas/Manim, Hero, Nav, or form control). SchemaRenderer wraps those
+eager split modules in an Engine-owned Suspense boundary so code splitting cannot
+surface as an unowned `React.lazy()` suspension. Media/graphics fallbacks reserve
+a known aspect ratio/height when the schema provides one. Nodes already deferred
+through `LazyMount` use that existing Suspense boundary instead of being wrapped
+a second time.
+
 ## EngineCanvas
 
 - one component-owned RAF loop per active EngineCanvas frame source;
