@@ -23,6 +23,15 @@ export type {
 	EngineScrollTimelineSubscriber,
 	EngineScrollTimelineTarget,
 } from "./EngineScrollTimeline";
+export { EngineScrollTimelineTrack } from "./EngineScrollTimelineTrack";
+export type { EngineScrollTimelineKeyframe } from "./EngineScrollTimelineTrack";
+export { bindEngineScrollTimelineStyles } from "./EngineScrollTimelineBinding";
+export type {
+	EngineScrollTimelineStyleBinding,
+	EngineScrollTimelineStyleBindings,
+	EngineScrollTimelineStyleKeyframes,
+	EngineScrollTimelineStyleRange,
+} from "./EngineScrollTimelineBinding";
 
 export { EngineScrollNavigator } from "./EngineScrollNavigator";
 export type {
@@ -33,6 +42,12 @@ export type {
 export { EngineScrollMovement } from "./EngineScrollMovement";
 export { EngineScrollHash } from "./EngineScrollHash";
 export { EngineScrollURL } from "./EngineScrollURL";
+
+export { EngineScrollSnap } from "./EngineScrollSnap";
+export type {
+	EngineScrollSnapMode,
+	EngineScrollSnapOptions,
+} from "./EngineScrollSnap";
 
 export { EngineScrollPointManager } from "./EngineScrollPointManager";
 export type {

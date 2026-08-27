@@ -3,10 +3,18 @@
 // ============================================================================
 
 import { EngineScrollEasing } from "./EngineScrollEasing";
+import {
+	bindEngineScrollTimelineStyles,
+	type EngineScrollTimelineStyleBindings,
+} from "./EngineScrollTimelineBinding";
 import { EngineScrollMovement } from "./EngineScrollMovement";
 import { EngineScrollNavigator } from "./EngineScrollNavigator";
 import { EngineScrollPointManager } from "./EngineScrollPointManager";
 import { EngineScrollRuntime } from "./EngineScrollRuntime";
+import {
+	EngineScrollTimelineTrack,
+	type EngineScrollTimelineKeyframe,
+} from "./EngineScrollTimelineTrack";
 import type {
 	EngineScrollAlignment,
 	EngineScrollDirection,
@@ -155,9 +163,16 @@ export class EngineScrollTimeline {
 		}
 
 		const span = this.resolvedEnd - this.resolvedStart;
-		const rawProgress = Math.abs(span) < 0.000001
-			? (point === this.resolvedStart ? 1 : 0)
-			: (point - this.resolvedStart) / span;
+		let rawProgress: number;
+		if (Math.abs(span) < 0.000001) {
+			rawProgress = point < this.resolvedStart
+				? -1
+				: point > this.resolvedStart
+					? 2
+					: 1;
+		} else {
+			rawProgress = (point - this.resolvedStart) / span;
+		}
 		const clampedProgress = clamp01(rawProgress);
 		const progress = EngineScrollEasing.resolve(this.config.easing ?? "linear")(
 			clampedProgress,
@@ -223,9 +238,40 @@ export class EngineScrollTimeline {
 			+ (this.resolvedEnd - this.resolvedStart) * safeProgress;
 	}
 
+	public segment(
+		start: number,
+		end: number,
+		easing: EngineScrollEasingName = "linear",
+	): number {
+		const progress = this.snapshot().progress;
+		const safeStart = clamp01(Number.isFinite(start) ? start : 0);
+		const safeEnd = clamp01(Number.isFinite(end) ? end : 1);
+		if (Math.abs(safeEnd - safeStart) < 0.000001) {
+			return progress >= safeEnd ? 1 : 0;
+		}
+		const localProgress = clamp01((progress - safeStart) / (safeEnd - safeStart));
+		return EngineScrollEasing.resolve(easing)(localProgress);
+	}
+
 	public value(from: number, to: number): number {
 		const progress = this.snapshot().progress;
 		return from + (to - from) * progress;
+	}
+
+	public track(
+		keyframes: readonly EngineScrollTimelineKeyframe[],
+	): EngineScrollTimelineTrack {
+		return new EngineScrollTimelineTrack(
+			keyframes,
+			() => this.snapshot().progress,
+		);
+	}
+
+	public bindStyles(
+		element: HTMLElement,
+		bindings: EngineScrollTimelineStyleBindings,
+	): () => void {
+		return bindEngineScrollTimelineStyles(this, element, bindings);
 	}
 
 	public seek(

@@ -6,6 +6,7 @@
 
 import {
 	useCallback,
+	useEffect,
 	useMemo,
 	useSyncExternalStore,
 } from "react";
@@ -31,6 +32,8 @@ export function useEngineScrollTimeline(
 			config.easing,
 		],
 	);
+
+	useEffect(() => () => timeline.dispose(), [timeline]);
 
 	const subscribe = useCallback(
 		(notify: () => void) => timeline.subscribe(() => notify(), false),

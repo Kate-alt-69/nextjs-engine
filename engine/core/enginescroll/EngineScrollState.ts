@@ -49,4 +49,5 @@ export const DefaultEngineScrollCache: EngineScrollRuntimeCache = {
 	isUserScrolling: false,
 	isAnimating: false,
 	lastUserScrollTime: 0,
+	programmaticScrollUntil: 0,
 };

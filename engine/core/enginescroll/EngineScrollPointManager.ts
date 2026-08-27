@@ -27,6 +27,8 @@ export class EngineScrollPointManager {
 	private static readonly observedElementRefs = new Map<HTMLElement, number>();
 	private static resizeObserver: ResizeObserver | null = null;
 	private static revisionValue = 0;
+	private static geometryDirty = true;
+	private static orderedCache: EngineScrollRegisteredPoint[] | null = null;
 
 	private static normalizeName(name: string): string {
 		const normalized = String(name).trim().replace(/^#/, "");
@@ -44,6 +46,16 @@ export class EngineScrollPointManager {
 	private static clampPoint(point: number): number {
 		const maximum = EngineScrollRuntime.get().getState().page.totalPoints;
 		return Math.max(0, Math.min(Number.isFinite(point) ? point : 0, maximum));
+	}
+
+	private static invalidateOrder(): void {
+		this.orderedCache = null;
+		this.revisionValue++;
+	}
+
+	private static markGeometryDirty(): void {
+		this.geometryDirty = true;
+		this.invalidateOrder();
 	}
 
 	private static startPointForElement(element: HTMLElement): number {
@@ -80,7 +92,7 @@ export class EngineScrollPointManager {
 	private static ensureObserver(): void {
 		if (this.resizeObserver || typeof ResizeObserver === "undefined") return;
 		this.resizeObserver = new ResizeObserver(() => {
-			this.invalidateAll();
+			this.markGeometryDirty();
 		});
 		if (typeof document !== "undefined") {
 			this.resizeObserver.observe(document.documentElement);
@@ -104,6 +116,24 @@ export class EngineScrollPointManager {
 		this.observedElementRefs.set(element, count - 1);
 	}
 
+	private static measure(
+		name: string,
+	): EngineScrollRegisteredPoint | undefined {
+		const registeredPoint = this.points.get(name);
+		if (!registeredPoint) return undefined;
+		if (!registeredPoint.element.isConnected) {
+			this.unregister(name);
+			return undefined;
+		}
+
+		const nextPoint = this.startPointForElement(registeredPoint.element);
+		if (Math.abs(nextPoint - registeredPoint.point) > 0.0001) {
+			registeredPoint.point = nextPoint;
+			this.invalidateOrder();
+		}
+		return registeredPoint;
+	}
+
 	public static register(
 		name: string,
 		point: number,
@@ -122,7 +152,7 @@ export class EngineScrollPointManager {
 			align: options.align ?? "start",
 			offset: Number.isFinite(options.offset) ? options.offset! : 0,
 		});
-		this.revisionValue++;
+		this.invalidateOrder();
 	}
 
 	public static registerElement(
@@ -139,7 +169,7 @@ export class EngineScrollPointManager {
 		if (!existing) return;
 		this.points.delete(normalizedName);
 		this.unobserveElement(existing.element);
-		this.revisionValue++;
+		this.invalidateOrder();
 	}
 
 	public static has(name: string): boolean {
@@ -151,20 +181,7 @@ export class EngineScrollPointManager {
 	}
 
 	public static refresh(name: string): EngineScrollRegisteredPoint | undefined {
-		const normalizedName = this.normalizeName(name);
-		const registeredPoint = this.points.get(normalizedName);
-		if (!registeredPoint) return undefined;
-		if (!registeredPoint.element.isConnected) {
-			this.unregister(normalizedName);
-			return undefined;
-		}
-
-		const nextPoint = this.startPointForElement(registeredPoint.element);
-		if (Math.abs(nextPoint - registeredPoint.point) > 0.0001) {
-			registeredPoint.point = nextPoint;
-			this.revisionValue++;
-		}
-		return registeredPoint;
+		return this.measure(this.normalizeName(name));
 	}
 
 	public static resolveElement(
@@ -207,7 +224,11 @@ export class EngineScrollPointManager {
 
 	public static sorted(): EngineScrollRegisteredPoint[] {
 		this.recalculate();
-		return [...this.points.values()].sort((left, right) => left.point - right.point);
+		if (!this.orderedCache) {
+			this.orderedCache = [...this.points.values()]
+				.sort((left, right) => left.point - right.point || left.name.localeCompare(right.name));
+		}
+		return [...this.orderedCache];
 	}
 
 	public static nearest(referencePoint?: number): EngineScrollRegisteredPoint | undefined {
@@ -262,17 +283,20 @@ export class EngineScrollPointManager {
 	}
 
 	public static invalidateAll(): void {
-		this.revisionValue++;
+		this.markGeometryDirty();
 	}
 
 	public static clear(): void {
 		for (const point of this.points.values()) this.unobserveElement(point.element);
 		this.points.clear();
-		this.revisionValue++;
+		this.geometryDirty = false;
+		this.invalidateOrder();
 	}
 
 	public static recalculate(): void {
-		for (const name of [...this.points.keys()]) this.refresh(name);
+		if (!this.geometryDirty) return;
+		this.geometryDirty = false;
+		for (const name of [...this.points.keys()]) this.measure(name);
 	}
 }
 
