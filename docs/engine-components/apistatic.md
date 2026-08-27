@@ -263,6 +263,8 @@ endpoint: {
 }
 ```
 
+Static endpoint descriptors are atomic across resolver override layers. Replacing `math/add` with `{ static: "weather" }` does not accidentally retain the old `add` operation.
+
 ## Convenience resolver
 
 For small calls you do not need to construct `EngineAPIResolver` yourself:
@@ -286,9 +288,9 @@ const response = await APIStatic.resolve("weather", {
 })
 ```
 
-`APIStatic.resolve()` uses `EngineAPIResolver` internally and returns the same standard `Response` model. The explicit resolver form and the convenience form therefore share the same dispatch path.
+`APIStatic.resolve()` dispatches through the default APIStatic runtime and returns the same standard `Response` model as `resolveRequest()`.
 
-If a multi-operation call has no input, pass an explicit third argument such as `{}` so the second string is unambiguously the operation name.
+If a multi-operation call has no input, pass an explicit third argument such as `{}` so the second string is unambiguously the operation name. For cases where a scalar string input could be confused with an operation name, prefer the explicit `resolveRequest(route, { operation, input })` form.
 
 ## Discovering compiled endpoints
 
@@ -335,9 +337,13 @@ const endpoints = await APIStatic.getEndpoints()
 }
 ```
 
+Manifest data is validated before it is exposed. Malformed route names, hashes, or operation lists are rejected instead of failing later inside a discovery helper.
+
 The `url` and `hash` are useful for diagnostics/tooling; normal application code should continue using the logical route name.
 
 `APIStatic.endpoint(...)` does **not** require manifest discovery first. Normal execution remains deterministic from the logical route name.
+
+Development discovery uses `no-store`/cache-busting and releases the manifest cache after each completed lookup, so watcher-generated additions/removals can become visible without reloading the page. Production retains the stable manifest cache.
 
 ## Direct APIStatic instance
 
@@ -353,6 +359,8 @@ const api = new APIStatic({
 const names = await api.names()
 const response = await api.resolve("math", "add", { a: 2, b: 3 })
 ```
+
+`basePath: "/"` or `basePath: ""` correctly targets generated files at the site root instead of producing a protocol-relative `//...` URL.
 
 `execute()` returns the raw operation result. `resolve()` and `resolveRequest()` return a `Response`.
 
@@ -381,13 +389,15 @@ run.input(
 )
 ```
 
+Explicit response statuses must be integer HTTP response statuses from `200` through `599`. `204`, `205`, and `304` are emitted without a body even when a route supplied one. Invalid explicit statuses are converted into a controlled APIStatic validation response instead of letting the `Response` constructor fail outside the API boundary.
+
 Expected failures use:
 
 ```ts
 error(404, "Item not found")
 ```
 
-Validation failures use `400`. Unexpected production failures are sanitized to a generic `500` body.
+Custom `error()` statuses must be in the error range (`400`–`599`); invalid error statuses fall back to `500`. Validation failures use `400`. Unexpected production failures are sanitized to a generic `500` body. Circular/unserializable error details cannot break the error response itself.
 
 ## Public fetch vs proxy
 
@@ -468,6 +478,10 @@ If you customize `staticOutputDir` so its public URL changes, configure APIStati
 During `next dev`, existing `.route` and `.api` source directories are watched. Editing, creating, or deleting matching files recompiles output without restarting Next. Set `NEXTJS_ENGINE_API_WATCH=0` to disable the watcher or `NEXTJS_ENGINE_API_WATCH=1` to force it for a custom development launcher.
 
 Development endpoint modules and the manifest use cache-busting/no-store behavior where appropriate. Production keeps stable endpoint URLs.
+
+## Runtime loading behavior
+
+Concurrent requests for the same not-yet-loaded endpoint share one in-flight module load. Once the module registers, that temporary promise is released and subsequent calls use the route registry directly. Script load/error/timeout handlers are detached when the request settles, so late browser events cannot retain or re-settle an old load.
 
 ## Compiler behavior
 
