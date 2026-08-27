@@ -8,6 +8,7 @@
 
 import React, {
 	createContext,
+	useCallback,
 	useContext,
 	useMemo,
 	type ReactNode,
@@ -105,57 +106,86 @@ export function useSlot(name: string): ReactNode | undefined {
 
 // ── Shared viewport-width subscription ────────────────────────────────────────
 
-const viewportSubscribers = new Set<() => void>();
+type ViewportSubscriber = (width: number) => void;
+
+const viewportSubscribers = new Set<ViewportSubscriber>();
 let viewportListenerAttached = false;
+let viewportFrame: number | null = null;
 
 function readViewportWidth(): number {
 	return typeof window === "undefined" ? 0 : window.innerWidth;
 }
 
-function notifyViewportSubscribers(): void {
-	for (const subscriber of [...viewportSubscribers]) subscriber();
+function flushViewportSubscribers(): void {
+	viewportFrame = null;
+	const width = readViewportWidth();
+	for (const subscriber of [...viewportSubscribers]) subscriber(width);
 }
 
-function subscribeViewportWidth(subscriber: () => void): () => void {
+function handleViewportResize(): void {
+	if (viewportFrame !== null) return;
+	viewportFrame = window.requestAnimationFrame(flushViewportSubscribers);
+}
+
+function subscribeViewportWidth(subscriber: ViewportSubscriber): () => void {
 	if (typeof window === "undefined") return () => undefined;
 	viewportSubscribers.add(subscriber);
 
 	if (!viewportListenerAttached) {
 		viewportListenerAttached = true;
-		window.addEventListener("resize", notifyViewportSubscribers, { passive: true });
+		window.addEventListener("resize", handleViewportResize, { passive: true });
 	}
 
 	return () => {
 		viewportSubscribers.delete(subscriber);
 		if (viewportSubscribers.size === 0 && viewportListenerAttached) {
-			window.removeEventListener("resize", notifyViewportSubscribers);
+			window.removeEventListener("resize", handleViewportResize);
 			viewportListenerAttached = false;
+			if (viewportFrame !== null) {
+				window.cancelAnimationFrame(viewportFrame);
+				viewportFrame = null;
+			}
 		}
 	};
 }
 
 const breakpointOrder: Breakpoint[] = ["xs", "sm", "md", "lg", "xl", "2xl"];
 
-/**
- * Returns the current active breakpoint.
- * SSR-safe: returns "xs" on the server / before hydration.
- * All hook instances share one passive window resize listener.
- */
-export function useBreakpoint(): Breakpoint {
-	const { config } = useContext(EngineContext);
-	const width = React.useSyncExternalStore(
-		subscribeViewportWidth,
-		readViewportWidth,
-		() => 0,
-	);
-	const breakpoints = config.breakpoints;
-
+function resolveBreakpoint(width: number, breakpoints: Required<EngineConfig>["breakpoints"]): Breakpoint {
 	if (width >= (breakpoints["2xl"] ?? 1536)) return "2xl";
 	if (width >= (breakpoints.xl ?? 1280)) return "xl";
 	if (width >= (breakpoints.lg ?? 1024)) return "lg";
 	if (width >= (breakpoints.md ?? 768)) return "md";
 	if (width >= (breakpoints.sm ?? 640)) return "sm";
 	return "xs";
+}
+
+/**
+ * Returns the current active breakpoint.
+ * SSR-safe: returns "xs" on the server / before hydration.
+ * All hook instances share one RAF-coalesced passive window resize listener,
+ * and React is notified only when this hook's resolved breakpoint changes.
+ */
+export function useBreakpoint(): Breakpoint {
+	const { config } = useContext(EngineContext);
+	const breakpoints = config.breakpoints;
+
+	const subscribe = useCallback((notify: () => void) => {
+		let currentBreakpoint = resolveBreakpoint(readViewportWidth(), breakpoints);
+		return subscribeViewportWidth((width) => {
+			const nextBreakpoint = resolveBreakpoint(width, breakpoints);
+			if (nextBreakpoint === currentBreakpoint) return;
+			currentBreakpoint = nextBreakpoint;
+			notify();
+		});
+	}, [breakpoints]);
+
+	const getSnapshot = useCallback(
+		() => resolveBreakpoint(readViewportWidth(), breakpoints),
+		[breakpoints],
+	);
+
+	return React.useSyncExternalStore(subscribe, getSnapshot, () => "xs");
 }
 
 /** Returns true if the current viewport is at or above the target breakpoint. */

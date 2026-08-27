@@ -138,7 +138,7 @@ export function useInView<T extends Element = Element>({
 		const element = ref.current;
 		if (!element) return;
 
-		let unsubscribe = () => undefined;
+		let unsubscribe: () => void = () => undefined;
 		unsubscribe = observePooled(
 			element,
 			root,

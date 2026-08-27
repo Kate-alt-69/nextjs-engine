@@ -85,9 +85,13 @@ not disconnect the shared observer while other elements still depend on it.
 ## Responsive hook listener ownership
 
 All `useBreakpoint()` / `useMinBreakpoint()` instances share one passive window
-`resize` listener through `useSyncExternalStore`. Components still receive normal
-React updates when the viewport width changes, but adding another breakpoint
-consumer no longer adds another DOM resize listener.
+`resize` listener. Native resize events are coalesced through one RAF, and each
+hook only notifies React when its **resolved breakpoint changes**. Dragging a
+window within the same breakpoint therefore does not rerender every breakpoint
+consumer on every pixel.
+
+Custom EngineProvider breakpoint maps remain supported; each subscriber resolves
+against its own provider configuration while sharing the same browser listener.
 
 ## Images and video
 
@@ -120,20 +124,31 @@ The main CI workflow currently performs:
 
 The repository uses `distDir: "dist"`; tooling must not assume `.next`.
 
-## Known architectural limitation: style collection
+## Style collection
+
+Normal generated CSS is deduplicated by exact content **inside the current
+collector only**. The old cross-render registry retained up to thousands of
+ordinary CSS blocks and hashed every add even though each response still needed
+those blocks in its own stylesheet. That cache has been removed: normal styles
+no longer pay cross-render retention/hash overhead, and exact-content keys avoid
+collector-level hash collisions.
+
+Only CSS deliberately added with `StyleCollector.addGlobal()` survives across
+render passes for `EngineGlobalStyles()`.
+
+`EngineProvider` points its default context value at the real global collector
+instead of allocating a fresh collector that generated style helpers would never
+write to.
+
+### Remaining architectural limitation
 
 Most generated style helpers still write through the process-level
 `globalStyleCollector`. `createPage()` resets it at the start of its render pass.
 `createComponent()` no longer resets it from inside a nested render because that
 could erase CSS already collected by a parent page.
 
-`EngineProvider` now points its default context value at the real global collector
-instead of allocating a fresh collector that generated style helpers would never
-write to. This removes dead per-provider allocations, but it does **not** solve
-request isolation by itself.
-
 Full per-request style-collector isolation is still a larger architectural item.
-Do not interpret current style deduplication as a guarantee that the global
+Do not interpret current per-render deduplication as a guarantee that the global
 collector is concurrency-isolated across every possible server rendering model.
 
 There is also a remaining output concern around nested `createComponent()` style
