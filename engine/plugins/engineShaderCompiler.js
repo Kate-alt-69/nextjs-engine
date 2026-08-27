@@ -360,7 +360,7 @@ function orderedStageKeys(stageName, stage, flows) {
 		if (!flow.from.startsWith(prefix) || !flow.to.startsWith(prefix)) continue;
 		const from = flow.from.slice(prefix.length).split(".")[0];
 		const to = flow.to.slice(prefix.length).split(".")[0];
-		if (!indegree.has(from) || !indegree.has(to) || from === to) continue;
+		if (!indegree.has(from) || !indegree.has(to)) continue;
 		edges.get(from).push(to);
 		indegree.set(to, indegree.get(to) + 1);
 	}
@@ -380,19 +380,38 @@ function orderedStageKeys(stageName, stage, flows) {
 	return ordered;
 }
 
+function flowRank(value) {
+	if (value === "frame.color") return 0;
+	if (value.startsWith("after.")) return 1;
+	if (value.startsWith("overlay.")) return 2;
+	if (value === "screen") return 3;
+	return -1;
+}
+
 function validateFlows(parsed, logicalName) {
 	const known = new Set(["frame.color", "screen"]);
-	for (const stageName of ["before", "after", "overlay"]) {
+	for (const stageName of ["after", "overlay"]) {
 		const stage = getNested(parsed.ast, stageName);
 		if (!isObject(stage)) continue;
 		for (const key of Object.keys(stage)) known.add(`${stageName}.${key}`);
 	}
 	for (const flow of parsed.flows) {
+		if (flow.from.startsWith("before.") || flow.to.startsWith("before.")) {
+			throw new Error(`[EngineShaderCompiler] Shader ${logicalName} render-graph flow starts after BEFORE; connect frame.color instead of before.*.`);
+		}
 		if (!known.has(flow.from)) {
 			throw new Error(`[EngineShaderCompiler] Shader ${logicalName} flow source does not exist: ${flow.from}`);
 		}
 		if (!known.has(flow.to)) {
 			throw new Error(`[EngineShaderCompiler] Shader ${logicalName} flow target does not exist: ${flow.to}`);
+		}
+		if (flow.from === flow.to) {
+			throw new Error(`[EngineShaderCompiler] Shader ${logicalName} render graph cannot connect ${flow.from} to itself.`);
+		}
+		const fromRank = flowRank(flow.from);
+		const toRank = flowRank(flow.to);
+		if (fromRank > toRank) {
+			throw new Error(`[EngineShaderCompiler] Shader ${logicalName} render graph cannot flow backward from ${flow.from} to ${flow.to}.`);
 		}
 	}
 }
@@ -459,6 +478,17 @@ function flowIsActive(flow, activeGraph) {
 	return activeGraph.has(flow.from) && activeGraph.has(flow.to);
 }
 
+function compactConstants(constants, activeBindings) {
+	const names = new Set(
+		activeBindings
+			.filter((binding) => binding.source.startsWith("const."))
+			.map((binding) => binding.source.slice(6)),
+	);
+	const compact = Object.create(null);
+	for (const name of names) compact[name] = constants[name];
+	return compact;
+}
+
 function compilePlan(parsed, logicalName) {
 	validateFlows(parsed, logicalName);
 	validateEffects(parsed, logicalName);
@@ -466,8 +496,6 @@ function compilePlan(parsed, logicalName) {
 	const after = getNested(parsed.ast, "after") || {};
 	const overlay = getNested(parsed.ast, "overlay") || {};
 
-	// Run the complete topological validation before dead-pass elimination so a
-	// disconnected cycle still fails loudly instead of hiding malformed source.
 	const allAfterKeys = orderedStageKeys("after", after, parsed.flows);
 	const allOverlayKeys = orderedStageKeys("overlay", overlay, parsed.flows);
 	const activeGraph = traceOutputGraph(parsed.flows);
@@ -495,6 +523,7 @@ function compilePlan(parsed, logicalName) {
 		type: inferUniformType(parsed.variables[name]),
 		defaultValue: parsed.variables[name],
 	}));
+	const constants = compactConstants(parsed.constants, activeBindings);
 
 	const resolveProperty = (pathValue, fallback, preferred = "float") => {
 		const sourcePath = bindings.get(pathValue);
@@ -530,27 +559,36 @@ function compilePlan(parsed, logicalName) {
 	const renderResolution = Number(resolveCompileTimeValue("render.resolution", 1));
 	const renderFilter = String(resolveCompileTimeValue("render.filter", "linear"));
 	const fallback = String(resolveCompileTimeValue("render.fallback", getNested(parsed.ast, "fallback") ?? "transparent"));
+	const beforeKeys = isObject(before) ? Object.keys(before) : [];
+	const beforeEffects = new Set(beforeKeys.map((key) => effectName(key, before[key])));
+	const afterEffects = new Set(afterKeys.map((key) => effectName(key, after[key])));
+	const overlayEffects = new Set(overlayKeys.map((key) => effectName(key, overlay[key])));
+	const needsHash = beforeEffects.has("noise") || afterEffects.has("dither") || overlayEffects.has("grain");
+	const needsCenteredPosition = beforeEffects.has("aurora") || overlayEffects.has("vignette");
+	const needsSampleCoord = beforeEffects.has("noise");
+	const needsTime = dependencies.has("system.time");
+	const needsDelta = dependencies.has("system.delta");
+	const needsFrame = dependencies.has("system.frame");
+	const needsPointer = dependencies.has("pointer.x") || dependencies.has("pointer.y");
+	const needsScroll = dependencies.has("scroll.position");
 
 	const glsl = [
 		"precision highp float;",
 		"uniform vec2 e_resolution;",
-		"uniform float e_time;",
-		"uniform float e_delta;",
-		"uniform float e_frame;",
-		"uniform vec2 e_pointer;",
-		"uniform float e_scroll;",
 	];
+	if (needsTime) glsl.push("uniform float e_time;");
+	if (needsDelta) glsl.push("uniform float e_delta;");
+	if (needsFrame) glsl.push("uniform float e_frame;");
+	if (needsPointer) glsl.push("uniform vec2 e_pointer;");
+	if (needsScroll) glsl.push("uniform float e_scroll;");
 	for (const definition of variables) {
 		const type = definition.type === "color" ? "vec4" : definition.type === "bool" ? "float" : definition.type;
 		glsl.push(`uniform ${type} u_var_${definition.name};`);
 	}
-	glsl.push("float e_hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}");
+	if (needsHash) glsl.push("float e_hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}");
 	glsl.push("void main(){");
 	glsl.push("\tvec2 uv=gl_FragCoord.xy/max(e_resolution.xy,vec2(1.0));");
 
-	// Surface ESH v1 is a single fragment program. Pixelation is lowered into a
-	// coordinate prepass so procedural BEFORE effects are genuinely sampled on
-	// the pixel grid instead of mutating `uv` after the color was already made.
 	for (const key of afterKeys) {
 		const node = after[key];
 		if (!isObject(node)) continue;
@@ -562,12 +600,11 @@ function compilePlan(parsed, logicalName) {
 		glsl.push(`\tuv=floor(uv*e_pixelGrid_${safeKey})/e_pixelGrid_${safeKey};`);
 	}
 
-	glsl.push("\tvec2 p=uv-0.5;");
-	glsl.push("\tvec2 e_sampleCoord=floor(uv*e_resolution);");
+	if (needsCenteredPosition) glsl.push("\tvec2 p=uv-0.5;");
+	if (needsSampleCoord) glsl.push("\tvec2 e_sampleCoord=floor(uv*e_resolution);");
 	glsl.push("\tvec3 color=vec3(0.0);");
-	glsl.push("\tfloat alpha=1.0;");
 
-	for (const key of isObject(before) ? Object.keys(before) : []) {
+	for (const key of beforeKeys) {
 		const node = before[key];
 		if (!isObject(node)) continue;
 		const effect = effectName(key, node);
@@ -621,7 +658,7 @@ function compilePlan(parsed, logicalName) {
 			glsl.push(`\tcolor*=1.0-${resolveProperty(`${base}.strength`, 0.25)}*smoothstep(0.25,0.75,length(p));`);
 		}
 	}
-	glsl.push("\tgl_FragColor=vec4(clamp(color,0.0,1.0),alpha);");
+	glsl.push("\tgl_FragColor=vec4(clamp(color,0.0,1.0),1.0);");
 	glsl.push("}");
 
 	const animated = [...dependencies].some((dependency) => ["system.time", "system.delta", "system.frame"].includes(dependency));
@@ -632,7 +669,7 @@ function compilePlan(parsed, logicalName) {
 		execution: animated ? "animated" : dependencies.size > 0 ? "event" : "static",
 		dependencies: [...dependencies].sort(),
 		variables,
-		constants: parsed.constants,
+		constants,
 		render: {
 			resolution: Number.isFinite(renderResolution) ? Math.max(0.125, Math.min(2, renderResolution)) : 1,
 			filter: renderFilter === "nearest" ? "nearest" : "linear",
@@ -701,9 +738,6 @@ function compileShaderDirectory({
 	const compiledShaders = [];
 	const shaders = Object.create(null);
 
-	// Compile every source before mutating the output directory. The plugin adds
-	// a full directory transaction on top; this keeps direct compiler use from
-	// partially replacing last-known-good artifacts on a source syntax error.
 	for (const filename of listShaderFiles(sourceDirectory)) {
 		const relative = path.relative(sourceDirectory, filename).replace(/\\/g, "/");
 		const logicalName = normalizeLogicalName(relative);
