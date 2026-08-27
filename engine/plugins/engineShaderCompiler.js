@@ -25,6 +25,9 @@ const UNSUPPORTED_FRAME_SOURCES = new Set([
 	"frame.previous",
 	"frame.history",
 ]);
+const SUPPORTED_BEFORE_EFFECTS = new Set(["gradient", "aurora", "noise"]);
+const SUPPORTED_AFTER_EFFECTS = new Set(["pixel", "pixelate", "palette", "dither", "glow", "bloom"]);
+const SUPPORTED_OVERLAY_EFFECTS = new Set(["grain", "scanlines", "vignette"]);
 
 const DEFAULT_VERTEX_SHADER = [
 	"attribute vec2 a_position;",
@@ -388,15 +391,96 @@ function validateFlows(parsed, logicalName) {
 	}
 }
 
+function validateEffects(parsed, logicalName) {
+	for (const [stageName, supported] of [
+		["before", SUPPORTED_BEFORE_EFFECTS],
+		["after", SUPPORTED_AFTER_EFFECTS],
+		["overlay", SUPPORTED_OVERLAY_EFFECTS],
+	]) {
+		const stage = getNested(parsed.ast, stageName);
+		if (!isObject(stage)) continue;
+		for (const key of Object.keys(stage)) {
+			const node = stage[key];
+			if (!isObject(node)) continue;
+			const effect = effectName(key, node);
+			if (!supported.has(effect)) {
+				throw new Error(`[EngineShaderCompiler] Shader ${logicalName} uses unsupported ${stageName} effect: ${effect}`);
+			}
+		}
+	}
+}
+
+function traceOutputGraph(flows) {
+	if (!flows.some((flow) => flow.to === "screen")) return null;
+	const incoming = new Map();
+	for (const flow of flows) {
+		let sources = incoming.get(flow.to);
+		if (!sources) {
+			sources = [];
+			incoming.set(flow.to, sources);
+		}
+		sources.push(flow.from);
+	}
+	const active = new Set(["screen"]);
+	const queue = ["screen"];
+	while (queue.length > 0) {
+		const target = queue.pop();
+		for (const source of incoming.get(target) ?? []) {
+			if (active.has(source)) continue;
+			active.add(source);
+			queue.push(source);
+		}
+	}
+	return active;
+}
+
+function graphNodeForTarget(target) {
+	const parts = String(target).split(".");
+	if ((parts[0] === "after" || parts[0] === "overlay") && parts[1]) {
+		return `${parts[0]}.${parts[1]}`;
+	}
+	return null;
+}
+
+function bindingIsActive(binding, activeGraph) {
+	if (!activeGraph) return true;
+	const graphNode = graphNodeForTarget(binding.target);
+	return graphNode ? activeGraph.has(graphNode) : true;
+}
+
+function flowIsActive(flow, activeGraph) {
+	if (!activeGraph) return true;
+	return activeGraph.has(flow.from) && activeGraph.has(flow.to);
+}
+
 function compilePlan(parsed, logicalName) {
 	validateFlows(parsed, logicalName);
-	const bindings = new Map(parsed.bindings.map((binding) => [binding.target, binding.source]));
+	validateEffects(parsed, logicalName);
+	const before = getNested(parsed.ast, "before") || {};
+	const after = getNested(parsed.ast, "after") || {};
+	const overlay = getNested(parsed.ast, "overlay") || {};
+
+	// Run the complete topological validation before dead-pass elimination so a
+	// disconnected cycle still fails loudly instead of hiding malformed source.
+	const allAfterKeys = orderedStageKeys("after", after, parsed.flows);
+	const allOverlayKeys = orderedStageKeys("overlay", overlay, parsed.flows);
+	const activeGraph = traceOutputGraph(parsed.flows);
+	const afterKeys = activeGraph
+		? allAfterKeys.filter((key) => activeGraph.has(`after.${key}`))
+		: allAfterKeys;
+	const overlayKeys = activeGraph
+		? allOverlayKeys.filter((key) => activeGraph.has(`overlay.${key}`))
+		: allOverlayKeys;
+	const activeBindings = parsed.bindings.filter((binding) => bindingIsActive(binding, activeGraph));
+	const activeFlows = parsed.flows.filter((flow) => flowIsActive(flow, activeGraph));
+	const bindings = new Map(activeBindings.map((binding) => [binding.target, binding.source]));
+
 	const dependencies = new Set();
-	for (const binding of parsed.bindings) {
+	for (const binding of activeBindings) {
 		if (SUPPORTED_DYNAMIC_SOURCES.has(binding.source)) dependencies.add(binding.source);
 	}
 	const referencedVariables = new Set(
-		parsed.bindings
+		activeBindings
 			.filter((binding) => binding.source.startsWith("var."))
 			.map((binding) => binding.source.slice(4)),
 	);
@@ -440,11 +524,6 @@ function compilePlan(parsed, logicalName) {
 	const renderResolution = Number(resolveCompileTimeValue("render.resolution", 1));
 	const renderFilter = String(resolveCompileTimeValue("render.filter", "linear"));
 	const fallback = String(resolveCompileTimeValue("render.fallback", getNested(parsed.ast, "fallback") ?? "transparent"));
-	const before = getNested(parsed.ast, "before") || {};
-	const after = getNested(parsed.ast, "after") || {};
-	const overlay = getNested(parsed.ast, "overlay") || {};
-	const afterKeys = orderedStageKeys("after", after, parsed.flows);
-	const overlayKeys = orderedStageKeys("overlay", overlay, parsed.flows);
 
 	const glsl = [
 		"precision highp float;",
@@ -472,12 +551,13 @@ function compilePlan(parsed, logicalName) {
 		const effect = effectName(key, node);
 		if (effect !== "pixel" && effect !== "pixelate") continue;
 		const size = resolveProperty(`after.${key}.size`, 4);
-		glsl.push(`\tvec2 e_pixelGrid_${key.replace(/[^A-Za-z0-9_]/g, "_")}=max(e_resolution/max(${size},1.0),vec2(1.0));`);
-		glsl.push(`\tuv=floor(uv*e_pixelGrid_${key.replace(/[^A-Za-z0-9_]/g, "_")})/e_pixelGrid_${key.replace(/[^A-Za-z0-9_]/g, "_")};`);
+		const safeKey = key.replace(/[^A-Za-z0-9_]/g, "_");
+		glsl.push(`\tvec2 e_pixelGrid_${safeKey}=max(e_resolution/max(${size},1.0),vec2(1.0));`);
+		glsl.push(`\tuv=floor(uv*e_pixelGrid_${safeKey})/e_pixelGrid_${safeKey};`);
 	}
 
 	glsl.push("\tvec2 p=uv-0.5;");
-	glsl.push("\tvec2 e_sampleCoord=floor(uv*e_resolution); ");
+	glsl.push("\tvec2 e_sampleCoord=floor(uv*e_resolution);");
 	glsl.push("\tvec3 color=vec3(0.0);");
 	glsl.push("\tfloat alpha=1.0;");
 
@@ -502,8 +582,6 @@ function compilePlan(parsed, logicalName) {
 			const time = resolveProperty(`${base}.time`, 0);
 			glsl.push(`\tfloat e_noise=e_hash(e_sampleCoord+floor((${time})*60.0));`);
 			glsl.push(`\tcolor=vec3(0.08,0.10,0.16)+(e_noise-0.5)*${amount};`);
-		} else {
-			throw new Error(`[EngineShaderCompiler] Shader ${logicalName} uses unsupported before effect: ${effect}`);
 		}
 	}
 
@@ -521,8 +599,6 @@ function compilePlan(parsed, logicalName) {
 			glsl.push(`\tcolor+=(e_hash(floor(gl_FragCoord.xy))-0.5)*${resolveProperty(`${base}.strength`, 0.04)};`);
 		} else if (effect === "glow" || effect === "bloom") {
 			glsl.push(`\tcolor+=color*max(${resolveProperty(`${base}.strength`, 0.2)},0.0);`);
-		} else {
-			throw new Error(`[EngineShaderCompiler] Shader ${logicalName} uses unsupported after effect: ${effect}`);
 		}
 	}
 
@@ -537,8 +613,6 @@ function compilePlan(parsed, logicalName) {
 			glsl.push(`\tcolor*=1.0-${resolveProperty(`${base}.strength`, 0.05)}*(0.5+0.5*sin(gl_FragCoord.y*3.14159265));`);
 		} else if (effect === "vignette") {
 			glsl.push(`\tcolor*=1.0-${resolveProperty(`${base}.strength`, 0.25)}*smoothstep(0.25,0.75,length(p));`);
-		} else {
-			throw new Error(`[EngineShaderCompiler] Shader ${logicalName} uses unsupported overlay effect: ${effect}`);
 		}
 	}
 	glsl.push("\tgl_FragColor=vec4(clamp(color,0.0,1.0),alpha);");
@@ -560,7 +634,7 @@ function compilePlan(parsed, logicalName) {
 		fallback,
 		vertex: DEFAULT_VERTEX_SHADER,
 		fragment: glsl.join("\n"),
-		flows: parsed.flows,
+		flows: activeFlows,
 	};
 }
 
