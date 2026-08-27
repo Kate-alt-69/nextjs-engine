@@ -46,8 +46,8 @@ Warnings do not make `valid` false; structural errors do.
 
 The analyzer is the deeper static-diagnostics pass. In addition to unknown/missing
 schema data it checks duplicate navigation targets, ambiguous mobile patch names,
-shared node objects, accessibility hints, large child lists, excessive tree depth,
-and leaf-node misuse.
+shared node objects, malformed runtime node values, accessibility hints, large
+child lists, excessive tree depth, and leaf-node misuse.
 
 Current codes:
 
@@ -58,13 +58,25 @@ Current codes:
 | `E003` | error | Duplicate navigation target across `id` / `point` |
 | `E004` | error | Same schema node object reused in multiple tree positions |
 | `E005` | error | Page schema has no root node |
+| `E006` | error | Malformed node value or missing/non-string node type |
 | `W001` | warn | Image has no `alt` |
 | `W002` | warn | Button/link has no accessible label/content/children |
 | `W003` | warn | Input/checkbox has no explicit `id` or `point` for label association |
 | `W004` | warn | More than 100 direct children |
 | `W005` | warn | Tree deeper than 15 levels |
-| `W006` | warn | Children attached to a runtime leaf node |
+| `W006` | warn | Schema child nodes attached to a runtime type that does not support them |
 | `W007` | warn | Duplicate `SchemaNode.name` makes a MobilePatcher selector ambiguous |
+
+### Malformed runtime data
+
+The public TypeScript types prevent most malformed schema values at authoring
+time, but analyzers also run on generated, parsed, or otherwise untyped data.
+They therefore fail diagnostically instead of becoming the crash themselves.
+
+For example, an array child containing `null`, a number, another array, or an
+object without a non-empty string `type` produces E006 at that exact schema path.
+The analyzer does not pass primitive values into `WeakSet` or attempt typo
+matching against a non-string type.
 
 ### Navigation target identity
 
@@ -107,11 +119,24 @@ Any of these satisfy the text-content check:
 - a non-empty string in `node.children`;
 - a non-empty schema child array.
 
-### `optgroup`
+### Runtime leaves and child traversal
 
-`optgroup` is **not** a leaf. It is expected to contain `option` children, so the
-analyzer continues through its children and does not emit W006 for a normal
+W006 is limited to runtime types that do not accept **schema child-node arrays**.
+Textual/interactive wrapper primitives are not treated as leaves merely because
+they can also receive direct content props.
+
+In particular, `text`, `heading`, `button`, `link`, and `label` all accept
+rendered schema children. The analyzer continues through those children instead
+of warning and returning early, so diagnostics inside valid nested content are
+not hidden.
+
+`optgroup` is also **not** a leaf. It is expected to contain `option` children, so
+the analyzer continues through its children and does not emit W006 for a normal
 option group.
+
+Native/media/control nodes such as image, input, textarea, checkbox, option,
+spacer, divider, Markdown, Canvas, and video remain leaf-style schema nodes for
+this diagnostic. Attaching schema child-node arrays to them produces W006.
 
 ## Analyzer allocation behavior
 
@@ -119,6 +144,10 @@ Unknown-type suggestions still use Levenshtein distance, but the analyzer keeps
 only two distance rows instead of allocating a complete matrix for every
 candidate. Diagnostic behavior stays the same while temporary memory scales
 with the shorter compared name rather than the product of both lengths.
+
+Registered-type membership checks use a `Set` during the tree walk rather than
+rescanning the registered type array for every node. The ordered array is kept
+only for typo suggestions.
 
 ## Why both APIs exist
 

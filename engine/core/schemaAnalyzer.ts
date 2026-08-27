@@ -1,6 +1,6 @@
-// ─────────────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────
 //  Engine — schemaAnalyzer
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
 
 import type { PageSchema, SchemaNode } from "../schema/types";
 import { registeredTypes } from "./registry";
@@ -69,10 +69,12 @@ function nearest(unknown: string, candidates: string[]): string | undefined {
 	return bestDistance <= threshold ? best : undefined;
 }
 
-// optgroup owns option children at runtime and therefore is not a leaf.
+// These runtime nodes do not accept schema child-node arrays. Text, headings,
+// buttons, links, and labels intentionally do accept rendered schema children
+// and therefore must continue through the analyzer tree.
 const LEAF_TYPES = new Set([
-	"text", "heading", "image", "button", "link", "input", "textarea",
-	"checkbox", "label", "option", "spacer", "divider", "markdown", "canvas", "video",
+	"image", "input", "textarea", "checkbox", "option", "spacer", "divider",
+	"markdown", "canvas", "video",
 ]);
 
 const REQUIRED_PROPS: Record<string, string[]> = {
@@ -93,6 +95,7 @@ interface AnalyzerState {
 	seenNames: Map<string, string>;
 	seenObjects: WeakSet<SchemaNode>;
 	knownTypes: string[];
+	knownTypeSet: Set<string>;
 }
 
 function push(
@@ -155,8 +158,39 @@ function recordPatchName(state: AnalyzerState, node: SchemaNode, path: string): 
 	);
 }
 
-function walkNode(node: SchemaNode, path: string, depth: number, state: AnalyzerState): void {
-	if (state.seenObjects.has(node)) {
+function describeNodeValue(value: unknown): string {
+	if (value === null) return "null";
+	if (Array.isArray(value)) return "array";
+	return typeof value;
+}
+
+function walkNode(node: unknown, path: string, depth: number, state: AnalyzerState): void {
+	if (node === null || typeof node !== "object" || Array.isArray(node)) {
+		push(
+			state,
+			"error",
+			"E006",
+			`Schema node must be an object (got ${describeNodeValue(node)}).`,
+			path,
+			"Replace the malformed child with a SchemaNode object.",
+		);
+		return;
+	}
+
+	const schemaNode = node as SchemaNode;
+	if (typeof schemaNode.type !== "string" || schemaNode.type.length === 0) {
+		push(
+			state,
+			"error",
+			"E006",
+			"Schema node is missing a non-empty string type.",
+			path,
+			"Set type to a registered engine node type.",
+		);
+		return;
+	}
+
+	if (state.seenObjects.has(schemaNode)) {
 		push(
 			state,
 			"error",
@@ -167,12 +201,12 @@ function walkNode(node: SchemaNode, path: string, depth: number, state: Analyzer
 		);
 		return;
 	}
-	state.seenObjects.add(node);
+	state.seenObjects.add(schemaNode);
 
-	const props = (node.props ?? {}) as Record<string, unknown>;
-	const type = node.type;
+	const props = (schemaNode.props ?? {}) as Record<string, unknown>;
+	const type = schemaNode.type;
 
-	if (!state.knownTypes.includes(type)) {
+	if (!state.knownTypeSet.has(type)) {
 		const suggestion = nearest(type, state.knownTypes);
 		push(state, "error", "E001", `Unknown node type "${type}".`, path, suggestion ? `Did you mean "${suggestion}"?` : undefined);
 	}
@@ -183,13 +217,13 @@ function walkNode(node: SchemaNode, path: string, depth: number, state: Analyzer
 
 	recordNavigationTarget(state, props.id, "id", path);
 	recordNavigationTarget(state, props.point, "point", path);
-	recordPatchName(state, node, path);
+	recordPatchName(state, schemaNode, path);
 
 	if (type === "image" && props.alt == null) {
 		push(state, "warn", "W001", "Image node is missing an \"alt\" prop.", path, "Add alt=\"\" for decorative images or descriptive text for meaningful images.");
 	}
 
-	if ((type === "button" || type === "link") && !hasAccessibleContent(node, props)) {
+	if ((type === "button" || type === "link") && !hasAccessibleContent(schemaNode, props)) {
 		push(state, "warn", "W002", `"${type}" node has no accessible label/content.`, path, "Add label, content, or children.");
 	}
 
@@ -201,9 +235,9 @@ function walkNode(node: SchemaNode, path: string, depth: number, state: Analyzer
 		push(state, "warn", "W005", `Schema tree is nested ${depth} levels deep.`, path, "Flatten deeply nested layout where practical.");
 	}
 
-	const children = node.children;
+	const children = schemaNode.children;
 	if (LEAF_TYPES.has(type) && Array.isArray(children) && children.length > 0) {
-		push(state, "warn", "W006", `"${type}" is a leaf node — its ${children.length} child(ren) will be ignored.`, path);
+		push(state, "warn", "W006", `"${type}" does not support schema child nodes.`, path);
 		return;
 	}
 
@@ -233,12 +267,14 @@ function resultFor(state: AnalyzerState): AnalyzerResult {
 }
 
 function createState(): AnalyzerState {
+	const knownTypes = registeredTypes();
 	return {
 		diagnostics: [],
 		seenNavigationTargets: new Map(),
 		seenNames: new Map(),
 		seenObjects: new WeakSet(),
-		knownTypes: registeredTypes(),
+		knownTypes,
+		knownTypeSet: new Set(knownTypes),
 	};
 }
 
