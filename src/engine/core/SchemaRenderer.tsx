@@ -139,10 +139,12 @@ function SplitModuleFallback({
 	node,
 	props,
 	placeholderHeight,
+	className,
 }: {
 	node: SchemaNode;
 	props: Record<string, unknown>;
 	placeholderHeight: string;
+	className?: string;
 }) {
 	const aspectRatio = getLazyAspectRatio(node, props);
 	const minHeight = normalizeFallbackSize(placeholderHeight)
@@ -154,6 +156,7 @@ function SplitModuleFallback({
 	return (
 		<div
 			aria-hidden="true"
+			className={className}
 			style={{
 				width: "100%",
 				...(aspectRatio ? { aspectRatio } : {}),
@@ -254,6 +257,7 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 						node={node}
 						props={originalProps}
 						placeholderHeight={lazy.placeholderHeight}
+						className={visibilityClass}
 					/>
 				)}
 			>
@@ -274,7 +278,7 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 			>
 				{anchoredElement}
 			</LazySection>
-		);
+			);
 	}
 
 	return (
