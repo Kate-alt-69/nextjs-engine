@@ -15,6 +15,9 @@ import { EngineScrollSnap } from "./EngineScrollSnap";
 import { EngineScrollTimeline } from "./EngineScrollTimeline";
 import { BrowserEvents } from "./browser/BrowserEvents";
 import { Viewport } from "./viewport/Viewport";
+import type {
+	EngineScrollNavigationOptions,
+} from "./EngineScrollNavigator";
 import type { EngineScrollSnapOptions } from "./EngineScrollSnap";
 import type { EngineScrollTimelineConfig } from "./EngineScrollTimeline";
 import type { EngineScrollMoveOptions } from "./EngineScrollTypes";
@@ -61,21 +64,25 @@ export class EngineScroll {
 
 	public static move(
 		target: Parameters<typeof EngineScrollNavigator.move>[0],
-		offsetOrOptions?: number | EngineScrollMoveOptions,
+		offsetOrOptions?: number | EngineScrollNavigationOptions,
 		duration?: number,
 	): boolean {
 		return EngineScrollNavigator.move(target, offsetOrOptions, duration);
 	}
 
-	public static nearest(options?: EngineScrollMoveOptions): boolean {
+	public static nearest(options?: EngineScrollNavigationOptions): boolean {
 		return EngineScrollNavigator.nearest(options);
 	}
 
-	public static next(options?: EngineScrollMoveOptions & { wrap?: boolean }): boolean {
+	public static next(
+		options?: EngineScrollNavigationOptions & { wrap?: boolean },
+	): boolean {
 		return EngineScrollNavigator.next(options);
 	}
 
-	public static previous(options?: EngineScrollMoveOptions & { wrap?: boolean }): boolean {
+	public static previous(
+		options?: EngineScrollNavigationOptions & { wrap?: boolean },
+	): boolean {
 		return EngineScrollNavigator.previous(options);
 	}
 
