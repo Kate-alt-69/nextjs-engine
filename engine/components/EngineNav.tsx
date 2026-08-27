@@ -5,18 +5,28 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, {
+	Suspense,
 	forwardRef,
+	lazy,
 	memo,
-	useState,
 	useCallback,
+	useMemo,
+	useState,
 	type ReactNode,
 	type ReactElement,
 	type CSSProperties,
 } from "react";
-import { Link as TransitionLink } from "next-view-transitions";
+import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 import { usePropStyles, cpropClass, staticClass } from "../hooks/usePropStyles";
 import type { BaseNodeProps } from "../schema/types";
+
+// Animated page transitions are optional. Keep next-view-transitions out of the
+// normal Nav/Link execution path until a page-to-page link is actually rendered.
+const LazyTransitionLink = lazy(async () => {
+	const transitionModule = await import("next-view-transitions");
+	return { default: transitionModule.Link as React.ComponentType<any> };
+});
 
 export interface EngineAnchorConfig {
 	href: string;
@@ -29,6 +39,29 @@ export interface EngineAnchorConfig {
 	style?: CSSProperties;
 	"aria-label"?: string;
 	"aria-current"?: React.AriaAttributes["aria-current"];
+}
+
+function isExternalHref(href: string, target?: string): boolean {
+	return target === "_blank"
+		|| href.startsWith("//")
+		|| /^[a-z][a-z0-9+.-]*:/i.test(href);
+}
+
+function renderNextAnchor(cfg: EngineAnchorConfig): ReactElement {
+	return (
+		<NextLink
+			ref={cfg.ref}
+			href={cfg.href}
+			target={cfg.target}
+			className={cfg.className}
+			onClick={cfg.onClick}
+			style={cfg.style}
+			aria-label={cfg["aria-label"]}
+			aria-current={cfg["aria-current"]}
+		>
+			{cfg.children}
+		</NextLink>
+	);
 }
 
 export function renderEngineAnchor(cfg: EngineAnchorConfig): ReactElement {
@@ -45,12 +78,7 @@ export function renderEngineAnchor(cfg: EngineAnchorConfig): ReactElement {
 		"aria-current": ariaCurrent,
 	} = cfg;
 
-	const isExternal = href.startsWith("http://")
-		|| href.startsWith("https://")
-		|| href.startsWith("//")
-		|| target === "_blank";
-
-	if (isExternal) {
+	if (isExternalHref(href, target)) {
 		return (
 			<a
 				ref={ref}
@@ -69,36 +97,28 @@ export function renderEngineAnchor(cfg: EngineAnchorConfig): ReactElement {
 	}
 
 	if (transition === "page-to-page") {
+		const nextAnchor = renderNextAnchor(cfg);
 		return (
-			<TransitionLink
-				ref={ref}
-				href={href}
-				target={target}
-				className={className}
-				onClick={onClick}
-				style={style}
-				aria-label={ariaLabel}
-				aria-current={ariaCurrent}
-			>
-				{children}
-			</TransitionLink>
+			<Suspense fallback={nextAnchor}>
+				<LazyTransitionLink
+					ref={ref}
+					href={href}
+					target={target}
+					className={className}
+					onClick={onClick}
+					style={style}
+					aria-label={ariaLabel}
+					aria-current={ariaCurrent}
+				>
+					{children}
+				</LazyTransitionLink>
+			</Suspense>
 		);
 	}
 
-	return (
-		<a
-			ref={ref}
-			href={href}
-			target={target}
-			className={className}
-			onClick={onClick}
-			style={style}
-			aria-label={ariaLabel}
-			aria-current={ariaCurrent}
-		>
-			{children}
-		</a>
-	);
+	// Normal internal navigation stays inside the Next router and gets Next's
+	// client-side navigation/prefetch behavior without requiring ViewTransitions.
+	return renderNextAnchor(cfg);
 }
 
 export interface EngineNavItem {
@@ -139,17 +159,18 @@ const NavItem = memo(function NavItem({ item, pathname, variant }: NavItemProps)
 	const [open, setOpen] = useState(false);
 	const href = item.cprop?.link?.href ?? item.href ?? "#";
 	const transition = item.cprop?.link?.transition;
-	const isActive = item.active ?? (href !== "#" && pathname.startsWith(href) && (href === "/" ? pathname === "/" : true));
-	const hasChildren = item.children && item.children.length > 0;
+	const isActive = item.active
+		?? (href !== "#" && pathname.startsWith(href) && (href === "/" ? pathname === "/" : true));
+	const hasChildren = Boolean(item.children?.length);
 
-	const itemClass = staticClass({
+	const itemClass = useMemo(() => staticClass({
 		position: "relative",
 		display: "inline-flex",
 		alignItems: "center",
 		gap: "0.25rem",
-	});
+	}), []);
 
-	const anchorClass = staticClass({
+	const anchorClass = useMemo(() => staticClass({
 		display: "inline-flex",
 		alignItems: "center",
 		padding: variant === "vertical" ? "0.5rem 1rem" : "0.375rem 0.75rem",
@@ -164,9 +185,11 @@ const NavItem = memo(function NavItem({ item, pathname, variant }: NavItemProps)
 		background: isActive
 			? "var(--engine-nav-active-bg, rgba(255,255,255,0.1))"
 			: "transparent",
-	});
+	}), [isActive, variant]);
 
-	const dropdownClass = staticClass({
+	// The class is stable across open/closed state. Open state uses inline display
+	// so clicks never depend on post-hydration StyleCollector injection.
+	const dropdownClass = useMemo(() => staticClass({
 		position: "absolute",
 		top: "calc(100% + 0.25rem)",
 		left: 0,
@@ -176,11 +199,11 @@ const NavItem = memo(function NavItem({ item, pathname, variant }: NavItemProps)
 		borderRadius: "0.5rem",
 		padding: "0.375rem",
 		zIndex: 50,
-		display: open ? "flex" : "none",
+		display: "flex",
 		flexDirection: "column",
 		gap: "0.125rem",
 		boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
-	});
+	}), []);
 
 	if (hasChildren) {
 		return (
@@ -203,9 +226,13 @@ const NavItem = memo(function NavItem({ item, pathname, variant }: NavItemProps)
 						<path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
 					</svg>
 				</button>
-				<div role="menu" className={dropdownClass}>
+				<div
+					role="menu"
+					className={dropdownClass}
+					style={{ display: open ? "flex" : "none" }}
+				>
 					{item.children!.map((child, index) => (
-						<NavItem key={index} item={child} pathname={pathname} variant={variant} />
+						<NavItem key={`${child.cprop?.link?.href ?? child.href ?? child.label}-${index}`} item={child} pathname={pathname} variant={variant} />
 					))}
 				</div>
 			</div>
@@ -246,10 +273,10 @@ export const EngineNav = memo(
 		const pathname = usePathname();
 		const [mobileOpen, setMobileOpen] = useState(false);
 		const toggleMobile = useCallback(() => setMobileOpen((value) => !value), []);
-		const hoverClass = cpropClass(cprop);
+		const hoverClass = useMemo(() => cpropClass(cprop), [cprop]);
 		const navStyle = usePropStyles(restProps as any, style ?? {});
 
-		const navClass = [
+		const navClass = useMemo(() => [
 			staticClass({
 				display: "flex",
 				alignItems: variant === "vertical" ? "flex-start" : "center",
@@ -268,9 +295,9 @@ export const EngineNav = memo(
 			}),
 			hoverClass,
 			className,
-		].filter(Boolean).join(" ") || undefined;
+		].filter(Boolean).join(" ") || undefined, [className, hoverClass, sticky, variant]);
 
-		const innerClass = staticClass({
+		const innerClass = useMemo(() => staticClass({
 			display: "flex",
 			alignItems: "center",
 			justifyContent: "space-between",
@@ -278,15 +305,52 @@ export const EngineNav = memo(
 			maxWidth: "var(--engine-nav-max-width, 1200px)",
 			margin: "0 auto",
 			minHeight: variant === "horizontal" ? "var(--engine-nav-height, 3.5rem)" : undefined,
-		});
+		}), [variant]);
 
-		const itemsClass = staticClass({
+		const itemsClass = useMemo(() => staticClass({
 			display: "flex",
 			alignItems: "center",
 			flexWrap: "wrap",
 			gap: "0.125rem",
 			flexDirection: variant === "vertical" ? "column" : "row",
-		});
+		}), [variant]);
+
+		const desktopItemsClass = useMemo(() => staticClass({
+			display: "none",
+			[`@media(min-width: ${mobileBreakpoint}px)`]: { display: "flex" },
+		}), [mobileBreakpoint]);
+
+		const logoClass = useMemo(() => staticClass({
+			flexShrink: 0,
+			display: "flex",
+			alignItems: "center",
+		}), []);
+
+		const mobileToggleClass = useMemo(() => staticClass({
+			display: "flex",
+			alignItems: "center",
+			justifyContent: "center",
+			width: "2.5rem",
+			height: "2.5rem",
+			border: "none",
+			background: "transparent",
+			cursor: "pointer",
+			borderRadius: "0.375rem",
+			color: "inherit",
+			[`@media(min-width: ${mobileBreakpoint}px)`]: { display: "none" },
+		}), [mobileBreakpoint]);
+
+		// Generate this class on the initial render even though the menu itself is
+		// conditionally mounted later. This keeps all required CSS in the SSR sheet.
+		const mobileMenuClass = useMemo(() => staticClass({
+			display: "flex",
+			flexDirection: "column",
+			gap: "0.125rem",
+			padding: "0.75rem",
+			borderTop: "1px solid var(--engine-nav-border, rgba(255,255,255,0.08))",
+			width: "100%",
+			[`@media(min-width: ${mobileBreakpoint}px)`]: { display: "none" },
+		}), [mobileBreakpoint]);
 
 		return (
 			<nav
@@ -298,7 +362,7 @@ export const EngineNav = memo(
 			>
 				<div className={innerClass}>
 					{logo && (
-						<div className={staticClass({ flexShrink: 0, display: "flex", alignItems: "center" })}>
+						<div className={logoClass}>
 							{renderEngineAnchor({
 								href: logo.href ?? "/",
 								children: logo.src
@@ -318,17 +382,14 @@ export const EngineNav = memo(
 					)}
 
 					{items.length > 0 && (
-						<div
-							className={[
-								itemsClass,
-								staticClass({
-									display: "none",
-									[`@media(min-width: ${mobileBreakpoint}px)`]: { display: "flex" },
-								}),
-							].filter(Boolean).join(" ")}
-						>
+						<div className={[itemsClass, desktopItemsClass].filter(Boolean).join(" ")}>
 							{items.map((item, index) => (
-								<NavItem key={index} item={item} pathname={pathname} variant={variant} />
+								<NavItem
+									key={`${item.cprop?.link?.href ?? item.href ?? item.label}-${index}`}
+									item={item}
+									pathname={pathname}
+									variant={variant}
+								/>
 							))}
 						</div>
 					)}
@@ -341,18 +402,7 @@ export const EngineNav = memo(
 							aria-expanded={mobileOpen}
 							aria-controls="engine-nav-mobile"
 							onClick={toggleMobile}
-							className={staticClass({
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
-								width: "2.5rem",
-								height: "2.5rem",
-								border: "none",
-								background: "transparent",
-								cursor: "pointer",
-								borderRadius: "0.375rem",
-								color: "inherit",
-							})}
+							className={mobileToggleClass}
 						>
 							{mobileOpen ? (
 								<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -368,20 +418,14 @@ export const EngineNav = memo(
 				</div>
 
 				{mobileOpen && items.length > 0 && (
-					<div
-						id="engine-nav-mobile"
-						role="menu"
-						className={staticClass({
-							display: "flex",
-							flexDirection: "column",
-							gap: "0.125rem",
-							padding: "0.75rem",
-							borderTop: "1px solid var(--engine-nav-border, rgba(255,255,255,0.08))",
-							width: "100%",
-						})}
-					>
+					<div id="engine-nav-mobile" role="menu" className={mobileMenuClass}>
 						{items.map((item, index) => (
-							<NavItem key={index} item={item} pathname={pathname} variant="vertical" />
+							<NavItem
+								key={`${item.cprop?.link?.href ?? item.href ?? item.label}-${index}`}
+								item={item}
+								pathname={pathname}
+								variant="vertical"
+							/>
 						))}
 					</div>
 				)}
