@@ -7,6 +7,8 @@ import { EngineScrollRuntime } from "../EngineScrollRuntime";
 /** Owns the single requestAnimationFrame used by EngineScroll. */
 export class BrowserScheduler {
 	private static frameRequested = false;
+	private static rerunRequested = false;
+	private static cancelled = false;
 	private static updateCallback: (() => void) | null = null;
 
 	public static setUpdate(update: () => void): void {
@@ -18,17 +20,18 @@ export class BrowserScheduler {
 		const callback = this.updateCallback;
 		if (!callback || typeof requestAnimationFrame === "undefined") return;
 
-		const runtime = EngineScrollRuntime.get();
-		const cache = runtime.getCache();
+		const cache = EngineScrollRuntime.get().getCache();
 		if (this.frameRequested) {
+			this.rerunRequested = true;
 			cache.pending = true;
 			return;
 		}
 
+		this.cancelled = false;
 		this.frameRequested = true;
 		cache.pending = true;
-		cache.rafId = requestAnimationFrame((timestamp) => {
-			this.frameRequested = false;
+
+		const rafId = requestAnimationFrame((timestamp) => {
 			cache.pending = false;
 			cache.running = true;
 			cache.lastFrameTime = cache.lastTimestamp === 0
@@ -37,25 +40,39 @@ export class BrowserScheduler {
 			cache.lastTimestamp = timestamp;
 			cache.frame++;
 
-			callback();
+			let completed = false;
+			try {
+				callback();
+				completed = true;
+			} finally {
+				cache.running = false;
+				if (cache.rafId === rafId) cache.rafId = null;
+				this.frameRequested = false;
 
-			cache.running = false;
-			cache.rafId = null;
+				const shouldContinue = completed
+					&& !this.cancelled
+					&& (this.rerunRequested || cache.isAnimating);
 
-			// Smooth animation owns its continuation. Native scroll/resize events
-			// still coalesce into this same RAF instead of creating another loop.
-			if (cache.isAnimating) this.request();
+				this.rerunRequested = false;
+				cache.pending = false;
+				if (shouldContinue) this.request();
+			}
 		});
+
+		cache.rafId = rafId;
 	}
 
 	public static cancel(): void {
 		const cache = EngineScrollRuntime.get().getCache();
-		if (cache.rafId !== null) {
+		this.cancelled = true;
+		this.rerunRequested = false;
+
+		if (cache.rafId !== null && !cache.running) {
 			cancelAnimationFrame(cache.rafId);
-			cache.rafId = null;
 		}
+
+		cache.rafId = null;
 		cache.pending = false;
-		cache.running = false;
-		this.frameRequested = false;
+		if (!cache.running) this.frameRequested = false;
 	}
 }
