@@ -11,6 +11,7 @@ the component page and current TypeScript types.
 | Understand the engine | [`readme.md`](./readme.md) |
 | Learn schemas | [`readme.md`](./readme.md) |
 | Learn styling and responsive props | [`styling.md`](./styling.md) |
+| Add page/layout transitions | [`engine-components/enginetransitions.md`](./engine-components/enginetransitions.md) |
 | Validate/analyze schemas | [`schema-diagnostics.md`](./schema-diagnostics.md) |
 | Build layouts and controls | [`engine-components/primitives.md`](./engine-components/primitives.md) |
 | Build GPU shader surfaces | [`engine-components/engineshader.md`](./engine-components/engineshader.md) |
@@ -25,6 +26,7 @@ the component page and current TypeScript types.
 | Primitives | [`primitives.md`](./engine-components/primitives.md) | Box, Stack, Grid, Text, Heading, Button, Card, Section, Slot |
 | EngineCanvas | [`enginecanvas.md`](./engine-components/enginecanvas.md) | Canvas lifecycle, adaptive DPR, EC 2D/3D/SVG runtime |
 | EngineShader | [`engineshader.md`](./engine-components/engineshader.md) | `.shed` language, `.shed.dat` compiler, GPU surfaces, automatic execution modes |
+| EngineTransitions+ | [`enginetransitions.md`](./engine-components/enginetransitions.md) | 20 lazy-loaded page/layout transition presets and shared morphs |
 | EngineScroll | [`enginescroll.md`](./engine-components/enginescroll.md) | Point navigation, URL protocol, one-RAF scheduler |
 | EngineBrowser | [`enginebrowser.md`](./engine-components/enginebrowser.md) | Browser capabilities and interaction APIs |
 | EngineManim | [`enginemanim.md`](./engine-components/enginemanim.md) | 2D animation and demand-driven Three.js 3D model animation |
@@ -43,6 +45,7 @@ the component page and current TypeScript types.
 | Topic | Documentation |
 |---|---|
 | Styling, responsive values, at-rules, pseudo states | [`styling.md`](./styling.md) |
+| Page/layout transitions and shared morphs | [`engine-components/enginetransitions.md`](./engine-components/enginetransitions.md) |
 | Schema validation/analyzer codes and scope | [`schema-diagnostics.md`](./schema-diagnostics.md) |
 | Runtime, lazy behavior, bundle/runtime performance | [`runtime-performance.md`](./runtime-performance.md) |
 | GPU surfaces, `.shed` compilation and render scheduling | [`engine-components/engineshader.md`](./engine-components/engineshader.md) |
@@ -55,6 +58,7 @@ the component page and current TypeScript types.
 |---|---|
 | EC | EngineCanvas |
 | ESH | EngineShader |
+| ET | EngineTransitions+ |
 | ES | EngineScroll |
 | EB | EngineBrowser |
 | EM | EngineManim |
