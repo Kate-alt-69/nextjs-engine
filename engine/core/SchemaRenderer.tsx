@@ -3,7 +3,7 @@
 //  Engine — SchemaRenderer
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { memo, useEffect, type CSSProperties, type ReactNode } from "react";
+import React, { memo, Suspense, useEffect, type CSSProperties, type ReactNode } from "react";
 import {
 	BREAKPOINTS,
 	BREAKPOINT_ORDER,
@@ -11,7 +11,7 @@ import {
 	type PageSchema,
 	type SchemaNode,
 } from "../schema/types";
-import { getComponent } from "./registry";
+import { getComponent, isSplitComponent } from "./registry";
 import { validatePageSchema } from "./validateSchema";
 import { decideLazy } from "./lazyDetect";
 import { globalStyleCollector } from "./StyleCollector";
@@ -129,6 +129,40 @@ function getLazyAspectRatio(node: SchemaNode, props: Record<string, unknown>): s
 	return undefined;
 }
 
+function normalizeFallbackSize(value: unknown): string | undefined {
+	if (typeof value === "number" && Number.isFinite(value) && value > 0) return `${value}px`;
+	if (typeof value === "string" && value.length > 0 && value !== "auto") return value;
+	return undefined;
+}
+
+function SplitModuleFallback({
+	node,
+	props,
+	placeholderHeight,
+}: {
+	node: SchemaNode;
+	props: Record<string, unknown>;
+	placeholderHeight: string;
+}) {
+	const aspectRatio = getLazyAspectRatio(node, props);
+	const minHeight = normalizeFallbackSize(placeholderHeight)
+		?? normalizeFallbackSize(props.height)
+		?? normalizeFallbackSize(props.minH)
+		?? normalizeFallbackSize(props.minHeight);
+
+	if (!aspectRatio && !minHeight) return null;
+	return (
+		<div
+			aria-hidden="true"
+			style={{
+				width: "100%",
+				...(aspectRatio ? { aspectRatio } : {}),
+				...(minHeight ? { minHeight } : {}),
+			}}
+		/>
+	);
+}
+
 interface NodeRendererProps {
 	node: SchemaNode;
 	depth: number;
@@ -163,6 +197,7 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 
 	const Component = getComponent(node.type);
 	if (!Component) return <UnknownNodeWarning type={node.type} />;
+	const splitComponent = isSplitComponent(Component);
 
 	const lazy = decideLazy(node, depth);
 	const extraStyle: CSSProperties = lazy.contentVisibility && !lazy.lazy
@@ -210,7 +245,22 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 		)
 		: element;
 
-	if (!lazy.lazy) return anchoredElement;
+	if (!lazy.lazy) {
+		if (!splitComponent) return anchoredElement;
+		return (
+			<Suspense
+				fallback={(
+					<SplitModuleFallback
+						node={node}
+						props={originalProps}
+						placeholderHeight={lazy.placeholderHeight}
+					/>
+				)}
+			>
+				{anchoredElement}
+			</Suspense>
+		);
+	}
 
 	const isSection = node.type === "section" || node.type === "hero";
 	if (isSection) {

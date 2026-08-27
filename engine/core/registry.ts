@@ -13,13 +13,17 @@ import {
 export type EngineComponent = ComponentType<Record<string, unknown> & { children?: React.ReactNode }>;
 export type ComponentRegistry = Map<NodeType, EngineComponent>;
 
+const splitComponents = new WeakSet<object>();
+
 // Optional/heavier built-ins are real split points. The loader is not invoked
 // until React actually renders that node, so a primitive-only page does not
 // eagerly evaluate Markdown, Canvas, media, Nav, Forms, or Manim modules.
 function lazyEngineComponent(
 	loader: () => Promise<{ default: ComponentType<any> }>,
 ): EngineComponent {
-	return lazy(loader) as unknown as EngineComponent;
+	const component = lazy(loader) as unknown as EngineComponent;
+	splitComponents.add(component as unknown as object);
+	return component;
 }
 
 const LazyEngineHero = lazyEngineComponent(() =>
@@ -125,6 +129,10 @@ export function unregisterComponent(type: NodeType): void {
 
 export function getComponent(type: NodeType): EngineComponent | undefined {
 	return _registry.get(type);
+}
+
+export function isSplitComponent(component: EngineComponent): boolean {
+	return splitComponents.has(component as unknown as object);
 }
 
 export function hasComponent(type: NodeType): boolean {
