@@ -153,6 +153,7 @@ export class Engine3D implements RenderingEngine {
 
 		let retained = this.retainedNodes.get(node.id);
 		if (retained && retained.type !== node.type) {
+			retained.object.parent?.remove?.(retained.object);
 			this.disposeRetainedNode(retained);
 			this.retainedNodes.delete(node.id);
 			retained = undefined;
@@ -194,6 +195,15 @@ export class Engine3D implements RenderingEngine {
 		const THREE = this.THREE;
 		if (!THREE) return null;
 
+		const retainedIsStrip = retained?.topology === "strip";
+		const nextIsStrip = mesh.topology === "strip";
+		if (retained && retainedIsStrip !== nextIsStrip) {
+			retained.object.parent?.remove?.(retained.object);
+			this.disposeRetainedNode(retained);
+			this.retainedNodes.delete(mesh.id);
+			retained = undefined;
+		}
+
 		const geometryChanged = !retained
 			|| retained.vertices !== mesh.vertices
 			|| retained.indices !== mesh.indices
@@ -202,7 +212,7 @@ export class Engine3D implements RenderingEngine {
 		if (!retained) {
 			const geometry = this.createGeometry(mesh);
 			const material = this.createMaterial(mesh);
-			const object = mesh.topology === "strip"
+			const object = nextIsStrip
 				? new THREE.Line(geometry, material)
 				: new THREE.Mesh(geometry, material);
 
@@ -364,6 +374,7 @@ export class Engine3D implements RenderingEngine {
 
 	public dispose(): void {
 		for (const retained of this.retainedNodes.values()) {
+			retained.object.parent?.remove?.(retained.object);
 			this.disposeRetainedNode(retained);
 		}
 		this.retainedNodes.clear();

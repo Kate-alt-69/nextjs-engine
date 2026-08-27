@@ -73,6 +73,18 @@ function computeBounds(vertices: Float32Array): ECBounds {
 	return { min: ecVec3(minX, minY, minZ), max: ecVec3(maxX, maxY, maxZ) };
 }
 
+function computeFaceCount(
+	topology: ECMesh["topology"],
+	vertices: Float32Array,
+	indices?: Uint16Array | Uint32Array,
+): number {
+	if (topology === "strip") return 0;
+	if (indices) return Math.floor(indices.length / 3);
+	const vertexCount = Math.floor(vertices.length / 3);
+	if (topology === "fan") return Math.max(0, vertexCount - 2);
+	return Math.floor(vertexCount / 3);
+}
+
 function makeMesh(
 	topology: ECMesh["topology"],
 	vertices: Float32Array,
@@ -89,7 +101,7 @@ function makeMesh(
 		transform,
 		topology,
 		vertexCount: () => vertices.length / 3,
-		faceCount: () => indices ? indices.length / 3 : topology === "fan" ? Math.max(0, vertices.length / 3 - 2) : 0,
+		faceCount: () => computeFaceCount(topology, vertices, indices),
 		bounds: () => computeBounds(vertices),
 		center(): ECVector3 {
 			const bounds = computeBounds(vertices);
