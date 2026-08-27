@@ -214,13 +214,17 @@ function readString(source, index) {
 	}
 	const end = skipQuoted(source, index, quote);
 	const raw = source.slice(index, end);
-	let value;
-	if (quote === '"') value = JSON.parse(raw);
-	else {
-		value = raw.slice(1, -1)
-			.replace(/\\'/g, "'")
-			.replace(/\\\\/g, "\\");
+	const typescript = getTypeScript();
+	const scanner = typescript.createScanner(
+		typescript.ScriptTarget.Latest,
+		false,
+		typescript.LanguageVariant.Standard,
+		raw,
+	);
+	if (scanner.scan() !== typescript.SyntaxKind.StringLiteral) {
+		throw new Error(`[APIStaticCompiler] Invalid string literal near: ${source.slice(index, index + 24)}`);
 	}
+	const value = scanner.getTokenValue();
 	return { value, end };
 }
 
@@ -289,6 +293,9 @@ function parseSchema(source, start, end) {
 			const parsed = readIdentifier(source, index);
 			key = parsed.value;
 			index = parsed.end;
+		}
+		if (Object.prototype.hasOwnProperty.call(schema, key)) {
+			throw new Error(`[APIStaticCompiler] Duplicate input schema field: ${key}`);
 		}
 		index = skipTrivia(source, index, false);
 		if (source[index] !== ":") throw new Error(`[APIStaticCompiler] Expected ':' after schema key ${key}.`);
@@ -468,107 +475,108 @@ function ensureNoReservedRunBindings(run, operationName) {
 	}
 }
 
-function previousSignificantChar(source) {
-	for (let index = source.length - 1; index >= 0; index -= 1) {
-		if (!/\s/.test(source[index])) return source[index];
-	}
-	return "";
+function createTransformProgram(source, functionNames, isBlock) {
+	const typescript = getTypeScript();
+	const callableDeclarations = [...functionNames]
+		.sort()
+		.map((name) => `declare function ${name}(...args: any[]): any;`)
+		.join("\n");
+	const runtimePrelude = [
+		"const query: any = {};",
+		"const body: any = {};",
+		"const input: any = {};",
+		"const proxy = (...args: any[]) => args;",
+	].join("\n");
+	const beforeUser = isBlock
+		? `${callableDeclarations}\nasync function __engineApiStaticTransform(__context: any) {\n${runtimePrelude}\n`
+		: `${callableDeclarations}\nasync function __engineApiStaticTransform(__context: any) {\n${runtimePrelude}\nreturn (`;
+	const afterUser = isBlock ? "\n}" : ");\n}";
+	const combinedSource = `${beforeUser}${source}${afterUser}`;
+	const fileName = "api-static-transform.ts";
+	const sourceFile = typescript.createSourceFile(
+		fileName,
+		combinedSource,
+		typescript.ScriptTarget.Latest,
+		true,
+		typescript.ScriptKind.TS,
+	);
+	const compilerOptions = {
+		target: typescript.ScriptTarget.ES2020,
+		noLib: true,
+		skipLibCheck: true,
+	};
+	const host = {
+		fileExists: (candidate) => candidate === fileName,
+		readFile: (candidate) => candidate === fileName ? combinedSource : undefined,
+		getSourceFile: (candidate) => candidate === fileName ? sourceFile : undefined,
+		getDefaultLibFileName: () => "lib.d.ts",
+		writeFile: () => undefined,
+		getCurrentDirectory: () => "",
+		getDirectories: () => [],
+		getCanonicalFileName: (candidate) => candidate,
+		useCaseSensitiveFileNames: () => true,
+		getNewLine: () => "\n",
+		directoryExists: () => true,
+		realpath: (candidate) => candidate,
+	};
+	const program = typescript.createProgram([fileName], compilerOptions, host);
+	return {
+		typescript,
+		sourceFile,
+		checker: program.getTypeChecker(),
+		combinedSource,
+		userStart: beforeUser.length,
+		userEnd: beforeUser.length + source.length,
+	};
 }
 
-function transformTemplateBracketCalls(source, index, functionNames) {
-	let output = "`";
-	index += 1;
+function transformBracketCalls(source, functionNames, isBlock = false) {
+	const {
+		typescript,
+		sourceFile,
+		checker,
+		combinedSource,
+		userStart,
+		userEnd,
+	} = createTransformProgram(source, functionNames, isBlock);
+	const replacements = new Map();
 
-	while (index < source.length) {
-		if (source[index] === "\\") {
-			output += source.slice(index, index + 2);
-			index += 2;
-			continue;
+	const visit = (node) => {
+		if (
+			typescript.isElementAccessExpression(node)
+			&& !node.questionDotToken
+			&& typescript.isIdentifier(node.expression)
+			&& node.getStart(sourceFile) >= userStart
+			&& node.end <= userEnd
+		) {
+			const type = checker.getTypeAtLocation(node.expression);
+			const callable = checker.getSignaturesOfType(type, typescript.SignatureKind.Call).length > 0;
+			if (callable) {
+				const openBracket = combinedSource.indexOf("[", node.expression.end);
+				let closeBracket = node.end - 1;
+				while (closeBracket > openBracket && /\s/.test(combinedSource[closeBracket])) closeBracket -= 1;
+				if (
+					openBracket >= userStart
+					&& openBracket < userEnd
+					&& combinedSource[openBracket] === "["
+					&& combinedSource[closeBracket] === "]"
+				) {
+					replacements.set(openBracket - userStart, "(");
+					replacements.set(closeBracket - userStart, ")");
+				}
+			}
 		}
-		if (source[index] === "`") {
-			return { code: `${output}\``, end: index + 1 };
-		}
-		if (source[index] === "$" && source[index + 1] === "{") {
-			const close = findMatching(source, index + 1, "{", "}");
-			const inner = transformBracketCalls(source.slice(index + 2, close), functionNames);
-			output += "${" + inner + "}";
-			index = close + 1;
-			continue;
-		}
-		output += source[index];
-		index += 1;
-	}
+		typescript.forEachChild(node, visit);
+	};
+	visit(sourceFile);
 
-	throw new Error("[APIStaticCompiler] Unterminated template literal.");
+	if (replacements.size === 0) return source;
+	const output = source.split("");
+	for (const [index, replacement] of replacements) output[index] = replacement;
+	return output.join("");
 }
 
-function transformBracketCalls(expression, functionNames) {
-	let output = "";
-	let index = 0;
-
-	while (index < expression.length) {
-		const char = expression[index];
-
-		if (char === '"' || char === "'") {
-			const end = skipQuoted(expression, index, char);
-			output += expression.slice(index, end);
-			index = end;
-			continue;
-		}
-		if (char === "`") {
-			const transformed = transformTemplateBracketCalls(expression, index, functionNames);
-			output += transformed.code;
-			index = transformed.end;
-			continue;
-		}
-		if (expression.startsWith("//", index)) {
-			const end = skipLineComment(expression, index);
-			output += expression.slice(index, end);
-			index = end;
-			continue;
-		}
-		if (expression.startsWith("/*", index)) {
-			const end = skipBlockComment(expression, index);
-			output += expression.slice(index, end);
-			index = end;
-			continue;
-		}
-		if (isRegexStart(expression, index)) {
-			const end = skipRegex(expression, index);
-			output += expression.slice(index, end);
-			index = end;
-			continue;
-		}
-		if (!isIdentifierStart(char)) {
-			output += char;
-			index += 1;
-			continue;
-		}
-
-		const start = index;
-		index += 1;
-		while (isJavaScriptIdentifierPart(expression[index])) index += 1;
-		const name = expression.slice(start, index);
-		let bracketIndex = index;
-		while (/\s/.test(expression[bracketIndex] || "")) bracketIndex += 1;
-		const previous = previousSignificantChar(output);
-		const isBareCallable = functionNames.has(name) && previous !== ".";
-
-		if (isBareCallable && expression[bracketIndex] === "[") {
-			const close = findMatching(expression, bracketIndex, "[", "]");
-			const inner = transformBracketCalls(expression.slice(bracketIndex + 1, close), functionNames);
-			output += `${name}${expression.slice(index, bracketIndex)}(${inner})`;
-			index = close + 1;
-			continue;
-		}
-
-		output += name;
-	}
-
-	return output;
-}
-
-function parseRun(source, index, functionNames) {
+function parseRun(source, index) {
 	index += "run.".length;
 	const sourceType = readIdentifier(source, index);
 	if (!["query", "body", "input", "proxy"].includes(sourceType.value)) {
@@ -584,7 +592,7 @@ function parseRun(source, index, functionNames) {
 		return {
 			source: sourceType.value,
 			kind: "expression",
-			code: transformBracketCalls(expression, functionNames),
+			code: expression,
 			end: close + 1,
 		};
 	}
@@ -594,7 +602,7 @@ function parseRun(source, index, functionNames) {
 		return {
 			source: sourceType.value,
 			kind: "block",
-			code: transformBracketCalls(source.slice(index + 1, close), functionNames),
+			code: source.slice(index + 1, close),
 			end: close + 1,
 		};
 	}
@@ -606,6 +614,7 @@ function parseOperation(source, start, end, functionNames) {
 	let index = start;
 	let name = "";
 	const schemas = {};
+	const seenProperties = new Set();
 	let run = null;
 
 	while (index < end) {
@@ -614,13 +623,15 @@ function parseOperation(source, start, end, functionNames) {
 
 		if (source.startsWith("run.", index)) {
 			if (run) throw new Error("[APIStaticCompiler] An endpoint operation can only contain one run.* declaration.");
-			run = parseRun(source, index, functionNames);
+			run = parseRun(source, index);
 			index = run.end;
 			continue;
 		}
 
 		const keyToken = readIdentifier(source, index);
 		const key = keyToken.value;
+		if (seenProperties.has(key)) throw new Error(`[APIStaticCompiler] Duplicate createEndpoint property: ${key}`);
+		seenProperties.add(key);
 		index = skipTrivia(source, keyToken.end, false);
 		if (source[index] !== ":") throw new Error(`[APIStaticCompiler] Expected ':' after ${key}.`);
 		index = skipTrivia(source, index + 1, false);
@@ -646,6 +657,7 @@ function parseOperation(source, start, end, functionNames) {
 	if (!name.trim()) throw new Error("[APIStaticCompiler] Every endpoint operation needs name: \"...\".");
 	if (!run) throw new Error(`[APIStaticCompiler] Operation ${name} needs run.query(...), run.body(...), run.input(...), or run.proxy(...).`);
 	ensureNoReservedRunBindings(run, name);
+	run.code = transformBracketCalls(run.code, functionNames, run.kind === "block");
 	const schema = schemas[run.source] || schemas.input;
 	return { name, source: run.source, schema, run };
 }
