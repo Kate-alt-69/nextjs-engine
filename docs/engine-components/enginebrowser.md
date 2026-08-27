@@ -1,271 +1,308 @@
 # EngineBrowser
 
-> Browser detection, feature flags, clipboard, interactions, media capture,
-> speech synthesis/recognition, and network status — all in one module.
+`EngineBrowser` exposes browser detection plus clipboard, interaction, media,
+speech, and network helpers.
 
----
+The public `nextjs-engine` entrypoint exports the SSR-safe facade from
+`core/EngineBrowserSafe`. The lower-level detector remains internal-compatible,
+but application code should import from the package/root engine entrypoint.
 
-## EngineBrowser — Browser Detection, Interactions & Media
+## SSR contract
 
-`EngineBrowser` is a client-side module (safe on SSR — returns defaults when `window` is undefined).
-
-### Detection
+Detection is safe during server rendering:
 
 ```ts
-import { EngineBrowser } from "@/engine";
+EngineBrowser.name
+// "server"
 
-// Browser identity
-EngineBrowser.is.chrome     // boolean
-EngineBrowser.is.firefox    // boolean
-EngineBrowser.is.safari     // boolean
-EngineBrowser.is.edge       // boolean
-EngineBrowser.is.opera      // boolean
-EngineBrowser.is.brave      // boolean
-EngineBrowser.is.osmium     // boolean  ← yes, Osmium is detected
-EngineBrowser.is.chromium   // any Chromium-based browser
-EngineBrowser.is.mobile     // touch-primary device
-EngineBrowser.is.desktop    // mouse-primary device
-
-// Feature support (selection — see BrowserSupports for full list)
-EngineBrowser.supports.viewTransitions    // View Transitions API
-EngineBrowser.supports.containerQueries  // CSS @container
-EngineBrowser.supports.cssHas            // CSS :has()
-EngineBrowser.supports.reducedMotion     // prefers-reduced-motion: reduce
-EngineBrowser.supports.prefersDark       // prefers-color-scheme: dark
-EngineBrowser.supports.webgl2            // WebGL 2
-EngineBrowser.supports.clipboard         // Clipboard API present
-EngineBrowser.supports.clipboardRead     // clipboard.readText available
-EngineBrowser.supports.clipboardWrite    // clipboard.writeText available
-EngineBrowser.supports.camera            // getUserMedia video
-EngineBrowser.supports.microphone        // getUserMedia audio
-EngineBrowser.supports.screenCapture     // getDisplayMedia
-EngineBrowser.supports.speechSynthesis   // TTS available
-EngineBrowser.supports.speechRecognition // STT available
-EngineBrowser.supports.wakeLock          // Screen Wake Lock API
-EngineBrowser.supports.notifications     // Web Notifications API
-EngineBrowser.supports.fullscreen        // Fullscreen API
-EngineBrowser.supports.networkInfo       // Network Information API
-EngineBrowser.supports.battery           // Battery Status API
-EngineBrowser.supports.webAuthn          // WebAuthn / Passkeys
-EngineBrowser.supports.fileSystemAccess  // showOpenFilePicker (Chrome/Edge)
-EngineBrowser.supports.badgeApi          // navigator.setAppBadge (PWA)
+EngineBrowser.info
+// server-safe BrowserInfo
 ```
 
-### Conditional execution
+Browser-only subsystems do not synchronously touch `window`, `document`,
+`navigator`, `screen`, or other DOM globals when no DOM exists.
+
+Server/default results are:
+
+| Call | Server result |
+|---|---|
+| clipboard writes | `false` |
+| clipboard reads | `null` / `[]` |
+| interaction capability calls | `false` / `null` |
+| camera/microphone/screen capture | `null` |
+| speech recognition | `null` |
+| `speech.isSpeaking()` | `false` |
+| `speech.voices()` | `[]` |
+| network status | `{ online: true, type: "unknown" }` |
+
+`EngineBrowser.speech.speak()` is the one deliberate exception to the
+"default-value" pattern: its return type is `Promise<void>`, so an unavailable
+speech-synthesis API returns a **rejected promise** with
+`Speech synthesis not supported`. It does not synchronously throw while merely
+evaluating browser globals.
+
+## Detection
+
+```ts
+import { EngineBrowser } from "nextjs-engine"
+
+EngineBrowser.is.chrome
+EngineBrowser.is.firefox
+EngineBrowser.is.safari
+EngineBrowser.is.edge
+EngineBrowser.is.opera
+EngineBrowser.is.brave
+EngineBrowser.is.osmium
+EngineBrowser.is.chromium
+
+EngineBrowser.is.mobile
+EngineBrowser.is.tablet
+EngineBrowser.is.desktop
+
+EngineBrowser.name
+EngineBrowser.engine
+EngineBrowser.version
+```
+
+Feature flags are available under `supports`:
+
+```ts
+EngineBrowser.supports.viewTransitions
+EngineBrowser.supports.containerQueries
+EngineBrowser.supports.cssHas
+EngineBrowser.supports.cssNesting
+EngineBrowser.supports.cssLayer
+EngineBrowser.supports.webgl2
+EngineBrowser.supports.clipboard
+EngineBrowser.supports.camera
+EngineBrowser.supports.screenCapture
+EngineBrowser.supports.speechSynthesis
+EngineBrowser.supports.speechRecognition
+```
+
+The public facade uses condition-form `CSS.supports(...)` checks for `:has()`
+and nesting instead of treating selectors as CSS property names. Cascade-layer
+support is based on the browser's `CSSLayerBlockRule` exposure.
+
+Detection is cached. Call `EngineBrowser.invalidate()` in tests or after
+deliberately changing the emulated browser environment.
+
+## Conditional execution
 
 ```ts
 EngineBrowser.run({
-  safari:  () => applySafariScrollFix(),
-  firefox: () => applyFirefoxFix(),
-  default: () => {},
-});
+	safari: () => applySafariFix(),
+	firefox: () => applyFirefoxFix(),
+	default: () => applyDefault(),
+})
 
-const cls = EngineBrowser.pick({
-  safari:  "scroll-ios",
-  default: "scroll-standard",
-});
+const value = EngineBrowser.pick({
+	mobile: "compact",
+	default: "desktop",
+})
 ```
 
-### Clipboard — `EngineBrowser.clipboard`
+`prefixed(property, value)` returns the normal declaration and adds the WebKit
+form for the small set of properties that still need it.
 
-All methods return `null` / `false` / `[]` on failure — never throw.
+## Clipboard
 
 ```ts
-// Write plain text (falls back to execCommand on old WebViews)
-const ok = await EngineBrowser.clipboard.copy("Hello, world!");
+await EngineBrowser.clipboard.copy("Hello")
 
-// Write HTML + plain-text fallback (Chrome 86+, Edge 86+)
-await EngineBrowser.clipboard.copyHtml("<b>Bold</b>", "Bold");
+await EngineBrowser.clipboard.copyHtml(
+	"<strong>Hello</strong>",
+	"Hello",
+)
 
-// Read plain text — may prompt for "clipboard-read" permission in Chrome
-const text = await EngineBrowser.clipboard.paste();
+const text = await EngineBrowser.clipboard.paste()
+const items = await EngineBrowser.clipboard.read()
 
-// Read raw ClipboardItems — for images, mixed content
-const items = await EngineBrowser.clipboard.read();
-for (const item of items) {
-  if (item.types.includes("image/png")) {
-    const blob = await item.getType("image/png");
-  }
-}
-
-// Check permissions before reading
-if (await EngineBrowser.clipboard.canRead()) {
-  const items = await EngineBrowser.clipboard.read();
-}
+const mayRead = await EngineBrowser.clipboard.canRead()
+const mayWrite = await EngineBrowser.clipboard.canWrite()
 ```
 
-| Method | Returns | Notes |
-|--------|---------|-------|
-| `copy(text)` | `Promise<boolean>` | Falls back to `execCommand("copy")` |
-| `copyHtml(html, plain?)` | `Promise<boolean>` | Chrome 86+, Edge 86+ |
-| `paste()` | `Promise<string \| null>` | Prompts `clipboard-read` in Chrome |
-| `read()` | `Promise<ClipboardItem[]>` | For images and mixed content |
-| `canRead()` | `Promise<boolean>` | Checks current permission state |
-| `canWrite()` | `Promise<boolean>` | `granted` or auto-grantable |
+Clipboard helpers catch permission/API failures and return `false`, `null`, or
+`[]`. Plain-text copying retains the legacy `execCommand("copy")` fallback.
 
-### Browser Interactions — `EngineBrowser.interact`
+## Interactions
 
 ```ts
-// Native OS share sheet
-await EngineBrowser.interact.share({ title: "Check this", url: location.href });
+await EngineBrowser.interact.share({
+	title: "Next.js Engine",
+	url: location.href,
+})
 
-// Desktop/mobile notification (auto-requests permission on first call)
-await EngineBrowser.interact.notify("Upload complete", {
-  body: "Your file has been saved.",
-  icon: "/icon-192.png",
-});
+const notification = await EngineBrowser.interact.notify("Done", {
+	body: "Export complete",
+})
 
-// Vibrate (mobile only)
-EngineBrowser.interact.vibrate(200);            // 200ms single buzz
-EngineBrowser.interact.vibrate([100, 50, 100]); // buzz-pause-buzz pattern
+EngineBrowser.interact.vibrate([100, 50, 100])
 
-// File picker (File System Access API or hidden <input> fallback)
-const files = await EngineBrowser.interact.pickFile({ accept: "image/*", multiple: true });
+const files = await EngineBrowser.interact.pickFile({
+	accept: "image/*",
+	multiple: true,
+})
 
-// Trigger file download
-EngineBrowser.interact.download("export.json", JSON.stringify(data), "application/json");
-EngineBrowser.interact.download("photo.png", imageBlob);
+EngineBrowser.interact.download(
+	"export.json",
+	JSON.stringify(data),
+	"application/json",
+)
 
-// Fullscreen
-await EngineBrowser.interact.fullscreen();        // default: document.documentElement
-await EngineBrowser.interact.fullscreen(videoEl); // specific element
-await EngineBrowser.interact.exitFullscreen();
+await EngineBrowser.interact.fullscreen()
+await EngineBrowser.interact.exitFullscreen()
 
-// Screen Wake Lock — keeps display on (recipe apps, workout trackers, kiosk)
-const lock = await EngineBrowser.interact.wakeLock();
-// ... later:
-await lock?.release();
+const lock = await EngineBrowser.interact.wakeLock()
+await lock?.release()
 
-// Geolocation — clean Promise wrapper over the callback API
-const pos = await EngineBrowser.interact.location({ enableHighAccuracy: true });
-if (pos) console.log(pos.coords.latitude, pos.coords.longitude);
+const position = await EngineBrowser.interact.location({
+	enableHighAccuracy: true,
+})
 
-// Lock screen orientation (requires fullscreen on most browsers)
-await EngineBrowser.interact.lockOrientation("portrait");
+await EngineBrowser.interact.lockOrientation("portrait")
 
-// PWA app badge
-await EngineBrowser.interact.badge(3);      // show "3" on app icon
-await EngineBrowser.interact.clearBadge();  // remove badge
+await EngineBrowser.interact.badge(3)
+await EngineBrowser.interact.clearBadge()
 ```
 
-| Method | Returns | Notes |
-|--------|---------|-------|
-| `share(data)` | `Promise<boolean>` | Returns false if unavailable or user cancels |
-| `notify(title, opts?)` | `Promise<Notification \| null>` | Auto-requests permission |
-| `vibrate(pattern)` | `boolean` | No-ops on desktop |
-| `pickFile(opts?)` | `Promise<File[] \| null>` | Falls back to `<input type="file">` |
-| `download(name, data, mime?)` | `void` | Works with string or Blob |
-| `fullscreen(el?)` | `Promise<boolean>` | Default: `document.documentElement` |
-| `exitFullscreen()` | `Promise<void>` | No-op if not fullscreen |
-| `wakeLock()` | `Promise<WakeLockSentinel \| null>` | Call `.release()` when done |
-| `location(opts?)` | `Promise<GeolocationPosition \| null>` | Returns null on denial |
-| `lockOrientation(type)` | `Promise<boolean>` | Needs fullscreen on most browsers |
-| `badge(count)` | `Promise<boolean>` | PWA only |
-| `clearBadge()` | `Promise<boolean>` | PWA only |
+Unavailable APIs and rejected permission prompts resolve to their documented
+false/null/no-op result rather than leaking browser-global errors into SSR.
 
-### Media Capture — `EngineBrowser.media`
+## Media
 
 ```ts
-// Camera — front or rear
-const stream = await EngineBrowser.media.camera({ facing: "environment" });
-if (stream) {
-  videoEl.srcObject = stream;
-  // always stop when done to release the device and kill the indicator light:
-  EngineBrowser.media.stop(stream);
-}
+const camera = await EngineBrowser.media.camera({
+	facing: "environment",
+	width: 1920,
+	height: 1080,
+})
 
-// Microphone
-const audioStream = await EngineBrowser.media.microphone();
+const microphone = await EngineBrowser.media.microphone()
+const display = await EngineBrowser.media.screen()
 
-// Screen capture — shows browser's built-in screen/window/tab picker
-const screenStream = await EngineBrowser.media.screen();
+EngineBrowser.media.stop(camera!)
 ```
 
-| Method | Returns | Notes |
-|--------|---------|-------|
-| `camera(opts?)` | `Promise<MediaStream \| null>` | `opts.facing: "user" \| "environment"` |
-| `microphone(opts?)` | `Promise<MediaStream \| null>` | Standard `MediaTrackConstraints` |
-| `screen(opts?)` | `Promise<MediaStream \| null>` | Shows browser's native picker |
-| `stop(stream)` | `void` | Stops all tracks, releases hardware |
+Always stop capture streams when finished. `media.stop()` is defensive: passing
+an already-ended or invalid stream does not turn cleanup into an application
+error.
 
-**Always call `media.stop(stream)`** when done — leaving tracks running keeps the camera/mic indicator active in the browser tab bar.
-
-### Speech — `EngineBrowser.speech`
+## Speech synthesis
 
 ```ts
-// Text-to-speech — resolves when finished
-await EngineBrowser.speech.speak("Hello!", { lang: "en-US", rate: 1.1, pitch: 1 });
+await EngineBrowser.speech.speak("Hello", {
+	lang: "en-US",
+	rate: 1.1,
+	pitch: 1,
+	volume: 1,
+})
 
-// Stop mid-speech
-EngineBrowser.speech.stopSpeaking();
-EngineBrowser.speech.isSpeaking(); // boolean
+EngineBrowser.speech.stopSpeaking()
+EngineBrowser.speech.isSpeaking()
+```
 
-// Speech-to-text — returns final transcript or null
+Ranges are normalized before assigning the native utterance:
+
+| Option | Range |
+|---|---:|
+| `rate` | `0.1` – `10` |
+| `pitch` | `0` – `2` |
+| `volume` | `0` – `1` |
+
+`0` is a valid pitch/volume value and is not discarded by truthiness checks.
+
+Starting a new `speak()` call settles/cancels the previous engine-owned
+utterance first. Calling `stopSpeaking()` also settles the engine-owned promise
+before asking the browser to cancel playback, avoiding promises that hang after
+a cancellation event.
+
+## Speech recognition
+
+```ts
 const text = await EngineBrowser.speech.listen(
-  { lang: "en-US" },
-  (partial) => console.log("Interim:", partial), // optional live transcript callback
-);
-if (text) handleVoiceCommand(text);
-
-EngineBrowser.speech.stopListening();
-
-// Available TTS voices (may be empty on first call — loads async in some browsers)
-const voices = EngineBrowser.speech.voices();
-const japanese = voices.find(v => v.lang === "ja-JP");
-await EngineBrowser.speech.speak("こんにちは", { voice: japanese });
+	{
+		lang: "en-US",
+		interim: true,
+		maxSilence: 4,
+	},
+	(partial) => {
+		console.log(partial)
+	},
+)
 ```
 
-| Method | Returns | Notes |
-|--------|---------|-------|
-| `speak(text, opts?)` | `Promise<void>` | Resolves when speech ends |
-| `stopSpeaking()` | `void` | Cancels in-progress TTS |
-| `isSpeaking()` | `boolean` | True while TTS is active |
-| `listen(opts?, onInterim?)` | `Promise<string \| null>` | Returns final transcript |
-| `stopListening()` | `void` | Cancels active recognition |
-| `voices()` | `SpeechSynthesisVoice[]` | May be empty until async load |
+`maxSilence` is implemented by the facade. The timer starts with recognition and
+is reset as speech/results arrive. On timeout the recognition session is
+stopped and the transcript collected so far is returned.
 
-**`SpeakOptions`:** `voice`, `lang` (BCP 47 e.g. `"en-US"`), `rate` (0.1–10, default 1), `pitch` (0–2, default 1), `volume` (0–1, default 1).
+Only one engine-owned recognition session is active at a time. Starting a new
+`listen()` call aborts and resolves the previous one with `null`. This prevents
+an older `onend`/`onerror` callback from clearing or resolving a newer session.
 
-**`ListenOptions`:** `lang` (BCP 47), `interim` (boolean — enables partial results callback).
-
-### Network — `EngineBrowser.network`
+`stopListening()` aborts the active session and resolves its pending call with
+`null`.
 
 ```ts
-// Snapshot
-const { online, type, downlink, rtt, saveData } = EngineBrowser.network.status();
-
-// Subscribe to changes — returns an unsubscribe function
-const unsubscribe = EngineBrowser.network.onchange((status) => {
-  if (!status.online) showOfflineBanner();
-  if (status.type === "2g" || status.saveData) enableDataSaverMode();
-});
-
-// Cleanup
-unsubscribe();
+EngineBrowser.speech.stopListening()
 ```
 
-`NetworkStatus` fields:
+## Voices
 
-| Field | Type | Source |
-|-------|------|--------|
-| `online` | `boolean` | `navigator.onLine` |
-| `type` | `NetworkType` | Network Information API |
-| `downlink` | `number?` | Bandwidth estimate in Mbit/s |
-| `rtt` | `number?` | Round-trip time in ms |
-| `saveData` | `boolean?` | Data-saver mode active |
+```ts
+const voices = EngineBrowser.speech.voices()
+const japanese = voices.find((voice) => voice.lang === "ja-JP")
+```
 
-`type` values: `"wifi"` | `"ethernet"` | `"4g"` | `"3g"` | `"2g"` | `"slow-2g"` | `"bluetooth"` | `"none"` | `"unknown"`.
+Some browsers populate synthesis voices asynchronously, so an early call can
+legitimately return an empty array.
 
-### React hook
+## Network
+
+```ts
+const status = EngineBrowser.network.status()
+
+const unsubscribe = EngineBrowser.network.onchange((next) => {
+	console.log(next.online, next.type)
+})
+
+// later
+unsubscribe()
+```
+
+`NetworkStatus.type` is normalized to the documented `NetworkType` union.
+Unknown browser-specific strings become `"other"` while offline unknowns become
+`"none"`.
+
+Known values include:
+
+```text
+wifi
+ethernet
+4g
+3g
+2g
+slow-2g
+bluetooth
+wimax
+other
+none
+unknown
+```
+
+## React hook
 
 ```tsx
-import { useBrowser } from "@/engine";
+import { useBrowser } from "nextjs-engine"
 
-function MyComponent() {
-  const browser = useBrowser();  // SSR-safe, updates after mount
-  if (browser.is.safari) return <SafariVariant />;
-  return <StandardVariant />;
+function BrowserAware() {
+	const browser = useBrowser()
+
+	if (browser.is.safari) return <SafariVariant />
+	return <StandardVariant />
 }
 ```
 
----
+The hook keeps the exact server snapshot on the client's first render, then
+updates after mount. This avoids changing feature flags during hydration merely
+because DOM globals became available.
