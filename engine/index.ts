@@ -110,6 +110,24 @@ export { LazyMount, LazySection } from "./components/LazyMount";
 export { CustomSelect } from "./components/CustomSelect";
 export { EngineSuspense } from "./components/EngineSuspense";
 export { EngineForm, EngineInput, EngineTextarea, EngineCheckbox, EngineLabel } from "./components/EngineForms";
+export { EngineDialog, EngineDrawer, EnginePopover } from "./components/EngineOverlay";
+export type {
+	EngineDialogProps,
+	EngineDrawerProps,
+	EngineOverlayAction,
+	EngineOverlayActionVariant,
+	EngineOverlayCommonProps,
+	EngineOverlayOpenChange,
+	EnginePopoverProps,
+} from "./components/EngineOverlay";
+export { computePopoverPosition } from "./core/engineoverlay";
+export type {
+	EnginePopoverAlign,
+	EnginePopoverPlacement,
+	OverlayRect,
+	PopoverPosition,
+	PopoverPositionOptions,
+} from "./core/engineoverlay";
 
 // Networking. File/config loading helpers should be called in server/build paths.
 export { EngineAPIResolver } from "./core/EngineAPIResolver";

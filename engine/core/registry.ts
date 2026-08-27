@@ -17,7 +17,7 @@ const splitComponents = new WeakSet<object>();
 
 // Optional/heavier built-ins are real split points. The loader is not invoked
 // until React actually renders that node, so a primitive-only page does not
-// eagerly evaluate Markdown, Canvas, media, Nav, Forms, or Manim modules.
+// eagerly evaluate Markdown, Canvas, media, Nav, Forms, Manim, or overlays.
 function lazyEngineComponent(
 	loader: () => Promise<{ default: ComponentType<any> }>,
 ): EngineComponent {
@@ -77,6 +77,15 @@ const LazyEngineManim = lazyEngineComponent(() =>
 const LazyEngineManim3D = lazyEngineComponent(() =>
 	import("../components/EngineManim/EngineManim3D").then((module) => ({ default: module.EngineManim3D })),
 );
+const LazyEngineDialog = lazyEngineComponent(() =>
+	import("../components/EngineOverlay/EngineDialog").then((module) => ({ default: module.EngineDialog })),
+);
+const LazyEngineDrawer = lazyEngineComponent(() =>
+	import("../components/EngineOverlay/EngineDrawer").then((module) => ({ default: module.EngineDrawer })),
+);
+const LazyEnginePopover = lazyEngineComponent(() =>
+	import("../components/EngineOverlay/EnginePopover").then((module) => ({ default: module.EnginePopover })),
+);
 
 function buildDefaultRegistry(): ComponentRegistry {
 	const registry: ComponentRegistry = new Map();
@@ -114,6 +123,12 @@ function buildDefaultRegistry(): ComponentRegistry {
 	registry.set("EngineManim",   LazyEngineManim);
 	registry.set("manim3d",       LazyEngineManim3D);
 	registry.set("EngineManim3D", LazyEngineManim3D);
+	registry.set("dialog",        LazyEngineDialog);
+	registry.set("EngineDialog",  LazyEngineDialog);
+	registry.set("drawer",        LazyEngineDrawer);
+	registry.set("EngineDrawer",  LazyEngineDrawer);
+	registry.set("popover",       LazyEnginePopover);
+	registry.set("EnginePopover", LazyEnginePopover);
 	return registry;
 }
 
