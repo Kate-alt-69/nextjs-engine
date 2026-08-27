@@ -15,7 +15,7 @@ import React, {
 	type KeyboardEvent,
 } from "react";
 import type { CustomSelectProps, SelectOption } from "../schema/types";
-import { usePropStyles, cpropClass } from "../hooks/usePropStyles";
+import { useCpropClass, usePropStyles } from "../hooks/usePropStyles";
 import { useHandler } from "../providers/EngineProvider";
 
 const SIZE_CONFIG = {
@@ -293,7 +293,7 @@ export const CustomSelect = memo(function CustomSelect({
 		width: "100%",
 		...style,
 	});
-	const stateClass = cpropClass(cprop);
+	const stateClass = useCpropClass(cprop);
 	const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
 
 	const labelStyle: CSSProperties = {
