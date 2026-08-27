@@ -83,8 +83,11 @@ export {
 	staticEndpoint,
 } from "./core/APIStatic";
 export type {
+	APIStaticEndpointInfo,
+	APIStaticEndpointManifestEntry,
 	APIStaticExecuteOptions,
 	APIStaticInputSchema,
+	APIStaticManifest,
 	APIStaticOperation,
 	APIStaticOptions,
 	APIStaticProxyHandler,

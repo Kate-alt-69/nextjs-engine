@@ -13,6 +13,8 @@ the component page and current TypeScript types.
 | Learn styling and responsive props | [`styling.md`](./styling.md) |
 | Validate/analyze schemas | [`schema-diagnostics.md`](./schema-diagnostics.md) |
 | Build layouts and controls | [`engine-components/primitives.md`](./engine-components/primitives.md) |
+| Build in-house static APIs | [`engine-components/apistatic.md`](./engine-components/apistatic.md) |
+| Configure/call external APIs | [`engine-components/engineapi.md`](./engine-components/engineapi.md) |
 | Understand current runtime/performance behavior | [`runtime-performance.md`](./runtime-performance.md) |
 
 ## Engine components
@@ -30,7 +32,8 @@ the component page and current TypeScript types.
 | EngineHero | [`enginehero.md`](./engine-components/enginehero.md) | Centered/split/full-bleed heroes, responsive backgrounds, parallax |
 | EngineSuspense | [`enginesuspense.md`](./engine-components/enginesuspense.md) | Loading fallbacks and suspense helpers |
 | EngineForms | [`engineforms.md`](./engine-components/engineforms.md) | Native form primitives and named handlers |
-| EngineAPI | [`engineapi.md`](./engine-components/engineapi.md) | Request resolver, auth, `.api` configuration |
+| EngineAPI | [`engineapi.md`](./engine-components/engineapi.md) | HTTP request resolver, auth, `.api` provider configuration |
+| APIStatic | [`apistatic.md`](./engine-components/apistatic.md) | `data/endpoint/**/*.route`, endpoint DSL, discovery manifest, static resolver facade |
 | EngineMobile / Device | [`enginemobile.md`](./engine-components/enginemobile.md) | Server schema patching and device detection |
 
 ## Cross-cutting references
@@ -40,6 +43,8 @@ the component page and current TypeScript types.
 | Styling, responsive values, at-rules, pseudo states | [`styling.md`](./styling.md) |
 | Schema validation/analyzer codes and scope | [`schema-diagnostics.md`](./schema-diagnostics.md) |
 | Runtime, lazy behavior, bundle/runtime performance | [`runtime-performance.md`](./runtime-performance.md) |
+| External API providers and resolver auth | [`engine-components/engineapi.md`](./engine-components/engineapi.md) |
+| Static in-house endpoint programs | [`engine-components/apistatic.md`](./engine-components/apistatic.md) |
 
 ## Abbreviations
 
@@ -56,5 +61,6 @@ the component page and current TypeScript types.
 | ESU | EngineSuspense |
 | EF | EngineForms |
 | EA | EngineAPI |
+| EAS | APIStatic |
 | EMO | EngineMobile |
 | ED | EngineDevice |

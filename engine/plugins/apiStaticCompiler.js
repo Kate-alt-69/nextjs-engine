@@ -42,6 +42,11 @@ function skipQuoted(source, index, quote) {
 			index += 2;
 			continue;
 		}
+		if (quote === "`" && source[index] === "$" && source[index + 1] === "{") {
+			const expressionEnd = findMatching(source, index + 1, "{", "}");
+			index = expressionEnd + 1;
+			continue;
+		}
 		if (source[index] === quote) return index + 1;
 		index += 1;
 	}
@@ -57,6 +62,56 @@ function skipBlockComment(source, index) {
 	const end = source.indexOf("*/", index + 2);
 	if (end === -1) throw new Error("[APIStaticCompiler] Unterminated block comment.");
 	return end + 2;
+}
+
+function previousSignificantIndex(source, index) {
+	let cursor = index - 1;
+	while (cursor >= 0 && /\s/.test(source[cursor])) cursor -= 1;
+	return cursor;
+}
+
+function isRegexStart(source, index) {
+	if (source[index] !== "/" || source[index + 1] === "/" || source[index + 1] === "*") return false;
+	const previousIndex = previousSignificantIndex(source, index);
+	if (previousIndex < 0) return true;
+	const previous = source[previousIndex];
+	if (/[([{,:;=!?&|+\-*%^~<>]/.test(previous)) return true;
+
+	const wordEnd = previousIndex + 1;
+	let wordStart = previousIndex;
+	while (wordStart >= 0 && /[A-Za-z]/.test(source[wordStart])) wordStart -= 1;
+	const word = source.slice(wordStart + 1, wordEnd);
+	return ["return", "throw", "case", "delete", "void", "typeof", "instanceof", "in", "of", "yield", "await"].includes(word);
+}
+
+function skipRegex(source, index) {
+	index += 1;
+	let inClass = false;
+	while (index < source.length) {
+		const char = source[index];
+		if (char === "\\") {
+			index += 2;
+			continue;
+		}
+		if (char === "[") {
+			inClass = true;
+			index += 1;
+			continue;
+		}
+		if (char === "]" && inClass) {
+			inClass = false;
+			index += 1;
+			continue;
+		}
+		if (char === "/" && !inClass) {
+			index += 1;
+			while (/[A-Za-z]/.test(source[index] || "")) index += 1;
+			return index;
+		}
+		if (char === "\n" || char === "\r") break;
+		index += 1;
+	}
+	throw new Error("[APIStaticCompiler] Unterminated regular expression literal.");
 }
 
 function skipTrivia(source, index, allowComma = true) {
@@ -93,6 +148,10 @@ function findMatching(source, openIndex, openChar, closeChar) {
 		}
 		if (source.startsWith("/*", index)) {
 			index = skipBlockComment(source, index) - 1;
+			continue;
+		}
+		if (isRegexStart(source, index)) {
+			index = skipRegex(source, index) - 1;
 			continue;
 		}
 		if (char === openChar) depth += 1;
@@ -149,11 +208,15 @@ function findCreateEndpoint(source) {
 			index = skipBlockComment(source, index);
 			continue;
 		}
+		if (isRegexStart(source, index)) {
+			index = skipRegex(source, index);
+			continue;
+		}
 		if (source.startsWith("createEndpoint", index)) {
 			const before = source[index - 1];
 			const after = source[index + "createEndpoint".length];
-			if (!isIdentifierPart(before) && !isIdentifierPart(after)) {
-				let cursor = skipTrivia(source, index + "createEndpoint".length, false);
+			if (!isIdentifierPart(before) && before !== "." && !isIdentifierPart(after)) {
+				const cursor = skipTrivia(source, index + "createEndpoint".length, false);
 				if (source[cursor] !== "(") throw new Error("[APIStaticCompiler] createEndpoint must be called with (...).");
 				const callEnd = findMatching(source, cursor, "(", ")");
 				return { start: index, open: cursor, end: callEnd + 1 };
@@ -190,12 +253,44 @@ function parseSchema(source, start, end) {
 	return schema;
 }
 
+function stripIgnoredText(source) {
+	const output = source.split("");
+	let index = 0;
+	while (index < source.length) {
+		const char = source[index];
+		let end = index + 1;
+		if (char === '"' || char === "'" || char === "`") end = skipQuoted(source, index, char);
+		else if (source.startsWith("//", index)) end = skipLineComment(source, index);
+		else if (source.startsWith("/*", index)) end = skipBlockComment(source, index);
+		else if (isRegexStart(source, index)) end = skipRegex(source, index);
+		else {
+			index += 1;
+			continue;
+		}
+
+		for (let cursor = index; cursor < end; cursor += 1) {
+			if (output[cursor] !== "\n" && output[cursor] !== "\r") output[cursor] = " ";
+		}
+		index = end;
+	}
+	return output.join("");
+}
+
 function collectFunctionNames(source) {
 	const names = new Set(["proxy", "fetch"]);
-	const pattern = /\b(?:async\s+)?function\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/g;
-	let match;
-	while ((match = pattern.exec(source))) names.add(match[1]);
+	const searchable = stripIgnoredText(source);
+	const declarationPattern = /\b(?:async\s+)?function\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/g;
+	const functionExpressionPattern = /\b(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(?:async\s+)?function\b/g;
+	const arrowPattern = /\b(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(?:async\s*)?(?:\([^)]*\)|[A-Za-z_$][A-Za-z0-9_$]*)\s*=>/g;
+	for (const pattern of [declarationPattern, functionExpressionPattern, arrowPattern]) {
+		let match;
+		while ((match = pattern.exec(searchable))) names.add(match[1]);
+	}
 	return names;
+}
+
+function escapeRegExp(value) {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function transformBracketCalls(expression, functionNames) {
@@ -204,7 +299,7 @@ function transformBracketCalls(expression, functionNames) {
 	while (changed) {
 		changed = false;
 		for (const name of functionNames) {
-			const pattern = new RegExp(`\\b${name.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}\\s*\\[`, "g");
+			const pattern = new RegExp(`\\b${escapeRegExp(name)}\\s*\\[`, "g");
 			let match;
 			while ((match = pattern.exec(output))) {
 				const open = output.indexOf("[", match.index + name.length);
@@ -322,9 +417,10 @@ function parseEndpointArray(source, start, end, functionNames) {
 }
 
 function ensureNoReservedHelperDeclarations(source) {
+	const searchable = stripIgnoredText(source);
 	for (const name of RESERVED_HELPERS) {
-		const pattern = new RegExp(`\\b(?:const|let|var|function|class)\\s+${name}\\b`);
-		if (pattern.test(source)) throw new Error(`[APIStaticCompiler] ${name} is reserved by the .route runtime.`);
+		const pattern = new RegExp(`\\b(?:const|let|var|function|class)\\s+${escapeRegExp(name)}\\b`);
+		if (pattern.test(searchable)) throw new Error(`[APIStaticCompiler] ${name} is reserved by the .route runtime.`);
 	}
 }
 
@@ -363,7 +459,9 @@ function transpileRoute(moduleSource, fileName) {
 	try {
 		typescript = require("typescript");
 	} catch {
-		return moduleSource;
+		throw new Error(
+			"[APIStaticCompiler] TypeScript is required to compile .route files. Install nextjs-engine with its dependencies or add typescript to the project.",
+		);
 	}
 
 	const result = typescript.transpileModule(moduleSource, {
@@ -387,7 +485,7 @@ function transpileRoute(moduleSource, fileName) {
 function compileAPIStaticSource(source, routeId, fileName = `${routeId}.route`) {
 	const normalizedRoute = normalizeRouteId(routeId);
 	const call = findCreateEndpoint(source);
-	let cursor = skipTrivia(source, call.open + 1, false);
+	const cursor = skipTrivia(source, call.open + 1, false);
 	if (source[cursor] !== "[") throw new Error("[APIStaticCompiler] createEndpoint must receive an array: createEndpoint([ ... ]).");
 	const arrayEnd = findMatching(source, cursor, "[", "]");
 	const afterArray = skipTrivia(source, arrayEnd + 1, false);
@@ -421,28 +519,66 @@ function outputPathForRoute(outputDirectory, routeId, hash) {
 	return path.join(outputDirectory, ...segments, `${baseName}-${hash}.js`);
 }
 
+function swapCompiledOutput(stagingDirectory, outputDirectory) {
+	const backupDirectory = `${outputDirectory}.backup-${process.pid}-${Date.now().toString(36)}`;
+	const hadExistingOutput = fs.existsSync(outputDirectory);
+	let backedUp = false;
+	let installed = false;
+
+	try {
+		if (hadExistingOutput) {
+			fs.renameSync(outputDirectory, backupDirectory);
+			backedUp = true;
+		}
+		fs.renameSync(stagingDirectory, outputDirectory);
+		installed = true;
+		if (backedUp) fs.rmSync(backupDirectory, { recursive: true, force: true });
+	} catch (reason) {
+		if (!installed) {
+			if (fs.existsSync(outputDirectory)) fs.rmSync(outputDirectory, { recursive: true, force: true });
+			if (backedUp && fs.existsSync(backupDirectory)) fs.renameSync(backupDirectory, outputDirectory);
+		}
+		throw reason;
+	} finally {
+		if (fs.existsSync(stagingDirectory)) fs.rmSync(stagingDirectory, { recursive: true, force: true });
+		if (installed && fs.existsSync(backupDirectory)) fs.rmSync(backupDirectory, { recursive: true, force: true });
+	}
+}
+
 function compileAPIStaticDir(options = {}) {
 	const projectRoot = options.projectRoot || process.cwd();
 	const endpointDir = path.resolve(projectRoot, options.endpointDir || "data/endpoint");
 	const outputDir = path.resolve(projectRoot, options.outputDir || "public/_static/endpoint");
 	const routeFiles = walkRouteFiles(endpointDir);
 
-	fs.rmSync(outputDir, { recursive: true, force: true });
-	if (routeFiles.length === 0) return [];
-	fs.mkdirSync(outputDir, { recursive: true });
+	if (routeFiles.length === 0) {
+		fs.rmSync(outputDir, { recursive: true, force: true });
+		return [];
+	}
+
+	const stagingDirectory = `${outputDir}.staging-${process.pid}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+	fs.rmSync(stagingDirectory, { recursive: true, force: true });
+	fs.mkdirSync(stagingDirectory, { recursive: true });
 
 	const compiled = [];
-	for (const filePath of routeFiles) {
-		const relative = path.relative(endpointDir, filePath).replace(/\\/g, "/");
-		const routeId = relative.slice(0, -".route".length);
-		const source = fs.readFileSync(filePath, "utf8");
-		const result = compileAPIStaticSource(source, routeId, relative);
-		const destination = outputPathForRoute(outputDir, result.route, result.hash);
-		fs.mkdirSync(path.dirname(destination), { recursive: true });
-		fs.writeFileSync(destination, result.code, "utf8");
-		compiled.push({ route: result.route, hash: result.hash, operations: result.operations, output: destination });
+	try {
+		for (const filePath of routeFiles) {
+			const relative = path.relative(endpointDir, filePath).replace(/\\/g, "/");
+			const routeId = relative.slice(0, -".route".length);
+			const source = fs.readFileSync(filePath, "utf8");
+			const result = compileAPIStaticSource(source, routeId, relative);
+			const stagedDestination = outputPathForRoute(stagingDirectory, result.route, result.hash);
+			const finalDestination = outputPathForRoute(outputDir, result.route, result.hash);
+			fs.mkdirSync(path.dirname(stagedDestination), { recursive: true });
+			fs.writeFileSync(stagedDestination, result.code, "utf8");
+			compiled.push({ route: result.route, hash: result.hash, operations: result.operations, output: finalDestination });
+		}
+		swapCompiledOutput(stagingDirectory, outputDir);
+		return compiled;
+	} catch (reason) {
+		fs.rmSync(stagingDirectory, { recursive: true, force: true });
+		throw reason;
 	}
-	return compiled;
 }
 
 module.exports = {
