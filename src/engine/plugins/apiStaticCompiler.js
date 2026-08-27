@@ -35,6 +35,10 @@ function isIdentifierPart(char) {
 	return /[A-Za-z0-9_$-]/.test(char || "");
 }
 
+function isJavaScriptIdentifierPart(char) {
+	return /[A-Za-z0-9_$]/.test(char || "");
+}
+
 function skipQuoted(source, index, quote) {
 	index += 1;
 	while (index < source.length) {
@@ -293,25 +297,103 @@ function escapeRegExp(value) {
 	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function transformBracketCalls(expression, functionNames) {
-	let output = expression;
-	let changed = true;
-	while (changed) {
-		changed = false;
-		for (const name of functionNames) {
-			const pattern = new RegExp(`\\b${escapeRegExp(name)}\\s*\\[`, "g");
-			let match;
-			while ((match = pattern.exec(output))) {
-				const open = output.indexOf("[", match.index + name.length);
-				const close = findMatching(output, open, "[", "]");
-				const inner = transformBracketCalls(output.slice(open + 1, close), functionNames);
-				output = `${output.slice(0, open)}(${inner})${output.slice(close + 1)}`;
-				changed = true;
-				break;
-			}
-			if (changed) break;
-		}
+function previousSignificantChar(source) {
+	for (let index = source.length - 1; index >= 0; index -= 1) {
+		if (!/\s/.test(source[index])) return source[index];
 	}
+	return "";
+}
+
+function transformTemplateBracketCalls(source, index, functionNames) {
+	let output = "`";
+	index += 1;
+
+	while (index < source.length) {
+		if (source[index] === "\\") {
+			output += source.slice(index, index + 2);
+			index += 2;
+			continue;
+		}
+		if (source[index] === "`") {
+			return { code: `${output}\``, end: index + 1 };
+		}
+		if (source[index] === "$" && source[index + 1] === "{") {
+			const close = findMatching(source, index + 1, "{", "}");
+			const inner = transformBracketCalls(source.slice(index + 2, close), functionNames);
+			output += "${" + inner + "}";
+			index = close + 1;
+			continue;
+		}
+		output += source[index];
+		index += 1;
+	}
+
+	throw new Error("[APIStaticCompiler] Unterminated template literal.");
+}
+
+function transformBracketCalls(expression, functionNames) {
+	let output = "";
+	let index = 0;
+
+	while (index < expression.length) {
+		const char = expression[index];
+
+		if (char === '"' || char === "'") {
+			const end = skipQuoted(expression, index, char);
+			output += expression.slice(index, end);
+			index = end;
+			continue;
+		}
+		if (char === "`") {
+			const transformed = transformTemplateBracketCalls(expression, index, functionNames);
+			output += transformed.code;
+			index = transformed.end;
+			continue;
+		}
+		if (expression.startsWith("//", index)) {
+			const end = skipLineComment(expression, index);
+			output += expression.slice(index, end);
+			index = end;
+			continue;
+		}
+		if (expression.startsWith("/*", index)) {
+			const end = skipBlockComment(expression, index);
+			output += expression.slice(index, end);
+			index = end;
+			continue;
+		}
+		if (isRegexStart(expression, index)) {
+			const end = skipRegex(expression, index);
+			output += expression.slice(index, end);
+			index = end;
+			continue;
+		}
+		if (!isIdentifierStart(char)) {
+			output += char;
+			index += 1;
+			continue;
+		}
+
+		const start = index;
+		index += 1;
+		while (isJavaScriptIdentifierPart(expression[index])) index += 1;
+		const name = expression.slice(start, index);
+		let bracketIndex = index;
+		while (/\s/.test(expression[bracketIndex] || "")) bracketIndex += 1;
+		const previous = previousSignificantChar(output);
+		const isBareCallable = functionNames.has(name) && previous !== ".";
+
+		if (isBareCallable && expression[bracketIndex] === "[") {
+			const close = findMatching(expression, bracketIndex, "[", "]");
+			const inner = transformBracketCalls(expression.slice(bracketIndex + 1, close), functionNames);
+			output += `${name}${expression.slice(index, bracketIndex)}(${inner})`;
+			index = close + 1;
+			continue;
+		}
+
+		output += name;
+	}
+
 	return output;
 }
 

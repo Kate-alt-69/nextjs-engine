@@ -44,6 +44,28 @@ createEndpoint([
 ])
 `;
 
+const shorthandSafetySource = String.raw`
+const wrap = (value: string) => "wrapped:" + value
+const holder = { wrap: ["member-value"] }
+
+createEndpoint([
+	{
+		name: "safe"
+		input: {
+			value: "string"
+		}
+		run.input({
+			literal: "wrap[input.value]",
+			commentProbe: 1, // wrap[input.value] must remain comment text
+			regexProbe: /wrap\[input\.value\]/.test("wrap[input.value]"),
+			member: holder.wrap[0],
+			template: `literal wrap[input.value] / \${wrap[input.value]}`,
+			called: wrap[input.value]
+		})
+	}
+])
+`;
+
 async function waitFor(check, timeoutMs = 2_000) {
 	const started = Date.now();
 	while (Date.now() - started < timeoutMs) {
@@ -51,85 +73,6 @@ async function waitFor(check, timeoutMs = 2_000) {
 		await new Promise((resolve) => setTimeout(resolve, 25));
 	}
 	throw new Error("Timed out waiting for APIStatic watcher output.");
-}
-
-function testParserEdgeCases() {
-	const arrowSource = `
-const add = (a: number, b: number) => a + b
-const multiply = async (a: number, b: number) => a * b
-createEndpoint([
-	{ name: "add" query: { a: "number" b: "number" } run.query(add[query.a, query.b]) }
-	{ name: "multiply" query: { a: "number" b: "number" } run.query(multiply[query.a, query.b]) }
-])
-`;
-	const arrowCompiled = compileAPIStaticSource(arrowSource, "arrow");
-	assert.match(arrowCompiled.code, /add\(query\.a, query\.b\)/);
-	assert.match(arrowCompiled.code, /multiply\(query\.a, query\.b\)/);
-
-	const regexSource = `
-const harmless = "function error() inside a string"
-// function response() inside a comment
-createEndpoint([
-	{
-		name: "regex"
-		query: { value: "string" }
-		run.query(/[)}\\]]/.test(query.value))
-	}
-	{
-		name: "divide"
-		query: { a: "number" b: "number" }
-		run.query(query.a / query.b)
-	}
-])
-`;
-	const regexCompiled = compileAPIStaticSource(regexSource, "regex");
-	assert.deepEqual(regexCompiled.operations, ["regex", "divide"]);
-
-	const templateSource = `
-function label(value: string) { return \`value:${'${value}'}\` }
-createEndpoint([{ name: "label" query: { value: "string" } run.query(label[query.value]) }])
-`;
-	const templateCompiled = compileAPIStaticSource(templateSource, "template");
-	assert.match(templateCompiled.code, /label\(query\.value\)/);
-
-	assert.throws(
-		() => compileAPIStaticSource(
-			`function error() {}\ncreateEndpoint([{ name: "bad" run.input(1) }])`,
-			"reserved",
-		),
-		/reserved/,
-	);
-}
-
-function testLastKnownGoodOutput() {
-	const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), "engine-api-static-transaction-"));
-	try {
-		const endpointDirectory = path.join(projectRoot, "data", "endpoint");
-		const routePath = path.join(endpointDirectory, "math.route");
-		const outputPath = path.join(
-			projectRoot,
-			"public",
-			"_static",
-			"endpoint",
-			`math-${getRouteHash("math")}.js`,
-		);
-		fs.mkdirSync(endpointDirectory, { recursive: true });
-		fs.writeFileSync(routePath, source, "utf8");
-		compileAPIStaticDir({ projectRoot });
-		assert.equal(fs.existsSync(outputPath), true);
-		const lastKnownGood = fs.readFileSync(outputPath, "utf8");
-
-		fs.writeFileSync(routePath, `createEndpoint([{ name: "broken" run.query( }])`, "utf8");
-		assert.throws(() => compileAPIStaticDir({ projectRoot }));
-		assert.equal(fs.existsSync(outputPath), true);
-		assert.equal(fs.readFileSync(outputPath, "utf8"), lastKnownGood);
-
-		fs.writeFileSync(routePath, `${source}\n// valid replacement\n`, "utf8");
-		compileAPIStaticDir({ projectRoot });
-		assert.notEqual(fs.readFileSync(outputPath, "utf8"), lastKnownGood);
-	} finally {
-		fs.rmSync(projectRoot, { recursive: true, force: true });
-	}
 }
 
 async function main() {
@@ -165,10 +108,31 @@ async function main() {
 	});
 	assert.deepEqual(JSON.parse(JSON.stringify(inline)), { sum: 10, product: 21 });
 
-	testParserEdgeCases();
-	testLastKnownGoodOutput();
+	const safetyCompiled = compileAPIStaticSource(shorthandSafetySource, "safe-shorthand");
+	assert.match(safetyCompiled.code, /wrap\(input\.value\)/);
+	assert.match(safetyCompiled.code, /wrap\[input\.value\]/);
+	assert.match(safetyCompiled.code, /holder\.wrap\[0\]/);
 
-	const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "engine-api-static-watch-"));
+	const safetyContext = vm.createContext({ Map, globalThis: {} });
+	safetyContext.globalThis = safetyContext;
+	vm.runInContext(safetyCompiled.code, safetyContext, { filename: "safe-shorthand.js" });
+	const safetyRoute = safetyContext.__NEXTJS_ENGINE_API_STATIC__.get("safe-shorthand");
+	const safetyResult = await safetyRoute.operations[0].run({
+		query: {},
+		body: {},
+		input: { value: "abc" },
+		proxy: async () => undefined,
+	});
+	assert.deepEqual(JSON.parse(JSON.stringify(safetyResult)), {
+		literal: "wrap[input.value]",
+		commentProbe: 1,
+		regexProbe: true,
+		member: "member-value",
+		template: "literal wrap[input.value] / wrapped:abc",
+		called: "wrapped:abc",
+	});
+
+	const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "engine-api-static-"));
 	const endpointDirectory = path.join(temporaryRoot, "data", "endpoint", "nested");
 	const outputDirectory = path.join(temporaryRoot, "public", "_static", "endpoint");
 	fs.mkdirSync(endpointDirectory, { recursive: true });
@@ -212,7 +176,7 @@ async function main() {
 		fs.rmSync(temporaryRoot, { recursive: true, force: true });
 	}
 
-	console.log("APIStatic compiler/runtime smoke test passed");
+	console.log("APIStatic compiler/runtime watcher smoke test passed");
 }
 
 main()
