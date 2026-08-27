@@ -35,6 +35,26 @@ function encodeAssetPath(value: string): string {
 	return value.split("/").map((segment) => encodeURIComponent(segment)).join("/");
 }
 
+function artifactCacheKey(
+	basePath: string,
+	entry: EngineShaderManifestEntry,
+): string {
+	return `${basePath}\n${entry.hash}\n${entry.file}`;
+}
+
+function pruneArtifactCache(
+	manifest: EngineShaderManifest,
+	basePath: string,
+): void {
+	const prefix = `${basePath}\n`;
+	const keep = new Set(
+		Object.values(manifest.shaders).map((entry) => artifactCacheKey(basePath, entry)),
+	);
+	for (const key of artifactCache.keys()) {
+		if (key.startsWith(prefix) && !keep.has(key)) artifactCache.delete(key);
+	}
+}
+
 async function fetchManifest(force = false, basePath = DEFAULT_BASE_PATH): Promise<EngineShaderManifest> {
 	if (!force && manifestCache) return manifestCache;
 	if (!force && manifestPromise) return manifestPromise;
@@ -49,6 +69,7 @@ async function fetchManifest(force = false, basePath = DEFAULT_BASE_PATH): Promi
 			throw new Error("[EngineShader] Invalid shader manifest.");
 		}
 		manifestCache = manifest;
+		pruneArtifactCache(manifest, basePath);
 		return manifest;
 	})();
 	if (!force) manifestPromise = request;
@@ -66,7 +87,9 @@ function decodeRenderPlan(buffer: ArrayBuffer): EngineShaderRenderPlan {
 	if (magic !== "ESH1") throw new Error(`[EngineShader] Unsupported shader artifact header: ${magic}`);
 	const view = new DataView(buffer);
 	const payloadLength = view.getUint32(4, true);
-	if (payloadLength !== bytes.byteLength - 8) throw new Error("[EngineShader] Compiled shader payload length is invalid.");
+	if (payloadLength !== bytes.byteLength - 8) {
+		throw new Error("[EngineShader] Compiled shader payload length is invalid.");
+	}
 	const plan = JSON.parse(new TextDecoder().decode(bytes.subarray(8))) as EngineShaderRenderPlan;
 	if (!plan || plan.version !== 1 || !plan.vertex || !plan.fragment) {
 		throw new Error("[EngineShader] Invalid compiled shader render plan.");
@@ -82,8 +105,10 @@ export async function loadEngineShader(
 	const basePath = options.basePath ?? DEFAULT_BASE_PATH;
 	const manifest = await fetchManifest(options.forceManifest === true, basePath);
 	const entry = manifest.shaders[logicalName];
-	if (!entry) throw new Error(`[EngineShader] Shader "${logicalName}" was not found under data/shader/public.`);
-	const cacheKey = `${basePath}\n${entry.hash}\n${entry.file}`;
+	if (!entry) {
+		throw new Error(`[EngineShader] Shader "${logicalName}" was not found under data/shader/public.`);
+	}
+	const cacheKey = artifactCacheKey(basePath, entry);
 	let pending = artifactCache.get(cacheKey);
 	if (!pending) {
 		pending = (async () => {
@@ -110,14 +135,17 @@ async function pollHotShaders(): Promise<void> {
 			for (const listener of listeners) listener();
 		}
 	} catch (reason) {
-		if (process.env.NODE_ENV !== "production") console.warn("[EngineShader] Hot refresh failed.", reason);
+		if (process.env.NODE_ENV !== "production") {
+			console.warn("[EngineShader] Hot refresh failed.", reason);
+		}
 	}
 }
 
 function syncHotTimer(): void {
 	if (!isDevelopment() || typeof window === "undefined") return;
-	if (hotListeners.size > 0 && !hotTimer) hotTimer = setInterval(() => void pollHotShaders(), DEV_POLL_MS);
-	else if (hotListeners.size === 0 && hotTimer) {
+	if (hotListeners.size > 0 && !hotTimer) {
+		hotTimer = setInterval(() => void pollHotShaders(), DEV_POLL_MS);
+	} else if (hotListeners.size === 0 && hotTimer) {
 		clearInterval(hotTimer);
 		hotTimer = null;
 	}
