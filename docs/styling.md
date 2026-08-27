@@ -33,6 +33,26 @@ The engine compiles responsive values to CSS custom properties plus media
 queries. The browser performs breakpoint selection; there is no JS resize loop
 for these props.
 
+Only explicitly supplied breakpoints produce CSS declarations. CSS cascade keeps
+a value active until a later explicit breakpoint overrides it, so this:
+
+```ts
+px: { xs: 16, md: 32 }
+```
+
+emits one base declaration and one `md` media override — it does **not** repeat
+the `xs` value at `sm` or the `md` value again at `lg`, `xl`, and `2xl`.
+
+A responsive map does not cascade backward. If `xs` is omitted:
+
+```ts
+px: { md: 32 }
+```
+
+then the responsive variable is intentionally undefined below `md`, so the
+property is not forced on `xs`/`sm`. This is different from supplying
+`{ xs: 32 }`, which applies from the base breakpoint upward.
+
 Current responsive surface props include:
 
 - `bg` / `background`
@@ -55,8 +75,9 @@ be supplied as a scalar. The TypeScript type is the contract.
 
 ## First-paint fallback
 
-Responsive variables include their base value as a `var()` fallback. The same
-rule applies to base properties in `style` objects that contain at-rules.
+Scalar responsive variables and breakpoint maps with an explicit `xs` value
+include that base value as a `var()` fallback. The same rule applies to base
+properties in `style` objects that contain at-rules.
 
 Conceptually:
 
@@ -75,6 +96,23 @@ The fallback is intentional. During SSG or client navigation the collected
 stylesheet can be parsed after the element itself. Without a fallback, an
 undefined background variable can temporarily become the browser default and
 produce a white flash.
+
+When a responsive map intentionally omits `xs`, the engine does **not** borrow a
+later breakpoint as the fallback. Doing so would incorrectly apply an `md`/`lg`
+value on smaller screens. Such maps use `var(--name)` without a base fallback and
+become valid when their first matching media rule applies.
+
+## Responsive resolver caching
+
+Responsive maps are serialized in canonical breakpoint order before memoization,
+so semantically identical objects do not generate duplicate variables merely
+because their JavaScript key insertion order differs. The cache identity also
+includes whether a value uses spacing normalization, keeping raw and normalized
+requests independent.
+
+Generated responsive variable ids use the full paired resolver hash rather than
+the older five-character truncation, substantially reducing accidental variable
+name collision risk on large pages.
 
 ## Direct CSS props
 
