@@ -2,11 +2,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  Engine — EngineProvider
 //
-//  Root React context for the engine. Carries:
-//    · Engine config (breakpoints, spacing scale, content max-width)
-//    · Page-level handler registry (onClick callbacks by name)
-//    · Style collector reference (server-only writes, client reads)
-//    · Page-level props / slots
+//  Root React context for the engine. Carries config, handlers, slots, and the
+//  style collector currently used by generated engine styles.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, {
@@ -15,22 +12,20 @@ import React, {
 	useMemo,
 	type ReactNode,
 } from "react";
-import { StyleCollector } from "../core/StyleCollector";
+import { globalStyleCollector, StyleCollector } from "../core/StyleCollector";
 import {
 	type EngineConfig,
 	BREAKPOINTS,
 	type Breakpoint,
 } from "../schema/types";
 
-// ── Context shape ─────────────────────────────────────────────────────────────
-
 export interface EngineContextValue {
 	config: Required<EngineConfig>;
-	/** Named event handlers — keyed by string matching SchemaNode onClick prop */
+	/** Named event handlers — keyed by string matching SchemaNode handler props. */
 	handlers: Record<string, (...args: unknown[]) => void>;
-	/** Named slot content — keyed by string matching SlotProps.name */
+	/** Named slot content — keyed by string matching SlotProps.name. */
 	slots: Record<string, ReactNode>;
-	/** Style collector (server-only write path) */
+	/** Collector used by the current engine style pipeline. */
 	styleCollector: StyleCollector;
 }
 
@@ -45,10 +40,8 @@ const EngineContext = createContext<EngineContextValue>({
 	config: DEFAULT_CONFIG,
 	handlers: {},
 	slots: {},
-	styleCollector: new StyleCollector(),
+	styleCollector: globalStyleCollector,
 });
-
-// ── Provider ──────────────────────────────────────────────────────────────────
 
 export interface EngineProviderProps {
 	config?: EngineConfig;
@@ -65,10 +58,10 @@ export function EngineProvider({
 	styleCollector,
 	children,
 }: EngineProviderProps) {
-	const collector = useMemo(
-		() => styleCollector ?? new StyleCollector(),
-		[styleCollector],
-	);
+	// Generated style helpers still use the process-level collector today. Point
+	// the context at that real collector by default instead of allocating a new
+	// unused StyleCollector for every provider instance.
+	const collector = styleCollector ?? globalStyleCollector;
 
 	const mergedConfig = useMemo<Required<EngineConfig>>(
 		() => ({
@@ -94,8 +87,6 @@ export function EngineProvider({
 	);
 }
 
-// ── Hooks ─────────────────────────────────────────────────────────────────────
-
 export function useEngineContext(): EngineContextValue {
 	return useContext(EngineContext);
 }
@@ -112,46 +103,63 @@ export function useSlot(name: string): ReactNode | undefined {
 	return useContext(EngineContext).slots[name];
 }
 
-// ── Breakpoint-aware context hook ─────────────────────────────────────────────
+// ── Shared viewport-width subscription ────────────────────────────────────────
+
+const viewportSubscribers = new Set<() => void>();
+let viewportListenerAttached = false;
+
+function readViewportWidth(): number {
+	return typeof window === "undefined" ? 0 : window.innerWidth;
+}
+
+function notifyViewportSubscribers(): void {
+	for (const subscriber of [...viewportSubscribers]) subscriber();
+}
+
+function subscribeViewportWidth(subscriber: () => void): () => void {
+	if (typeof window === "undefined") return () => undefined;
+	viewportSubscribers.add(subscriber);
+
+	if (!viewportListenerAttached) {
+		viewportListenerAttached = true;
+		window.addEventListener("resize", notifyViewportSubscribers, { passive: true });
+	}
+
+	return () => {
+		viewportSubscribers.delete(subscriber);
+		if (viewportSubscribers.size === 0 && viewportListenerAttached) {
+			window.removeEventListener("resize", notifyViewportSubscribers);
+			viewportListenerAttached = false;
+		}
+	};
+}
+
+const breakpointOrder: Breakpoint[] = ["xs", "sm", "md", "lg", "xl", "2xl"];
 
 /**
  * Returns the current active breakpoint.
  * SSR-safe: returns "xs" on the server / before hydration.
- * Updates on resize via a passive listener.
+ * All hook instances share one passive window resize listener.
  */
 export function useBreakpoint(): Breakpoint {
 	const { config } = useContext(EngineContext);
-	const [bp, setBp] = React.useState<Breakpoint>("xs");
+	const width = React.useSyncExternalStore(
+		subscribeViewportWidth,
+		readViewportWidth,
+		() => 0,
+	);
+	const breakpoints = config.breakpoints;
 
-	React.useEffect(() => {
-		function getBreakpoint(w: number): Breakpoint {
-			const bps = config.breakpoints;
-			if (w >= (bps["2xl"] ?? 1536)) return "2xl";
-			if (w >= (bps.xl ?? 1280)) return "xl";
-			if (w >= (bps.lg ?? 1024)) return "lg";
-			if (w >= (bps.md ?? 768)) return "md";
-			if (w >= (bps.sm ?? 640)) return "sm";
-			return "xs";
-		}
-
-		function update() {
-			setBp(getBreakpoint(window.innerWidth));
-		}
-
-		update();
-		window.addEventListener("resize", update, { passive: true });
-		return () => window.removeEventListener("resize", update);
-	}, [config.breakpoints]);
-
-	return bp;
+	if (width >= (breakpoints["2xl"] ?? 1536)) return "2xl";
+	if (width >= (breakpoints.xl ?? 1280)) return "xl";
+	if (width >= (breakpoints.lg ?? 1024)) return "lg";
+	if (width >= (breakpoints.md ?? 768)) return "md";
+	if (width >= (breakpoints.sm ?? 640)) return "sm";
+	return "xs";
 }
 
-/**
- * Returns true if the current viewport is at or above the given breakpoint.
- * SSR-safe: returns false until hydrated.
- */
+/** Returns true if the current viewport is at or above the target breakpoint. */
 export function useMinBreakpoint(target: Breakpoint): boolean {
 	const current = useBreakpoint();
-	const order: Breakpoint[] = ["xs", "sm", "md", "lg", "xl", "2xl"];
-	return order.indexOf(current) >= order.indexOf(target);
+	return breakpointOrder.indexOf(current) >= breakpointOrder.indexOf(target);
 }

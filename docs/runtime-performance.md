@@ -54,7 +54,11 @@ EngineScroll has no intentional permanent idle RAF loop. Native scroll/resize
 work is coalesced into its BrowserScheduler. Programmatic smooth movement starts
 that scheduler itself and keeps requesting frames only while animation is active.
 
-## Lazy rendering
+Schema `point` props register their actual mounted element with the point manager.
+A node may keep a different DOM `id`; the point remains a semantic alias and is
+refreshed from current layout before navigation.
+
+## Lazy rendering and observer pooling
 
 Lazy decisions are conservative:
 
@@ -68,6 +72,22 @@ Lazy decisions are conservative:
 
 `LazyMount.rootMargin` is passed to its actual IntersectionObserver. It is not a
 documentation-only tuning value.
+
+`useInView()` does not allocate one native `IntersectionObserver` per hook.
+Instances with the same root, root margin, and threshold share one observer and
+keep per-element listeners in the Engine pool. When the final element leaves a
+pool, the native observer is disconnected and removed. This keeps pages with
+large lazy lists from multiplying identical native observers.
+
+`once: true` unregisters only the intersected element after its first hit; it does
+not disconnect the shared observer while other elements still depend on it.
+
+## Responsive hook listener ownership
+
+All `useBreakpoint()` / `useMinBreakpoint()` instances share one passive window
+`resize` listener through `useSyncExternalStore`. Components still receive normal
+React updates when the viewport width changes, but adding another breakpoint
+consumer no longer adds another DOM resize listener.
 
 ## Images and video
 
@@ -93,9 +113,10 @@ builds from re-running package resolution for no reason.
 The main CI workflow currently performs:
 
 1. dependency install;
-2. TypeScript check;
-3. optimized Next.js integration build;
-4. client chunk inventory from the configured `dist/static/chunks` output.
+2. APIStatic and EngineBrowser regression smoke tests;
+3. TypeScript check;
+4. optimized Next.js integration build;
+5. client chunk inventory from the configured `dist/static/chunks` output.
 
 The repository uses `distDir: "dist"`; tooling must not assume `.next`.
 
@@ -106,12 +127,20 @@ Most generated style helpers still write through the process-level
 `createComponent()` no longer resets it from inside a nested render because that
 could erase CSS already collected by a parent page.
 
+`EngineProvider` now points its default context value at the real global collector
+instead of allocating a fresh collector that generated style helpers would never
+write to. This removes dead per-provider allocations, but it does **not** solve
+request isolation by itself.
+
 Full per-request style-collector isolation is still a larger architectural item.
 Do not interpret current style deduplication as a guarantee that the global
 collector is concurrency-isolated across every possible server rendering model.
 
-This limitation is documented deliberately instead of claiming the optimizer
-has already solved something it has not.
+There is also a remaining output concern around nested `createComponent()` style
+emission: until collector ownership is redesigned, repeated component boundaries
+must be audited for duplicate serialization of already-collected CSS. This is
+tracked as an architecture/performance issue rather than being hidden behind an
+unsupported quick fix.
 
 ## Measuring instead of guessing
 
