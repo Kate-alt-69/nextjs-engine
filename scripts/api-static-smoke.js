@@ -44,27 +44,27 @@ createEndpoint([
 ])
 `;
 
-const shorthandSafetySource = String.raw`
-const wrap = (value: string) => "wrapped:" + value
-const holder = { wrap: ["member-value"] }
-
-createEndpoint([
-	{
-		name: "safe"
-		input: {
-			value: "string"
-		}
-		run.input({
-			literal: "wrap[input.value]",
-			commentProbe: 1, // wrap[input.value] must remain comment text
-			regexProbe: /wrap\[input\.value\]/.test("wrap[input.value]"),
-			member: holder.wrap[0],
-			template: `literal wrap[input.value] / \${wrap[input.value]}`,
-			called: wrap[input.value]
-		})
-	}
-])
-`;
+const shorthandSafetySource = [
+	'const wrap = (value: string) => "wrapped:" + value',
+	'const holder = { wrap: ["member-value"] }',
+	'',
+	'createEndpoint([',
+	'\t{',
+	'\t\tname: "safe"',
+	'\t\tinput: {',
+	'\t\t\tvalue: "string"',
+	'\t\t}',
+	'\t\trun.input({',
+	'\t\t\tliteral: "wrap[input.value]",',
+	'\t\t\tcommentProbe: 1, // wrap[input.value] must remain comment text',
+	'\t\t\tregexProbe: /wrap\\[input\\.value\\]/.test("wrap[input.value]"),',
+	'\t\t\tmember: holder.wrap[0],',
+	'\t\t\ttemplate: `literal wrap[input.value] / ${wrap[input.value]}`,',
+	'\t\t\tcalled: wrap[input.value]',
+	'\t\t})',
+	'\t}',
+	'])',
+].join("\n");
 
 async function waitFor(check, timeoutMs = 2_000) {
 	const started = Date.now();
