@@ -12,13 +12,13 @@ import {
 	type SchemaNode,
 } from "../schema/types";
 import type { EngineShaderInput } from "./engineshader/EngineShaderTypes";
+import type { StyleCollector } from "./StyleCollector";
 import { getComponent, isSplitComponent } from "./registry";
 import { validatePageSchema } from "./validateSchema";
 import { decideLazy } from "./lazyDetect";
-import { globalStyleCollector } from "./StyleCollector";
 import { EngineScrollPointManager } from "./enginescroll";
 import { LazyMount, LazySection } from "../components/LazyMount";
-import { useSlot } from "../providers/EngineProvider";
+import { useSlot, useStyleCollector } from "../providers/EngineProvider";
 
 interface VisibilityRule {
 	className: string;
@@ -97,7 +97,10 @@ function PointRegistration({ name, domId }: { name: string; domId: string }) {
 	return null;
 }
 
-function buildVisibilityClass(props: Record<string, unknown>): string | undefined {
+function buildVisibilityClass(
+	props: Record<string, unknown>,
+	styleCollector: StyleCollector,
+): string | undefined {
 	const hideOn = Array.isArray(props.hideOn) ? props.hideOn as Breakpoint[] : [];
 	const showOnly = Array.isArray(props.showOnly) ? props.showOnly as Breakpoint[] : [];
 	if (hideOn.length === 0 && showOnly.length === 0) return undefined;
@@ -134,7 +137,7 @@ function buildVisibilityClass(props: Record<string, unknown>): string | undefine
 		visibilityRuleCache.set(signature, cachedRule);
 	}
 
-	globalStyleCollector.add(cachedRule.css);
+	styleCollector.add(cachedRule.css);
 	return cachedRule.className;
 }
 
@@ -191,6 +194,8 @@ interface NodeRendererProps {
 }
 
 function NodeRenderer({ node, depth, path }: NodeRendererProps) {
+	const styleCollector = useStyleCollector();
+
 	if (node.type === "slot") {
 		const props = (node.props ?? {}) as { name?: string; fallback?: SchemaNode };
 		return (
@@ -238,9 +243,9 @@ function NodeRenderer({ node, depth, path }: NodeRendererProps) {
 	// Layer-capable surfaces consume `shader` here. Canvas owns its shader
 	// directly, and custom components keep unrelated props named `shader`.
 	if (hasLayerShader) delete componentProps.shader;
-	if (hasLayerShader) globalStyleCollector.add(SHADER_PENDING_CSS);
+	if (hasLayerShader) styleCollector.add(SHADER_PENDING_CSS);
 
-	const visibilityClass = buildVisibilityClass(originalProps);
+	const visibilityClass = buildVisibilityClass(originalProps, styleCollector);
 	const originalClassName = typeof originalProps.className === "string" ? originalProps.className : undefined;
 	const mergedClassName = [
 		originalClassName,
