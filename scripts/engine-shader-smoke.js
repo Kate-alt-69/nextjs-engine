@@ -101,6 +101,39 @@ shader <= ordered => [
 const orderedPlan = compileEngineShaderSource(orderedSource, "ordered");
 assert.ok(orderedPlan.fragment.indexOf("e_hash(floor(gl_FragCoord.xy))") < orderedPlan.fragment.indexOf("floor(color*max(12.0"));
 
+const deadPassSource = `
+shader <= deadPass => [
+	before.gradient => [
+		colors => [#000000 #ffffff]
+	]
+	after.used => [
+		use => palette
+		colors => 8
+	]
+	after.orphan => [
+		use => dither
+		strength => .91
+		position <= pointer.x
+	]
+	overlay.orphanGrain => [
+		use => grain
+		strength => .73
+		time <= system.time
+	]
+	frame.color => after.used
+	after.used => screen
+]
+`;
+const deadPassPlan = compileEngineShaderSource(deadPassSource, "dead-pass");
+assert.strictEqual(deadPassPlan.execution, "static");
+assert.deepStrictEqual(deadPassPlan.dependencies, []);
+assert.ok(!deadPassPlan.fragment.includes("0.91"));
+assert.ok(!deadPassPlan.fragment.includes("0.73"));
+assert.deepStrictEqual(deadPassPlan.flows, [
+	{ from: "frame.color", to: "after.used" },
+	{ from: "after.used", to: "screen" },
+]);
+
 assert.throws(() => compileEngineShaderSource(`
 shader <= invalid => [
 	before.gradient => [
@@ -139,6 +172,22 @@ shader <= invalidFlow => [
 	after.two => after.one
 ]
 `, "invalid-flow"), /render graph contains a cycle/);
+
+assert.throws(() => compileEngineShaderSource(`
+shader <= invalidDeadEffect => [
+	before.gradient => [
+		colors => [#000000 #ffffff]
+	]
+	after.bad => [
+		use => definitely-not-an-effect
+	]
+	after.good => [
+		use => palette
+	]
+	frame.color => after.good
+	after.good => screen
+]
+`, "invalid-dead-effect"), /unsupported after effect/);
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "engine-shader-"));
 try {
