@@ -8,19 +8,19 @@ modules so `next/headers` does not leak into the browser module graph.
 
 ```ts
 export default createPage({
-  schema: MySchema,
-  mobile: [
-    {
-      "children#desktop-nav": {
-        cprop: { hide: true },
-      },
-    },
-    {
-      "children#feature-grid": {
-        props: { columns: 1 },
-      },
-    },
-  ],
+	schema: MySchema,
+	mobile: [
+		{
+			"children#desktop-nav": {
+				cprop: { hide: true },
+			},
+		},
+		{
+			"children#feature-grid": {
+				props: { columns: 1 },
+			},
+		},
+	],
 });
 ```
 
@@ -37,9 +37,9 @@ Use `SchemaNode.name` as a stable patch target:
 
 ```ts
 {
-  type: "grid",
-  name: "feature-grid",
-  props: { columns: 3 },
+	type: "grid",
+	name: "feature-grid",
+	props: { columns: 3 },
 }
 ```
 
@@ -47,7 +47,7 @@ Selectors:
 
 | Selector | Meaning |
 |---|---|
-| `"children#feature-grid"` | Find the named node anywhere in the tree |
+| `"children#feature-grid"` | Find named nodes anywhere in the tree |
 | `"#feature-grid"` | Short form |
 
 Patch directives:
@@ -59,6 +59,11 @@ Patch directives:
 
 Unmatched selectors produce development-only warnings with a close-name
 suggestion where possible.
+
+Names are not required to be globally unique, but a selector is intentionally
+applied to **every** node with that name. `analyzeSchema()` emits W007 when it
+finds a duplicate name so accidental multi-target patches are visible before
+runtime. Use unique names when a patch is supposed to affect one node only.
 
 ## Device imports
 
@@ -98,12 +103,12 @@ published package, the equivalent implementation is
 
 ```ts
 interface DeviceInfo {
-  isMobile: boolean;
-  isTablet: boolean;
-  isDesktop: boolean;
-  os: "ios" | "android" | "windows-phone" | "desktop" | "other";
-  brand: DeviceBrand;
-  type: string;
+	isMobile: boolean;
+	isTablet: boolean;
+	isDesktop: boolean;
+	os: "ios" | "android" | "windows-phone" | "desktop" | "other";
+	brand: DeviceBrand;
+	type: string;
 }
 ```
 

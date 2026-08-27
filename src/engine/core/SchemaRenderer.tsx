@@ -3,7 +3,7 @@
 //  Engine — SchemaRenderer
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { memo, type CSSProperties, type ReactNode } from "react";
+import React, { memo, useEffect, type CSSProperties, type ReactNode } from "react";
 import {
 	BREAKPOINTS,
 	BREAKPOINT_ORDER,
@@ -15,8 +15,16 @@ import { getComponent } from "./registry";
 import { validatePageSchema } from "./validateSchema";
 import { decideLazy } from "./lazyDetect";
 import { globalStyleCollector } from "./StyleCollector";
+import { EngineScrollPointManager } from "./enginescroll";
 import { LazyMount, LazySection } from "../components/LazyMount";
 import { useSlot } from "../providers/EngineProvider";
+
+interface VisibilityRule {
+	className: string;
+	css: string;
+}
+
+const visibilityRuleCache = new Map<string, VisibilityRule>();
 
 function shortHash(value: string): string {
 	let hashValue = 5381;
@@ -53,6 +61,22 @@ function SlotNode({ name, fallback, depth }: { name: string; fallback?: SchemaNo
 	return null;
 }
 
+function PointRegistration({ name, domId }: { name: string; domId: string }) {
+	useEffect(() => {
+		const element = document.getElementById(domId);
+		if (!element) return;
+
+		EngineScrollPointManager.registerElement(name, element);
+		return () => {
+			const registered = EngineScrollPointManager.get(name);
+			if (registered?.element === element) {
+				EngineScrollPointManager.unregister(name);
+			}
+		};
+	}, [domId, name]);
+	return null;
+}
+
 function buildVisibilityClass(props: Record<string, unknown>): string | undefined {
 	const hideOn = Array.isArray(props.hideOn) ? props.hideOn as Breakpoint[] : [];
 	const showOnly = Array.isArray(props.showOnly) ? props.showOnly as Breakpoint[] : [];
@@ -65,27 +89,33 @@ function buildVisibilityClass(props: Record<string, unknown>): string | undefine
 	if (hiddenBreakpoints.length === 0) return undefined;
 
 	const signature = hiddenBreakpoints.join("|");
-	const className = `e-v-${shortHash(signature)}`;
-	const cssRules: string[] = [];
+	let cachedRule = visibilityRuleCache.get(signature);
+	if (!cachedRule) {
+		const className = `e-v-${shortHash(signature)}`;
+		const cssRules: string[] = [];
 
-	for (const breakpoint of hiddenBreakpoints) {
-		const breakpointIndex = BREAKPOINT_ORDER.indexOf(breakpoint);
-		const minWidth = BREAKPOINTS[breakpoint];
-		const nextBreakpoint = BREAKPOINT_ORDER[breakpointIndex + 1];
-		const maxWidth = nextBreakpoint ? BREAKPOINTS[nextBreakpoint] - 0.02 : undefined;
-		const selectorRule = `.${className}{display:none!important}`;
+		for (const breakpoint of hiddenBreakpoints) {
+			const breakpointIndex = BREAKPOINT_ORDER.indexOf(breakpoint);
+			const minWidth = BREAKPOINTS[breakpoint];
+			const nextBreakpoint = BREAKPOINT_ORDER[breakpointIndex + 1];
+			const maxWidth = nextBreakpoint ? BREAKPOINTS[nextBreakpoint] - 0.02 : undefined;
+			const selectorRule = `.${className}{display:none!important}`;
 
-		if (minWidth === 0 && maxWidth !== undefined) {
-			cssRules.push(`@media(max-width:${maxWidth}px){${selectorRule}}`);
-		} else if (maxWidth === undefined) {
-			cssRules.push(`@media(min-width:${minWidth}px){${selectorRule}}`);
-		} else {
-			cssRules.push(`@media(min-width:${minWidth}px) and (max-width:${maxWidth}px){${selectorRule}}`);
+			if (minWidth === 0 && maxWidth !== undefined) {
+				cssRules.push(`@media(max-width:${maxWidth}px){${selectorRule}}`);
+			} else if (maxWidth === undefined) {
+				cssRules.push(`@media(min-width:${minWidth}px){${selectorRule}}`);
+			} else {
+				cssRules.push(`@media(min-width:${minWidth}px) and (max-width:${maxWidth}px){${selectorRule}}`);
+			}
 		}
+
+		cachedRule = { className, css: cssRules.join("\n") };
+		visibilityRuleCache.set(signature, cachedRule);
 	}
 
-	globalStyleCollector.add(cssRules.join("\n"));
-	return className;
+	globalStyleCollector.add(cachedRule.css);
+	return cachedRule.className;
 }
 
 function getLazyAspectRatio(node: SchemaNode, props: Record<string, unknown>): string | undefined {
@@ -146,8 +176,16 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 	const visibilityClass = buildVisibilityClass(originalProps);
 	const originalClassName = typeof originalProps.className === "string" ? originalProps.className : undefined;
 	const mergedClassName = [originalClassName, visibilityClass].filter(Boolean).join(" ") || undefined;
+	const pointName = typeof originalProps.point === "string" && originalProps.point.length > 0
+		? originalProps.point
+		: undefined;
+	const explicitId = typeof originalProps.id === "string" && originalProps.id.length > 0
+		? originalProps.id
+		: undefined;
+	const resolvedDomId = explicitId ?? pointName;
 	const nodeProps = {
 		...originalProps,
+		...(resolvedDomId ? { id: resolvedDomId } : {}),
 		...(mergedClassName ? { className: mergedClassName } : {}),
 		...(Object.keys(extraStyle).length > 0
 			? {
@@ -163,8 +201,16 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 		? renderedChildren
 		: (originalProps.children as ReactNode | undefined) ?? null;
 	const element = <Component {...nodeProps}>{effectiveChildren}</Component>;
+	const anchoredElement = pointName && resolvedDomId
+		? (
+			<>
+				<PointRegistration name={pointName} domId={resolvedDomId} />
+				{element}
+			</>
+		)
+		: element;
 
-	if (!lazy.lazy) return element;
+	if (!lazy.lazy) return anchoredElement;
 
 	const isSection = node.type === "section" || node.type === "hero";
 	if (isSection) {
@@ -176,7 +222,7 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 				contentVisibility={lazy.contentVisibility}
 				containIntrinsicHeight={lazy.placeholderHeight}
 			>
-				{element}
+				{anchoredElement}
 			</LazySection>
 		);
 	}
@@ -188,7 +234,7 @@ function NodeRenderer({ node, depth }: NodeRendererProps) {
 			aspectRatio={getLazyAspectRatio(node, originalProps)}
 			rootMargin={lazy.rootMargin}
 		>
-			{element}
+			{anchoredElement}
 		</LazyMount>
 	);
 }
