@@ -2,8 +2,19 @@
 // BrowserEvents.ts
 // ============================================================================
 
+import { EngineScrollAnimation } from "../EngineScrollAnimation";
 import { EngineScrollRuntime } from "../EngineScrollRuntime";
 import { BrowserScheduler } from "./BrowserScheduler";
+
+const SCROLL_KEYS = new Set([
+	"ArrowDown",
+	"ArrowUp",
+	"End",
+	"Home",
+	"PageDown",
+	"PageUp",
+	" ",
+]);
 
 export class BrowserEvents {
 	private static initialized = false;
@@ -14,26 +25,22 @@ export class BrowserEvents {
 		if (this.initialized) return;
 		this.initialized = true;
 
-		window.addEventListener(
-			"scroll",
-			() => this.onScroll(update),
-			{ passive: true },
-		);
-		window.addEventListener(
-			"resize",
-			() => this.onResize(update),
-			{ passive: true },
-		);
-		window.addEventListener(
-			"orientationchange",
-			() => this.onResize(update),
-			{ passive: true },
-		);
-		document.addEventListener(
-			"visibilitychange",
-			() => this.onVisibility(update),
-		);
+		window.addEventListener("scroll", () => this.onScroll(update), { passive: true });
+		window.addEventListener("resize", () => this.onResize(update), { passive: true });
+		window.addEventListener("orientationchange", () => this.onResize(update), { passive: true });
+		window.addEventListener("wheel", this.onUserScrollIntent, { passive: true });
+		window.addEventListener("touchstart", this.onUserScrollIntent, { passive: true });
+		window.addEventListener("keydown", this.onKeyDown);
+		document.addEventListener("visibilitychange", () => this.onVisibility(update));
 	}
+
+	private static onUserScrollIntent = (): void => {
+		EngineScrollAnimation.interrupt();
+	};
+
+	private static onKeyDown = (event: KeyboardEvent): void => {
+		if (SCROLL_KEYS.has(event.key)) EngineScrollAnimation.interrupt();
+	};
 
 	private static onScroll(update: () => void): void {
 		const cache = EngineScrollRuntime.get().getCache();
@@ -71,7 +78,6 @@ export class BrowserEvents {
 			this.hiddenAt = null;
 		}
 
-		// Do not turn a long hidden interval into one enormous frame delta.
 		cache.lastTimestamp = 0;
 		cache.scrollX = window.scrollX;
 		cache.scrollY = window.scrollY;
