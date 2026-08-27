@@ -81,6 +81,16 @@ jobs:
             require: "./engine/plugins/engineApiPlugin.js",
             default: "./engine/plugins/engineApiPlugin.js"
           };
+
+          const typescriptVersion = packageJson.dependencies?.typescript
+            || packageJson.devDependencies?.typescript
+            || "^5.9.3";
+          packageJson.dependencies = {
+            ...(packageJson.dependencies || {}),
+            typescript: typescriptVersion
+          };
+          if (packageJson.devDependencies) delete packageJson.devDependencies.typescript;
+
           fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, "\t")}\n`, "utf8");
           NODE
 
