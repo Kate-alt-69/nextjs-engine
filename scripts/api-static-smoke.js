@@ -66,6 +66,68 @@ const shorthandSafetySource = [
 	'])',
 ].join("\n");
 
+const localReservedBindingSource = [
+	'async function getCurrentWeather() {',
+	'\tconst response = await fetch("https://example.com/weather")',
+	'\tconst error = response.ok ? null : new Error("upstream")',
+	'\tconst createEndpoint = () => response.status',
+	'\treturn { status: createEndpoint(), error: error?.message ?? null }',
+	'}',
+	'',
+	'if (true) {',
+	'\tconst response = "block-local"',
+	'\tvoid response',
+	'}',
+	'',
+	'createEndpoint([',
+	'\t{',
+	'\t\tname: "weather"',
+	'\t\trun.input(getCurrentWeather[])',
+	'\t}',
+	'])',
+].join("\n");
+
+const nestedFunctionNameSource = [
+	'function outer() {',
+	'\tfunction values() {',
+	'\t\treturn [99]',
+	'\t}',
+	'\treturn values()',
+	'}',
+	'',
+	'createEndpoint([',
+	'\t{',
+	'\t\tname: "index"',
+	'\t\trun.input {',
+	'\t\t\tconst values = [10, 20]',
+	'\t\t\treturn values[0]',
+	'\t\t}',
+	'\t}',
+	'])',
+].join("\n");
+
+const nestedRunShadowSource = [
+	'createEndpoint([',
+	'\t{',
+	'\t\tname: "nested-shadow"',
+	'\t\tinput: {',
+	'\t\t\tvalue: "number"',
+	'\t\t}',
+	'\t\trun.input {',
+	'\t\t\t{',
+	'\t\t\t\tconst input = "local"',
+	'\t\t\t\tvoid input',
+	'\t\t\t}',
+	'\t\t\treturn input.value',
+	'\t\t}',
+	'\t}',
+	'])',
+].join("\n");
+
+function singleOperationSource(prefix, runSource = "run.input(1)") {
+	return `${prefix}\ncreateEndpoint([{ name: "test" ${runSource} }])`;
+}
+
 async function waitFor(check, timeoutMs = 2_000) {
 	const started = Date.now();
 	while (Date.now() - started < timeoutMs) {
@@ -131,6 +193,68 @@ async function main() {
 		template: "literal wrap[input.value] / wrapped:abc",
 		called: "wrapped:abc",
 	});
+
+	const localReservedCompiled = compileAPIStaticSource(localReservedBindingSource, "local-reserved");
+	assert.match(localReservedCompiled.code, /const response = await fetch/);
+	assert.match(localReservedCompiled.code, /const error = response\.ok/);
+	assert.match(localReservedCompiled.code, /getCurrentWeather\(\)/);
+
+	assert.throws(
+		() => compileAPIStaticSource(singleOperationSource('const response = "module"'), "reserved-response"),
+		/Top-level binding "response" is reserved/,
+	);
+	assert.throws(
+		() => compileAPIStaticSource(singleOperationSource('const { error } = { error: "module" }'), "reserved-error"),
+		/Top-level binding "error" is reserved/,
+	);
+	assert.throws(
+		() => compileAPIStaticSource(singleOperationSource('if (true) { var response = "module" }'), "reserved-var"),
+		/Top-level binding "response" is reserved/,
+	);
+	assert.throws(
+		() => compileAPIStaticSource(singleOperationSource('const __engineApiStaticRoute = {}'), "reserved-internal"),
+		/Top-level binding "__engineApiStaticRoute" is reserved/,
+	);
+	assert.throws(
+		() => compileAPIStaticSource(singleOperationSource('function createEndpoint() { return null }'), "reserved-root-name"),
+		/Top-level binding "createEndpoint" is reserved/,
+	);
+
+	const nestedFunctionCompiled = compileAPIStaticSource(nestedFunctionNameSource, "nested-function-name");
+	assert.match(nestedFunctionCompiled.code, /return values\[0\]/);
+	const nestedFunctionContext = vm.createContext({ Map, globalThis: {} });
+	nestedFunctionContext.globalThis = nestedFunctionContext;
+	vm.runInContext(nestedFunctionCompiled.code, nestedFunctionContext, { filename: "nested-function-name.js" });
+	const nestedFunctionRoute = nestedFunctionContext.__NEXTJS_ENGINE_API_STATIC__.get("nested-function-name");
+	const nestedFunctionResult = await nestedFunctionRoute.operations[0].run({
+		query: {},
+		body: {},
+		input: {},
+		proxy: async () => undefined,
+	});
+	assert.equal(nestedFunctionResult, 10);
+
+	assert.throws(
+		() => compileAPIStaticSource(singleOperationSource("", "run.input { const input = {}; return input }"), "reserved-run-input"),
+		/Run block for test redeclares runtime binding "input"/,
+	);
+	assert.throws(
+		() => compileAPIStaticSource(singleOperationSource("", "run.input { if (true) { var proxy = null } return 1 }"), "reserved-run-var"),
+		/Run block for test redeclares runtime binding "proxy"/,
+	);
+
+	const nestedShadowCompiled = compileAPIStaticSource(nestedRunShadowSource, "nested-run-shadow");
+	const nestedShadowContext = vm.createContext({ Map, globalThis: {} });
+	nestedShadowContext.globalThis = nestedShadowContext;
+	vm.runInContext(nestedShadowCompiled.code, nestedShadowContext, { filename: "nested-run-shadow.js" });
+	const nestedShadowRoute = nestedShadowContext.__NEXTJS_ENGINE_API_STATIC__.get("nested-run-shadow");
+	const nestedShadowResult = await nestedShadowRoute.operations[0].run({
+		query: {},
+		body: {},
+		input: { value: 42 },
+		proxy: async () => undefined,
+	});
+	assert.equal(nestedShadowResult, 42);
 
 	const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "engine-api-static-"));
 	const endpointDirectory = path.join(temporaryRoot, "data", "endpoint", "nested");

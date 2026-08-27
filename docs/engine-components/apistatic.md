@@ -410,6 +410,8 @@ async function getWeather() {
 }
 ```
 
+`response` and `error` are only reserved as APIStatic runtime helpers at module scope. Normal local variables with those names are valid, including the common `const response = await fetch(...)` pattern inside a function. The same rule applies to the `createEndpoint` DSL name and generated internal bindings: only declarations that would actually collide in the generated module are rejected.
+
 `proxy()` means something different: cross the static boundary through a backend bridge that the application explicitly configures.
 
 There is no fake default proxy. Using `proxy()` before configuring one throws.
@@ -489,4 +491,12 @@ The compiler validates every `.route` before replacing generated output. If a ro
 
 The parser supports normal strings/comments/template expressions, regular-expression literals, declared functions, function expressions, and arrow-function helpers when translating the compact bracket-call syntax.
 
-TypeScript is required by the package plugin because `.route` files may contain TypeScript annotations.
+Runtime binding validation is scope-aware. Module-level declarations that collide with APIStatic's generated runtime (`createEndpoint`, `response`, `error`, and internal `__engineApiStatic*` bindings) are rejected, while the same names inside normal functions or nested lexical blocks are allowed. Destructuring/import/`var` bindings are checked too, so collisions fail with an APIStatic compiler error instead of surfacing later as invalid generated JavaScript.
+
+A `run.* { ... }` block receives `query`, `body`, `input`, `proxy`, and the internal `__context` binding in its function scope. Redeclaring one of those in the same run scope is rejected. A nested block-scoped shadow is valid; function-scoped `var` shadows are not.
+
+Callable discovery for compact `helper[...]` syntax only uses helpers visible from the operation's module scope. A function declared inside an unrelated nested function no longer causes an array access with the same name in a run block to be rewritten into a call.
+
+The root `createEndpoint([...])` search is top-level aware, so nested functions/calls named `createEndpoint` are not mistaken for the route declaration.
+
+TypeScript is required by the package plugin because `.route` files may contain TypeScript annotations and the compiler uses the TypeScript parser for runtime-scope analysis.
