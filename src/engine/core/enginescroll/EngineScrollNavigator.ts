@@ -15,7 +15,9 @@ export type EngineScrollTarget =
 	| "current"
 	| `#${string}`;
 
-export type EngineScrollNavigationOptions = EngineScrollMoveOptions;
+export interface EngineScrollNavigationOptions extends EngineScrollMoveOptions {
+	group?: string;
+}
 
 export class EngineScrollNavigator {
 	private static normalizeOptions(
@@ -98,21 +100,29 @@ export class EngineScrollNavigator {
 	}
 
 	public static nearest(options: EngineScrollNavigationOptions = {}): boolean {
-		const point = EngineScrollPointManager.nearest();
+		const point = EngineScrollPointManager.nearest(undefined, options.group);
 		return point ? this.move(`#${point.name}`, options) : false;
 	}
 
 	public static next(
 		options: EngineScrollNavigationOptions & { wrap?: boolean } = {},
 	): boolean {
-		const point = EngineScrollPointManager.next(undefined, options.wrap ?? false);
+		const point = EngineScrollPointManager.next(
+			undefined,
+			options.wrap ?? false,
+			options.group,
+		);
 		return point ? this.move(`#${point.name}`, options) : false;
 	}
 
 	public static previous(
 		options: EngineScrollNavigationOptions & { wrap?: boolean } = {},
 	): boolean {
-		const point = EngineScrollPointManager.previous(undefined, options.wrap ?? false);
+		const point = EngineScrollPointManager.previous(
+			undefined,
+			options.wrap ?? false,
+			options.group,
+		);
 		return point ? this.move(`#${point.name}`, options) : false;
 	}
 

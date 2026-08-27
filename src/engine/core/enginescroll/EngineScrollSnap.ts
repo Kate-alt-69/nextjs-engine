@@ -16,6 +16,7 @@ export interface EngineScrollSnapOptions extends EngineScrollMoveOptions {
 	mode?: EngineScrollSnapMode;
 	threshold?: number;
 	wrap?: boolean;
+	group?: string;
 }
 
 export class EngineScrollSnap {
@@ -46,12 +47,20 @@ export class EngineScrollSnap {
 		options: EngineScrollSnapOptions,
 	) {
 		if (options.mode === "directional" && direction > 0) {
-			return EngineScrollPointManager.next(reference, options.wrap ?? false);
+			return EngineScrollPointManager.next(
+				reference,
+				options.wrap ?? false,
+				options.group,
+			);
 		}
 		if (options.mode === "directional" && direction < 0) {
-			return EngineScrollPointManager.previous(reference, options.wrap ?? false);
+			return EngineScrollPointManager.previous(
+				reference,
+				options.wrap ?? false,
+				options.group,
+			);
 		}
-		return EngineScrollPointManager.nearest(reference);
+		return EngineScrollPointManager.nearest(reference, options.group);
 	}
 
 	private static snapWithOptions(

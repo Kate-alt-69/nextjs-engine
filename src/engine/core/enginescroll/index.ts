@@ -17,7 +17,13 @@ export type {
 export { useEngineScrollTimeline } from "./useEngineScrollTimeline";
 export { EngineScrollTimeline } from "./EngineScrollTimeline";
 export type {
+	EngineScrollTimelineActivityEvent,
+	EngineScrollTimelineActivitySubscriber,
+	EngineScrollTimelineActivityType,
+	EngineScrollTimelineBoundary,
 	EngineScrollTimelineConfig,
+	EngineScrollTimelineCrossEvent,
+	EngineScrollTimelineCrossSubscriber,
 	EngineScrollTimelineFrame,
 	EngineScrollTimelineSource,
 	EngineScrollTimelineSubscriber,
@@ -52,6 +58,7 @@ export type {
 export { EngineScrollPointManager } from "./EngineScrollPointManager";
 export type {
 	EngineRegisteredPoint,
+	EngineScrollPointGroupInput,
 	EngineScrollPointOptions,
 	EngineScrollRegisteredPoint,
 	EngineScrollResolvedPoint,

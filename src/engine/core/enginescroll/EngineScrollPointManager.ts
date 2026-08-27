@@ -5,9 +5,12 @@
 import { EngineScrollRuntime } from "./EngineScrollRuntime";
 import type { EngineScrollAlignment } from "./EngineScrollTypes";
 
+export type EngineScrollPointGroupInput = string | readonly string[];
+
 export interface EngineScrollPointOptions {
 	align?: EngineScrollAlignment;
 	offset?: number;
+	group?: EngineScrollPointGroupInput;
 }
 
 export interface EngineScrollRegisteredPoint {
@@ -16,6 +19,7 @@ export interface EngineScrollRegisteredPoint {
 	element: HTMLElement;
 	align: EngineScrollAlignment;
 	offset: number;
+	groups: readonly string[];
 }
 
 export interface EngineScrollResolvedPoint extends EngineScrollRegisteredPoint {
@@ -25,6 +29,7 @@ export interface EngineScrollResolvedPoint extends EngineScrollRegisteredPoint {
 export class EngineScrollPointManager {
 	private static readonly points = new Map<string, EngineScrollRegisteredPoint>();
 	private static readonly observedElementRefs = new Map<HTMLElement, number>();
+	private static readonly groupOrderCache = new Map<string, EngineScrollRegisteredPoint[]>();
 	private static resizeObserver: ResizeObserver | null = null;
 	private static revisionValue = 0;
 	private static geometryDirty = true;
@@ -36,6 +41,23 @@ export class EngineScrollPointManager {
 			throw new Error("[EngineScroll] Point names cannot be empty.");
 		}
 		return normalized;
+	}
+
+	private static normalizeGroupName(group: string): string {
+		return String(group).trim();
+	}
+
+	private static normalizeGroups(
+		group: EngineScrollPointGroupInput | undefined,
+	): string[] {
+		if (group === undefined) return [];
+		const source = Array.isArray(group) ? group : [group];
+		const groups = new Set<string>();
+		for (const item of source) {
+			const normalized = this.normalizeGroupName(String(item));
+			if (normalized) groups.add(normalized);
+		}
+		return [...groups];
 	}
 
 	private static spacing(): number {
@@ -50,6 +72,7 @@ export class EngineScrollPointManager {
 
 	private static invalidateOrder(): void {
 		this.orderedCache = null;
+		this.groupOrderCache.clear();
 		this.revisionValue++;
 	}
 
@@ -134,6 +157,15 @@ export class EngineScrollPointManager {
 		return registeredPoint;
 	}
 
+	private static ordered(): EngineScrollRegisteredPoint[] {
+		this.recalculate();
+		if (!this.orderedCache) {
+			this.orderedCache = [...this.points.values()]
+				.sort((left, right) => left.point - right.point || left.name.localeCompare(right.name));
+		}
+		return this.orderedCache;
+	}
+
 	public static register(
 		name: string,
 		point: number,
@@ -151,6 +183,7 @@ export class EngineScrollPointManager {
 			element,
 			align: options.align ?? "start",
 			offset: Number.isFinite(options.offset) ? options.offset! : 0,
+			groups: this.normalizeGroups(options.group),
 		});
 		this.invalidateOrder();
 	}
@@ -222,17 +255,30 @@ export class EngineScrollPointManager {
 		return resolved.point - origin;
 	}
 
-	public static sorted(): EngineScrollRegisteredPoint[] {
-		this.recalculate();
-		if (!this.orderedCache) {
-			this.orderedCache = [...this.points.values()]
-				.sort((left, right) => left.point - right.point || left.name.localeCompare(right.name));
+	public static sorted(group?: string): EngineScrollRegisteredPoint[] {
+		const ordered = this.ordered();
+		if (group === undefined) return [...ordered];
+
+		const normalizedGroup = this.normalizeGroupName(group);
+		if (!normalizedGroup) return [];
+
+		let cached = this.groupOrderCache.get(normalizedGroup);
+		if (!cached) {
+			cached = ordered.filter((point) => point.groups.includes(normalizedGroup));
+			this.groupOrderCache.set(normalizedGroup, cached);
 		}
-		return [...this.orderedCache];
+		return [...cached];
 	}
 
-	public static nearest(referencePoint?: number): EngineScrollRegisteredPoint | undefined {
-		const points = this.sorted();
+	public static inGroup(group: string): EngineScrollRegisteredPoint[] {
+		return this.sorted(group);
+	}
+
+	public static nearest(
+		referencePoint?: number,
+		group?: string,
+	): EngineScrollRegisteredPoint | undefined {
+		const points = this.sorted(group);
 		if (points.length === 0) return undefined;
 		const reference = Number.isFinite(referencePoint)
 			? referencePoint!
@@ -248,8 +294,12 @@ export class EngineScrollPointManager {
 		return nearest;
 	}
 
-	public static next(referencePoint?: number, wrap = false): EngineScrollRegisteredPoint | undefined {
-		const points = this.sorted();
+	public static next(
+		referencePoint?: number,
+		wrap = false,
+		group?: string,
+	): EngineScrollRegisteredPoint | undefined {
+		const points = this.sorted(group);
 		if (points.length === 0) return undefined;
 		const reference = Number.isFinite(referencePoint)
 			? referencePoint!
@@ -258,8 +308,12 @@ export class EngineScrollPointManager {
 		return nextPoint ?? (wrap ? points[0] : undefined);
 	}
 
-	public static previous(referencePoint?: number, wrap = false): EngineScrollRegisteredPoint | undefined {
-		const points = this.sorted();
+	public static previous(
+		referencePoint?: number,
+		wrap = false,
+		group?: string,
+	): EngineScrollRegisteredPoint | undefined {
+		const points = this.sorted(group);
 		if (points.length === 0) return undefined;
 		const reference = Number.isFinite(referencePoint)
 			? referencePoint!
@@ -270,8 +324,17 @@ export class EngineScrollPointManager {
 		return wrap ? points[points.length - 1] : undefined;
 	}
 
-	public static names(): string[] {
-		return [...this.points.keys()];
+	public static names(group?: string): string[] {
+		if (group === undefined) return [...this.points.keys()];
+		return this.sorted(group).map((point) => point.name);
+	}
+
+	public static groups(): string[] {
+		const groups = new Set<string>();
+		for (const point of this.points.values()) {
+			for (const group of point.groups) groups.add(group);
+		}
+		return [...groups].sort((left, right) => left.localeCompare(right));
 	}
 
 	public static values(): IterableIterator<EngineScrollRegisteredPoint> {

@@ -59,6 +59,32 @@ export type EngineScrollTimelineSubscriber = (
 	frame: Readonly<EngineScrollTimelineFrame>,
 ) => void;
 
+export interface EngineScrollTimelineCrossEvent {
+	at: number;
+	direction: -1 | 1;
+	frame: Readonly<EngineScrollTimelineFrame>;
+	previousFrame: Readonly<EngineScrollTimelineFrame>;
+}
+
+export type EngineScrollTimelineCrossSubscriber = (
+	event: Readonly<EngineScrollTimelineCrossEvent>,
+) => void;
+
+export type EngineScrollTimelineActivityType = "enter" | "leave";
+export type EngineScrollTimelineBoundary = "start" | "end";
+
+export interface EngineScrollTimelineActivityEvent {
+	type: EngineScrollTimelineActivityType;
+	boundary: EngineScrollTimelineBoundary;
+	direction: EngineScrollDirection;
+	frame: Readonly<EngineScrollTimelineFrame>;
+	previousFrame: Readonly<EngineScrollTimelineFrame>;
+}
+
+export type EngineScrollTimelineActivitySubscriber = (
+	event: Readonly<EngineScrollTimelineActivityEvent>,
+) => void;
+
 function finiteOr(value: number | undefined, fallback: number): number {
 	return Number.isFinite(value) ? value! : fallback;
 }
@@ -87,12 +113,16 @@ function sameFrame(
 export class EngineScrollTimeline {
 	private readonly runtime = EngineScrollRuntime.get();
 	private readonly subscribers = new Set<EngineScrollTimelineSubscriber>();
+	private readonly crossSubscribers = new Map<number, Set<EngineScrollTimelineCrossSubscriber>>();
+	private readonly enterSubscribers = new Set<EngineScrollTimelineActivitySubscriber>();
+	private readonly leaveSubscribers = new Set<EngineScrollTimelineActivitySubscriber>();
 	private unsubscribeRuntime: (() => void) | null = null;
 	private boundaryRevision = -1;
 	private boundaryMaximum = Number.NaN;
 	private resolvedStart: number | null = null;
 	private resolvedEnd: number | null = null;
 	private latestFrame: EngineScrollTimelineFrame | null = null;
+	private lastObservedFrame: EngineScrollTimelineFrame | null = null;
 
 	public constructor(public readonly config: Readonly<EngineScrollTimelineConfig>) {}
 
@@ -192,6 +222,105 @@ export class EngineScrollTimeline {
 		};
 	}
 
+	private listenerCount(): number {
+		let count = this.subscribers.size + this.enterSubscribers.size + this.leaveSubscribers.size;
+		for (const subscribers of this.crossSubscribers.values()) count += subscribers.size;
+		return count;
+	}
+
+	private ensureRuntimeSubscription(): void {
+		if (this.unsubscribeRuntime) return;
+		const baseline = this.createFrame(this.runtime.getState());
+		this.latestFrame = baseline;
+		this.lastObservedFrame = baseline;
+		this.unsubscribeRuntime = this.runtime.subscribe(this.handleRuntime);
+	}
+
+	private releaseRuntimeSubscription(): void {
+		if (this.listenerCount() > 0 || !this.unsubscribeRuntime) return;
+		this.unsubscribeRuntime();
+		this.unsubscribeRuntime = null;
+		this.lastObservedFrame = null;
+	}
+
+	private activityBoundary(
+		previousFrame: Readonly<EngineScrollTimelineFrame>,
+		frame: Readonly<EngineScrollTimelineFrame>,
+		type: EngineScrollTimelineActivityType,
+	): EngineScrollTimelineBoundary {
+		if (type === "enter") {
+			return previousFrame.rawProgress > 1 ? "end" : "start";
+		}
+		return frame.rawProgress > 1 ? "end" : "start";
+	}
+
+	private emitActivity(
+		previousFrame: Readonly<EngineScrollTimelineFrame>,
+		frame: Readonly<EngineScrollTimelineFrame>,
+	): void {
+		const logicalDirection = Math.sign(
+			frame.rawProgress - previousFrame.rawProgress,
+		) as EngineScrollDirection;
+
+		if (!previousFrame.active && frame.active && this.enterSubscribers.size > 0) {
+			const event: EngineScrollTimelineActivityEvent = {
+				type: "enter",
+				boundary: this.activityBoundary(previousFrame, frame, "enter"),
+				direction: logicalDirection,
+				frame,
+				previousFrame,
+			};
+			for (const subscriber of this.enterSubscribers) subscriber(event);
+		}
+
+		if (previousFrame.active && !frame.active && this.leaveSubscribers.size > 0) {
+			const event: EngineScrollTimelineActivityEvent = {
+				type: "leave",
+				boundary: this.activityBoundary(previousFrame, frame, "leave"),
+				direction: logicalDirection,
+				frame,
+				previousFrame,
+			};
+			for (const subscriber of this.leaveSubscribers) subscriber(event);
+		}
+	}
+
+	private emitCrossings(
+		previousFrame: Readonly<EngineScrollTimelineFrame>,
+		frame: Readonly<EngineScrollTimelineFrame>,
+	): void {
+		if (this.crossSubscribers.size === 0) return;
+		for (const [at, subscribers] of this.crossSubscribers) {
+			let direction: -1 | 1 | null = null;
+			if (previousFrame.rawProgress < at && frame.rawProgress >= at) {
+				direction = 1;
+			} else if (previousFrame.rawProgress > at && frame.rawProgress <= at) {
+				direction = -1;
+			}
+			if (direction === null) continue;
+
+			const event: EngineScrollTimelineCrossEvent = {
+				at,
+				direction,
+				frame,
+				previousFrame,
+			};
+			for (const subscriber of subscribers) subscriber(event);
+		}
+	}
+
+	private handleRuntime = (state: Readonly<EngineScrollState>): void => {
+		const previousFrame = this.lastObservedFrame ?? this.createFrame(state);
+		const nextFrame = this.createFrame(state);
+		this.latestFrame = nextFrame;
+		this.lastObservedFrame = nextFrame;
+		if (sameFrame(previousFrame, nextFrame)) return;
+
+		this.emitActivity(previousFrame, nextFrame);
+		this.emitCrossings(previousFrame, nextFrame);
+		for (const subscriber of this.subscribers) subscriber(nextFrame);
+	};
+
 	public snapshot(
 		state: Readonly<EngineScrollState> = this.runtime.getState(),
 	): Readonly<EngineScrollTimelineFrame> {
@@ -200,28 +329,60 @@ export class EngineScrollTimeline {
 		return this.latestFrame!;
 	}
 
-	private handleRuntime = (state: Readonly<EngineScrollState>): void => {
-		const previous = this.latestFrame;
-		const frame = this.snapshot(state);
-		if (previous === frame) return;
-		for (const subscriber of this.subscribers) subscriber(frame);
-	};
-
 	public subscribe(
 		callback: EngineScrollTimelineSubscriber,
 		emitInitial = true,
 	): () => void {
 		this.subscribers.add(callback);
-		if (!this.unsubscribeRuntime) {
-			this.unsubscribeRuntime = this.runtime.subscribe(this.handleRuntime);
-		}
+		this.ensureRuntimeSubscription();
 		if (emitInitial) callback(this.snapshot());
 
 		return () => {
 			this.subscribers.delete(callback);
-			if (this.subscribers.size > 0 || !this.unsubscribeRuntime) return;
-			this.unsubscribeRuntime();
-			this.unsubscribeRuntime = null;
+			this.releaseRuntimeSubscription();
+		};
+	}
+
+	public onCross(
+		progress: number,
+		callback: EngineScrollTimelineCrossSubscriber,
+	): () => void {
+		const at = clamp01(Number.isFinite(progress) ? progress : 0);
+		let subscribers = this.crossSubscribers.get(at);
+		if (!subscribers) {
+			subscribers = new Set();
+			this.crossSubscribers.set(at, subscribers);
+		}
+		subscribers.add(callback);
+		this.ensureRuntimeSubscription();
+
+		return () => {
+			const current = this.crossSubscribers.get(at);
+			current?.delete(callback);
+			if (current?.size === 0) this.crossSubscribers.delete(at);
+			this.releaseRuntimeSubscription();
+		};
+	}
+
+	public onEnter(
+		callback: EngineScrollTimelineActivitySubscriber,
+	): () => void {
+		this.enterSubscribers.add(callback);
+		this.ensureRuntimeSubscription();
+		return () => {
+			this.enterSubscribers.delete(callback);
+			this.releaseRuntimeSubscription();
+		};
+	}
+
+	public onLeave(
+		callback: EngineScrollTimelineActivitySubscriber,
+	): () => void {
+		this.leaveSubscribers.add(callback);
+		this.ensureRuntimeSubscription();
+		return () => {
+			this.leaveSubscribers.delete(callback);
+			this.releaseRuntimeSubscription();
 		};
 	}
 
@@ -286,7 +447,11 @@ export class EngineScrollTimeline {
 
 	public dispose(): void {
 		this.subscribers.clear();
+		this.crossSubscribers.clear();
+		this.enterSubscribers.clear();
+		this.leaveSubscribers.clear();
 		this.unsubscribeRuntime?.();
 		this.unsubscribeRuntime = null;
+		this.lastObservedFrame = null;
 	}
 }
