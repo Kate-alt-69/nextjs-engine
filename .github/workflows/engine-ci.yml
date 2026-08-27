@@ -33,6 +33,8 @@ jobs:
         run: node scripts/engine-transitions-smoke.js
       - name: Test EngineScroll core
         run: node scripts/engine-scroll-smoke.js
+      - name: Test EngineOverlay runtime
+        run: node scripts/engine-overlay-smoke.js
       - name: Type-check engine
         run: npm run type-check
       - name: Build Next.js integration app
