@@ -14,8 +14,8 @@ provider only when using the core scroll API outside a page created by
 import { useEngineScroll } from "@/engine";
 
 function NavButton() {
-  const scroll = useEngineScroll();
-  return <button onClick={() => scroll.move("#pricing")}>Pricing</button>;
+	const scroll = useEngineScroll();
+	return <button onClick={() => scroll.move("#pricing")}>Pricing</button>;
 }
 ```
 
@@ -39,11 +39,11 @@ EngineScrollNavigator.move("bottom");
 
 ```ts
 type EngineScrollTarget =
-  | number
-  | "top"
-  | "bottom"
-  | "current"
-  | `#${string}`;
+	| number
+	| "top"
+	| "bottom"
+	| "current"
+	| `#${string}`;
 ```
 
 ### Coordinate model
@@ -71,12 +71,35 @@ Any schema node can expose a scroll anchor through `point`:
 
 ```ts
 {
-  type: "section",
-  props: { point: "pricing" },
+	type: "section",
+	props: { point: "pricing" },
 }
 ```
 
-Manual registration is also available:
+Schema rendering automatically gives a point-only node the same DOM id and
+registers the mounted element with `EngineScrollPointManager`. `id` and `point`
+can also intentionally be different:
+
+```ts
+{
+	type: "section",
+	props: {
+		id: "pricing-section",
+		point: "pricing",
+	},
+}
+```
+
+In that case the DOM keeps `id="pricing-section"`, while EngineScroll registers
+`pricing` as an alias for that same element. Lazy-mounted nodes register only
+when their actual element mounts, so the point manager does not retain a fake
+placeholder coordinate.
+
+Custom registered components should forward the injected `id` prop to their
+root `HTMLElement` if they want automatic schema `point` registration. Built-in
+Engine components already do this.
+
+Manual registration remains available:
 
 ```ts
 EngineScrollPointManager.register("pricing", point, element);
@@ -96,6 +119,11 @@ a literal DOM id. The fallback uses `getElementById`, not CSS selector parsing,
 so valid ids containing characters such as `:` are supported. URL-encoded hash
 ids are decoded before lookup. Offsets apply to both registered points and DOM
 id fallbacks.
+
+`id` and `point` share one navigation namespace. `analyzeSchema()` emits E003
+when two different nodes claim the same target string through either property.
+A single node may use the same value for both properties without creating a
+conflict.
 
 ## URL protocol
 
@@ -180,8 +208,8 @@ EngineScroll point metadata without removing those HTML ids:
 
 ```ts
 props: {
-  disablepointformarkdownhash: true,
-  disablepointformarkdownhashhash: true,
+	disablepointformarkdownhash: true,
+	disablepointformarkdownhashhash: true,
 }
 ```
 

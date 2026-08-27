@@ -23,20 +23,36 @@ export interface AnalyzerResult {
 }
 
 function levenshtein(a: string, b: string): number {
-	const rows = a.length;
-	const columns = b.length;
-	const matrix: number[][] = Array.from({ length: rows + 1 }, (_, row) =>
-		Array.from({ length: columns + 1 }, (_, column) => (row === 0 ? column : column === 0 ? row : 0)),
-	);
+	if (a === b) return 0;
+	if (a.length === 0) return b.length;
+	if (b.length === 0) return a.length;
 
-	for (let row = 1; row <= rows; row++) {
-		for (let column = 1; column <= columns; column++) {
-			matrix[row][column] = a[row - 1] === b[column - 1]
-				? matrix[row - 1][column - 1]
-				: 1 + Math.min(matrix[row - 1][column], matrix[row][column - 1], matrix[row - 1][column - 1]);
-		}
+	let rows = a;
+	let columns = b;
+	if (columns.length > rows.length) {
+		rows = b;
+		columns = a;
 	}
-	return matrix[rows][columns];
+
+	let previous = new Uint32Array(columns.length + 1);
+	let current = new Uint32Array(columns.length + 1);
+	for (let column = 0; column <= columns.length; column++) previous[column] = column;
+
+	for (let row = 1; row <= rows.length; row++) {
+		current[0] = row;
+		for (let column = 1; column <= columns.length; column++) {
+			const substitutionCost = rows[row - 1] === columns[column - 1] ? 0 : 1;
+			current[column] = Math.min(
+				previous[column] + 1,
+				current[column - 1] + 1,
+				previous[column - 1] + substitutionCost,
+			);
+		}
+		const swap = previous;
+		previous = current;
+		current = swap;
+	}
+	return previous[columns.length];
 }
 
 function nearest(unknown: string, candidates: string[]): string | undefined {
@@ -66,9 +82,15 @@ const REQUIRED_PROPS: Record<string, string[]> = {
 	option: ["value"],
 };
 
+interface SeenNavigationTarget {
+	path: string;
+	kind: "id" | "point";
+}
+
 interface AnalyzerState {
 	diagnostics: EngineDiagnostic[];
-	seenIds: Map<string, string>;
+	seenNavigationTargets: Map<string, SeenNavigationTarget>;
+	seenNames: Map<string, string>;
 	seenObjects: WeakSet<SchemaNode>;
 	knownTypes: string[];
 }
@@ -89,6 +111,48 @@ function hasAccessibleContent(node: SchemaNode, props: Record<string, unknown>):
 	if (typeof props.content === "string" && props.content.trim()) return true;
 	if (typeof node.children === "string" && node.children.trim()) return true;
 	return Array.isArray(node.children) && node.children.length > 0;
+}
+
+function recordNavigationTarget(
+	state: AnalyzerState,
+	value: unknown,
+	kind: "id" | "point",
+	path: string,
+): void {
+	if (typeof value !== "string" || value.length === 0) return;
+	const first = state.seenNavigationTargets.get(value);
+	if (!first) {
+		state.seenNavigationTargets.set(value, { path, kind });
+		return;
+	}
+	if (first.path === path) return;
+
+	push(
+		state,
+		"error",
+		"E003",
+		`Duplicate navigation target "${value}" — ${kind} collides with ${first.kind} first declared at ${first.path}.`,
+		path,
+		"Use unique id/point values across the schema so DOM anchors and EngineScroll targets stay unambiguous.",
+	);
+}
+
+function recordPatchName(state: AnalyzerState, node: SchemaNode, path: string): void {
+	if (typeof node.name !== "string" || node.name.length === 0) return;
+	const firstPath = state.seenNames.get(node.name);
+	if (!firstPath) {
+		state.seenNames.set(node.name, path);
+		return;
+	}
+
+	push(
+		state,
+		"warn",
+		"W007",
+		`Duplicate schema name "${node.name}" — first declared at ${firstPath}.`,
+		path,
+		"EngineMobilePatcher selectors match every node with the same name. Use unique names when a patch should target exactly one node.",
+	);
 }
 
 function walkNode(node: SchemaNode, path: string, depth: number, state: AnalyzerState): void {
@@ -117,15 +181,9 @@ function walkNode(node: SchemaNode, path: string, depth: number, state: Analyzer
 		if (props[prop] == null) push(state, "error", "E002", `Node type "${type}" is missing required prop "${prop}".`, path);
 	}
 
-	const nodeId = (props.id ?? props.point) as string | undefined;
-	if (nodeId) {
-		const firstPath = state.seenIds.get(nodeId);
-		if (firstPath) {
-			push(state, "error", "E003", `Duplicate id "${nodeId}" — first declared at ${firstPath}.`, path);
-		} else {
-			state.seenIds.set(nodeId, path);
-		}
-	}
+	recordNavigationTarget(state, props.id, "id", path);
+	recordNavigationTarget(state, props.point, "point", path);
+	recordPatchName(state, node, path);
 
 	if (type === "image" && props.alt == null) {
 		push(state, "warn", "W001", "Image node is missing an \"alt\" prop.", path, "Add alt=\"\" for decorative images or descriptive text for meaningful images.");
@@ -177,7 +235,8 @@ function resultFor(state: AnalyzerState): AnalyzerResult {
 function createState(): AnalyzerState {
 	return {
 		diagnostics: [],
-		seenIds: new Map(),
+		seenNavigationTargets: new Map(),
+		seenNames: new Map(),
 		seenObjects: new WeakSet(),
 		knownTypes: registeredTypes(),
 	};
