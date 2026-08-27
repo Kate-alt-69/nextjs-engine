@@ -26,6 +26,9 @@ const IMAGE_BASE_CSS = `
 @supports(-moz-appearance:none){
 	.e-img-wrap img{image-rendering:auto}
 }
+@media(prefers-reduced-motion:reduce){
+	.e-img-placeholder{animation:none!important}
+}
 `.trim();
 
 function injectImageCSS(): void {
@@ -105,10 +108,10 @@ export const EngineImage = memo(function EngineImage({
 		onLoad?.();
 	}, [onLoad, src]);
 
-	const usePerViewport = qualityMobile !== undefined || qualityDesktop !== undefined;
-	const mobileQuality = qualityMobile ?? 70;
-	const desktopQuality = qualityDesktop ?? (quality ?? QUALITY_PRESET[qualityPreset] ?? 78);
 	const resolvedQuality = quality ?? QUALITY_PRESET[qualityPreset] ?? 78;
+	const usePerViewport = qualityMobile !== undefined || qualityDesktop !== undefined;
+	const mobileQuality = qualityMobile ?? resolvedQuality;
+	const desktopQuality = qualityDesktop ?? resolvedQuality;
 	const resolvedSizes = sizes ?? autoSizes(fill, width);
 	const resolvedAspectRatio = aspectRatio ?? (
 		!fill &&
@@ -172,6 +175,7 @@ export const EngineImage = memo(function EngineImage({
 	const placeholder = !loaded ? (
 		<div
 			aria-hidden
+			className="e-img-placeholder"
 			style={{
 				position: "absolute",
 				inset: 0,
@@ -187,6 +191,10 @@ export const EngineImage = memo(function EngineImage({
 	) : null;
 
 	const imageStyle: CSSProperties = {
+		...(!fill ? {
+			width: "100%",
+			height: resolvedAspectRatio ? "100%" : "auto",
+		} : {}),
 		objectFit,
 		transition: "opacity 0.25s ease",
 		opacity: loaded ? 1 : 0,
@@ -204,8 +212,15 @@ export const EngineImage = memo(function EngineImage({
 	let imageNode: React.ReactNode = null;
 	if (inView) {
 		if (responsiveProps) {
+			const generatedStyle = responsiveProps.desktop.props.style as CSSProperties | undefined;
 			imageNode = (
-				<picture>
+				<picture
+					style={{
+						display: "block",
+						width: "100%",
+						height: fill || resolvedAspectRatio ? "100%" : "auto",
+					}}
+				>
 					<source
 						media="(max-width: 767px)"
 						srcSet={responsiveProps.mobile.props.srcSet}
@@ -218,7 +233,7 @@ export const EngineImage = memo(function EngineImage({
 					/>
 					<img
 						{...responsiveProps.desktop.props}
-						style={imageStyle}
+						style={{ ...generatedStyle, ...imageStyle }}
 						onLoad={handleLoad}
 					/>
 				</picture>
