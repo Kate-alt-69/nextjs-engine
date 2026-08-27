@@ -24,6 +24,7 @@ export type {
 	EngineHeroProps,
 	EngineFormProps, EngineInputProps, EngineTextareaProps, EngineCheckboxProps, EngineLabelProps, InputType,
 } from "./schema/types";
+export type { EngineShaderSurfaceProps } from "./schema/EngineShaderSchemaTypes";
 
 export {
 	registerComponent, unregisterComponent, getComponent,
@@ -44,6 +45,7 @@ export type { EngineNavProps, EngineNavItem, EngineNavLogo, EngineNavVariant, En
 export { EngineImage } from "./components/EngineImage";
 export { EngineVideo } from "./components/EngineVideo";
 export { EngineCanvas, useEngineCanvas } from "./components/EngineCanvas";
+export type { EngineCanvasProps } from "./components/EngineCanvas";
 export { EngineShader } from "./components/EngineShader";
 export type { EngineShaderProps } from "./components/EngineShader";
 export {
