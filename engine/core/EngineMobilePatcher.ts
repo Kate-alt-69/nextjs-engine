@@ -4,9 +4,9 @@
 //  Applies a MobileSchemaConfig patch list to a PageSchema, producing a new
 //  schema tree tailored for mobile devices.
 //
-//  The original schema is never mutated — all operations return new objects.
-//  The patcher runs server-side inside createPage(), triggered only when the
-//  incoming request UA is classified as a mobile device.
+//  The original schema is never mutated. Untouched branches preserve their
+//  original object/children references so large schemas do not pay for a full
+//  deep clone when only a few named nodes are patched.
 //
 //  Selector format:
 //    "children#my-node"  →  finds the node with name: "my-node"
@@ -18,6 +18,8 @@
 //    3. props            — merge new prop values in
 //    4. cprop.hide       — if true, set display: "none" in props
 //    5. cprop (rest)     — merge remaining cprop values into props.cprop
+//
+//  Repeated patches for the same node are applied sequentially in array order.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type {
@@ -30,26 +32,37 @@ import type {
 // ── Levenshtein distance ──────────────────────────────────────────────────────
 
 function levenshtein(a: string, b: string): number {
-	const rows = a.length + 1;
-	const cols = b.length + 1;
-	// Single flat Uint16Array — avoids 2-D array allocation
-	const dp = new Uint16Array(rows * cols);
+	if (a === b) return 0;
+	if (a.length === 0) return b.length;
+	if (b.length === 0) return a.length;
 
-	for (let i = 0; i < rows; i++) dp[i * cols] = i;
-	for (let j = 0; j < cols; j++) dp[j]        = j;
+	// Keep the working rows as small as possible. The old implementation
+	// allocated (a.length + 1) * (b.length + 1) cells for every suggestion.
+	const longer = a.length >= b.length ? a : b;
+	const shorter = a.length >= b.length ? b : a;
+	let previous = new Uint16Array(shorter.length + 1);
+	let current = new Uint16Array(shorter.length + 1);
 
-	for (let i = 1; i < rows; i++) {
-		for (let j = 1; j < cols; j++) {
-			const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-			dp[i * cols + j] = Math.min(
-				dp[(i - 1) * cols + j]     + 1,    // deletion
-				dp[i * cols + (j - 1)]     + 1,    // insertion
-				dp[(i - 1) * cols + (j - 1)] + cost, // substitution
-			);
-		}
+	for (let column = 0; column <= shorter.length; column++) {
+		previous[column] = column;
 	}
 
-	return dp[(rows - 1) * cols + (cols - 1)];
+	for (let row = 1; row <= longer.length; row++) {
+		current[0] = row;
+		for (let column = 1; column <= shorter.length; column++) {
+			const cost = longer[row - 1] === shorter[column - 1] ? 0 : 1;
+			current[column] = Math.min(
+				previous[column] + 1,
+				current[column - 1] + 1,
+				previous[column - 1] + cost,
+			);
+		}
+		const swap = previous;
+		previous = current;
+		current = swap;
+	}
+
+	return previous[shorter.length];
 }
 
 function didYouMean(name: string, available: string[]): string | null {
@@ -58,15 +71,14 @@ function didYouMean(name: string, available: string[]): string | null {
 	let bestName = available[0];
 	let bestDist = levenshtein(name, bestName);
 
-	for (let i = 1; i < available.length; i++) {
-		const dist = levenshtein(name, available[i]);
-		if (dist < bestDist) {
-			bestDist = dist;
-			bestName = available[i];
+	for (let index = 1; index < available.length; index++) {
+		const distance = levenshtein(name, available[index]);
+		if (distance < bestDist) {
+			bestDist = distance;
+			bestName = available[index];
 		}
 	}
 
-	// Only suggest when within 3 edits — beyond that the match is noise
 	return bestDist <= 3 ? bestName : null;
 }
 
@@ -79,18 +91,15 @@ function didYouMean(name: string, available: string[]): string | null {
  * "pricing-point"          → "pricing-point"
  */
 function parseSelector(selector: string): string {
-	const hashIdx = selector.indexOf("#");
-	return hashIdx >= 0 ? selector.slice(hashIdx + 1) : selector;
+	const normalized = selector.trim();
+	const hashIndex = normalized.indexOf("#");
+	return (hashIndex >= 0 ? normalized.slice(hashIndex + 1) : normalized).trim();
 }
 
 // ── Name index builder ────────────────────────────────────────────────────────
 
 type NameIndex = Map<string, true>;
 
-/**
- * Walks the schema tree and collects every node name into a set.
- * Used for "did you mean" suggestions when a selector misses.
- */
 function collectNodeNames(node: SchemaNode, out: NameIndex): void {
 	if (node.name) out.set(node.name, true);
 	if (Array.isArray(node.children)) {
@@ -102,52 +111,39 @@ function collectNodeNames(node: SchemaNode, out: NameIndex): void {
 
 // ── Patch directive applicator ────────────────────────────────────────────────
 
-/**
- * Applies a MobilePatchDirectives object to a single SchemaNode, returning
- * a new node. The original node is not mutated.
- *
- * Directive application order:
- *   1. remove-all-prop  → wipe node.props entirely
- *   2. remove-all-cprop → wipe props.cprop only
- *   3. patch.props      → merge new props in
- *   4. cprop.hide       → if true, force display: "none" into props
- *   5. cprop (rest)     → merge remaining cprop into props.cprop
- */
 function applyDirectives(node: SchemaNode, patch: MobilePatchDirectives): SchemaNode {
-	const wipeAllProps  = patch["remove-all-prop"]  === true;
+	const wipeAllProps = patch["remove-all-prop"] === true;
 	const wipeCpropOnly = patch["remove-all-cprop"] === true;
 
-	// Step 1 — base props (wiped or cloned)
 	const baseProps: Record<string, unknown> = wipeAllProps
 		? {}
 		: { ...(node.props ?? {}) };
 
-	// Step 2 — wipe cprop only if requested (and we didn't already wipe all)
 	if (wipeCpropOnly && !wipeAllProps) {
 		delete baseProps.cprop;
 	}
 
-	// Step 3 — merge patch.props on top
 	const mergedProps: Record<string, unknown> = {
 		...baseProps,
 		...(patch.props ?? {}),
 	};
 
-	// Step 4 & 5 — handle patch.cprop
 	if (patch.cprop) {
 		const { hide, ...realCpropEntries } = patch.cprop;
 
-		// `hide: true` → display: none directly on the node's props
 		if (hide === true) {
 			mergedProps.display = "none";
 		}
 
-		// Merge the remaining cprop entries into props.cprop
-		const entriesCount = Object.keys(realCpropEntries).length;
-		if (entriesCount > 0) {
-			const existingCprop = (wipeAllProps || wipeCpropOnly)
-				? {}
-				: ((baseProps.cprop as Record<string, unknown>) ?? {});
+		if (Object.keys(realCpropEntries).length > 0) {
+			// Merge against the already-merged props value so patch.props.cprop and
+			// patch.cprop compose instead of the latter restoring stale base cprop.
+			const currentCprop = mergedProps.cprop;
+			const existingCprop = currentCprop !== null
+				&& typeof currentCprop === "object"
+				&& !Array.isArray(currentCprop)
+				? currentCprop as Record<string, unknown>
+				: {};
 			mergedProps.cprop = { ...existingCprop, ...realCpropEntries };
 		}
 	}
@@ -157,26 +153,37 @@ function applyDirectives(node: SchemaNode, patch: MobilePatchDirectives): Schema
 
 // ── Tree patcher ──────────────────────────────────────────────────────────────
 
-/**
- * Recursively walks the schema tree and applies patches to named nodes.
- * Returns a new tree — original nodes are not mutated.
- */
-function patchTree(
-	node: SchemaNode,
-	patchMap: Map<string, MobilePatchDirectives>,
-): SchemaNode {
-	// Apply directives if this node was targeted
-	const patched: SchemaNode = (node.name && patchMap.has(node.name))
-		? applyDirectives(node, patchMap.get(node.name)!)
-		: node;
+type PatchPlan = Map<string, MobilePatchDirectives[]>;
 
-	// Recurse into children
+/**
+ * Applies matching directives while structurally sharing untouched branches.
+ * A node is cloned only when it is directly patched or one of its descendants
+ * changes, avoiding a complete schema clone for small mobile overrides.
+ */
+function patchTree(node: SchemaNode, patchPlan: PatchPlan): SchemaNode {
+	let patched = node;
+	const directives = node.name ? patchPlan.get(node.name) : undefined;
+
+	if (directives) {
+		for (const directive of directives) {
+			patched = applyDirectives(patched, directive);
+		}
+	}
+
 	if (!Array.isArray(patched.children)) return patched;
 
-	const patchedChildren = patched.children.map((child) =>
-		patchTree(child, patchMap),
-	);
+	let childrenChanged = false;
+	const currentChildren = patched.children;
+	const patchedChildren = new Array<SchemaNode>(currentChildren.length);
 
+	for (let index = 0; index < currentChildren.length; index++) {
+		const currentChild = currentChildren[index];
+		const patchedChild = patchTree(currentChild, patchPlan);
+		patchedChildren[index] = patchedChild;
+		if (patchedChild !== currentChild) childrenChanged = true;
+	}
+
+	if (!childrenChanged) return patched;
 	return { ...patched, children: patchedChildren };
 }
 
@@ -193,27 +200,20 @@ function devWarn(message: string): void {
 /**
  * Applies a `MobileSchemaConfig` patch list to a `PageSchema`.
  *
- * - Patches are processed in array order (later entries override earlier ones
- *   for the same target node).
- * - Unknown selectors emit a dev-only warning with "did you mean?" suggestion.
+ * - Patches are processed in array order; repeated targets compose sequentially.
+ * - Unknown selectors emit a dev-only warning with a close-name suggestion.
  * - Returns the original schema unchanged if no patches matched.
+ * - Untouched schema branches preserve their original object references.
  * - Never mutates the input schema or any node within it.
- *
- * @param schema  The original PageSchema (not mutated).
- * @param patches The MobileSchemaConfig array from createPage options.
- * @returns       A new PageSchema with all matching patches applied.
  */
 export function applyMobilePatches(
-	schema:  PageSchema,
+	schema: PageSchema,
 	patches: MobileSchemaConfig,
 ): PageSchema {
-	// Collect all named nodes for did-you-mean suggestions
 	const nameIndex: NameIndex = new Map();
 	collectNodeNames(schema.root, nameIndex);
 	const allNames = [...nameIndex.keys()];
-
-	// Build a flat name → directives map (later patches override earlier ones)
-	const patchMap = new Map<string, MobilePatchDirectives>();
+	const patchPlan: PatchPlan = new Map();
 
 	for (const patchObject of patches) {
 		for (const [selector, directives] of Object.entries(patchObject)) {
@@ -221,22 +221,27 @@ export function applyMobilePatches(
 
 			if (!nameIndex.has(name)) {
 				const suggestion = didYouMean(name, allNames);
-				const hint       = suggestion
+				const hint = suggestion
 					? ` Did you mean "children#${suggestion}"?`
-					: " No named nodes found in the schema.";
+					: allNames.length === 0
+						? " No named nodes found in the schema."
+						: " No close named-node match found.";
 				devWarn(`Selector "children#${name}" did not match any node.${hint}`);
 				continue;
 			}
 
-			patchMap.set(name, directives);
+			let targetPatches = patchPlan.get(name);
+			if (!targetPatches) {
+				targetPatches = [];
+				patchPlan.set(name, targetPatches);
+			}
+			targetPatches.push(directives);
 		}
 	}
 
-	// Nothing matched — return the original schema untouched
-	if (patchMap.size === 0) return schema;
+	if (patchPlan.size === 0) return schema;
 
-	return {
-		...schema,
-		root: patchTree(schema.root, patchMap),
-	};
+	const patchedRoot = patchTree(schema.root, patchPlan);
+	if (patchedRoot === schema.root) return schema;
+	return { ...schema, root: patchedRoot };
 }
