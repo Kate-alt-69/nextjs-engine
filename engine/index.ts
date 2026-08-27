@@ -19,7 +19,6 @@ export type {
 	ButtonVariant, ButtonSize, SectionProps, HeroProps, CardProps,
 	SpacerProps, DividerProps, EngineScrollProps, CustomSelectProps,
 	OptionProps, OptGroupProps, SlotProps,
-	EngineLinkProps, EngineLinkConfig,
 	EngineSuspenseProps, SuspensePreset,
 	EngineHeroProps,
 	EngineFormProps, EngineInputProps, EngineTextareaProps, EngineCheckboxProps, EngineLabelProps, InputType,
@@ -37,7 +36,34 @@ export {
 	EngineOption, EngineOptGroup, EngineSlot,
 } from "./components/primitives";
 export { EngineLink } from "./components/EngineLink";
+export type { EngineLinkConfig, EngineLinkProps } from "./components/EngineLink";
 export { EngineNav, renderEngineAnchor } from "./components/EngineNav";
+export { EngineTransitionLink } from "./components/EngineTransitionLink";
+export type { EngineTransitionLinkProps } from "./components/EngineTransitionLink";
+export {
+	ENGINE_TRANSITIONS,
+	isKnownEngineTransition,
+	navigateWithEngineTransition,
+	normalizeEngineTransitionType,
+	resolveEngineTransition,
+	runEngineTransition,
+	useEngineTransitions,
+} from "./core/enginetransitions";
+export type {
+	EngineTransitionAlias,
+	EngineTransitionAxis,
+	EngineTransitionConfig,
+	EngineTransitionDirection,
+	EngineTransitionEasing,
+	EngineTransitionInput,
+	EngineTransitionName,
+	EngineTransitionOptions,
+	EngineTransitionPointer,
+	EngineTransitionRunContext,
+	EngineTransitionShape,
+	EngineTransitionsController,
+	ResolvedEngineTransition,
+} from "./core/enginetransitions";
 export { EngineManim, EngineManim3D } from "./components/EngineManim";
 export { compileManimConfig, applyEasing, parseManimDSL, routeAnimation } from "./components/EngineManim";
 export type { ManimConfig, Manim3DConfig, ManimDSLDocument, ManimAnimationRoute, EngineManimProps, EngineManim3DProps } from "./components/EngineManim";

@@ -1,7 +1,7 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Engine — EngineNav
+// Engine — EngineNav
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, {
@@ -12,26 +12,27 @@ import React, {
 	useCallback,
 	useMemo,
 	useState,
-	type ReactNode,
-	type ReactElement,
 	type CSSProperties,
+	type ReactElement,
+	type ReactNode,
 } from "react";
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 import { usePropStyles, cpropClass, staticClass } from "../hooks/usePropStyles";
 import type { BaseNodeProps } from "../schema/types";
+import type { EngineTransitionInput } from "../core/enginetransitions";
 
-// Animated page transitions are optional. Keep next-view-transitions out of the
-// normal Nav/Link execution path until a page-to-page link is actually rendered.
-const LazyTransitionLink = lazy(async () => {
-	const transitionModule = await import("next-view-transitions");
-	return { default: transitionModule.Link as React.ComponentType<any> };
+// Keep the transition runtime out of ordinary links. The extra client code is
+// loaded only when an animated internal link is actually rendered.
+const LazyEngineTransitionLink = lazy(async () => {
+	const transitionModule = await import("./EngineTransitionLink");
+	return { default: transitionModule.EngineTransitionLink as React.ComponentType<any> };
 });
 
 export interface EngineAnchorConfig {
 	href: string;
 	target?: string;
-	transition?: string;
+	transition?: EngineTransitionInput;
 	className?: string;
 	children?: ReactNode;
 	onClick?: React.MouseEventHandler<HTMLAnchorElement>;
@@ -45,6 +46,12 @@ function isExternalHref(href: string, target?: string): boolean {
 	return target === "_blank"
 		|| href.startsWith("//")
 		|| /^[a-z][a-z0-9+.-]*:/i.test(href);
+}
+
+function hasAnimatedTransition(transition: EngineTransitionInput | undefined): boolean {
+	if (!transition) return false;
+	if (typeof transition === "string") return transition.trim().length > 0 && transition !== "instant";
+	return transition.type !== "instant";
 }
 
 function renderNextAnchor(cfg: EngineAnchorConfig): ReactElement {
@@ -96,13 +103,14 @@ export function renderEngineAnchor(cfg: EngineAnchorConfig): ReactElement {
 		);
 	}
 
-	if (transition === "page-to-page") {
+	if (hasAnimatedTransition(transition)) {
 		const nextAnchor = renderNextAnchor(cfg);
 		return (
 			<Suspense fallback={nextAnchor}>
-				<LazyTransitionLink
+				<LazyEngineTransitionLink
 					ref={ref}
 					href={href}
+					transition={transition}
 					target={target}
 					className={className}
 					onClick={onClick}
@@ -111,13 +119,11 @@ export function renderEngineAnchor(cfg: EngineAnchorConfig): ReactElement {
 					aria-current={ariaCurrent}
 				>
 					{children}
-				</LazyTransitionLink>
+				</LazyEngineTransitionLink>
 			</Suspense>
 		);
 	}
 
-	// Normal internal navigation stays inside the Next router and gets Next's
-	// client-side navigation/prefetch behavior without requiring ViewTransitions.
 	return renderNextAnchor(cfg);
 }
 
@@ -125,7 +131,7 @@ export interface EngineNavItem {
 	label: string;
 	href?: string;
 	target?: string;
-	cprop?: { link?: { transition?: string; href?: string } };
+	cprop?: { link?: { transition?: EngineTransitionInput; href?: string } };
 	active?: boolean;
 	children?: EngineNavItem[];
 }
@@ -187,8 +193,6 @@ const NavItem = memo(function NavItem({ item, pathname, variant }: NavItemProps)
 			: "transparent",
 	}), [isActive, variant]);
 
-	// The class is stable across open/closed state. Open state uses inline display
-	// so clicks never depend on post-hydration StyleCollector injection.
 	const dropdownClass = useMemo(() => staticClass({
 		position: "absolute",
 		top: "calc(100% + 0.25rem)",
@@ -226,13 +230,14 @@ const NavItem = memo(function NavItem({ item, pathname, variant }: NavItemProps)
 						<path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
 					</svg>
 				</button>
-				<div
-					role="menu"
-					className={dropdownClass}
-					style={{ display: open ? "flex" : "none" }}
-				>
+				<div role="menu" className={dropdownClass} style={{ display: open ? "flex" : "none" }}>
 					{item.children!.map((child, index) => (
-						<NavItem key={`${child.cprop?.link?.href ?? child.href ?? child.label}-${index}`} item={child} pathname={pathname} variant={variant} />
+						<NavItem
+							key={`${child.cprop?.link?.href ?? child.href ?? child.label}-${index}`}
+							item={child}
+							pathname={pathname}
+							variant={variant}
+						/>
 					))}
 				</div>
 			</div>
@@ -340,8 +345,6 @@ export const EngineNav = memo(
 			[`@media(min-width: ${mobileBreakpoint}px)`]: { display: "none" },
 		}), [mobileBreakpoint]);
 
-		// Generate this class on the initial render even though the menu itself is
-		// conditionally mounted later. This keeps all required CSS in the SSR sheet.
 		const mobileMenuClass = useMemo(() => staticClass({
 			display: "flex",
 			flexDirection: "column",
