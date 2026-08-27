@@ -1,84 +1,23 @@
 "use client";
-// ─────────────────────────────────────────────────────────────────────────────
-//  Engine — EngineScroll
-//
-//  The smooth-scroll + anchor-point + page-transition system.
-//
-//  What it does:
-//
-//    ANCHOR POINTS ("point" prop)
-//      Any engine node can declare itself as a scroll point by adding
-//      `point: "name"` to its props. This sets the element's HTML id so it
-//      is reachable via `#name` in the URL bar.
-//      EngineMarkdown h1/h2 headings become points automatically (opt-out
-//      with disablepointformarkdownhash / disablepointformarkdownhashhash).
-//
-//    SAME-PAGE NAVIGATION  (e.g. /about → /about#team)
-//      Click on any <a href="#name"> inside EngineScroll and the page
-//      scrolls to the matching point smoothly, using the configured method.
-//
-//    CROSS-PAGE NAVIGATION  (e.g. /about#team → /pricing#enterprise)
-//      1. Current page fades out (opacity 1 → 0, configurable duration)
-//      2. Next.js router.push() fires — new route loads
-//      3. New page's EngineScrollProvider mounts invisible (opacity 0)
-//      4. New page fades in (opacity 0 → 1)
-//      5. After fade, smooth-scrolls to the anchor point
-//
-//    SMOOTH SCROLL ENGINE
-//      "ease"    — JS requestAnimationFrame with configurable easing curve
-//                  (Google-style: ease-in-out by default)
-//      "smooth"  — Delegates to native CSS scroll-behavior: smooth
-//      "snap"    — CSS scroll-snap-type on the container; points get
-//                  scroll-snap-align: start. No JS needed.
-//      "instant" — No animation, instant jump.
-//
-//    EASING FUNCTIONS  (method: "ease" only)
-//      "ease-in-out"  — cubic: slow start, fast middle, slow end (default)
-//      "ease-in"      — quadratic: slow start, fast end
-//      "ease-out"     — quadratic: fast start, slow end
-//      "linear"       — constant speed
-//      "spring"       — slight overshoot and settle (physically based)
-//
-//  Usage:
-//
-//    Schema (recommended):
-//      {
-//        type: "scroll",
-//        props: { method: "ease", pageTransition: true },
-//        children: [...]
-//      }
-//
-//    Direct JSX:
-//      <EngineScrollProvider method="ease" pageTransition>
-//        <YourPageContent />
-//      </EngineScrollProvider>
-//
-//  Scroll points in schema:
-//      { type: "section", props: { point: "features", ... } }
-//      → <section id="features"> accessible at /page#features
-// ─────────────────────────────────────────────────────────────────────────────
 
 import React, {
 	createContext,
+	memo,
 	useCallback,
 	useContext,
 	useEffect,
+	useMemo,
 	useRef,
 	useState,
-	memo,
-	type ReactNode,
 	type CSSProperties,
+	type ReactNode,
 } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { EngineBrowser } from "../core/EngineBrowser";
 import type { EngineScrollProps } from "../schema/types";
 
-// ── Context ───────────────────────────────────────────────────────────────────
-
 interface ScrollContextValue {
-	/** Navigate to href, applying smooth scroll + page transition as needed. */
 	navigateTo: (href: string) => void;
-	/** Smooth-scroll to an element by its id on the current page. */
 	smoothScrollTo: (elementId: string, offsetPx?: number) => void;
 }
 
@@ -88,25 +27,16 @@ export function useEngineScroll(): ScrollContextValue | null {
 	return useContext(EngineScrollContext);
 }
 
-// ── Easing functions ──────────────────────────────────────────────────────────
-//  Each takes a progress value t ∈ [0, 1] and returns an eased t ∈ [0, 1].
-
 type EasingFn = (t: number) => number;
 
 const EASING: Record<NonNullable<EngineScrollProps["easing"]>, EasingFn> = {
-	"ease-in-out": (t) =>
-		t < 0.5
-			? 4 * t * t * t
-			: 1 - Math.pow(-2 * t + 2, 3) / 2,
-
+	"ease-in-out": (t) => t < 0.5
+		? 4 * t * t * t
+		: 1 - Math.pow(-2 * t + 2, 3) / 2,
 	"ease-in": (t) => t * t * t,
-
 	"ease-out": (t) => 1 - Math.pow(1 - t, 3),
-
 	linear: (t) => t,
-
 	spring: (t) => {
-		// Damped spring: overshoots slightly then settles
 		const c4 = (2 * Math.PI) / 3;
 		if (t === 0) return 0;
 		if (t === 1) return 1;
@@ -114,50 +44,14 @@ const EASING: Record<NonNullable<EngineScrollProps["easing"]>, EasingFn> = {
 	},
 };
 
-// ── RAF smooth-scroll utility ─────────────────────────────────────────────────
-
-function rafScrollTo(
-	targetY: number,
-	durationMs: number,
-	easingFn: EasingFn,
-): void {
-	// Respect prefers-reduced-motion: reduce — instant jump, no animation.
-	// This is an accessibility requirement; some users experience motion sickness.
-	if (EngineBrowser.supports.reducedMotion) {
-		window.scrollTo(0, targetY);
-		return;
+function decodeAnchorId(value: string): string {
+	const raw = value.startsWith("#") ? value.slice(1) : value;
+	try {
+		return decodeURIComponent(raw);
+	} catch {
+		return raw;
 	}
-
-	// If the browser natively handles scrollTimeline and the user explicitly
-	// chose method:"smooth", we'd skip RAF. But for "ease" (our default) we
-	// always use RAF — it gives precise control over easing curve and duration
-	// that CSS scroll-behavior: smooth can never provide.
-
-	const startY    = window.scrollY;
-	const delta     = targetY - startY;
-	const startTime = performance.now();
-
-	// Safari has a quirk where calling window.scrollTo() inside a RAF frame
-	// while the page is already mid-momentum-scroll can cause jitter.
-	// We cancel any pending native scroll first via scrollTo with exact current.
-	if (EngineBrowser.is.safari) window.scrollTo(window.scrollX, window.scrollY);
-
-	let rafId: number;
-
-	const step = (now: number): void => {
-		const elapsed  = now - startTime;
-		const progress = Math.min(elapsed / durationMs, 1);
-		const eased    = easingFn(progress);
-		window.scrollTo(0, startY + delta * eased);
-		if (progress < 1) { rafId = requestAnimationFrame(step); }
-	};
-
-	rafId = requestAnimationFrame(step);
-	// rafId exposed on window so EngineScroll can cancel it on unmount if needed
-	(window as any).__e_scrollRaf = rafId;
 }
-
-// ── EngineScrollProvider ──────────────────────────────────────────────────────
 
 export interface EngineScrollProviderProps extends EngineScrollProps {
 	children?: ReactNode;
@@ -165,180 +59,254 @@ export interface EngineScrollProviderProps extends EngineScrollProps {
 
 export const EngineScrollProvider = memo(function EngineScrollProvider({
 	children,
-	method           = "ease",
-	scrollDuration   = 600,
-	easing           = "ease-in-out",
-	pageTransition   = true,
+	method = "ease",
+	scrollDuration = 600,
+	easing = "ease-in-out",
+	pageTransition = true,
 	transitionDuration = 350,
-	transitionColor  = "var(--e-bg, #ffffff)",
-	scrollOffset     = 80,
+	transitionColor = "var(--e-bg, #ffffff)",
+	scrollOffset = 80,
 }: EngineScrollProviderProps) {
-	const router    = useRouter();
-	const pathname  = usePathname();
+	const router = useRouter();
+	const pathname = usePathname();
+	const [visible, setVisible] = useState(!pageTransition);
+	const containerRef = useRef<HTMLDivElement | null>(null);
+	const activeRafRef = useRef<number | null>(null);
+	const pendingAnchorRef = useRef<string | null>(null);
+	const navigatingRef = useRef(false);
+	const mountedRef = useRef(false);
 
-	// ── Page fade state ───────────────────────────────────────────────────────
-	// Starts invisible so we can fade in cleanly on every mount.
-	const [visible, setVisible]               = useState(false);
-	const pendingAnchorRef                    = useRef<string | null>(null);
-	const isMountedRef                        = useRef(false);
-	const navigatingRef                       = useRef(false);
-
-	const easingFn   = EASING[easing] ?? EASING["ease-in-out"];
-	const offsetPx   = typeof scrollOffset === "number"
+	const easingFn = EASING[easing] ?? EASING["ease-in-out"];
+	const parsedOffset = typeof scrollOffset === "number"
 		? scrollOffset
-		: parseInt(scrollOffset as string, 10) || 80;
+		: Number.parseFloat(scrollOffset);
+	const offsetPx = Number.isFinite(parsedOffset) ? parsedOffset : 80;
+	const safeScrollDuration = Number.isFinite(scrollDuration)
+		? Math.max(0, scrollDuration)
+		: 600;
+	const safeTransitionDuration = Number.isFinite(transitionDuration)
+		? Math.max(0, transitionDuration)
+		: 350;
 
-	// ── smoothScrollTo ────────────────────────────────────────────────────────
+	const cancelEaseScroll = useCallback((): void => {
+		if (activeRafRef.current === null) return;
+		cancelAnimationFrame(activeRafRef.current);
+		activeRafRef.current = null;
+	}, []);
+
+	const easeScrollTo = useCallback((targetY: number): void => {
+		cancelEaseScroll();
+		if (EngineBrowser.supports.reducedMotion || safeScrollDuration === 0) {
+			window.scrollTo(0, targetY);
+			return;
+		}
+
+		const startY = window.scrollY;
+		const delta = targetY - startY;
+		const startTime = performance.now();
+		if (EngineBrowser.is.safari) window.scrollTo(window.scrollX, window.scrollY);
+
+		const step = (now: number): void => {
+			const progress = Math.min(Math.max((now - startTime) / safeScrollDuration, 0), 1);
+			window.scrollTo(0, startY + delta * easingFn(progress));
+			if (progress < 1) {
+				activeRafRef.current = requestAnimationFrame(step);
+			} else {
+				activeRafRef.current = null;
+			}
+		};
+
+		activeRafRef.current = requestAnimationFrame(step);
+	}, [cancelEaseScroll, easingFn, safeScrollDuration]);
 
 	const smoothScrollTo = useCallback((elementId: string, customOffset?: number): void => {
-		const el = document.getElementById(elementId);
-		if (!el) return;
+		const element = document.getElementById(decodeAnchorId(elementId));
+		if (!element) return;
 
 		const offset = customOffset ?? offsetPx;
+		const targetY = element.getBoundingClientRect().top + window.scrollY - offset;
 
 		if (method === "instant") {
-			window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - offset);
+			cancelEaseScroll();
+			window.scrollTo(0, targetY);
 			return;
 		}
 
-		if (method === "smooth" || method === "snap") {
-			el.scrollIntoView({ behavior: "smooth", block: "start" });
+		if (method === "smooth") {
+			cancelEaseScroll();
+			window.scrollTo({
+				top: targetY,
+				left: window.scrollX,
+				behavior: EngineBrowser.supports.reducedMotion ? "auto" : "smooth",
+			});
 			return;
 		}
 
-		// "ease" — JS RAF
-		const targetY = el.getBoundingClientRect().top + window.scrollY - offset;
-		rafScrollTo(targetY, scrollDuration, easingFn);
-	}, [method, scrollDuration, easingFn, offsetPx]);
+		if (method === "snap") {
+			cancelEaseScroll();
+			element.scrollIntoView({
+				behavior: EngineBrowser.supports.reducedMotion ? "auto" : "smooth",
+				block: "start",
+			});
+			return;
+		}
 
-	// ── navigateTo ────────────────────────────────────────────────────────────
+		easeScrollTo(targetY);
+	}, [cancelEaseScroll, easeScrollTo, method, offsetPx]);
 
 	const navigateTo = useCallback(async (href: string): Promise<void> => {
-		// Resolve the href against the current origin
 		let url: URL;
 		try {
-			url = new URL(href, window.location.origin);
+			url = new URL(href, window.location.href);
 		} catch {
 			return;
 		}
 
-		const anchor      = url.hash.slice(1);  // without "#"
-		const targetPath  = url.pathname + url.search;
-		const currentPath = window.location.pathname + window.location.search;
-		const samePage    = targetPath === currentPath || (!url.pathname && url.hash);
-
-		if (samePage) {
-			// ── Same page: just smooth-scroll ─────────────────────────────────
-			if (anchor) smoothScrollTo(anchor);
+		if ((url.protocol !== "http:" && url.protocol !== "https:")
+			|| url.origin !== window.location.origin) {
+			window.location.assign(url.href);
 			return;
 		}
 
-		// ── Different page: fade out → navigate → (new page fades in + scrolls)
+		const targetPath = url.pathname + url.search;
+		const currentPath = window.location.pathname + window.location.search;
+		const anchor = url.hash.slice(1);
 
-		if (pageTransition) {
-			navigatingRef.current = true;
-			setVisible(false);
-			// Wait for the fade-out transition to complete
-			await new Promise((r) => setTimeout(r, transitionDuration));
+		if (targetPath === currentPath) {
+			if (!anchor) return;
+			if (window.location.hash !== url.hash) {
+				window.history.pushState(null, "", targetPath + url.hash);
+			}
+			smoothScrollTo(anchor);
+			return;
 		}
 
-		// Store the anchor so the new page knows where to scroll on mount
+		const animateTransition = pageTransition && !EngineBrowser.supports.reducedMotion;
+		if (animateTransition && navigatingRef.current) return;
 		pendingAnchorRef.current = anchor || null;
 
-		router.push(targetPath + (anchor ? `#${anchor}` : ""));
-	}, [router, pageTransition, transitionDuration, smoothScrollTo]);
-
-	// ── On mount: fade in + scroll to URL hash ────────────────────────────────
-
-	useEffect(() => {
-		isMountedRef.current = true;
-
-		// Fade in
-		const fadeTimer = requestAnimationFrame(() => setVisible(true));
-
-		// Scroll to hash in URL if present (also handles the "pending anchor"
-		// set by the previous page's navigateTo call)
-		const hashFromUrl = window.location.hash.slice(1);
-		const anchor      = pendingAnchorRef.current ?? hashFromUrl;
-
-		if (anchor) {
-			// Wait for layout to settle, then scroll after fade begins
-			const scrollTimer = setTimeout(() => {
-				smoothScrollTo(anchor);
-				pendingAnchorRef.current = null;
-			}, transitionDuration + 50);
-
-			return () => {
-				cancelAnimationFrame(fadeTimer);
-				clearTimeout(scrollTimer);
-				isMountedRef.current = false;
-			};
+		if (animateTransition) {
+			navigatingRef.current = true;
+			setVisible(false);
+			await new Promise<void>((resolve) => {
+				window.setTimeout(resolve, safeTransitionDuration);
+			});
+			if (!mountedRef.current) return;
 		}
 
-		return () => {
-			cancelAnimationFrame(fadeTimer);
-			isMountedRef.current = false;
-		};
-		// Only runs on mount (pathname change would re-mount in Next.js anyway)
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
-
-	// ── Global anchor-link click interception ─────────────────────────────────
-	// Capture phase so we see the click before any inner handlers.
+		router.push(targetPath + url.hash);
+		navigatingRef.current = false;
+	}, [pageTransition, router, safeTransitionDuration, smoothScrollTo]);
 
 	useEffect(() => {
-		const handler = (e: MouseEvent): void => {
-			const anchor = (e.target as HTMLElement).closest("a");
-			if (!anchor?.href) return;
+		mountedRef.current = true;
+		return () => {
+			mountedRef.current = false;
+			cancelEaseScroll();
+		};
+	}, [cancelEaseScroll]);
 
-			// Only intercept same-origin links with a hash
+	useEffect(() => {
+		navigatingRef.current = false;
+		if (!pageTransition || EngineBrowser.supports.reducedMotion) {
+			setVisible(true);
+			return;
+		}
+
+		const fadeFrame = requestAnimationFrame(() => setVisible(true));
+		return () => cancelAnimationFrame(fadeFrame);
+	}, [pageTransition, pathname]);
+
+	useEffect(() => {
+		const anchor = pendingAnchorRef.current ?? window.location.hash.slice(1);
+		pendingAnchorRef.current = null;
+		if (!anchor || anchor.startsWith("-es?")) return;
+
+		const delay = pageTransition && !EngineBrowser.supports.reducedMotion
+			? safeTransitionDuration + 50
+			: 0;
+		const timer = window.setTimeout(() => smoothScrollTo(anchor), delay);
+		return () => window.clearTimeout(timer);
+	}, [pageTransition, pathname, safeTransitionDuration, smoothScrollTo]);
+
+	useEffect(() => {
+		const handleHistoryAnchor = (): void => {
+			const hash = window.location.hash;
+			if (!hash || hash.startsWith("#-es?")) return;
+			smoothScrollTo(hash.slice(1));
+		};
+
+		window.addEventListener("hashchange", handleHistoryAnchor);
+		window.addEventListener("popstate", handleHistoryAnchor);
+		return () => {
+			window.removeEventListener("hashchange", handleHistoryAnchor);
+			window.removeEventListener("popstate", handleHistoryAnchor);
+		};
+	}, [smoothScrollTo]);
+
+	useEffect(() => {
+		const root = containerRef.current;
+		if (!root) return;
+
+		const handleAnchorClick = (event: MouseEvent): void => {
+			if (event.defaultPrevented || event.button !== 0) return;
+			if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+			if (!(event.target instanceof Element)) return;
+
+			const anchor = event.target.closest("a[href]");
+			if (!(anchor instanceof HTMLAnchorElement) || !root.contains(anchor)) return;
+			if (anchor.hasAttribute("download")) return;
+
+			const target = anchor.getAttribute("target");
+			if (target && target.toLowerCase() !== "_self") return;
+
 			let url: URL;
 			try {
-				url = new URL(anchor.href);
+				url = new URL(anchor.href, window.location.href);
 			} catch {
 				return;
 			}
 
-			if (!url.hash) return;
-			if (url.origin !== window.location.origin) return;
-
-			e.preventDefault();
-			navigateTo(anchor.href);
+			if (!url.hash || url.origin !== window.location.origin) return;
+			event.preventDefault();
+			void navigateTo(url.href);
 		};
 
-		document.addEventListener("click", handler, { capture: true });
-		return () => document.removeEventListener("click", handler, { capture: true });
+		root.addEventListener("click", handleAnchorClick, { capture: true });
+		return () => root.removeEventListener("click", handleAnchorClick, { capture: true });
 	}, [navigateTo]);
 
-	// ── Container styles ──────────────────────────────────────────────────────
-	// Opacity + transition for page fade. When method is "snap" we also set up
-	// the CSS scroll-snap container on the page.
-
 	const containerStyle: CSSProperties = {
-		opacity: pageTransition ? (visible ? 1 : 0) : 1,
-		transition: pageTransition
-			? `opacity ${transitionDuration}ms ease`
-			: undefined,
+		...(pageTransition ? { background: transitionColor } : {}),
 		...(method === "snap"
 			? {
-					height:         "100vh",
-					overflowY:      "scroll",
-					scrollSnapType: "y mandatory",
-					scrollBehavior: "smooth",
-			  }
+				height: "100vh",
+				overflowY: "scroll",
+				scrollSnapType: "y mandatory",
+				scrollBehavior: EngineBrowser.supports.reducedMotion ? "auto" : "smooth",
+				scrollPaddingTop: `${offsetPx}px`,
+			}
 			: {}),
 	};
+	const contentStyle: CSSProperties = {
+		opacity: pageTransition ? (visible ? 1 : 0) : 1,
+		transition: pageTransition && !EngineBrowser.supports.reducedMotion
+			? `opacity ${safeTransitionDuration}ms ease`
+			: undefined,
+	};
+	const contextValue = useMemo<ScrollContextValue>(
+		() => ({ navigateTo, smoothScrollTo }),
+		[navigateTo, smoothScrollTo],
+	);
 
 	return (
-		<EngineScrollContext.Provider value={{ navigateTo, smoothScrollTo }}>
-			<div style={containerStyle}>
-				{children}
+		<EngineScrollContext.Provider value={contextValue}>
+			<div ref={containerRef} style={containerStyle}>
+				<div style={contentStyle}>{children}</div>
 			</div>
 		</EngineScrollContext.Provider>
 	);
 });
-
-// ── Default export — what the registry maps "scroll" to ──────────────────────
 
 export const EngineScroll = memo(function EngineScroll({
 	children,

@@ -188,6 +188,29 @@ props: {
 ## Legacy schema `"scroll"`
 
 The schema `"scroll"` component remains for compatibility and is separate from
-the core runtime automatically installed by `createPage()`. New imperative
-navigation should prefer `EngineScrollProvider`, `useEngineScroll`, and the core
-navigator APIs.
+the core runtime automatically installed by `createPage()`.
+
+Its compatibility props are:
+
+| Prop | Default | Behavior |
+|---|---:|---|
+| `method` | `"ease"` | `ease`, native `smooth`, `snap`, or `instant` movement |
+| `scrollDuration` | `600` | RAF duration for `ease` |
+| `easing` | `"ease-in-out"` | RAF easing curve |
+| `scrollOffset` | `80` | Top offset in pixels; also becomes snap `scroll-padding-top` |
+| `pageTransition` | `true` | Fade content during cross-page navigation |
+| `transitionDuration` | `350` | Fade duration in milliseconds |
+| `transitionColor` | `var(--e-bg, #ffffff)` | Stable surface revealed while page content fades |
+
+The legacy wrapper scopes anchor interception to its own subtree. Modified
+clicks, non-left clicks, downloads, external origins, and non-`_self` targets
+keep their native browser behavior. Same-page hash navigation updates the URL,
+and history hash navigation is re-applied with the configured scroll behavior.
+
+Only one compatibility `ease` RAF owned by that wrapper can be active at a
+time; starting a new movement cancels the previous frame chain and unmount
+cancels the current one. Reduced-motion users receive instant/native-auto
+movement and no page fade.
+
+New imperative navigation should still prefer `EngineScrollProvider`,
+`useEngineScroll`, and the core navigator APIs.
