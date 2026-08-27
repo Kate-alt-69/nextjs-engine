@@ -166,6 +166,26 @@ function compileProviderConfig(projectRoot, configDir, outputFile) {
 	fs.writeFileSync(outputPath, JSON.stringify(compileAPIConfig(combinedSource), null, "\t"), "utf8");
 }
 
+function writeAPIStaticManifest(projectRoot, staticOutputDir, staticManifestFile, compiledRoutes) {
+	const outputDirectory = path.resolve(projectRoot, staticOutputDir);
+	const manifestPath = path.join(outputDirectory, staticManifestFile);
+	const endpoints = Object.create(null);
+
+	for (const route of compiledRoutes) {
+		endpoints[route.route] = {
+			hash: route.hash,
+			operations: [...route.operations],
+		};
+	}
+
+	fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
+	fs.writeFileSync(
+		manifestPath,
+		`${JSON.stringify({ version: 1, endpoints }, null, "\t")}\n`,
+		"utf8",
+	);
+}
+
 function getWatchState() {
 	const root = globalThis;
 	if (!root[WATCH_STATE_KEY]) root[WATCH_STATE_KEY] = new Map();
@@ -240,16 +260,18 @@ function withEngineAPI(nextConfig = {}, pluginOptions = {}) {
 		outputFile = ".engine-api-compiled.json",
 		endpointDir = "data/endpoint",
 		staticOutputDir = "public/_static/endpoint",
+		staticManifestFile = "manifest.json",
 	} = pluginOptions;
 	const projectRoot = process.cwd();
 
 	const compileEngineAPI = () => {
 		compileProviderConfig(projectRoot, configDir, outputFile);
-		compileAPIStaticDir({
+		const compiledRoutes = compileAPIStaticDir({
 			projectRoot,
 			endpointDir,
 			outputDir: staticOutputDir,
 		});
+		writeAPIStaticManifest(projectRoot, staticOutputDir, staticManifestFile, compiledRoutes);
 	};
 
 	// next.config is evaluated for both Turbopack and webpack. Compile once here,
@@ -275,3 +297,4 @@ module.exports = withEngineAPI;
 module.exports.withEngineAPI = withEngineAPI;
 module.exports.compileAPIConfig = compileAPIConfig;
 module.exports.compileAPIStaticDir = compileAPIStaticDir;
+module.exports.writeAPIStaticManifest = writeAPIStaticManifest;

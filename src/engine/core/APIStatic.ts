@@ -45,12 +45,29 @@ export type APIStaticProxyHandler = (
 	init?: RequestInit,
 ) => Promise<unknown>;
 
+export interface APIStaticEndpointManifestEntry {
+	hash: string;
+	operations: string[];
+}
+
+export interface APIStaticManifest {
+	version: 1;
+	endpoints: Record<string, APIStaticEndpointManifestEntry>;
+}
+
+export interface APIStaticEndpointInfo extends APIStaticEndpointManifestEntry {
+	route: string;
+	url: string;
+}
+
 export interface APIStaticOptions {
 	basePath?: string;
 	loadTimeoutMs?: number;
 	proxy?: APIStaticProxyHandler;
 	/** Add a changing query token when loading generated modules. Defaults to true in development. */
 	cacheBust?: boolean;
+	/** Generated discovery file name under basePath. */
+	manifestFile?: string;
 }
 
 export interface APIStaticExecuteOptions {
@@ -60,6 +77,7 @@ export interface APIStaticExecuteOptions {
 
 const DEFAULT_BASE_PATH = "/_static/endpoint";
 const DEFAULT_LOAD_TIMEOUT_MS = 10_000;
+const DEFAULT_MANIFEST_FILE = "manifest.json";
 const SAFE_ROUTE_SEGMENT = /^[A-Za-z0-9._-]+$/;
 
 interface APIStaticGlobal extends Record<string, unknown> {
@@ -81,6 +99,10 @@ function getRegistry(): Map<string, APIStaticRouteModule> {
 		root.__NEXTJS_ENGINE_API_STATIC__ = new Map<string, APIStaticRouteModule>();
 	}
 	return root.__NEXTJS_ENGINE_API_STATIC__;
+}
+
+function normalizeBasePath(basePath: string): string {
+	return `/${basePath.replace(/^\/+|\/+$/g, "")}`;
 }
 
 export function normalizeAPIStaticRoute(route: string): string {
@@ -110,8 +132,7 @@ export function getAPIStaticRouteURL(route: string, basePath = DEFAULT_BASE_PATH
 	const normalized = normalizeAPIStaticRoute(route);
 	const segments = normalized.split("/");
 	const fileName = `${segments.pop()}-${getAPIStaticRouteHash(normalized)}.js`;
-	const base = `/${basePath.replace(/^\/+|\/+$/g, "")}`;
-	return `${base}/${[...segments, fileName].join("/")}`;
+	return `${normalizeBasePath(basePath)}/${[...segments, fileName].join("/")}`;
 }
 
 export function staticEndpoint(route: string, operation?: string): EngineAPIStaticEndpoint {
@@ -292,22 +313,95 @@ function removeLoadedScripts(route?: string): void {
 	}
 }
 
+function normalizeManifest(value: unknown): APIStaticManifest {
+	if (typeof value !== "object" || value === null) throw new Error("[APIStatic] Invalid endpoint manifest.");
+	const candidate = value as Partial<APIStaticManifest>;
+	if (candidate.version !== 1 || typeof candidate.endpoints !== "object" || candidate.endpoints === null) {
+		throw new Error("[APIStatic] Unsupported endpoint manifest.");
+	}
+	return candidate as APIStaticManifest;
+}
+
 export class APIStatic {
 	private readonly basePath: string;
 	private readonly loadTimeoutMs: number;
 	private readonly proxyHandler: APIStaticProxyHandler;
 	private readonly cacheBust: boolean;
+	private readonly manifestFile: string;
 	private readonly pendingLoads = new Map<string, Promise<APIStaticRouteModule>>();
+	private manifestPromise: Promise<APIStaticManifest> | null = null;
 
 	constructor(options: APIStaticOptions = {}) {
 		this.basePath = options.basePath || DEFAULT_BASE_PATH;
 		this.loadTimeoutMs = options.loadTimeoutMs ?? DEFAULT_LOAD_TIMEOUT_MS;
 		this.proxyHandler = options.proxy || unconfiguredProxy;
 		this.cacheBust = options.cacheBust ?? !isProductionRuntime();
+		this.manifestFile = options.manifestFile || DEFAULT_MANIFEST_FILE;
+	}
+
+	static endpoint(route: string, operation?: string): EngineAPIStaticEndpoint {
+		return staticEndpoint(route, operation);
+	}
+
+	static async getEndpoints(): Promise<Record<string, APIStaticEndpointInfo>> {
+		return getDefaultAPIStatic().getEndpoints();
+	}
+
+	static async names(): Promise<string[]> {
+		return getDefaultAPIStatic().names();
+	}
+
+	static async has(route: string): Promise<boolean> {
+		return getDefaultAPIStatic().has(route);
+	}
+
+	static async resolve(route: string, input?: unknown): Promise<Response>;
+	static async resolve(route: string, operation: string, input?: unknown): Promise<Response>;
+	static async resolve(route: string, operationOrInput?: string | unknown, maybeInput?: unknown): Promise<Response> {
+		const hasOperation = typeof operationOrInput === "string" && arguments.length >= 2;
+		const { EngineAPIResolver } = await import("./EngineAPIResolver");
+		const resolver = new EngineAPIResolver({
+			endpoint: staticEndpoint(route, hasOperation ? operationOrInput : undefined),
+		});
+		return resolver.resolveRequest({
+			input: hasOperation ? maybeInput : operationOrInput,
+		});
+	}
+
+	endpoint(route: string, operation?: string): EngineAPIStaticEndpoint {
+		return staticEndpoint(route, operation);
 	}
 
 	getURL(route: string): string {
 		return getAPIStaticRouteURL(route, this.basePath);
+	}
+
+	getManifestURL(): string {
+		return `${normalizeBasePath(this.basePath)}/${this.manifestFile.replace(/^\/+/, "")}`;
+	}
+
+	async getEndpoints(): Promise<Record<string, APIStaticEndpointInfo>> {
+		const manifest = await this.loadManifest();
+		return Object.fromEntries(
+			Object.entries(manifest.endpoints).map(([route, entry]) => [
+				route,
+				{
+					route,
+					hash: entry.hash,
+					operations: [...entry.operations],
+					url: this.getURL(route),
+				},
+			]),
+		);
+	}
+
+	async names(): Promise<string[]> {
+		return Object.keys((await this.loadManifest()).endpoints).sort();
+	}
+
+	async has(route: string): Promise<boolean> {
+		const normalized = normalizeAPIStaticRoute(route);
+		return Object.prototype.hasOwnProperty.call((await this.loadManifest()).endpoints, normalized);
 	}
 
 	clear(route?: string): void {
@@ -315,6 +409,7 @@ export class APIStatic {
 		if (!route) {
 			registry.clear();
 			this.pendingLoads.clear();
+			this.manifestPromise = null;
 			removeLoadedScripts();
 			return;
 		}
@@ -337,12 +432,46 @@ export class APIStatic {
 		return operation.run(context);
 	}
 
+	async resolve(route: string, input?: unknown): Promise<Response>;
+	async resolve(route: string, operation: string, input?: unknown): Promise<Response>;
+	async resolve(route: string, operationOrInput?: string | unknown, maybeInput?: unknown): Promise<Response> {
+		const hasOperation = typeof operationOrInput === "string" && arguments.length >= 2;
+		return this.resolveRequest(route, {
+			operation: hasOperation ? operationOrInput : undefined,
+			input: hasOperation ? maybeInput : operationOrInput,
+		});
+	}
+
 	async resolveRequest(route: string, options: APIStaticExecuteOptions = {}): Promise<Response> {
 		try {
 			return toResponse(await this.execute(route, options));
 		} catch (reason) {
 			return errorResponse(reason);
 		}
+	}
+
+	private async loadManifest(): Promise<APIStaticManifest> {
+		if (this.manifestPromise) return this.manifestPromise;
+		if (typeof fetch === "undefined") {
+			throw new Error("[APIStatic] Endpoint discovery requires the Fetch API.");
+		}
+
+		const stableURL = this.getManifestURL();
+		const url = this.cacheBust
+			? `${stableURL}${stableURL.includes("?") ? "&" : "?"}__eas=${Date.now().toString(36)}`
+			: stableURL;
+		this.manifestPromise = fetch(url, {
+			cache: this.cacheBust ? "no-store" : "default",
+		})
+			.then(async (response) => {
+				if (!response.ok) throw new Error(`[APIStatic] Could not load endpoint manifest (${response.status}). Did the .route compiler run?`);
+				return normalizeManifest(await response.json());
+			})
+			.catch((reason) => {
+				this.manifestPromise = null;
+				throw reason;
+			});
+		return this.manifestPromise;
 	}
 
 	private async load(route: string): Promise<APIStaticRouteModule> {
