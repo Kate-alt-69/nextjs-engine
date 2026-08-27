@@ -14,7 +14,7 @@ import React, {
 	type CSSProperties,
 	type ReactNode,
 } from "react";
-import { usePropStyles, cpropClass } from "../hooks/usePropStyles";
+import { useCpropClass, usePropStyles } from "../hooks/usePropStyles";
 import { useSlot } from "../providers/EngineProvider";
 import type { BaseNodeProps } from "../schema/types";
 
@@ -274,7 +274,7 @@ export const EngineSuspense = memo(function EngineSuspense({
 	...props
 }: EngineSuspenseProps) {
 	const resolvedStyle = usePropStyles(props as any, style);
-	const hoverClass = cpropClass(cprop);
+	const hoverClass = useCpropClass(cprop);
 	const mergedClass = [className, hoverClass].filter(Boolean).join(" ") || undefined;
 	const resolvedId = id ?? point;
 	const errorSlot = useSlot(errorFallback ?? "");
