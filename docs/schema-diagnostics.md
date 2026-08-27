@@ -26,12 +26,20 @@ It checks things such as:
 - required props for built-ins such as image/custom-select/slot;
 - Markdown having `content` or `filePath`;
 - Canvas having a render source;
-- `children` structural shape.
+- `children` structural shape;
+- circular ancestor references in the schema tree.
 
 For Canvas, **either** callback mode (`onDraw` / `onSetup`) **or** a `graphics`
 configuration is a valid render source. A graphics-only Canvas must not receive
 a "blank canvas" warning.
 
+Circular references are structural errors. The validator tracks only the current
+ancestor chain, so a cycle is reported instead of overflowing the JavaScript call
+stack. Reusing the same node object in a separate non-ancestor branch is still
+left to the deeper analyzer's E004 diagnostic.
+
+The validator appends diagnostics into one shared result buffer while walking the
+tree instead of allocating and spreading a separate error array for every node.
 Warnings do not make `valid` false; structural errors do.
 
 ## `analyzeSchema()` / `analyzeNode()`
