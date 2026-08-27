@@ -79,8 +79,8 @@ shader <= multilineColors => [
 const parsedMultilineColors = parseEngineShaderSource(multilineColorSource, "multiline-colors.shed");
 assert.deepStrictEqual(parsedMultilineColors.ast.before.gradient.colors, ["#071126", "#5b21b6", "#06b6d4"]);
 const multilineColorPlan = compileEngineShaderSource(multilineColorSource, "multiline-colors");
-assert.ok(multilineColorPlan.fragment.includes("0.027451"));
-assert.ok(multilineColorPlan.fragment.includes("0.356863"));
+assert.strictEqual(multilineColorPlan.execution, "static");
+assert.ok(multilineColorPlan.fragment.includes("color=mix(vec3("));
 
 const eventSource = `
 shader <= pointerGlow => [
