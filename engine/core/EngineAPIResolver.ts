@@ -45,6 +45,13 @@ function deepMerge(target: Record<string, unknown>, ...sources: Array<Record<str
 	for (const source of sources) {
 		if (!source) continue;
 		for (const [key, value] of Object.entries(source)) {
+			// Endpoint descriptors are routing identities, not option bags. Deep-
+			// merging them can leak an operation from one static route into another.
+			if (key === "endpoint") {
+				result[key] = value;
+				continue;
+			}
+
 			const existingValue = result[key];
 			if (isPlainObject(value) && isPlainObject(existingValue)) {
 				result[key] = deepMerge(existingValue, value);
@@ -144,7 +151,7 @@ export class EngineAPIResolver {
 		pageOverrides?: EngineAPIConfig;
 		nodeOverrides?: EngineAPIConfig;
 		formData?: EngineAPIFormData;
-		/** Input passed to APIStatic. `formData` is used as a fallback for compatibility. */
+		/** Input passed to APIStatic. `formData` is used only when input is undefined. */
 		input?: unknown;
 	} = {}): Promise<Response> {
 		const { pageOverrides, nodeOverrides, formData, input } = params;
@@ -159,12 +166,12 @@ export class EngineAPIResolver {
 			const { getDefaultAPIStatic } = await import("./APIStatic");
 			return getDefaultAPIStatic().resolveRequest(config.endpoint.static, {
 				operation: config.endpoint.operation,
-				input: input ?? formData,
+				input: input !== undefined ? input : formData,
 			});
 		}
 
 		const method = (config.method || "GET").toUpperCase();
-		let url = config.endpoint || "";
+		let url = typeof config.endpoint === "string" ? config.endpoint : "";
 		const cache = config.cache || "default";
 
 		if (config.versionMacros) {
