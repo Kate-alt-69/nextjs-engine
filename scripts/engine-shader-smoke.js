@@ -8,6 +8,7 @@ const {
 	compileEngineShaderSource,
 	compileShaderDirectory,
 	decodeArtifact,
+	parseEngineShaderSource,
 } = require("../src/engine/plugins/engineShaderCompiler");
 const { resolveShaderBasePath } = require("../src/engine/plugins/engineShaderPlugin");
 
@@ -63,6 +64,23 @@ assert.deepStrictEqual(animated.flows, [
 	{ from: "frame.color", to: "after.pixel" },
 	{ from: "after.pixel", to: "screen" },
 ]);
+
+const multilineColorSource = `
+shader <= multilineColors => [
+	before.gradient => [
+		colors => [
+			#071126
+			#5b21b6
+			#06b6d4
+		]
+	]
+]
+`;
+const parsedMultilineColors = parseEngineShaderSource(multilineColorSource, "multiline-colors.shed");
+assert.deepStrictEqual(parsedMultilineColors.ast.before.gradient.colors, ["#071126", "#5b21b6", "#06b6d4"]);
+const multilineColorPlan = compileEngineShaderSource(multilineColorSource, "multiline-colors");
+assert.ok(multilineColorPlan.fragment.includes("0.027451"));
+assert.ok(multilineColorPlan.fragment.includes("0.356863"));
 
 const eventSource = `
 shader <= pointerGlow => [
@@ -203,21 +221,35 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), "engine-shader-"));
 try {
 	const sourceDir = path.join(root, "data", "shader", "public");
 	const outputDir = path.join(root, "public", "_static", "shader");
+	const manifestPath = path.join(outputDir, "manifest.json");
 	fs.mkdirSync(sourceDir, { recursive: true });
 	fs.writeFileSync(path.join(sourceDir, "aurora.shed"), animatedSource);
 	const manifest = compileShaderDirectory({ projectRoot: root });
 	assert.ok(manifest.shaders.aurora);
 	assert.ok(manifest.shaders.aurora.file.endsWith(".shed.dat"));
-	const artifact = fs.readFileSync(path.join(outputDir, manifest.shaders.aurora.file));
+	const firstArtifactPath = path.join(outputDir, manifest.shaders.aurora.file);
+	const artifact = fs.readFileSync(firstArtifactPath);
 	assert.strictEqual(artifact.subarray(0, 4).toString("ascii"), "ESH1");
 	const decoded = decodeArtifact(artifact);
 	assert.strictEqual(decoded.name, "pixelAurora");
 	assert.strictEqual(decoded.execution, "animated");
 
 	const firstHash = manifest.shaders.aurora.hash;
+	const firstFile = manifest.shaders.aurora.file;
 	fs.writeFileSync(path.join(sourceDir, "aurora.shed"), animatedSource.replace(".55", ".75"));
 	const nextManifest = compileShaderDirectory({ projectRoot: root });
 	assert.notStrictEqual(nextManifest.shaders.aurora.hash, firstHash);
+	assert.notStrictEqual(nextManifest.shaders.aurora.file, firstFile);
+	assert.ok(!fs.existsSync(path.join(outputDir, firstFile)));
+	assert.ok(fs.existsSync(path.join(outputDir, nextManifest.shaders.aurora.file)));
+
+	const lastGoodManifest = fs.readFileSync(manifestPath, "utf8");
+	const lastGoodArtifactPath = path.join(outputDir, nextManifest.shaders.aurora.file);
+	const lastGoodArtifact = fs.readFileSync(lastGoodArtifactPath);
+	fs.writeFileSync(path.join(sourceDir, "broken.shed"), "shader <= broken => [\n\tbefore.gradient => [\n");
+	assert.throws(() => compileShaderDirectory({ projectRoot: root }), /missing a closing/);
+	assert.strictEqual(fs.readFileSync(manifestPath, "utf8"), lastGoodManifest);
+	assert.deepStrictEqual(fs.readFileSync(lastGoodArtifactPath), lastGoodArtifact);
 } finally {
 	fs.rmSync(root, { recursive: true, force: true });
 }
