@@ -13,16 +13,28 @@ import {
 } from "../schema/types";
 import type { EngineShaderInput } from "./engineshader/EngineShaderTypes";
 import type { StyleCollector } from "./StyleCollector";
+import {
+	EngineScrollPointManager,
+	type EngineScrollAlignment,
+	type EngineScrollPointGroupInput,
+} from "./enginescroll";
 import { getComponent, isSplitComponent } from "./registry";
 import { validatePageSchema } from "./validateSchema";
 import { decideLazy } from "./lazyDetect";
-import { EngineScrollPointManager } from "./enginescroll";
 import { LazyMount, LazySection } from "../components/LazyMount";
 import { useSlot, useStyleCollector } from "../providers/EngineProvider";
 
 interface VisibilityRule {
 	className: string;
 	css: string;
+}
+
+interface PointRegistrationProps {
+	name: string;
+	domId: string;
+	group?: EngineScrollPointGroupInput;
+	align?: EngineScrollAlignment;
+	offset?: number;
 }
 
 const visibilityRuleCache = new Map<string, VisibilityRule>();
@@ -32,6 +44,12 @@ const SHADER_PENDING_CSS = [
 	`.${SHADER_PENDING_CLASS}:not([data-engine-shader-ready="true"]){opacity:0!important}`,
 	`@media (scripting: none){.${SHADER_PENDING_CLASS}{opacity:1!important}}`,
 ].join("\n");
+const POINT_ALIGNMENTS = new Set<EngineScrollAlignment>([
+	"start",
+	"center",
+	"end",
+	"nearest",
+]);
 const LazyEngineShaderSurface = lazy(() =>
 	import("../components/EngineShaderSurface").then((module) => ({ default: module.EngineShaderSurface })),
 );
@@ -81,20 +99,47 @@ function SlotNode({
 	return null;
 }
 
-function PointRegistration({ name, domId }: { name: string; domId: string }) {
+function PointRegistration({
+	name,
+	domId,
+	group,
+	align,
+	offset,
+}: PointRegistrationProps) {
+	const groupSignature = typeof group === "string"
+		? group
+		: group?.join("\u001f") ?? "";
+
 	useEffect(() => {
 		const element = document.getElementById(domId);
 		if (!element) return;
 
-		EngineScrollPointManager.registerElement(name, element);
+		EngineScrollPointManager.registerElement(name, element, {
+			group,
+			align,
+			offset,
+		});
 		return () => {
 			const registered = EngineScrollPointManager.get(name);
 			if (registered?.element === element) {
 				EngineScrollPointManager.unregister(name);
 			}
 		};
-	}, [domId, name]);
+	}, [align, domId, groupSignature, name, offset]);
 	return null;
+}
+
+function normalizePointGroup(value: unknown): EngineScrollPointGroupInput | undefined {
+	if (typeof value === "string") return value;
+	if (!Array.isArray(value)) return undefined;
+	const groups = value.filter((group): group is string => typeof group === "string");
+	return groups.length > 0 ? groups : undefined;
+}
+
+function normalizePointAlign(value: unknown): EngineScrollAlignment | undefined {
+	return typeof value === "string" && POINT_ALIGNMENTS.has(value as EngineScrollAlignment)
+		? value as EngineScrollAlignment
+		: undefined;
 }
 
 function buildVisibilityClass(
@@ -240,6 +285,16 @@ function NodeRenderer({ node, depth, path }: NodeRendererProps) {
 	const shader = originalProps.shader as EngineShaderInput | undefined;
 	const hasLayerShader = shader !== undefined && shader !== null && SHADER_SURFACE_TYPES.has(String(node.type));
 	const componentProps = { ...originalProps };
+	const pointGroup = normalizePointGroup(originalProps.pointGroup);
+	const pointAlign = normalizePointAlign(originalProps.pointAlign);
+	const pointOffset = typeof originalProps.pointOffset === "number" && Number.isFinite(originalProps.pointOffset)
+		? originalProps.pointOffset
+		: undefined;
+	// Engine-only metadata is consumed by SchemaRenderer and never forwarded to
+	// primitive/custom component DOM props.
+	delete componentProps.pointGroup;
+	delete componentProps.pointAlign;
+	delete componentProps.pointOffset;
 	// Layer-capable surfaces consume `shader` here. Canvas owns its shader
 	// directly, and custom components keep unrelated props named `shader`.
 	if (hasLayerShader) delete componentProps.shader;
@@ -288,7 +343,13 @@ function NodeRenderer({ node, depth, path }: NodeRendererProps) {
 	const anchoredElement = pointName && resolvedDomId
 		? (
 			<>
-				<PointRegistration name={pointName} domId={resolvedDomId} />
+				<PointRegistration
+					name={pointName}
+					domId={resolvedDomId}
+					group={pointGroup}
+					align={pointAlign}
+					offset={pointOffset}
+				/>
 				{element}
 				{shaderSurface}
 			</>
@@ -306,7 +367,7 @@ function NodeRenderer({ node, depth, path }: NodeRendererProps) {
 						placeholderHeight={lazy.placeholderHeight}
 						className={visibilityClass}
 					/>
-				)}
+			}
 			>
 				{anchoredElement}
 			</Suspense>

@@ -24,6 +24,7 @@ export type {
 	EngineFormProps, EngineInputProps, EngineTextareaProps, EngineCheckboxProps, EngineLabelProps, InputType,
 } from "./schema/types";
 export type { EngineShaderSurfaceProps } from "./schema/EngineShaderSchemaTypes";
+export type { EngineScrollPointSchemaProps } from "./schema/EngineScrollSchema";
 
 export {
 	registerComponent, unregisterComponent, getComponent,
@@ -183,10 +184,13 @@ export {
 	useEngineScroll,
 	useEngineScrollTimeline,
 	EngineScrollTimeline,
+	EngineScrollTimelineTrack,
+	bindEngineScrollTimelineStyles,
 	EngineScrollNavigator,
 	EngineScrollURL,
 	EngineScrollMovement,
 	EngineScrollHash,
+	EngineScrollSnap,
 	EngineScrollPointManager,
 	EngineScrollEasing,
 } from "./core/enginescroll";
@@ -197,6 +201,7 @@ export type {
 	EngineScrollState,
 	EngineScrollPoint,
 	EngineRegisteredPoint,
+	EngineScrollPointGroupInput,
 	EngineScrollPointOptions,
 	EngineScrollRegisteredPoint,
 	EngineScrollResolvedPoint,
@@ -204,9 +209,22 @@ export type {
 	EngineScrollDirection,
 	EngineScrollEasingName,
 	EngineScrollMoveOptions,
+	EngineScrollSnapMode,
+	EngineScrollSnapOptions,
+	EngineScrollTimelineActivityEvent,
+	EngineScrollTimelineActivitySubscriber,
+	EngineScrollTimelineActivityType,
+	EngineScrollTimelineBoundary,
 	EngineScrollTimelineConfig,
+	EngineScrollTimelineCrossEvent,
+	EngineScrollTimelineCrossSubscriber,
 	EngineScrollTimelineFrame,
+	EngineScrollTimelineKeyframe,
 	EngineScrollTimelineSource,
+	EngineScrollTimelineStyleBinding,
+	EngineScrollTimelineStyleBindings,
+	EngineScrollTimelineStyleKeyframes,
+	EngineScrollTimelineStyleRange,
 	EngineScrollTimelineSubscriber,
 	EngineScrollTimelineTarget,
 } from "./core/enginescroll";
@@ -218,8 +236,8 @@ export type {
 	BrowserClipboard,
 	BrowserInteract, ShareData, PickFileOptions, OrientationLock,
 	BrowserMedia, MediaCameraOptions,
-	BrowserSpeech, SpeakOptions, ListenOptions,
-	BrowserNetwork, NetworkStatus, NetworkType,
+	BrowserSpeech, SpeakOptions, ListenOptions, BrowserNetwork,
+	NetworkStatus, NetworkType,
 } from "./core/EngineBrowserSafe";
 
 // Device detection. Request-aware helpers such as getServerDevice live in the
