@@ -61,8 +61,9 @@ hero / features / footer
 changed-track dispatch
 ```
 
-Aggregate subscribers, per-track subscribers, crossing events, activity events,
-and director CSS bindings all share that one subscription.
+Aggregate subscribers, per-track subscribers, progress-only subscribers,
+crossing events, activity events, and director CSS bindings all share that one
+subscription.
 
 When the last listener is removed, the director releases the runtime
 subscription automatically.
@@ -103,14 +104,30 @@ frame.
 
 ## Per-track subscriptions
 
+Full orchestration state:
+
 ```ts
 const stopHero = director.subscribeTrack("hero", (frame) => {
+	console.log(frame.progress);
+	console.log(frame.direction);
+	console.log(frame.velocity);
+});
+```
+
+Progress-only visual state:
+
+```ts
+const stopHeroVisual = director.subscribeProgressTrack("hero", (frame) => {
 	console.log(frame.progress);
 });
 ```
 
-Per-track callbacks still use the director's single runtime subscription. They do
-not subscribe the child `EngineScrollTimeline` directly.
+`subscribeProgressTrack()` emits when the track's resolved boundaries, eased
+progress, or before/active/after state changes. It does not wake for
+velocity/direction-only changes while progress is unchanged.
+
+Both channels still use the director's single runtime subscription. They do not
+subscribe the child `EngineScrollTimeline` directly.
 
 ## Crossing and activity events
 
@@ -150,13 +167,24 @@ const stopStyles = director.bindStyles("features", element, {
 });
 ```
 
-The binding subscribes to the named director track, not directly to
-`EngineScrollRuntime`. Multiple director bindings therefore still share the one
-director subscription.
+Tuple, range, and keyframe bindings automatically use the Director's
+`subscribeProgressTrack()` channel. A velocity-only runtime frame therefore does
+not even enter the declarative binding pass when the visual progress is
+unchanged.
 
-The generic `bindEngineScrollTimelineStyles()` helper now accepts any
-`EngineScrollTimelineFrameSource`, allowing EngineScroll orchestration objects to
-reuse the same zero-React hot path.
+Function bindings remain on `subscribeTrack()` because they may intentionally
+read full frame state:
+
+```ts
+director.bindStyles("features", element, {
+	"--velocity": (frame) => frame.velocity,
+});
+```
+
+Multiple Director bindings still share the one Director runtime subscription.
+The generic `bindEngineScrollTimelineStyles()` helper selects the cheapest frame
+channel exposed by its source while preserving full-frame semantics for function
+bindings.
 
 ## Sampling and navigation
 

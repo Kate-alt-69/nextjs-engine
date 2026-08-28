@@ -66,22 +66,24 @@ function clamp01(value: number): number {
 	return Math.max(0, Math.min(1, value));
 }
 
-function sameTrackState(
+function sameProgressState(
 	left: Readonly<EngineScrollTimelineFrame> | undefined,
 	right: Readonly<EngineScrollTimelineFrame>,
 ): boolean {
 	if (!left) return false;
-	if (
-		left.startPoint !== right.startPoint
-		|| left.endPoint !== right.endPoint
-		|| left.progress !== right.progress
-		|| left.before !== right.before
-		|| left.active !== right.active
-		|| left.after !== right.after
-	) {
-		return false;
-	}
+	return left.startPoint === right.startPoint
+		&& left.endPoint === right.endPoint
+		&& left.progress === right.progress
+		&& left.before === right.before
+		&& left.active === right.active
+		&& left.after === right.after;
+}
 
+function sameTrackState(
+	left: Readonly<EngineScrollTimelineFrame> | undefined,
+	right: Readonly<EngineScrollTimelineFrame>,
+): boolean {
+	if (!sameProgressState(left, right) || !left) return false;
 	if (!left.active && !right.active) return true;
 	return left.direction === right.direction
 		&& Math.abs(left.velocity - right.velocity) <= DIRECTOR_EPSILON;
@@ -98,6 +100,10 @@ export class EngineScrollDirector<
 	private readonly namesValue: readonly EngineScrollDirectorName<TConfig>[];
 	private readonly subscribers = new Set<EngineScrollDirectorSubscriber<TConfig>>();
 	private readonly trackSubscribers = new Map<
+		EngineScrollDirectorName<TConfig>,
+		Set<EngineScrollTimelineSubscriber>
+	>();
+	private readonly progressTrackSubscribers = new Map<
 		EngineScrollDirectorName<TConfig>,
 		Set<EngineScrollTimelineSubscriber>
 	>();
@@ -259,6 +265,7 @@ export class EngineScrollDirector<
 	private listenerCount(): number {
 		let count = this.subscribers.size;
 		for (const subscribers of this.trackSubscribers.values()) count += subscribers.size;
+		for (const subscribers of this.progressTrackSubscribers.values()) count += subscribers.size;
 		for (const thresholds of this.crossSubscribers.values()) {
 			for (const subscribers of thresholds.values()) count += subscribers.size;
 		}
@@ -282,24 +289,38 @@ export class EngineScrollDirector<
 		this.observedFrames = null;
 	}
 
+	private emitTrackSubscribers(
+		previous: EngineScrollDirectorTimelineFrames<TConfig>,
+		next: EngineScrollDirectorTimelineFrames<TConfig>,
+		changed: readonly EngineScrollDirectorName<TConfig>[],
+	): void {
+		for (const name of changed) {
+			const subscribers = this.trackSubscribers.get(name);
+			if (!subscribers) continue;
+			for (const subscriber of subscribers) subscriber(next[name]);
+		}
+
+		for (const [name, subscribers] of this.progressTrackSubscribers) {
+			if (sameProgressState(previous[name], next[name])) continue;
+			for (const subscriber of subscribers) subscriber(next[name]);
+		}
+	}
+
 	private handleRuntime = (state: Readonly<EngineScrollState>): void => {
 		const previous = this.observedFrames ?? this.sampleTimelines(state);
 		const timelines = this.sampleTimelines(state);
-		const changed = this.changedTracks(previous, timelines);
+		const needsChangedTracks = this.subscribers.size > 0 || this.trackSubscribers.size > 0;
+		const changed = needsChangedTracks ? this.changedTracks(previous, timelines) : [];
 		const frame = this.createDirectorFrame(timelines, changed);
 		this.observedFrames = timelines;
 		this.latestFrame = frame;
 
 		this.emitActivity(previous, timelines);
 		this.emitCrossings(previous, timelines);
-		if (changed.length === 0) return;
-
-		for (const subscriber of this.subscribers) subscriber(frame);
-		for (const name of changed) {
-			const subscribers = this.trackSubscribers.get(name);
-			if (!subscribers) continue;
-			for (const subscriber of subscribers) subscriber(timelines[name]);
+		if (changed.length > 0) {
+			for (const subscriber of this.subscribers) subscriber(frame);
 		}
+		this.emitTrackSubscribers(previous, timelines, changed);
 	};
 
 	private addActivitySubscriber(
@@ -318,6 +339,33 @@ export class EngineScrollDirector<
 		}
 		subscribers.add(callback);
 		this.ensureRuntimeSubscription();
+
+		return () => {
+			const current = collection.get(name);
+			current?.delete(callback);
+			if (current?.size === 0) collection.delete(name);
+			this.releaseRuntimeSubscriptionIfIdle();
+		};
+	}
+
+	private addTrackSubscriber(
+		collection: Map<
+			EngineScrollDirectorName<TConfig>,
+			Set<EngineScrollTimelineSubscriber>
+		>,
+		name: EngineScrollDirectorName<TConfig>,
+		callback: EngineScrollTimelineSubscriber,
+		emitInitial: boolean,
+	): () => void {
+		this.timelineFor(name);
+		let subscribers = collection.get(name);
+		if (!subscribers) {
+			subscribers = new Set();
+			collection.set(name, subscribers);
+		}
+		subscribers.add(callback);
+		this.ensureRuntimeSubscription();
+		if (emitInitial) callback(this.latestFrame!.timelines[name]);
 
 		return () => {
 			const current = collection.get(name);
@@ -374,22 +422,25 @@ export class EngineScrollDirector<
 		callback: EngineScrollTimelineSubscriber,
 		emitInitial = true,
 	): () => void {
-		this.timelineFor(name);
-		let subscribers = this.trackSubscribers.get(name);
-		if (!subscribers) {
-			subscribers = new Set();
-			this.trackSubscribers.set(name, subscribers);
-		}
-		subscribers.add(callback);
-		this.ensureRuntimeSubscription();
-		if (emitInitial) callback(this.latestFrame!.timelines[name]);
+		return this.addTrackSubscriber(
+			this.trackSubscribers,
+			name,
+			callback,
+			emitInitial,
+		);
+	}
 
-		return () => {
-			const current = this.trackSubscribers.get(name);
-			current?.delete(callback);
-			if (current?.size === 0) this.trackSubscribers.delete(name);
-			this.releaseRuntimeSubscriptionIfIdle();
-		};
+	public subscribeProgressTrack(
+		name: EngineScrollDirectorName<TConfig>,
+		callback: EngineScrollTimelineSubscriber,
+		emitInitial = true,
+	): () => void {
+		return this.addTrackSubscriber(
+			this.progressTrackSubscribers,
+			name,
+			callback,
+			emitInitial,
+		);
 	}
 
 	public onCross(
@@ -485,6 +536,9 @@ export class EngineScrollDirector<
 			subscribe: (callback, emitInitial = true) => (
 				this.subscribeTrack(name, callback, emitInitial)
 			),
+			subscribeProgress: (callback, emitInitial = true) => (
+				this.subscribeProgressTrack(name, callback, emitInitial)
+			),
 		}, element, bindings);
 	}
 
@@ -501,6 +555,7 @@ export class EngineScrollDirector<
 	public dispose(): void {
 		this.subscribers.clear();
 		this.trackSubscribers.clear();
+		this.progressTrackSubscribers.clear();
 		this.crossSubscribers.clear();
 		this.enterSubscribers.clear();
 		this.leaveSubscribers.clear();
