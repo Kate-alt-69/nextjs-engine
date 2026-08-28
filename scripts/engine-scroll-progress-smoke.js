@@ -58,6 +58,7 @@ function main() {
 			"EngineScrollTimelineTrack.ts",
 			"EngineScrollTimelineBinding.ts",
 			"EngineScrollTimeline.ts",
+			"EngineScrollDirector.ts",
 		];
 		for (const filename of files) {
 			transpile(
@@ -74,6 +75,7 @@ function main() {
 		const { EngineScrollRuntime } = require(path.join(root, "EngineScrollRuntime.js"));
 		const { EngineScrollEasing } = require(path.join(root, "EngineScrollEasing.js"));
 		const { EngineScrollTimeline } = require(path.join(root, "EngineScrollTimeline.js"));
+		const { EngineScrollDirector } = require(path.join(root, "EngineScrollDirector.js"));
 		const { bindEngineScrollTimelineStyles } = require(path.join(root, "EngineScrollTimelineBinding.js"));
 		const runtime = EngineScrollRuntime.get();
 		const state = runtime.getMutableState();
@@ -225,6 +227,80 @@ function main() {
 			["set", "--raw", "0.5"],
 			["set", "--raw", "0.6"],
 		]);
+
+		runtimeSubscriptions = 0;
+		runtimeUnsubscriptions = 0;
+		runtime.subscribe = function countedDirectorSubscribe(callback) {
+			runtimeSubscriptions += 1;
+			const stop = originalSubscribe.call(this, callback);
+			return () => {
+				runtimeUnsubscriptions += 1;
+				stop();
+			};
+		};
+		state.viewport.current = 60;
+		cache.scrollVelocity = 0.5;
+
+		const director = new EngineScrollDirector({
+			visual: { start: 50, end: 100, source: "current" },
+			settled: { start: 0, end: 25, source: "current" },
+		});
+		let directorFullFrames = 0;
+		let directorProgressFrames = 0;
+		const stopDirectorFull = director.subscribeTrack("visual", () => {
+			directorFullFrames += 1;
+		}, false);
+		const stopDirectorProgress = director.subscribeProgressTrack("visual", () => {
+			directorProgressFrames += 1;
+		}, false);
+		const directorDeclarativeCalls = [];
+		const stopDirectorDeclarative = director.bindStyles(
+			"visual",
+			createStyleElement(directorDeclarativeCalls),
+			{ opacity: [0, 1] },
+		);
+		const directorFunctionCalls = [];
+		const stopDirectorFunction = director.bindStyles(
+			"visual",
+			createStyleElement(directorFunctionCalls),
+			{ "--velocity": (frame) => frame.velocity },
+		);
+		assert.equal(runtimeSubscriptions, 1);
+		assert.deepEqual(directorDeclarativeCalls, [["set", "opacity", "0.2"]]);
+		assert.deepEqual(directorFunctionCalls, [["set", "--velocity", "0.5"]]);
+
+		cache.scrollVelocity = 1.25;
+		runtime.notify();
+		assert.equal(directorFullFrames, 1);
+		assert.equal(directorProgressFrames, 0);
+		assert.equal(directorDeclarativeCalls.length, 1);
+		assert.deepEqual(directorFunctionCalls.at(-1), ["set", "--velocity", "1.25"]);
+
+		state.viewport.current = 70;
+		runtime.notify();
+		assert.equal(directorFullFrames, 2);
+		assert.equal(directorProgressFrames, 1);
+		assert.deepEqual(directorDeclarativeCalls.at(-1), ["set", "opacity", "0.4"]);
+
+		state.viewport.current = 110;
+		runtime.notify();
+		assert.equal(directorFullFrames, 3);
+		assert.equal(directorProgressFrames, 2);
+		assert.deepEqual(directorDeclarativeCalls.at(-1), ["set", "opacity", "1"]);
+
+		state.viewport.current = 120;
+		runtime.notify();
+		assert.equal(directorFullFrames, 3);
+		assert.equal(directorProgressFrames, 2);
+		assert.equal(directorDeclarativeCalls.length, 3);
+
+		stopDirectorFull();
+		stopDirectorProgress();
+		stopDirectorDeclarative();
+		stopDirectorFunction();
+		assert.equal(runtimeUnsubscriptions, 1);
+		director.dispose();
+		runtime.subscribe = originalSubscribe;
 
 		console.log("EngineScroll progress-channel smoke tests passed");
 	} finally {
