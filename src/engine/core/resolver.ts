@@ -62,12 +62,41 @@ export interface ResolvedVar {
 	cssBlock: string;
 }
 
-// Module-level memoization avoids recompiling the same responsive value inside a
-// render pass. createPage clears it before rendering a new page.
+// Resolver output is a pure function of its cache key and the engine breakpoint
+// constants, so it is safe to reuse across page/component renders. Keep the
+// process/browser cache bounded instead of clearing shared state from render code.
+export const RESOLVER_CACHE_LIMIT = 2048;
 const _varCache = new Map<string, ResolvedVar>();
 
+function readCachedVar(cacheKey: string): ResolvedVar | undefined {
+	const cached = _varCache.get(cacheKey);
+	if (cached === undefined) return undefined;
+
+	// Promote hits so frequently reused responsive values survive churn.
+	_varCache.delete(cacheKey);
+	_varCache.set(cacheKey, cached);
+	return cached;
+}
+
+function cacheResolvedVar(cacheKey: string, resolved: ResolvedVar): void {
+	if (_varCache.has(cacheKey)) _varCache.delete(cacheKey);
+
+	if (_varCache.size >= RESOLVER_CACHE_LIMIT) {
+		const oldestKey = _varCache.keys().next().value as string | undefined;
+		if (oldestKey !== undefined) _varCache.delete(oldestKey);
+	}
+
+	_varCache.set(cacheKey, resolved);
+}
+
+/** Explicit test/tool reset. Normal page rendering does not clear this cache. */
 export function clearResolverCache(): void {
 	_varCache.clear();
+}
+
+/** Exposed for regression tests and diagnostics; not part of the public barrel. */
+export function resolverCacheSize(): number {
+	return _varCache.size;
 }
 
 // ── Core resolve function ─────────────────────────────────────────────────────
@@ -78,7 +107,7 @@ export function resolveVar(
 	normalize = true,
 ): ResolvedVar {
 	const cacheKey = `${shortProp}|${normalize ? "normalized" : "raw"}|${serializeResponsiveValue(value)}`;
-	const cached = _varCache.get(cacheKey);
+	const cached = readCachedVar(cacheKey);
 	if (cached) return cached;
 
 	const hash = shortHash(cacheKey);
@@ -124,7 +153,7 @@ export function resolveVar(
 		: `var(${varName})`;
 
 	const result: ResolvedVar = { varName, ref, cssBlock };
-	_varCache.set(cacheKey, result);
+	cacheResolvedVar(cacheKey, result);
 	return result;
 }
 

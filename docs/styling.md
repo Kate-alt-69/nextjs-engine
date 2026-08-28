@@ -114,6 +114,13 @@ Generated responsive variable ids use the full paired resolver hash rather than
 the older five-character truncation, substantially reducing accidental variable
 name collision risk on large pages.
 
+Resolver output is deterministic for a cache key, so the memo cache is shared
+across page/component renders instead of being cleared from `createPage()` during
+render. The cache uses LRU-style hit promotion and is capped at 2,048 entries.
+This avoids concurrent render cache thrashing while preventing long-lived apps
+that generate many unique responsive values from growing the memo table without
+bound. An explicit cache reset remains available internally for tests/tools.
+
 ## Direct CSS props
 
 Many standard CSS properties can be placed directly beside engine shorthands:
