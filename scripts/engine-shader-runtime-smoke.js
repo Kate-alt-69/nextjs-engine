@@ -289,6 +289,108 @@ async function testArtifactRejectionCannotDeleteReplacement(runtime) {
 	}
 }
 
+async function testHotReloadStartupAndManifestReuse(runtime) {
+	runtime.clearEngineShaderCache();
+	const previousFetch = global.fetch;
+	const previousWindow = global.window;
+	const previousDocument = global.document;
+	const previousSetInterval = global.setInterval;
+	const previousClearInterval = global.clearInterval;
+	const previousNodeEnv = process.env.NODE_ENV;
+	const manifestRequests = [];
+	const baselineManifest = createManifest("baseline-hash", "baseline.shed.dat");
+	const changedManifest = createManifest("changed-hash", "changed.shed.dat");
+	let pollCallback = null;
+	let reloadPromise = null;
+	let notifications = 0;
+
+	try {
+		process.env.NODE_ENV = "development";
+		global.window = {};
+		global.document = { hidden: false };
+		global.setInterval = (callback) => {
+			pollCallback = callback;
+			return 700;
+		};
+		global.clearInterval = () => {
+			pollCallback = null;
+		};
+		global.fetch = (url) => {
+			const requestURL = String(url);
+			if (requestURL.includes("manifest.json")) {
+				const deferred = createDeferred();
+				manifestRequests.push(deferred);
+				return deferred.promise;
+			}
+			if (requestURL.endsWith("baseline.shed.dat")) return Promise.resolve(artifactResponse("baseline"));
+			if (requestURL.endsWith("changed.shed.dat")) return Promise.resolve(artifactResponse("changed"));
+			throw new Error(`unexpected shader request: ${requestURL}`);
+		};
+
+		const initialLoad = runtime.loadEngineShader("demo");
+		assert.equal(manifestRequests.length, 1, "initial shader load should start one manifest request");
+		const unsubscribe = runtime.subscribeEngineShaderHotReload("demo", () => {
+			notifications += 1;
+			reloadPromise = runtime.loadEngineShader("demo");
+		});
+		assert.equal(typeof pollCallback, "function", "hot reload subscription should start the dev poll timer");
+
+		pollCallback();
+		await flushMicrotasks();
+		assert.equal(
+			manifestRequests.length,
+			1,
+			"hot reload polling must not force a competing manifest request while initial load is pending",
+		);
+
+		manifestRequests[0].resolve(jsonResponse(baselineManifest));
+		const baseline = await initialLoad;
+		assert.equal(baseline.entry.hash, "baseline-hash");
+
+		pollCallback();
+		await flushMicrotasks();
+		assert.equal(manifestRequests.length, 2, "polling should refresh after the initial manifest establishes a baseline");
+		manifestRequests[1].resolve(jsonResponse(changedManifest));
+		await flushMicrotasks();
+		assert.equal(notifications, 1, "changed shader hash should notify the subscribed shader once");
+		assert.ok(reloadPromise, "hot reload listener should request the updated shader plan");
+		const reloaded = await reloadPromise;
+		assert.equal(reloaded.entry.hash, "changed-hash");
+		assert.equal(reloaded.plan.name, "changed");
+		assert.equal(
+			manifestRequests.length,
+			2,
+			"listener reload should reuse the manifest already fetched by the poller instead of forcing a third request",
+		);
+
+		unsubscribe();
+		assert.equal(pollCallback, null, "removing the final hot reload listener should stop the dev poll timer");
+	} finally {
+		global.fetch = previousFetch;
+		if (previousWindow === undefined) delete global.window;
+		else global.window = previousWindow;
+		if (previousDocument === undefined) delete global.document;
+		else global.document = previousDocument;
+		global.setInterval = previousSetInterval;
+		global.clearInterval = previousClearInterval;
+		if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+		else process.env.NODE_ENV = previousNodeEnv;
+		runtime.clearEngineShaderCache();
+	}
+}
+
+function assertComponentHotReloadReusesManifest() {
+	const source = fs.readFileSync(
+		path.join(repoRoot, "src", "engine", "components", "EngineShader.tsx"),
+		"utf8",
+	);
+	assert.match(
+		source,
+		/subscribeEngineShaderHotReload\(config\.src,\s*\(\)\s*=>\s*void load\(false\)\)/,
+		"EngineShader hot reload callback should reuse the manifest already refreshed by the poller",
+	);
+}
+
 const previousDocument = global.document;
 const previousRequestAnimationFrame = global.requestAnimationFrame;
 const previousCancelAnimationFrame = global.cancelAnimationFrame;
@@ -309,6 +411,8 @@ async function main() {
 		await testForcedManifestRace(runtime);
 		await testClearInvalidatesManifestRace(runtime);
 		await testArtifactRejectionCannotDeleteReplacement(runtime);
+		await testHotReloadStartupAndManifestReuse(runtime);
+		assertComponentHotReloadReusesManifest();
 
 		console.log("engine shader runtime smoke: ok");
 	} finally {
