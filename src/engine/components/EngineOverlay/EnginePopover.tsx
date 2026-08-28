@@ -51,7 +51,15 @@ export const EnginePopover = memo(function EnginePopover({
 				const panelElement = panelRef.current;
 				if (!triggerElement || !panelElement) return;
 				const triggerRect = triggerElement.getBoundingClientRect();
-				if (matchTriggerWidth) panelElement.style.minWidth = `${triggerRect.width}px`;
+				if (matchTriggerWidth) {
+					const usableViewportWidth = Math.max(0, window.innerWidth - viewportPadding * 2);
+					panelElement.style.setProperty(
+						"--e-popover-trigger-width",
+						`${Math.min(triggerRect.width, usableViewportWidth)}px`,
+					);
+				} else {
+					panelElement.style.removeProperty("--e-popover-trigger-width");
+				}
 				const panelRect = panelElement.getBoundingClientRect();
 				setPosition(computePopoverPosition(triggerRect, panelRect, {
 					placement, align, offset,
@@ -94,7 +102,7 @@ export const EnginePopover = memo(function EnginePopover({
 	const panelStyle = usePropStyles(props as any, {
 		...SURFACE_BASE,
 		position: "fixed",
-		minWidth: "12rem",
+		minWidth: matchTriggerWidth ? "var(--e-popover-trigger-width, 12rem)" : "12rem",
 		maxWidth: "min(24rem, calc(100vw - 1rem))",
 		maxHeight: "min(70vh, 36rem)",
 		overflow: "auto",
