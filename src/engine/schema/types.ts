@@ -23,6 +23,7 @@ export type BuiltinNodeType =
 	| "image" | "video" | "section" | "hero" | "card" | "button" | "link" | "nav" | "manim" | "manim3d"
 	| "spacer" | "divider" | "slot" | "canvas" | "scroll"
 	| "custom-select" | "suspense" | "option" | "optgroup"
+	| "dialog" | "drawer" | "popover"
 	| "form" | "input" | "textarea" | "checkbox" | "label";
 
 export type NodeType = BuiltinNodeType | (string & {});
