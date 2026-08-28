@@ -12,10 +12,9 @@ import type {
 	EngineTheme as EngineThemeConfig,
 	MobileSchemaConfig,
 } from "./schema/types";
-import { EngineProvider } from "./providers/EngineProvider";
+import { EngineCollectedStyles, EngineProvider } from "./providers/EngineProvider";
 import { EngineScrollProvider } from "./core/enginescroll";
 import { SchemaRenderer } from "./core/SchemaRenderer";
-import { globalStyleCollector, StyleCollector } from "./core/StyleCollector";
 import { clearResolverCache } from "./core/resolver";
 import { applyMobilePatches } from "./core/EngineMobilePatcher";
 
@@ -201,19 +200,6 @@ async function resolveMarkdownFiles(schema: PageSchema): Promise<PageSchema> {
 	};
 }
 
-function EngineStyles({ collector }: { collector: StyleCollector }) {
-	const css = collector.collect();
-	if (!css) return null;
-
-	return (
-		<style
-			id="__engine_styles__"
-			precedence="default"
-			dangerouslySetInnerHTML={{ __html: css }}
-		/>
-	);
-}
-
 function EngineTheme({ schema }: { schema: PageSchema }) {
 	if (!schema.theme) return null;
 
@@ -248,7 +234,6 @@ export function createPage(options: CreatePageOptions): EnginePageComponent {
 
 	function renderPage(resolvedSchema: PageSchema) {
 		clearResolverCache();
-		globalStyleCollector.reset();
 
 		return (
 			<EngineScrollProvider>
@@ -259,7 +244,7 @@ export function createPage(options: CreatePageOptions): EnginePageComponent {
 				>
 					<EngineTheme schema={resolvedSchema} />
 					<SchemaRenderer schema={resolvedSchema} />
-					<EngineStyles collector={globalStyleCollector} />
+					<EngineCollectedStyles id="__engine_styles__" />
 				</EngineProvider>
 			</EngineScrollProvider>
 		);
@@ -300,9 +285,6 @@ export function createComponent(options: CreateComponentOptions): React.FC<Engin
 	const { schema, config, handlers, slots } = normalizeCreateOptions(options);
 
 	function EngineComponent({ children, slots: runtimeSlots }: EngineComponentProps) {
-		// Do not reset the process-wide style/resolver state here. createComponent
-		// can be nested inside a createPage render; resetting from a child erases
-		// CSS collected by its parent. The page render owns the render-pass reset.
 		const mergedSlots = {
 			...(slots ?? {}),
 			...(runtimeSlots ?? {}),
@@ -317,7 +299,7 @@ export function createComponent(options: CreateComponentOptions): React.FC<Engin
 			>
 				<EngineTheme schema={schema} />
 				<SchemaRenderer schema={schema} />
-				<EngineStyles collector={globalStyleCollector} />
+				<EngineCollectedStyles />
 			</EngineProvider>
 		);
 	}

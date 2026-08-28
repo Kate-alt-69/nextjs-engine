@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { forwardRef, memo, type ReactNode } from "react";
-import { usePropStyles, cpropClass } from "../hooks/usePropStyles";
+import { useCpropClass, usePropStyles } from "../hooks/usePropStyles";
 import { useHandler } from "../providers/EngineProvider";
 import { renderEngineAnchor } from "./EngineNav";
 import type { BaseNodeProps } from "../schema/types";
@@ -49,7 +49,7 @@ export const EngineLink = memo(
 		};
 
 		const resolvedStyle = usePropStyles(restProps as any, compiledStyles);
-		const hoverClass = cpropClass(cprop);
+		const hoverClass = useCpropClass(cprop);
 		const finalClass = [hoverClass, className].filter(Boolean).join(" ") || undefined;
 		const contextHandler = useHandler(typeof onClick === "string" ? onClick : "");
 		const handleClick = (typeof onClick === "function" || contextHandler)

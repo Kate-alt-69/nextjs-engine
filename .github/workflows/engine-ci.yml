@@ -35,6 +35,8 @@ jobs:
         run: node scripts/engine-scroll-smoke.js
       - name: Test EngineOverlay runtime
         run: node scripts/engine-overlay-smoke.js
+      - name: Test style compiler isolation and at-rules
+        run: node scripts/style-compiler-smoke.js
       - name: Type-check engine
         run: npm run type-check
       - name: Build Next.js integration app
