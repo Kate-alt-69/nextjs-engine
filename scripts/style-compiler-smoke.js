@@ -36,6 +36,12 @@ try {
 
 	const { StyleCollector } = require(path.join(outDir, "core", "StyleCollector.js"));
 	const { cpropClass, staticClass } = require(path.join(outDir, "hooks", "usePropStyles.js"));
+	const {
+		RESOLVER_CACHE_LIMIT,
+		clearResolverCache,
+		resolveVar,
+		resolverCacheSize,
+	} = require(path.join(outDir, "core", "resolver.js"));
 
 	const firstCollector = new StyleCollector();
 	const secondCollector = new StyleCollector();
@@ -110,6 +116,30 @@ try {
 		`@media(min-width: 900px){.${hoverClass}:hover{color:blue}}`,
 		"cprop at-rules should remain scoped to the pseudo selector",
 	);
+
+	clearResolverCache();
+	const stableResolverInput = { xs: "12px", md: "24px" };
+	const stableResolverResult = resolveVar("cache-stable", stableResolverInput, false);
+	for (let index = 0; index < RESOLVER_CACHE_LIMIT + 128; index++) {
+		resolveVar("cache-smoke", { xs: `${index}px`, md: `${index + 1}px` }, false);
+	}
+	assert.equal(
+		resolverCacheSize(),
+		RESOLVER_CACHE_LIMIT,
+		"responsive resolver memoization must stay bounded",
+	);
+	assert.deepEqual(
+		resolveVar("cache-stable", stableResolverInput, false),
+		stableResolverResult,
+		"resolver output must stay deterministic after cache eviction/churn",
+	);
+	assert.equal(
+		resolverCacheSize(),
+		RESOLVER_CACHE_LIMIT,
+		"re-resolving an evicted value must preserve the cache limit",
+	);
+	clearResolverCache();
+	assert.equal(resolverCacheSize(), 0, "explicit resolver cache reset should still work for tests/tools");
 
 	console.log("style compiler smoke: ok");
 } finally {
