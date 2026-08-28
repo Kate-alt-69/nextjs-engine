@@ -2,7 +2,7 @@
 
 import React, { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { cpropClass, usePropStyles } from "../../hooks/usePropStyles";
+import { useCpropClass, usePropStyles } from "../../hooks/usePropStyles";
 import { computePopoverPosition, isTopOverlay, type EnginePopoverPlacement } from "../../core/engineoverlay";
 import {
 	SURFACE_BASE,
@@ -108,7 +108,7 @@ export const EnginePopover = memo(function EnginePopover({
 		transition: `opacity ${transitionMs}ms ease, transform ${transitionMs}ms ease`,
 		...style,
 	});
-	const panelClass = [className, cpropClass(cprop)].filter(Boolean).join(" ") || undefined;
+	const panelClass = [className, useCpropClass(cprop)].filter(Boolean).join(" ") || undefined;
 	const target = typeof document !== "undefined"
 		? (portalTargetId ? document.getElementById(portalTargetId) ?? document.body : document.body)
 		: null;

@@ -62,6 +62,9 @@ export class StyleCollector {
 	}
 }
 
+// Compatibility fallback for low-level helpers called outside EngineProvider.
+// Engine-owned rendering uses a provider-scoped collector instead, so concurrent
+// page renders do not reset, erase, or inherit one another's generated CSS.
 export const globalStyleCollector = new StyleCollector();
 
 if (

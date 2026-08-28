@@ -11,7 +11,7 @@ import React, {
 	type CSSProperties,
 	type ReactNode,
 } from "react";
-import { cpropClass, usePropStyles } from "../hooks/usePropStyles";
+import { useCpropClass, usePropStyles } from "../hooks/usePropStyles";
 import type { HeroProps } from "../schema/types";
 
 export interface EngineHeroProps extends HeroProps {
@@ -160,7 +160,7 @@ export const EngineHero = memo(
 			} as any,
 			{ ...sectionBase, ...style },
 		);
-		const hoverClass = cpropClass(cprop);
+		const hoverClass = useCpropClass(cprop);
 		const mergedClass = [className, hoverClass].filter(Boolean).join(" ") || undefined;
 		const resolvedId = id ?? point;
 

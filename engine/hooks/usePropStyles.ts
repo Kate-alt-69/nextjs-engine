@@ -5,7 +5,7 @@
 // 	cpropClass      — compiles cprop pseudo-states → injected CSS class names
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { CSSProperties } from "react";
+import { useMemo, type CSSProperties } from "react";
 import type { BaseNodeProps, CpropValue, EngineStyleObject } from "../schema/types";
 import {
 	resolveSpacing,
@@ -14,7 +14,8 @@ import {
 	isResponsive,
 	normalizeSpacingValue,
 } from "../core/resolver";
-import { globalStyleCollector } from "../core/StyleCollector";
+import { globalStyleCollector, type StyleCollector } from "../core/StyleCollector";
+import { useStyleCollector } from "../providers/EngineProvider";
 
 function _hash(sourceStyleString: string): string {
 	let hashingBuffer = 0;
@@ -32,7 +33,7 @@ function isPlainStyleObject(value: unknown): value is Record<string, unknown> {
 	return value != null && typeof value === "object" && !Array.isArray(value);
 }
 
-function cssToDeclBlock(cssPropertiesMap: CSSProperties | EngineStyleObject): string {
+function cssToDeclBlock(cssPropertiesMap: CSSProperties | EngineStyleObject | Record<string, unknown>): string {
 	return Object.entries(cssPropertiesMap)
 		.filter(([propertyKey, propertyValue]) => propertyValue != null && !propertyKey.startsWith("@") && !isPlainStyleObject(propertyValue))
 		.map(([propertyKey, propertyValue]) => `${camelToKebab(propertyKey)}:${propertyValue}`)
@@ -48,32 +49,65 @@ function hasStyleAtRules(cssPropertiesMap: CSSProperties | EngineStyleObject | u
 	return getStyleAtRules(cssPropertiesMap).length > 0;
 }
 
+function isSelectorScopedAtRule(atRuleKey: string): boolean {
+	return /^@(media|supports|container|layer|scope|starting-style)\b/i.test(atRuleKey);
+}
+
+function isKeyframesAtRule(atRuleKey: string): boolean {
+	return /^@(?:-webkit-)?keyframes\b/i.test(atRuleKey);
+}
+
+function serializeKeyframesAtRule(atRuleKey: string, keyframeValue: Record<string, unknown>): string {
+	const keyframeBlocks: string[] = [];
+
+	for (const [frameSelector, frameValue] of Object.entries(keyframeValue)) {
+		if (isPlainStyleObject(frameValue)) {
+			const frameDeclarations = cssToDeclBlock(frameValue);
+			if (frameDeclarations) keyframeBlocks.push(`${frameSelector}{${frameDeclarations}}`);
+			continue;
+		}
+
+		if (typeof frameValue === "string") {
+			keyframeBlocks.push(`${frameSelector}{${frameValue}}`);
+		}
+	}
+
+	return keyframeBlocks.length > 0 ? `${atRuleKey}{${keyframeBlocks.join("")}}` : "";
+}
+
 function normalizeAtRuleBlock(atRuleKey: string, nestedValue: unknown, selector: string): string {
 	if (!isPlainStyleObject(nestedValue)) {
 		return typeof nestedValue === "string" ? `${atRuleKey}{${nestedValue}}` : "";
 	}
 
-	const nestedDeclarations = cssToDeclBlock(nestedValue as EngineStyleObject);
-	const nestedRules: string[] = [];
-	const selectorScopedAtRule = /^@(media|supports|container|layer|scope|starting-style)\b/i.test(atRuleKey);
+	if (isKeyframesAtRule(atRuleKey)) {
+		return serializeKeyframesAtRule(atRuleKey, nestedValue);
+	}
+
+	const selectorScopedAtRule = isSelectorScopedAtRule(atRuleKey);
+	const nestedDeclarations = cssToDeclBlock(nestedValue);
+	const nestedRuleBody: string[] = [];
 
 	if (nestedDeclarations) {
-		nestedRules.push(selectorScopedAtRule
-			? `${atRuleKey}{${selector}{${nestedDeclarations}}}`
-			: `${atRuleKey}{${nestedDeclarations}}`);
+		nestedRuleBody.push(selectorScopedAtRule
+			? `${selector}{${nestedDeclarations}}`
+			: nestedDeclarations);
 	}
 
 	for (const [nestedKey, childValue] of Object.entries(nestedValue)) {
 		if (!nestedKey.startsWith("@")) continue;
 		const childRule = normalizeAtRuleBlock(nestedKey, childValue, selector);
-		if (!childRule) continue;
-		nestedRules.push(selectorScopedAtRule ? `${atRuleKey}{${childRule}}` : childRule);
+		if (childRule) nestedRuleBody.push(childRule);
 	}
 
-	return nestedRules.join("\n");
+	return nestedRuleBody.length > 0 ? `${atRuleKey}{${nestedRuleBody.join("")}}` : "";
 }
 
-function compileNestedStyleClass(cssPropertiesMap: CSSProperties | EngineStyleObject, classPrefixString: string): string {
+function compileNestedStyleClass(
+	cssPropertiesMap: CSSProperties | EngineStyleObject,
+	classPrefixString: string,
+	styleCollector: StyleCollector,
+): string {
 	const baseDeclarations = cssToDeclBlock(cssPropertiesMap);
 	const atRules = getStyleAtRules(cssPropertiesMap);
 	if (!baseDeclarations && atRules.length === 0) return "";
@@ -89,11 +123,14 @@ function compileNestedStyleClass(cssPropertiesMap: CSSProperties | EngineStyleOb
 		if (compiledAtRule) compiledBlocks.push(compiledAtRule);
 	}
 
-	globalStyleCollector.add(compiledBlocks.join("\n"));
+	styleCollector.add(compiledBlocks.join("\n"));
 	return targetClassIdentifier;
 }
 
-function compileAtRuleStyleVars(cssPropertiesMap: CSSProperties | EngineStyleObject | undefined): CSSProperties | undefined {
+function compileAtRuleStyleVars(
+	cssPropertiesMap: CSSProperties | EngineStyleObject | undefined,
+	styleCollector: StyleCollector,
+): CSSProperties | undefined {
 	if (!cssPropertiesMap) return undefined;
 	const atRules = getStyleAtRules(cssPropertiesMap);
 	if (atRules.length === 0) return cssPropertiesMap as CSSProperties;
@@ -115,6 +152,15 @@ function compileAtRuleStyleVars(cssPropertiesMap: CSSProperties | EngineStyleObj
 	}
 
 	for (const [atRuleKey, nestedValue] of atRules) {
+		// Declaration at-rules and keyframes do not target the styled element.
+		// Serializing them through :root custom properties would produce invalid
+		// CSS such as @font-face{:root{...}} or erase keyframe frame selectors.
+		if (!isSelectorScopedAtRule(atRuleKey)) {
+			const rawAtRule = normalizeAtRuleBlock(atRuleKey, nestedValue, ":root");
+			if (rawAtRule) atRuleBlocks.push(rawAtRule);
+			continue;
+		}
+
 		if (!isPlainStyleObject(nestedValue)) {
 			if (typeof nestedValue === "string") atRuleBlocks.push(`${atRuleKey}{${nestedValue}}`);
 			continue;
@@ -134,8 +180,6 @@ function compileAtRuleStyleVars(cssPropertiesMap: CSSProperties | EngineStyleObj
 			atRuleBlocks.push(`${atRuleKey}{:root{${nestedVariableDeclarations.join(";")}}}`);
 		}
 
-		// Preserve parent scope for nested rules instead of recursively emitting
-		// a child media/supports rule into global scope.
 		for (const [nestedAtRuleKey, childValue] of Object.entries(nestedValue)) {
 			if (!nestedAtRuleKey.startsWith("@")) continue;
 			const childRule = normalizeAtRuleBlock(nestedAtRuleKey, childValue, ":root");
@@ -144,14 +188,17 @@ function compileAtRuleStyleVars(cssPropertiesMap: CSSProperties | EngineStyleObj
 	}
 
 	if (rootDeclarations.length > 0) {
-		globalStyleCollector.add(`:root{${rootDeclarations.join(";")}}`);
+		styleCollector.add(`:root{${rootDeclarations.join(";")}}`);
 	}
-	globalStyleCollector.addMany(atRuleBlocks);
+	styleCollector.addMany(atRuleBlocks);
 
 	return resolvedStyle;
 }
 
-export function cpropClass(cpropContainerInstance: CpropValue | undefined): string | undefined {
+export function cpropClass(
+	cpropContainerInstance: CpropValue | undefined,
+	styleCollector: StyleCollector = globalStyleCollector,
+): string | undefined {
 	if (!cpropContainerInstance) return undefined;
 	const processedClassNamesList: string[] = [];
 
@@ -163,13 +210,13 @@ export function cpropClass(cpropContainerInstance: CpropValue | undefined): stri
 		const structuredCssRule = pseudoSelectorString.includes(",")
 			? pseudoSelectorString.split(",").map((splitSelector) => `.${TargetClassIdentifier}${splitSelector.trim()}`).join(",") + `{${structuralDeclarationBlock}}`
 			: `.${TargetClassIdentifier}${pseudoSelectorString}{${structuralDeclarationBlock}}`;
-		globalStyleCollector.add(structuredCssRule);
+		if (structuralDeclarationBlock) styleCollector.add(structuredCssRule);
 		for (const [atRuleKey, nestedValue] of getStyleAtRules(styleDeclarationsMap)) {
 			const pseudoSelector = pseudoSelectorString.includes(",")
 				? pseudoSelectorString.split(",").map((splitSelector) => `.${TargetClassIdentifier}${splitSelector.trim()}`).join(",")
 				: `.${TargetClassIdentifier}${pseudoSelectorString}`;
 			const compiledAtRule = normalizeAtRuleBlock(atRuleKey, nestedValue, pseudoSelector);
-			if (compiledAtRule) globalStyleCollector.add(compiledAtRule);
+			if (compiledAtRule) styleCollector.add(compiledAtRule);
 		}
 		processedClassNamesList.push(TargetClassIdentifier);
 	};
@@ -182,6 +229,14 @@ export function cpropClass(cpropContainerInstance: CpropValue | undefined): stri
 	if (cpropContainerInstance.onPlaceholder) injectSubBlockRule(cpropContainerInstance.onPlaceholder, ":placeholder-shown",      "e-p-");
 
 	return processedClassNamesList.length > 0 ? processedClassNamesList.join(" ") : undefined;
+}
+
+export function useCpropClass(cpropContainerInstance: CpropValue | undefined): string | undefined {
+	const styleCollector = useStyleCollector();
+	return useMemo(
+		() => cpropClass(cpropContainerInstance, styleCollector),
+		[cpropContainerInstance, styleCollector],
+	);
 }
 
 function applySpacing(
@@ -258,19 +313,22 @@ const ALREADY_HANDLED = new Set([
 	"opacity", "boxShadow", "color", "alignSelf", "justifySelf", "flex",
 ]);
 
-export function staticClass(cssProperties: CSSProperties): string {
-	return compileNestedStyleClass(cssProperties, "e-s-");
+export function staticClass(
+	cssProperties: CSSProperties | EngineStyleObject,
+	styleCollector: StyleCollector = globalStyleCollector,
+): string {
+	return compileNestedStyleClass(cssProperties, "e-s-", styleCollector);
 }
 
 export function mediaClass(
-	base:         CSSProperties,
+	base: CSSProperties,
 	...breakpoints: Array<[string, CSSProperties]>
 ): string {
-	const baseDecls    = cssToDeclBlock(base);
-	const bpDecls      = breakpoints.map(([bp, s]) => `@media(min-width:${bp}){.e-m-HASH{${cssToDeclBlock(s)}}}`).join("");
-	const fingerprint  = baseDecls + bpDecls;
-	const hash         = _hash(fingerprint);
-	const cls          = `e-m-${hash}`;
+	const baseDecls = cssToDeclBlock(base);
+	const bpDecls = breakpoints.map(([bp, s]) => `@media(min-width:${bp}){.e-m-HASH{${cssToDeclBlock(s)}}}`).join("");
+	const fingerprint = baseDecls + bpDecls;
+	const hash = _hash(fingerprint);
+	const cls = `e-m-${hash}`;
 
 	let css = `.${cls}{${baseDecls}}`;
 	for (const [bp, styles] of breakpoints) {
@@ -285,8 +343,9 @@ export function usePropStyles(
 	props: Partial<BaseNodeProps> & Record<string, unknown>,
 	extraStyle?: CSSProperties | EngineStyleObject,
 ): CSSProperties {
+	const styleCollector = useStyleCollector();
 	const style: CSSProperties = {};
-	const css:   string[]      = [];
+	const css: string[] = [];
 
 	applySpacing("margin",        "ma", props.m,  style, css);
 	applySpacing("marginTop",     "mt", props.mt, style, css);
@@ -318,12 +377,12 @@ export function usePropStyles(
 	resolveAxis("px", "paddingLeft", "paddingRight");
 	resolveAxis("py", "paddingTop",  "paddingBottom");
 
-	applySpacing("width",     "wi", props.w ?? props.width,       style, css);
-	applySpacing("height",    "he", props.h ?? props.height,      style, css);
-	applySpacing("minWidth",  "mn", props.minW ?? props.minWidth, style, css);
-	applySpacing("minHeight", "mh", props.minH ?? props.minHeight, style, css);
-	applySpacing("maxWidth",  "mw", props.maxW ?? props.maxWidth, style, css);
-	applySpacing("maxHeight", "xh", props.maxH ?? props.maxHeight, style, css);
+	applySpacing("width",     "wi", props.w ?? props.width,         style, css);
+	applySpacing("height",    "he", props.h ?? props.height,        style, css);
+	applySpacing("minWidth",  "mn", props.minW ?? props.minWidth,   style, css);
+	applySpacing("minHeight", "mh", props.minH ?? props.minHeight,  style, css);
+	applySpacing("maxWidth",  "mw", props.maxW ?? props.maxWidth,   style, css);
+	applySpacing("maxHeight", "xh", props.maxH ?? props.maxHeight,  style, css);
 
 	applySpacing("gap",       "ga", props.gap,    style, css);
 	applySpacing("columnGap", "cg", props.colGap, style, css);
@@ -336,7 +395,7 @@ export function usePropStyles(
 	applyGeneric("flexWrap",       "wr", props.wrap,                                     style, css);
 	applyGeneric("order",          "or", props.order,                                    style, css);
 
-	if (props.alignSelf   != null) style.alignSelf   = props.alignSelf   as CSSProperties["alignSelf"];
+	if (props.alignSelf   != null) style.alignSelf   = props.alignSelf as CSSProperties["alignSelf"];
 	if (props.justifySelf != null) style.justifySelf = props.justifySelf as CSSProperties["justifySelf"];
 	if (props.flex        != null) style.flex        = props.flex as string;
 
@@ -358,7 +417,7 @@ export function usePropStyles(
 	applyGeneric("fontSize",   "fs",  (props as any).size ?? (props as any).fontSize,     style, css);
 	applyGeneric("fontWeight", "ftw", (props as any).weight ?? (props as any).fontWeight, style, css);
 	applyGeneric("textAlign",  "ta",  (props as any).textAlign ?? (props as any).align,   style, css);
-	if ((props as any).lineHeight    != null) style.lineHeight    = (props as any).lineHeight;
+	if ((props as any).lineHeight    != null) style.lineHeight = (props as any).lineHeight;
 	if ((props as any).letterSpacing != null) style.letterSpacing = (props as any).letterSpacing;
 
 	if (props.border       != null) style.border       = props.border as string;
@@ -376,22 +435,22 @@ export function usePropStyles(
 	applyGeneric("backgroundSize",     "bgs", props.backgroundSize,         style, css);
 	applyGeneric("backgroundRepeat",   "bgr", props.backgroundRepeat,       style, css);
 	applyGeneric("backgroundPosition", "bgp", props.backgroundPosition,     style, css);
-	if (props.shadow         != null) style.boxShadow      = props.shadow as string;
-	if (props.boxShadow      != null) style.boxShadow      = props.boxShadow as string;
-	if (props.transition     != null) style.transition     = props.transition as string;
+	if (props.shadow         != null) style.boxShadow = props.shadow as string;
+	if (props.boxShadow      != null) style.boxShadow = props.boxShadow as string;
+	if (props.transition     != null) style.transition = props.transition as string;
 	if (props.backdrop       != null) style.backdropFilter = props.backdrop as string;
 	if (props.backdropFilter != null) style.backdropFilter = props.backdropFilter as string;
-	if (props.overflow       != null) style.overflow       = props.overflow as CSSProperties["overflow"];
-	if (props.cursor         != null) style.cursor         = props.cursor as CSSProperties["cursor"];
+	if (props.overflow       != null) style.overflow = props.overflow as CSSProperties["overflow"];
+	if (props.cursor         != null) style.cursor = props.cursor as CSSProperties["cursor"];
 
 	if (props.position != null) style.position = props.position as CSSProperties["position"];
-	if (props.top      != null) style.top      = typeof props.top    === "number" ? `${props.top}px`    : props.top as string;
-	if (props.right    != null) style.right    = typeof props.right  === "number" ? `${props.right}px`  : props.right as string;
-	if (props.bottom   != null) style.bottom   = typeof props.bottom === "number" ? `${props.bottom}px` : props.bottom as string;
-	if (props.left     != null) style.left     = typeof props.left   === "number" ? `${props.left}px`   : props.left as string;
-	if (props.zIndex   != null) style.zIndex   = props.zIndex as number;
+	if (props.top      != null) style.top = typeof props.top === "number" ? `${props.top}px` : props.top as string;
+	if (props.right    != null) style.right = typeof props.right === "number" ? `${props.right}px` : props.right as string;
+	if (props.bottom   != null) style.bottom = typeof props.bottom === "number" ? `${props.bottom}px` : props.bottom as string;
+	if (props.left     != null) style.left = typeof props.left === "number" ? `${props.left}px` : props.left as string;
+	if (props.zIndex   != null) style.zIndex = props.zIndex as number;
 
-	globalStyleCollector.addMany(css);
+	styleCollector.addMany(css);
 
 	if (props.vars != null && typeof props.vars === "object") {
 		for (const [variableKey, variableValue] of Object.entries(props.vars as Record<string, string>)) {
@@ -423,12 +482,12 @@ export function usePropStyles(
 		if (isResponsive(incomingPassthroughValue as any)) {
 			const dynamicPassthroughPayload = resolveGeneric(explicitPassthroughKey, incomingPassthroughValue as any);
 			(style as Record<string, string>)[explicitPassthroughKey] = dynamicPassthroughPayload.ref;
-			globalStyleCollector.add(dynamicPassthroughPayload.cssBlock);
+			styleCollector.add(dynamicPassthroughPayload.cssBlock);
 		} else {
 			(style as Record<string, unknown>)[explicitPassthroughKey] = incomingPassthroughValue;
 		}
 	}
 
-	const compiledExtraStyle = compileAtRuleStyleVars(extraStyle);
+	const compiledExtraStyle = compileAtRuleStyleVars(extraStyle, styleCollector);
 	return compiledExtraStyle ? { ...style, ...compiledExtraStyle } : style;
 }

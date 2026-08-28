@@ -2,7 +2,7 @@
 
 import React, { memo, useCallback, useId, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
-import { cpropClass, usePropStyles } from "../../hooks/usePropStyles";
+import { useCpropClass, usePropStyles } from "../../hooks/usePropStyles";
 import {
 	SURFACE_BASE,
 	clampDuration,
@@ -61,7 +61,7 @@ export const EngineDrawer = memo(function EngineDrawer({
 		transition: `transform ${transitionMs}ms cubic-bezier(.2,.8,.2,1), opacity ${transitionMs}ms ease`,
 		...style,
 	});
-	const panelClass = [className, cpropClass(cprop)].filter(Boolean).join(" ") || undefined;
+	const panelClass = [className, useCpropClass(cprop)].filter(Boolean).join(" ") || undefined;
 	const target = typeof document !== "undefined"
 		? (portalTargetId ? document.getElementById(portalTargetId) ?? document.body : document.body)
 		: null;

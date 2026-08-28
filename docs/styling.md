@@ -157,7 +157,31 @@ style: {
 }
 ```
 
-Nested at-rules retain their parent scope instead of being emitted globally.
+Nested conditional at-rules retain the selector and every parent conditional
+scope instead of being emitted globally. For example, an `@supports` nested
+inside `@media` stays inside that media query.
+
+The serializer also handles at-rules whose body is not an ordinary selector:
+
+```ts
+style: {
+	animation: "engine-pop 180ms ease-out",
+	"@keyframes engine-pop": {
+		from: { opacity: 0, transform: "scale(.96)" },
+		to: { opacity: 1, transform: "scale(1)" },
+	},
+	"@font-face": {
+		fontFamily: "EngineUI",
+		src: "url(/fonts/engine-ui.woff2)",
+	},
+}
+```
+
+Keyframe selectors such as `from`, `to`, and percentage frames are serialized
+inside the keyframes block. Declaration at-rules such as `@font-face`, `@page`,
+and `@property` emit declarations directly rather than being wrapped in a fake
+`:root` selector.
+
 Base properties receive inline CSS-variable fallbacks; properties that only
 exist inside a conditional rule remain absent outside that condition.
 
@@ -177,18 +201,36 @@ cprop: {
 Supported state bags are `onHover`, `onFocus`, `onActive`, `onChecked`,
 `onDisabled`, and `onPlaceholder`.
 
+At-rules nested inside a pseudo-state keep the pseudo selector. A responsive
+hover rule therefore compiles as `@media ... { .generated:hover { ... } }`, not
+as an unrelated global rule.
+
 ## Styling and the collector
 
-Generated responsive/pseudo/at-rule CSS is deduplicated by **exact CSS content**
-inside the current style collector and emitted through the engine stylesheet.
+Generated responsive, pseudo-state, at-rule, visibility, navigation, and other
+engine-owned CSS is written to the `StyleCollector` owned by the nearest
+`EngineProvider`. Each page/component provider creates its own collector, so two
+concurrent server renders do not reset, overwrite, or serialize each other's
+normal generated CSS.
+
+Nested `createComponent()` boundaries also own their generated stylesheet. They
+do not reset a parent page collector and do not re-emit CSS already collected by
+the parent boundary.
+
+Generated CSS is deduplicated by **exact CSS content inside that collector**.
 Ordinary generated CSS is not retained in a process-wide cross-render cache:
-every response still needs its own stylesheet, so retaining and hashing those
-blocks across renders would add memory/CPU without removing output.
+every response needs its own stylesheet, so retaining and hashing those blocks
+across unrelated renders would add memory/CPU without removing response output.
 
-Only CSS explicitly added with `StyleCollector.addGlobal()` is retained across
-render passes for `EngineGlobalStyles()`.
+Only CSS explicitly added with `StyleCollector.addGlobal()` is retained for
+`EngineGlobalStyles()` and intentionally belongs to the global-style path.
 
-The current runtime still uses a process-level `globalStyleCollector` for normal
-generated styles, so full per-request concurrency isolation remains a known
-architectural limitation. See [`runtime-performance.md`](./runtime-performance.md)
-for the current status.
+The exported low-level `globalStyleCollector` remains a compatibility fallback
+for helpers used outside an `EngineProvider`. Built-in engine rendering does not
+use it as the normal page/request collector.
+
+The remaining style-runtime limitation is **post-hydration dynamic rule
+flushing**: if application code generates a brand-new responsive/pseudo rule on
+the client after hydration, collector ownership is correct but stylesheet DOM
+flushing is still primarily server-oriented. A future client flusher should add
+only newly generated rules and must not duplicate the complete SSR stylesheet.

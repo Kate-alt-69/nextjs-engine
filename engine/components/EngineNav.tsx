@@ -18,7 +18,8 @@ import React, {
 } from "react";
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
-import { usePropStyles, cpropClass, staticClass } from "../hooks/usePropStyles";
+import { staticClass, useCpropClass, usePropStyles } from "../hooks/usePropStyles";
+import { useStyleCollector } from "../providers/EngineProvider";
 import type { BaseNodeProps } from "../schema/types";
 import type { EngineTransitionInput } from "../core/enginetransitions";
 
@@ -162,6 +163,7 @@ interface NavItemProps {
 }
 
 const NavItem = memo(function NavItem({ item, pathname, variant }: NavItemProps): ReactElement {
+	const styleCollector = useStyleCollector();
 	const [open, setOpen] = useState(false);
 	const href = item.cprop?.link?.href ?? item.href ?? "#";
 	const transition = item.cprop?.link?.transition;
@@ -174,7 +176,7 @@ const NavItem = memo(function NavItem({ item, pathname, variant }: NavItemProps)
 		display: "inline-flex",
 		alignItems: "center",
 		gap: "0.25rem",
-	}), []);
+	}, styleCollector), [styleCollector]);
 
 	const anchorClass = useMemo(() => staticClass({
 		display: "inline-flex",
@@ -191,7 +193,7 @@ const NavItem = memo(function NavItem({ item, pathname, variant }: NavItemProps)
 		background: isActive
 			? "var(--engine-nav-active-bg, rgba(255,255,255,0.1))"
 			: "transparent",
-	}), [isActive, variant]);
+	}, styleCollector), [isActive, styleCollector, variant]);
 
 	const dropdownClass = useMemo(() => staticClass({
 		position: "absolute",
@@ -207,7 +209,7 @@ const NavItem = memo(function NavItem({ item, pathname, variant }: NavItemProps)
 		flexDirection: "column",
 		gap: "0.125rem",
 		boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
-	}), []);
+	}, styleCollector), [styleCollector]);
 
 	if (hasChildren) {
 		return (
@@ -275,10 +277,11 @@ export const EngineNav = memo(
 			...restProps
 		} = props;
 
+		const styleCollector = useStyleCollector();
 		const pathname = usePathname();
 		const [mobileOpen, setMobileOpen] = useState(false);
 		const toggleMobile = useCallback(() => setMobileOpen((value) => !value), []);
-		const hoverClass = useMemo(() => cpropClass(cprop), [cprop]);
+		const hoverClass = useCpropClass(cprop);
 		const navStyle = usePropStyles(restProps as any, style ?? {});
 
 		const navClass = useMemo(() => [
@@ -297,10 +300,10 @@ export const EngineNav = memo(
 				padding: variant === "vertical" ? "1rem 0" : "0 var(--engine-nav-px, 1.5rem)",
 				gap: variant === "vertical" ? "0.25rem" : "0",
 				backdropFilter: sticky ? "var(--engine-nav-blur, blur(12px))" : undefined,
-			}),
+			}, styleCollector),
 			hoverClass,
 			className,
-		].filter(Boolean).join(" ") || undefined, [className, hoverClass, sticky, variant]);
+		].filter(Boolean).join(" ") || undefined, [className, hoverClass, sticky, styleCollector, variant]);
 
 		const innerClass = useMemo(() => staticClass({
 			display: "flex",
@@ -310,7 +313,7 @@ export const EngineNav = memo(
 			maxWidth: "var(--engine-nav-max-width, 1200px)",
 			margin: "0 auto",
 			minHeight: variant === "horizontal" ? "var(--engine-nav-height, 3.5rem)" : undefined,
-		}), [variant]);
+		}, styleCollector), [styleCollector, variant]);
 
 		const itemsClass = useMemo(() => staticClass({
 			display: "flex",
@@ -318,18 +321,18 @@ export const EngineNav = memo(
 			flexWrap: "wrap",
 			gap: "0.125rem",
 			flexDirection: variant === "vertical" ? "column" : "row",
-		}), [variant]);
+		}, styleCollector), [styleCollector, variant]);
 
 		const desktopItemsClass = useMemo(() => staticClass({
 			display: "none",
 			[`@media(min-width: ${mobileBreakpoint}px)`]: { display: "flex" },
-		}), [mobileBreakpoint]);
+		}, styleCollector), [mobileBreakpoint, styleCollector]);
 
 		const logoClass = useMemo(() => staticClass({
 			flexShrink: 0,
 			display: "flex",
 			alignItems: "center",
-		}), []);
+		}, styleCollector), [styleCollector]);
 
 		const mobileToggleClass = useMemo(() => staticClass({
 			display: "flex",
@@ -343,7 +346,7 @@ export const EngineNav = memo(
 			borderRadius: "0.375rem",
 			color: "inherit",
 			[`@media(min-width: ${mobileBreakpoint}px)`]: { display: "none" },
-		}), [mobileBreakpoint]);
+		}, styleCollector), [mobileBreakpoint, styleCollector]);
 
 		const mobileMenuClass = useMemo(() => staticClass({
 			display: "flex",
@@ -353,7 +356,7 @@ export const EngineNav = memo(
 			borderTop: "1px solid var(--engine-nav-border, rgba(255,255,255,0.08))",
 			width: "100%",
 			[`@media(min-width: ${mobileBreakpoint}px)`]: { display: "none" },
-		}), [mobileBreakpoint]);
+		}, styleCollector), [mobileBreakpoint, styleCollector]);
 
 		return (
 			<nav

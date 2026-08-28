@@ -28,8 +28,8 @@ import type {
 	OptGroupProps,
 	ResponsiveValue,
 } from "../schema/types";
-import { usePropStyles, cpropClass, staticClass } from "../hooks/usePropStyles";
-import { useEngineContext, useHandler } from "../providers/EngineProvider";
+import { staticClass, useCpropClass, usePropStyles } from "../hooks/usePropStyles";
+import { useEngineContext, useHandler, useStyleCollector } from "../providers/EngineProvider";
 
 interface HrefWrapperProps {
 	href: string;
@@ -105,7 +105,7 @@ export const EngineBox = memo(
 		ref,
 	) {
 		const resolvedStyle = usePropStyles(props as any, style);
-		const stateClass = cpropClass(cprop);
+		const stateClass = useCpropClass(cprop);
 		const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
 		const resolvedId = id ?? point;
 		const clickHandler = useNodeClickHandler(onClick);
@@ -167,7 +167,7 @@ export const EngineStack = memo(
 				...style,
 			},
 		);
-		const stateClass = cpropClass(cprop);
+		const stateClass = useCpropClass(cprop);
 		const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
 		const resolvedId = id ?? point;
 		const clickHandler = useNodeClickHandler(onClick);
@@ -250,7 +250,7 @@ export const EngineGrid = memo(
 			} as any,
 			{ display: "grid", ...style },
 		);
-		const stateClass = cpropClass(cprop);
+		const stateClass = useCpropClass(cprop);
 		const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
 		const resolvedId = id ?? point;
 		const clickHandler = useNodeClickHandler(onClick);
@@ -393,7 +393,7 @@ export const EngineText = memo(
 				...style,
 			},
 		);
-		const stateClass = cpropClass(cprop);
+		const stateClass = useCpropClass(cprop);
 		const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
 		const resolvedId = id ?? point;
 		const clickHandler = useNodeClickHandler(onClick);
@@ -473,10 +473,11 @@ export const EngineSection = memo(
 		},
 		ref,
 	) {
+		const styleCollector = useStyleCollector();
 		const innerLayoutClass = staticClass({
 			width: "100%",
 			...(centered ? { marginLeft: "auto", marginRight: "auto" } : {}),
-		});
+		}, styleCollector);
 		const resolvedOuter = usePropStyles(props as any, {
 			width: "100%",
 			...(fullViewport ? { minHeight: "100svh" } : {}),
@@ -488,7 +489,7 @@ export const EngineSection = memo(
 			px: px ?? "1.5rem",
 			py: py ?? "4rem",
 		} as any);
-		const stateClass = cpropClass(cprop);
+		const stateClass = useCpropClass(cprop);
 		const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
 		const resolvedId = id ?? point;
 		const clickHandler = useNodeClickHandler(onClick);
@@ -578,7 +579,7 @@ export const EngineButton = memo(function EngineButton({
 			...style,
 		},
 	);
-	const stateClass = cpropClass(cprop);
+	const stateClass = useCpropClass(cprop);
 	const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
 	const resolvedId = id ?? point;
 	const namedClickHandler = useNodeClickHandler(onClick);
@@ -641,6 +642,7 @@ export const EngineCard = memo(
 		},
 		ref,
 	) {
+		const styleCollector = useStyleCollector();
 		const variantStyle: CSSProperties = variant === "elevated"
 			? { background: "var(--e-card-bg, #fff)", boxShadow: "0 2px 12px rgba(0,0,0,.08)" }
 			: variant === "outlined"
@@ -658,7 +660,7 @@ export const EngineCard = memo(
 			...(interactive ? { cursor: "pointer", transition: "transform 0.2s ease, box-shadow 0.2s ease" } : {}),
 			...style,
 		});
-		const stateClass = cpropClass(cprop);
+		const stateClass = useCpropClass(cprop);
 		const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
 		const resolvedId = id ?? point;
 		const clickHandler = useNodeClickHandler(onClick);
@@ -690,7 +692,7 @@ export const EngineCard = memo(
 							minHeight: isHorizontal ? "100%" : undefined,
 							overflow: "hidden",
 							position: "relative",
-						})}
+						}, styleCollector)}
 					>
 						<img
 							src={cover}
@@ -705,7 +707,7 @@ export const EngineCard = memo(
 									position: isHorizontal ? "absolute" : "static",
 									top: isHorizontal ? 0 : undefined,
 									left: isHorizontal ? 0 : undefined,
-								}),
+								}, styleCollector),
 							].filter(Boolean).join(" ") || undefined}
 						/>
 					</div>
@@ -717,7 +719,7 @@ export const EngineCard = memo(
 						display: "flex",
 						flexDirection: "column",
 						minWidth: 0,
-					})}
+					}, styleCollector)}
 				>
 					{children}
 				</div>
@@ -734,9 +736,11 @@ export const EngineSpacer = memo(function EngineSpacer({
 	size = "2rem",
 	axis = "y",
 }: SpacerProps) {
-	const resolvedStyle = axis === "x"
-		? usePropStyles({ width: size } as any, { display: "inline-block" })
-		: usePropStyles({ height: size } as any, { display: "block" });
+	const isHorizontal = axis === "x";
+	const resolvedStyle = usePropStyles(
+		isHorizontal ? { width: size } as any : { height: size } as any,
+		{ display: isHorizontal ? "inline-block" : "block" },
+	);
 	return <span aria-hidden="true" style={resolvedStyle} />;
 });
 
@@ -749,21 +753,22 @@ export const EngineDivider = memo(function EngineDivider({
 	style: styleVariant = "solid",
 	my,
 }: DividerProps) {
-	if (orientation === "horizontal") {
-		const resolvedStyle = usePropStyles({ my: my ?? "1rem" } as any, {
-			border: "none",
-			borderTop: `${thickness} ${styleVariant} ${color}`,
-			width: "100%",
-		});
-		return <hr style={resolvedStyle} />;
-	}
-
-	const resolvedStyle = usePropStyles({ mx: my ?? "1rem" } as any, {
-		border: "none",
-		borderLeft: `${thickness} ${styleVariant} ${color}`,
-		height: "auto",
-		alignSelf: "stretch",
-	});
+	const isHorizontal = orientation === "horizontal";
+	const resolvedStyle = usePropStyles(
+		isHorizontal ? { my: my ?? "1rem" } as any : { mx: my ?? "1rem" } as any,
+		isHorizontal
+			? {
+				border: "none",
+				borderTop: `${thickness} ${styleVariant} ${color}`,
+				width: "100%",
+			}
+			: {
+				border: "none",
+				borderLeft: `${thickness} ${styleVariant} ${color}`,
+				height: "auto",
+				alignSelf: "stretch",
+			},
+	);
 	return <hr style={resolvedStyle} />;
 });
 
@@ -791,7 +796,7 @@ export const EngineOption = memo(
 		ref,
 	) {
 		const resolvedStyle = usePropStyles(props as any, style);
-		const stateClass = cpropClass(cprop);
+		const stateClass = useCpropClass(cprop);
 		const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
 		const resolvedId = id ?? point;
 		return (
@@ -842,7 +847,7 @@ export const EngineOptGroup = memo(
 		ref,
 	) {
 		const resolvedStyle = usePropStyles(props as any, style);
-		const stateClass = cpropClass(cprop);
+		const stateClass = useCpropClass(cprop);
 		const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
 		const resolvedId = id ?? point;
 		return (

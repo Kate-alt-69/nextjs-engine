@@ -12,7 +12,7 @@ import React, {
 	type FormEvent,
 	type ReactNode,
 } from "react";
-import { usePropStyles, cpropClass } from "../hooks/usePropStyles";
+import { useCpropClass, usePropStyles } from "../hooks/usePropStyles";
 import { useHandler } from "../providers/EngineProvider";
 import type { BaseNodeProps } from "../schema/types";
 
@@ -115,7 +115,7 @@ export const EngineForm = memo(
 		ref,
 	) {
 		const resolvedStyle = usePropStyles(props as any, style);
-		const stateClass = cpropClass(cprop);
+		const stateClass = useCpropClass(cprop);
 		const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
 		const resolvedId = id ?? point;
 		const submitHandler = useHandler(onSubmit ?? "");
@@ -220,7 +220,7 @@ export const EngineInput = memo(
 		ref,
 	) {
 		const resolvedStyle = usePropStyles(props as any, style);
-		const stateClass = cpropClass(cprop);
+		const stateClass = useCpropClass(cprop);
 		const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
 		const resolvedId = id ?? point ?? name;
 		const changeHandler = useHandler(onChange ?? "");
@@ -324,7 +324,7 @@ export const EngineTextarea = memo(
 		ref,
 	) {
 		const resolvedStyle = usePropStyles(props as any, { resize: resizable, ...style });
-		const stateClass = cpropClass(cprop);
+		const stateClass = useCpropClass(cprop);
 		const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
 		const resolvedId = id ?? point ?? name;
 		const changeHandler = useHandler(onChange ?? "");
@@ -404,7 +404,7 @@ export const EngineCheckbox = memo(
 		ref,
 	) {
 		const resolvedStyle = usePropStyles(props as any, style);
-		const stateClass = cpropClass(cprop);
+		const stateClass = useCpropClass(cprop);
 		const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
 		const resolvedId = id ?? point ?? name;
 		const changeHandler = useHandler(onChange ?? "");
@@ -469,7 +469,7 @@ export const EngineLabel = memo(
 		ref,
 	) {
 		const resolvedStyle = usePropStyles(props as any, style);
-		const stateClass = cpropClass(cprop);
+		const stateClass = useCpropClass(cprop);
 		const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
 		const resolvedId = id ?? point;
 		const resolvedFor = htmlFor ?? (forInput ? `for-${forInput}` : undefined);
