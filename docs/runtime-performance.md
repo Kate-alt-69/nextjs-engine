@@ -51,6 +51,13 @@ freezing every animated EngineShader or throwing again on every RAF indefinitely
 
 The shared RAF is cancelled when the final callback leaves the scheduler.
 
+Manifest publication is ordered per shader base path. Forced refreshes and cache
+clears invalidate the publication rights of older in-flight manifest requests,
+so a slower stale response cannot overwrite a newer manifest or prune artifacts
+using stale metadata. Artifact promise cleanup is identity-checked as well: an
+old rejected request cannot delete a replacement promise created after a cache
+clear.
+
 ## EngineManim
 
 Manim2D compiles shape geometry outside RAF. Transform pairs with mismatched
