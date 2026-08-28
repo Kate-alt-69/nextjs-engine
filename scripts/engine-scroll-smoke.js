@@ -46,6 +46,7 @@ function main() {
 			"EngineScrollTimelineTrack.ts",
 			"EngineScrollTimelineBinding.ts",
 			"EngineScrollTimeline.ts",
+			"EngineScrollDirector.ts",
 			"EngineScrollSnap.ts",
 			"EngineScrollPhysics.ts",
 		];
@@ -64,6 +65,7 @@ function main() {
 		const { EngineScrollRuntime } = require(path.join(root, "EngineScrollRuntime.js"));
 		const { EngineScrollRange } = require(path.join(root, "EngineScrollRange.js"));
 		const { EngineScrollTimeline } = require(path.join(root, "EngineScrollTimeline.js"));
+		const { EngineScrollDirector } = require(path.join(root, "EngineScrollDirector.js"));
 		const { EngineScrollTimelineTrack } = require(path.join(root, "EngineScrollTimelineTrack.js"));
 		const { EngineScrollSnap } = require(path.join(root, "EngineScrollSnap.js"));
 		const { EngineScrollPointManager } = require(path.join(root, "EngineScrollPointManager.js"));
@@ -187,6 +189,101 @@ function main() {
 		runtime.notify();
 		assert.equal(styleCalls.length, callCount);
 		stopBinding();
+
+		const originalRuntimeSubscribe = runtime.subscribe;
+		let directorRuntimeSubscriptions = 0;
+		let directorRuntimeUnsubscriptions = 0;
+		runtime.subscribe = function directorSubscribe(callback) {
+			directorRuntimeSubscriptions += 1;
+			const stop = originalRuntimeSubscribe.call(this, callback);
+			return () => {
+				directorRuntimeUnsubscriptions += 1;
+				stop();
+			};
+		};
+
+		state.viewport.current = 10;
+		const director = new EngineScrollDirector({
+			hero: { start: 0, end: 50, source: "current" },
+			features: { start: 50, end: 100, source: "current" },
+		});
+		assert.equal(director.size, 2);
+		assert.deepEqual(director.names(), ["hero", "features"]);
+		assert.equal(director.has("hero"), true);
+		assert.equal(director.has("missing"), false);
+		assert.equal(director.pointAt("hero", 0.5), 25);
+
+		const directorFrames = [];
+		const heroFrames = [];
+		const featureFrames = [];
+		const directorCrossings = [];
+		const directorActivity = [];
+		const stopDirector = director.subscribe((directorFrame) => {
+			directorFrames.push([...directorFrame.changed]);
+		}, false);
+		const stopHeroTrack = director.subscribeTrack("hero", (trackFrame) => {
+			heroFrames.push(trackFrame.progress);
+		}, false);
+		const stopFeatureTrack = director.subscribeTrack("features", (trackFrame) => {
+			featureFrames.push(trackFrame.progress);
+		}, false);
+		const stopDirectorCross = director.onCross("hero", 0.5, (event) => {
+			directorCrossings.push([event.at, event.direction]);
+		});
+		const stopFeatureEnter = director.onEnter("features", (event) => {
+			directorActivity.push([event.type, "features", event.boundary, event.direction]);
+		});
+		const stopHeroLeave = director.onLeave("hero", (event) => {
+			directorActivity.push([event.type, "hero", event.boundary, event.direction]);
+		});
+		assert.equal(directorRuntimeSubscriptions, 1);
+
+		state.viewport.current = 30;
+		director.snapshot();
+		runtime.notify();
+		state.viewport.current = 75;
+		runtime.notify();
+		state.viewport.current = 80;
+		runtime.notify();
+		assert.deepEqual(directorFrames, [
+			["hero"],
+			["hero", "features"],
+			["features"],
+		]);
+		assert.deepEqual(heroFrames, [0.6, 1]);
+		assert.deepEqual(featureFrames, [0.5, 0.6]);
+		assert.deepEqual(directorCrossings, [[0.5, 1]]);
+		assert.deepEqual(directorActivity, [
+			["enter", "features", "start", 1],
+			["leave", "hero", "end", 1],
+		]);
+
+		const directorStyleCalls = [];
+		const directorStyleElement = {
+			style: {
+				setProperty(property, value) { directorStyleCalls.push(["set", property, value]); },
+				removeProperty(property) { directorStyleCalls.push(["remove", property]); },
+			},
+		};
+		const stopDirectorBinding = director.bindStyles("features", directorStyleElement, {
+			opacity: [0, 1],
+		});
+		assert.deepEqual(directorStyleCalls[0], ["set", "opacity", "0.6"]);
+		assert.equal(directorRuntimeSubscriptions, 1);
+		state.viewport.current = 90;
+		runtime.notify();
+		assert.deepEqual(directorStyleCalls.at(-1), ["set", "opacity", "0.8"]);
+
+		stopDirector();
+		stopHeroTrack();
+		stopFeatureTrack();
+		stopDirectorCross();
+		stopFeatureEnter();
+		stopHeroLeave();
+		stopDirectorBinding();
+		assert.equal(directorRuntimeUnsubscriptions, 1);
+		director.dispose();
+		runtime.subscribe = originalRuntimeSubscribe;
 
 		const previousWindow = global.window;
 		global.window = { scrollY: 0, innerHeight: 100 };

@@ -8,10 +8,17 @@ import {
 	type EngineScrollTimelineKeyframe,
 } from "./EngineScrollTimelineTrack";
 import type {
-	EngineScrollTimeline,
 	EngineScrollTimelineFrame,
+	EngineScrollTimelineSubscriber,
 } from "./EngineScrollTimeline";
 import type { EngineScrollEasingName } from "./EngineScrollTypes";
+
+export interface EngineScrollTimelineFrameSource {
+	subscribe(
+		callback: EngineScrollTimelineSubscriber,
+		emitInitial?: boolean,
+	): () => void;
+}
 
 export interface EngineScrollTimelineStyleRange {
 	from: number;
@@ -110,7 +117,7 @@ function compileBinding(binding: EngineScrollTimelineStyleBinding): CompiledStyl
 }
 
 export function bindEngineScrollTimelineStyles(
-	timeline: EngineScrollTimeline,
+	source: EngineScrollTimelineFrameSource,
 	element: HTMLElement,
 	bindings: EngineScrollTimelineStyleBindings,
 ): () => void {
@@ -120,7 +127,7 @@ export function bindEngineScrollTimelineStyles(
 	}));
 	const previousValues = new Map<string, string>();
 
-	return timeline.subscribe((frame) => {
+	return source.subscribe((frame) => {
 		for (const binding of compiled) {
 			const value = binding.resolve(frame);
 			if (value === null || value === undefined) {
