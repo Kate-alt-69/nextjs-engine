@@ -29,6 +29,7 @@ import type {
 	ResponsiveValue,
 } from "../schema/types";
 import { staticClass, useCpropClass, usePropStyles } from "../hooks/usePropStyles";
+import { usePrimitiveStyles } from "../hooks/usePrimitiveStyles";
 import { useEngineContext, useHandler, useStyleCollector } from "../providers/EngineProvider";
 
 interface HrefWrapperProps {
@@ -153,7 +154,7 @@ export const EngineStack = memo(
 		},
 		ref,
 	) {
-		const resolvedStyle = usePropStyles(
+		const resolvedStyle = usePrimitiveStyles(
 			{
 				flexDir: normalizeStackDirection(direction),
 				gap,
@@ -162,9 +163,9 @@ export const EngineStack = memo(
 				...props,
 			} as any,
 			{
-				display: "flex",
-				...(wrap ? { flexWrap: "wrap" } : {}),
-				...style,
+				defaults: { display: "flex" },
+				derived: wrap ? { flexWrap: "wrap" } : undefined,
+				style,
 			},
 		);
 		const stateClass = useCpropClass(cprop);
@@ -237,7 +238,7 @@ export const EngineGrid = memo(
 		const resolvedColumns = autoFit
 			? `repeat(auto-fit, minmax(${minColWidth}, 1fr))`
 			: columns;
-		const resolvedStyle = usePropStyles(
+		const resolvedStyle = usePrimitiveStyles(
 			{
 				columns: resolvedColumns as any,
 				rows: rows as any,
@@ -248,7 +249,10 @@ export const EngineGrid = memo(
 				justify,
 				...props,
 			} as any,
-			{ display: "grid", ...style },
+			{
+				defaults: { display: "grid" },
+				style,
+			},
 		);
 		const stateClass = useCpropClass(cprop);
 		const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
@@ -375,7 +379,7 @@ export const EngineText = memo(
 				backgroundClip: "text",
 			}
 			: {};
-		const resolvedStyle = usePropStyles(
+		const resolvedStyle = usePrimitiveStyles(
 			{
 				size,
 				weight,
@@ -385,12 +389,14 @@ export const EngineText = memo(
 				...props,
 			} as any,
 			{
-				...variantBaseStyle,
-				...(italic ? { fontStyle: "italic" } : {}),
-				...(underline ? { textDecoration: "underline" } : {}),
-				...truncateStyle,
-				...gradientStyle,
-				...style,
+				defaults: variantBaseStyle,
+				derived: {
+					...(italic ? { fontStyle: "italic" } : {}),
+					...(underline ? { textDecoration: "underline" } : {}),
+					...truncateStyle,
+					...gradientStyle,
+				},
+				style,
 			},
 		);
 		const stateClass = useCpropClass(cprop);
@@ -478,11 +484,13 @@ export const EngineSection = memo(
 			width: "100%",
 			...(centered ? { marginLeft: "auto", marginRight: "auto" } : {}),
 		}, styleCollector);
-		const resolvedOuter = usePropStyles(props as any, {
-			width: "100%",
-			...(fullViewport ? { minHeight: "100svh" } : {}),
-			...(snapAlign ? { scrollSnapAlign: snapAlign } : {}),
-			...style,
+		const resolvedOuter = usePrimitiveStyles(props as any, {
+			defaults: { width: "100%" },
+			derived: {
+				...(fullViewport ? { minHeight: "100svh" } : {}),
+				...(snapAlign ? { scrollSnapAlign: snapAlign } : {}),
+			},
+			style,
 		});
 		const resolvedInner = usePropStyles({
 			maxW: contentMaxWidth,
@@ -566,17 +574,19 @@ export const EngineButton = memo(function EngineButton({
 					? { background: accentColor, color: "#fff", boxShadow: `0 4px 14px ${accentColor}55` }
 					: { background: "transparent", color: accentColor, textDecoration: "underline", padding: 0 };
 	const sizeStyle = BUTTON_SIZES[size] ?? BUTTON_SIZES.md;
-	const resolvedStyle = usePropStyles(
+	const resolvedStyle = usePrimitiveStyles(
 		{
 			...props,
 			width: normalizeFullWidth(fullWidth),
 		} as any,
 		{
-			...BUTTON_BASE,
-			...sizeStyle,
-			...variantStyle,
-			...(disabled ? { opacity: 0.5, cursor: "not-allowed" } : {}),
-			...style,
+			defaults: {
+				...BUTTON_BASE,
+				...sizeStyle,
+				...variantStyle,
+			},
+			style,
+			runtime: disabled ? { opacity: 0.5, cursor: "not-allowed" } : undefined,
 		},
 	);
 	const stateClass = useCpropClass(cprop);
@@ -651,14 +661,18 @@ export const EngineCard = memo(
 					? { background: "var(--e-card-filled, #f8fafc)" }
 					: { background: "var(--e-card-bg, #fff)" };
 		const isHorizontal = direction === "horizontal";
-		const resolvedStyle = usePropStyles(props as any, {
-			borderRadius: "12px",
-			overflow: "hidden",
-			display: "flex",
-			flexDirection: isHorizontal ? "row" : "column",
-			...variantStyle,
-			...(interactive ? { cursor: "pointer", transition: "transform 0.2s ease, box-shadow 0.2s ease" } : {}),
-			...style,
+		const resolvedStyle = usePrimitiveStyles(props as any, {
+			defaults: {
+				borderRadius: "12px",
+				overflow: "hidden",
+				display: "flex",
+				flexDirection: isHorizontal ? "row" : "column",
+				...variantStyle,
+			},
+			derived: interactive
+				? { cursor: "pointer", transition: "transform 0.2s ease, box-shadow 0.2s ease" }
+				: undefined,
+			style,
 		});
 		const stateClass = useCpropClass(cprop);
 		const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;
@@ -679,8 +693,14 @@ export const EngineCard = memo(
 				} : undefined}
 				onMouseLeave={interactive ? (event) => {
 					const element = event.currentTarget as HTMLDivElement;
-					element.style.transform = "";
-					if (variant === "elevated") element.style.boxShadow = "0 2px 12px rgba(0,0,0,.08)";
+					element.style.transform = typeof resolvedStyle.transform === "string"
+						? resolvedStyle.transform
+						: "";
+					if (variant === "elevated") {
+						element.style.boxShadow = typeof resolvedStyle.boxShadow === "string"
+							? resolvedStyle.boxShadow
+							: "";
+					}
 				} : undefined}
 			>
 				{cover && (

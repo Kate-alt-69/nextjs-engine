@@ -3,7 +3,8 @@
 import React, { memo, useCallback, useId, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { isTopOverlay } from "../../core/engineoverlay";
-import { useCpropClass, usePropStyles } from "../../hooks/usePropStyles";
+import { useCpropClass } from "../../hooks/usePropStyles";
+import { usePrimitiveStyles } from "../../hooks/usePrimitiveStyles";
 import {
 	SURFACE_BASE,
 	clampDuration,
@@ -66,17 +67,21 @@ export const EngineDialog = memo(function EngineDialog({
 	}), [close, closeOnEscape, initialFocus, isOpen, lockScroll, panelId, restoreFocus, trapFocus]);
 	useOverlayBehavior(behavior);
 
-	const panelStyle = usePropStyles(props as any, {
-		...SURFACE_BASE,
-		position: "relative",
-		width: "min(32rem, calc(100vw - 2rem))",
-		maxHeight: "min(85vh, 52rem)",
-		overflow: "auto",
-		padding: "1.25rem",
-		opacity: active ? 1 : 0,
-		transform: active ? "translateY(0) scale(1)" : "translateY(10px) scale(.985)",
-		transition: `opacity ${transitionMs}ms ease, transform ${transitionMs}ms ease`,
-		...style,
+	const panelStyle = usePrimitiveStyles(props as any, {
+		defaults: {
+			...SURFACE_BASE,
+			position: "relative",
+			width: "min(32rem, calc(100vw - 2rem))",
+			maxHeight: "min(85vh, 52rem)",
+			overflow: "auto",
+			padding: "1.25rem",
+		},
+		style,
+		runtime: {
+			opacity: active ? 1 : 0,
+			transform: active ? "translateY(0) scale(1)" : "translateY(10px) scale(.985)",
+			transition: `opacity ${transitionMs}ms ease, transform ${transitionMs}ms ease`,
+		},
 	});
 	const panelClass = [className, useCpropClass(cprop)].filter(Boolean).join(" ") || undefined;
 	const target = typeof document !== "undefined"
