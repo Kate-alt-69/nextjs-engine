@@ -117,6 +117,19 @@ Each provider also owns one stable `StyleCollector` instance for its lifetime.
 Generated CSS helpers read that collector from context, which keeps concurrent
 server renders isolated without allocating a new collector on every child render.
 
+## Responsive resolver cache
+
+Responsive variable resolution is deterministic for a canonical cache key, so
+its memoized `ResolvedVar` objects can be reused safely across independent page
+and component renders. `createPage()` does not clear this shared cache during
+render; doing so would make concurrent renders evict each other's useful work.
+
+The cache is bounded to 2,048 entries and promotes hits in LRU order. Once full,
+adding a new unique responsive value evicts the least recently used entry. This
+keeps repeated schemas cheap without allowing standalone components or long-lived
+client sessions with highly dynamic values to grow the resolver map without
+bound. Explicit cache clearing remains an internal test/tool operation.
+
 ## Images and video
 
 Responsive image quality uses `<picture>/<source>` selection with one fallback
