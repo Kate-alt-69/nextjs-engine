@@ -7,7 +7,34 @@ A point still has one globally addressable name. Groups are tags that decide
 which points participate in operations such as `nearest()`, `next()`,
 `previous()`, and snapping.
 
-## Register grouped points
+## Schema-native points
+
+Normal NE schemas can declare the full point behavior directly:
+
+```ts
+{
+	type: "section",
+	props: {
+		point: "features",
+		pointGroup: ["chapters", "home"],
+		pointAlign: "center",
+		pointOffset: -4,
+	},
+}
+```
+
+`pointGroup` accepts one group name or an array. `pointAlign` accepts `start`,
+`center`, `end`, or `nearest`. `pointOffset` is measured in EngineScroll point
+units, so it follows the same coordinate model as `EngineScroll.move()`.
+
+These three fields are Engine metadata. `SchemaRenderer` consumes them during
+point registration and does not forward them to the rendered component or DOM.
+The existing `point` field still supplies the point name and, when no explicit
+`id` exists, the DOM id used to locate the mounted element.
+
+## Manual registration
+
+Manual registration remains available outside normal schema rendering:
 
 ```ts
 import { EngineScrollPointManager } from "@/engine";
@@ -111,6 +138,12 @@ interface EngineScrollPointOptions {
 	align?: "start" | "center" | "end" | "nearest";
 	offset?: number;
 	group?: EngineScrollPointGroupInput;
+}
+
+interface EngineScrollPointSchemaProps {
+	pointGroup?: EngineScrollPointGroupInput;
+	pointAlign?: "start" | "center" | "end" | "nearest";
+	pointOffset?: number;
 }
 ```
 
