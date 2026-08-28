@@ -17,6 +17,7 @@ const artifactCache = new Map<string, Promise<EngineShaderRenderPlan>>();
 const hotListeners = new Map<string, Set<() => void>>();
 let manifestRequestSerial = 0;
 let hotTimer: ReturnType<typeof setInterval> | null = null;
+let hotPollInFlight = false;
 
 function isDevelopment(): boolean {
 	return process.env.NODE_ENV !== "production";
@@ -155,21 +156,40 @@ export async function loadEngineShader(
 	return { plan: await pending, entry };
 }
 
+function reportHotListenerError(reason: unknown): void {
+	if (process.env.NODE_ENV !== "production") {
+		console.error("[EngineShader] Hot reload listener failed.", reason);
+	}
+}
+
 function notifyHotListeners(
 	previous: EngineShaderManifest | null,
 	next: EngineShaderManifest,
 ): void {
 	for (const [name, listeners] of hotListeners) {
 		if (previous && previous.shaders[name]?.hash === next.shaders[name]?.hash) continue;
-		for (const listener of listeners) listener();
+		for (const listener of listeners) {
+			try {
+				listener();
+			} catch (reason) {
+				reportHotListenerError(reason);
+			}
+		}
 	}
 }
 
 async function pollHotShaders(): Promise<void> {
-	if (!isDevelopment() || typeof document === "undefined" || document.hidden || hotListeners.size === 0) return;
+	if (
+		!isDevelopment()
+		|| typeof document === "undefined"
+		|| document.hidden
+		|| hotListeners.size === 0
+		|| hotPollInFlight
+	) return;
 	const basePath = normalizeBasePath();
 	const previous = manifestCache.get(basePath) ?? null;
 	if (!previous && manifestPromises.has(basePath)) return;
+	hotPollInFlight = true;
 	try {
 		const next = await fetchManifest(true, basePath);
 		if (previous?.revision === next.revision) return;
@@ -178,6 +198,8 @@ async function pollHotShaders(): Promise<void> {
 		if (process.env.NODE_ENV !== "production") {
 			console.warn("[EngineShader] Hot refresh failed.", reason);
 		}
+	} finally {
+		hotPollInFlight = false;
 	}
 }
 

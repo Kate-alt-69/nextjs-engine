@@ -297,12 +297,15 @@ async function testHotReloadStartupAndManifestReuse(runtime) {
 	const previousSetInterval = global.setInterval;
 	const previousClearInterval = global.clearInterval;
 	const previousNodeEnv = process.env.NODE_ENV;
+	const previousConsoleError = console.error;
 	const manifestRequests = [];
 	const baselineManifest = createManifest("baseline-hash", "baseline.shed.dat");
 	const changedManifest = createManifest("changed-hash", "changed.shed.dat");
 	let pollCallback = null;
 	let reloadPromise = null;
 	let notifications = 0;
+	let failingNotifications = 0;
+	let reportedListenerErrors = 0;
 
 	try {
 		process.env.NODE_ENV = "development";
@@ -314,6 +317,9 @@ async function testHotReloadStartupAndManifestReuse(runtime) {
 		};
 		global.clearInterval = () => {
 			pollCallback = null;
+		};
+		console.error = () => {
+			reportedListenerErrors += 1;
 		};
 		global.fetch = (url) => {
 			const requestURL = String(url);
@@ -329,6 +335,10 @@ async function testHotReloadStartupAndManifestReuse(runtime) {
 
 		const initialLoad = runtime.loadEngineShader("demo");
 		assert.equal(manifestRequests.length, 1, "initial shader load should start one manifest request");
+		const unsubscribeFailing = runtime.subscribeEngineShaderHotReload("demo", () => {
+			failingNotifications += 1;
+			throw new Error("intentional hot listener failure");
+		});
 		const unsubscribe = runtime.subscribeEngineShaderHotReload("demo", () => {
 			notifications += 1;
 			reloadPromise = runtime.loadEngineShader("demo");
@@ -348,11 +358,18 @@ async function testHotReloadStartupAndManifestReuse(runtime) {
 		assert.equal(baseline.entry.hash, "baseline-hash");
 
 		pollCallback();
+		pollCallback();
 		await flushMicrotasks();
-		assert.equal(manifestRequests.length, 2, "polling should refresh after the initial manifest establishes a baseline");
+		assert.equal(
+			manifestRequests.length,
+			2,
+			"slow hot reload polling must keep at most one forced manifest request in flight",
+		);
 		manifestRequests[1].resolve(jsonResponse(changedManifest));
 		await flushMicrotasks();
-		assert.equal(notifications, 1, "changed shader hash should notify the subscribed shader once");
+		assert.equal(failingNotifications, 1, "failing hot listener should receive the changed-shader notification");
+		assert.equal(reportedListenerErrors, 1, "failing hot listener should be reported without aborting fan-out");
+		assert.equal(notifications, 1, "healthy hot listener should still run after a sibling listener throws");
 		assert.ok(reloadPromise, "hot reload listener should request the updated shader plan");
 		const reloaded = await reloadPromise;
 		assert.equal(reloaded.entry.hash, "changed-hash");
@@ -363,8 +380,98 @@ async function testHotReloadStartupAndManifestReuse(runtime) {
 			"listener reload should reuse the manifest already fetched by the poller instead of forcing a third request",
 		);
 
+		pollCallback();
+		await flushMicrotasks();
+		assert.equal(manifestRequests.length, 3, "a completed hot poll should allow the next interval to refresh normally");
+		manifestRequests[2].resolve(jsonResponse(changedManifest));
+		await flushMicrotasks();
+		assert.equal(notifications, 1, "unchanged manifest revision should not notify healthy listeners again");
+		assert.equal(failingNotifications, 1, "unchanged manifest revision should not notify failing listeners again");
+
+		unsubscribeFailing();
 		unsubscribe();
 		assert.equal(pollCallback, null, "removing the final hot reload listener should stop the dev poll timer");
+	} finally {
+		global.fetch = previousFetch;
+		if (previousWindow === undefined) delete global.window;
+		else global.window = previousWindow;
+		if (previousDocument === undefined) delete global.document;
+		else global.document = previousDocument;
+		global.setInterval = previousSetInterval;
+		global.clearInterval = previousClearInterval;
+		console.error = previousConsoleError;
+		if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+		else process.env.NODE_ENV = previousNodeEnv;
+		runtime.clearEngineShaderCache();
+	}
+}
+
+async function testHotReloadRecoversAfterInitialFailure(runtime) {
+	runtime.clearEngineShaderCache();
+	const previousFetch = global.fetch;
+	const previousWindow = global.window;
+	const previousDocument = global.document;
+	const previousSetInterval = global.setInterval;
+	const previousClearInterval = global.clearInterval;
+	const previousNodeEnv = process.env.NODE_ENV;
+	let manifestFetches = 0;
+	let pollCallback = null;
+	let recoveryRequest = null;
+	let reloadPromise = null;
+	let notifications = 0;
+	const recoveryManifest = createManifest("recovery-hash", "recovery.shed.dat");
+
+	try {
+		process.env.NODE_ENV = "development";
+		global.window = {};
+		global.document = { hidden: false };
+		global.setInterval = (callback) => {
+			pollCallback = callback;
+			return 701;
+		};
+		global.clearInterval = () => {
+			pollCallback = null;
+		};
+		global.fetch = (url) => {
+			const requestURL = String(url);
+			if (requestURL.includes("manifest.json")) {
+				manifestFetches += 1;
+				if (manifestFetches === 1) {
+					return Promise.resolve({ ok: false, status: 503 });
+				}
+				if (manifestFetches === 2) {
+					recoveryRequest = createDeferred();
+					return recoveryRequest.promise;
+				}
+				throw new Error(`unexpected extra manifest request: ${requestURL}`);
+			}
+			if (requestURL.endsWith("recovery.shed.dat")) return Promise.resolve(artifactResponse("recovery"));
+			throw new Error(`unexpected shader request: ${requestURL}`);
+		};
+
+		const initialLoad = runtime.loadEngineShader("demo");
+		const unsubscribe = runtime.subscribeEngineShaderHotReload("demo", () => {
+			notifications += 1;
+			reloadPromise = runtime.loadEngineShader("demo");
+		});
+		await assert.rejects(initialLoad, /Failed to load shader manifest \(503\)/);
+		assert.equal(manifestFetches, 1, "failed initial load should complete before recovery polling");
+
+		pollCallback();
+		await flushMicrotasks();
+		assert.equal(manifestFetches, 2, "polling should retry when no baseline or initial request remains");
+		assert.ok(recoveryRequest, "recovery poll should own a manifest request");
+		recoveryRequest.resolve(jsonResponse(recoveryManifest));
+		await flushMicrotasks();
+		assert.equal(notifications, 1, "newly established recovery baseline should wake subscribed shaders");
+		assert.ok(reloadPromise, "recovery notification should reload the shader plan");
+		const recovered = await reloadPromise;
+		assert.equal(recovered.entry.hash, "recovery-hash");
+		assert.equal(recovered.plan.name, "recovery");
+		assert.equal(manifestFetches, 2, "recovery reload should reuse the manifest established by polling");
+
+		unsubscribe();
+		assert.equal(pollCallback, null, "recovery listener cleanup should stop the dev poll timer");
 	} finally {
 		global.fetch = previousFetch;
 		if (previousWindow === undefined) delete global.window;
@@ -412,6 +519,7 @@ async function main() {
 		await testClearInvalidatesManifestRace(runtime);
 		await testArtifactRejectionCannotDeleteReplacement(runtime);
 		await testHotReloadStartupAndManifestReuse(runtime);
+		await testHotReloadRecoversAfterInitialFailure(runtime);
 		assertComponentHotReloadReusesManifest();
 
 		console.log("engine shader runtime smoke: ok");
