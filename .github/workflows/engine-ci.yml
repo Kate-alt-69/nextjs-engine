@@ -32,7 +32,9 @@ jobs:
       - name: Test EngineTransitions presets
         run: node scripts/engine-transitions-smoke.js
       - name: Test EngineScroll core
-        run: node scripts/engine-scroll-smoke.js
+        run: |
+          node scripts/engine-scroll-smoke.js
+          node scripts/engine-scroll-progress-smoke.js
       - name: Test EngineOverlay runtime
         run: node scripts/engine-overlay-smoke.js
       - name: Test style compiler isolation and at-rules

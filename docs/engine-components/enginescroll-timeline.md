@@ -25,6 +25,34 @@ const stop = timeline.subscribe((frame) => {
 });
 ```
 
+## Full frames vs visual progress
+
+`subscribe()` is the full-fidelity channel. It can emit while a timeline is
+before or after its range because `point`, `rawProgress`, direction, or velocity
+may still be changing.
+
+For UI or effects that only care about the clamped timeline state, use
+`subscribeProgress()`:
+
+```ts
+const stopProgress = timeline.subscribeProgress((frame) => {
+	console.log(frame.progress);
+});
+```
+
+The progress channel emits only when one of these changes:
+
+- resolved start/end boundaries;
+- eased `progress`;
+- `before` / `active` / `after` state.
+
+So a timeline already pinned at progress `0` or `1` does not keep waking
+progress-only consumers while the page scrolls farther away from its range.
+
+Both channels still share the timeline's one `EngineScrollRuntime`
+subscription. The easing function selected by the timeline is also resolved once
+at construction instead of being looked up again on every runtime frame.
+
 ## Crossing events
 
 Use `onCross()` for one-shot orchestration at a normalized position. Crossings
@@ -55,8 +83,9 @@ const stopLeave = timeline.onLeave((event) => {
 ```
 
 The timeline owns only one subscription to `EngineScrollRuntime`, regardless of
-how many normal subscribers, crossing callbacks, and activity callbacks it has.
-When the last listener is removed, that runtime subscription is released.
+how many normal subscribers, progress subscribers, crossing callbacks, and
+activity callbacks it has. When the last listener is removed, that runtime
+subscription is released.
 
 Calling `snapshot()` manually does not consume or suppress later crossing
 events. Event detection keeps a separate runtime-observed frame baseline.
@@ -124,8 +153,22 @@ const stopBinding = timeline.bindStyles(element, {
 });
 ```
 
-Bindings skip DOM writes when the formatted value has not changed, avoiding a
-React render for high-frequency scroll visuals.
+Declarative tuple/range/keyframe bindings depend only on normalized progress, so
+the binding runtime automatically uses `subscribeProgress()` and skips the whole
+binding pass when progress is unchanged.
+
+Function bindings remain full-fidelity because they may inspect `rawProgress`,
+direction, velocity, or any other frame field:
+
+```ts
+timeline.bindStyles(element, {
+	"--state": (frame) => `${frame.rawProgress}:${frame.velocity}`,
+});
+```
+
+Bindings also cache their previous serialized values and skip identical DOM
+writes, avoiding a React render and unnecessary style mutations for
+high-frequency scroll visuals.
 
 ## Scrubbing / seeking
 
@@ -170,7 +213,9 @@ viewport / physics / animation
         ↓
 runtime.notify()
         ↓
-timelines / snapping / bindings / crossings
+full timeline events where requested
+        ↓
+progress-only consumers only when visual state changes
 ```
 
 No standalone ScrollTimeline schema type is required; timelines are
