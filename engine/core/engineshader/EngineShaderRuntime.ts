@@ -155,17 +155,25 @@ export async function loadEngineShader(
 	return { plan: await pending, entry };
 }
 
+function notifyHotListeners(
+	previous: EngineShaderManifest | null,
+	next: EngineShaderManifest,
+): void {
+	for (const [name, listeners] of hotListeners) {
+		if (previous && previous.shaders[name]?.hash === next.shaders[name]?.hash) continue;
+		for (const listener of listeners) listener();
+	}
+}
+
 async function pollHotShaders(): Promise<void> {
 	if (!isDevelopment() || typeof document === "undefined" || document.hidden || hotListeners.size === 0) return;
 	const basePath = normalizeBasePath();
 	const previous = manifestCache.get(basePath) ?? null;
+	if (!previous && manifestPromises.has(basePath)) return;
 	try {
 		const next = await fetchManifest(true, basePath);
-		if (!previous || previous.revision === next.revision) return;
-		for (const [name, listeners] of hotListeners) {
-			if (previous.shaders[name]?.hash === next.shaders[name]?.hash) continue;
-			for (const listener of listeners) listener();
-		}
+		if (previous?.revision === next.revision) return;
+		notifyHotListeners(previous, next);
 	} catch (reason) {
 		if (process.env.NODE_ENV !== "production") {
 			console.warn("[EngineShader] Hot refresh failed.", reason);

@@ -174,7 +174,7 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 			}
 		};
 		void load(false);
-		const unsubscribe = subscribeEngineShaderHotReload(config.src, () => void load(true));
+		const unsubscribe = subscribeEngineShaderHotReload(config.src, () => void load(false));
 		return () => {
 			alive = false;
 			unsubscribe();
