@@ -146,6 +146,48 @@ props: {
 `bg` and `background` target the same CSS `background` property. When both are
 provided, `bg` takes precedence.
 
+## Style precedence
+
+Built-in Engine surfaces use one consistent precedence model:
+
+```text
+component defaults
+< semantic/variant defaults
+< Engine/schema props
+< explicit style={}
+< required live runtime state
+```
+
+That means a Card variant may provide a white fallback background, but an
+explicit schema `bg` or `background` wins. Likewise, Text heading variants supply
+default font sizes/weights, while `fontSize` and `fontWeight` on the node override
+them. The caller's `style` object remains the strongest ordinary styling layer.
+
+```ts
+{
+	type: "card",
+	props: {
+		bg: "#0b0d10",
+		borderRadius: "20px",
+		style: {
+			borderRadius: "24px",
+		},
+	},
+}
+```
+
+The result uses `#0b0d10` instead of the Card variant fallback and `24px` instead
+of either the component default or schema radius.
+
+Required runtime state is intentionally last. For example, a disabled EngineButton
+must still enforce its disabled opacity/cursor, and open Overlay surfaces must
+retain the positioning/transition state needed for their runtime behavior.
+
+Internally, `usePropStyles(props, style)` continues to treat its second argument
+as the explicit caller override. Components with built-in defaults use the
+layered `usePrimitiveStyles()` helper so defaults are not accidentally placed in
+that explicit-style layer.
+
 ## `style` with at-rules
 
 `style` accepts `EngineStyleObject`, which adds `@...` entries to ordinary React

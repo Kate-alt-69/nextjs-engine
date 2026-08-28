@@ -14,7 +14,8 @@ import React, {
 	type ReactNode,
 } from "react";
 import type { MarkdownProps } from "../schema/types";
-import { useCpropClass, usePropStyles } from "../hooks/usePropStyles";
+import { useCpropClass } from "../hooks/usePropStyles";
+import { usePrimitiveStyles } from "../hooks/usePrimitiveStyles";
 
 const MARKDOWN_STYLE_ID = "__engine_md__";
 let mdCSSInjected = false;
@@ -261,12 +262,17 @@ export const EngineMarkdown = memo(function EngineMarkdown({
 	useEffect(() => { injectMarkdownCSS(); }, []);
 	const blocks = useMemo(() => parseMarkdown(content), [content]);
 
-	const resolvedStyle = usePropStyles({ ...props, fontFamily } as any, {
-		display: "grid",
-		gap: "1.25rem",
-		color: textColor,
-		...style,
-	});
+	const resolvedStyle = usePrimitiveStyles(
+		{ ...props, fontFamily } as any,
+		{
+			defaults: {
+				display: "grid",
+				gap: "1.25rem",
+				color: textColor,
+			},
+			style,
+		},
+	);
 	const articleAnimationClass = animClass(textAnimation);
 	const stateClass = useCpropClass(cprop);
 	const mergedClass = [className, stateClass, articleAnimationClass].filter(Boolean).join(" ") || undefined;

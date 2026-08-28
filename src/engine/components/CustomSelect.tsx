@@ -15,7 +15,8 @@ import React, {
 	type KeyboardEvent,
 } from "react";
 import type { CustomSelectProps, SelectOption } from "../schema/types";
-import { useCpropClass, usePropStyles } from "../hooks/usePropStyles";
+import { useCpropClass } from "../hooks/usePropStyles";
+import { usePrimitiveStyles } from "../hooks/usePrimitiveStyles";
 import { useHandler } from "../providers/EngineProvider";
 
 const SIZE_CONFIG = {
@@ -288,10 +289,12 @@ export const CustomSelect = memo(function CustomSelect({
 		document.head.appendChild(styleElement);
 	}, []);
 
-	const containerStyle = usePropStyles(props as any, {
-		position: "relative",
-		width: "100%",
-		...style,
+	const containerStyle = usePrimitiveStyles(props as any, {
+		defaults: {
+			position: "relative",
+			width: "100%",
+		},
+		style,
 	});
 	const stateClass = useCpropClass(cprop);
 	const mergedClass = [className, stateClass].filter(Boolean).join(" ") || undefined;

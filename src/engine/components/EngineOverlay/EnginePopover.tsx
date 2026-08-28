@@ -2,7 +2,8 @@
 
 import React, { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useCpropClass, usePropStyles } from "../../hooks/usePropStyles";
+import { useCpropClass } from "../../hooks/usePropStyles";
+import { usePrimitiveStyles } from "../../hooks/usePrimitiveStyles";
 import { computePopoverPosition, isTopOverlay, type EnginePopoverPlacement } from "../../core/engineoverlay";
 import {
 	SURFACE_BASE,
@@ -99,22 +100,26 @@ export const EnginePopover = memo(function EnginePopover({
 	const hiddenTransform = actualPlacement === "top" ? "translateY(6px)"
 		: actualPlacement === "bottom" ? "translateY(-6px)"
 			: actualPlacement === "left" ? "translateX(6px)" : "translateX(-6px)";
-	const panelStyle = usePropStyles(props as any, {
-		...SURFACE_BASE,
-		position: "fixed",
-		minWidth: matchTriggerWidth ? "var(--e-popover-trigger-width, 12rem)" : "12rem",
-		maxWidth: "min(24rem, calc(100vw - 1rem))",
-		maxHeight: "min(70vh, 36rem)",
-		overflow: "auto",
-		padding: "1rem",
-		top: position?.top ?? 0,
-		left: position?.left ?? 0,
-		visibility: position ? "visible" : "hidden",
-		opacity: active ? 1 : 0,
-		transform: active ? "translate(0,0) scale(1)" : `${hiddenTransform} scale(.985)`,
-		transformOrigin: actualPlacement === "top" ? "bottom center" : actualPlacement === "bottom" ? "top center" : actualPlacement === "left" ? "center right" : "center left",
-		transition: `opacity ${transitionMs}ms ease, transform ${transitionMs}ms ease`,
-		...style,
+	const panelStyle = usePrimitiveStyles(props as any, {
+		defaults: {
+			...SURFACE_BASE,
+			position: "fixed",
+			minWidth: matchTriggerWidth ? "var(--e-popover-trigger-width, 12rem)" : "12rem",
+			maxWidth: "min(24rem, calc(100vw - 1rem))",
+			maxHeight: "min(70vh, 36rem)",
+			overflow: "auto",
+			padding: "1rem",
+		},
+		style,
+		runtime: {
+			top: position?.top ?? 0,
+			left: position?.left ?? 0,
+			visibility: position ? "visible" : "hidden",
+			opacity: active ? 1 : 0,
+			transform: active ? "translate(0,0) scale(1)" : `${hiddenTransform} scale(.985)`,
+			transformOrigin: actualPlacement === "top" ? "bottom center" : actualPlacement === "bottom" ? "top center" : actualPlacement === "left" ? "center right" : "center left",
+			transition: `opacity ${transitionMs}ms ease, transform ${transitionMs}ms ease`,
+		},
 	});
 	const panelClass = [className, useCpropClass(cprop)].filter(Boolean).join(" ") || undefined;
 	const target = typeof document !== "undefined"

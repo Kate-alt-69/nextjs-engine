@@ -12,6 +12,7 @@ import React, {
 	type ReactNode,
 } from "react";
 import { useCpropClass, usePropStyles } from "../hooks/usePropStyles";
+import { usePrimitiveStyles } from "../hooks/usePrimitiveStyles";
 import type { HeroProps } from "../schema/types";
 
 export interface EngineHeroProps extends HeroProps {
@@ -107,8 +108,6 @@ export const EngineHero = memo(
 			position: "relative",
 			width: "100%",
 			overflow: "hidden",
-			...(fullViewport ? { minHeight: "100svh" } : {}),
-			...(snapAlign ? { scrollSnapAlign: snapAlign } : {}),
 		};
 
 		const innerBase: CSSProperties = {
@@ -149,7 +148,7 @@ export const EngineHero = memo(
 
 		// Background controls are routed through usePropStyles so breakpoint maps
 		// compile to CSS variables instead of being forced into CSSProperties.
-		const resolvedOuter = usePropStyles(
+		const resolvedOuter = usePrimitiveStyles(
 			{
 				...props,
 				backgroundImage,
@@ -158,7 +157,14 @@ export const EngineHero = memo(
 				backgroundRepeat: backgroundImage ? (backgroundRepeat ?? "no-repeat") : backgroundRepeat,
 				...(backgroundImage && parallax ? { backgroundAttachment: "fixed" } : {}),
 			} as any,
-			{ ...sectionBase, ...style },
+			{
+				defaults: sectionBase,
+				derived: {
+					...(fullViewport ? { minHeight: "100svh" } : {}),
+					...(snapAlign ? { scrollSnapAlign: snapAlign } : {}),
+				},
+				style,
+			},
 		);
 		const hoverClass = useCpropClass(cprop);
 		const mergedClass = [className, hoverClass].filter(Boolean).join(" ") || undefined;

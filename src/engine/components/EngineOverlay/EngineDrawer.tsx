@@ -3,7 +3,8 @@
 import React, { memo, useCallback, useId, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { isTopOverlay } from "../../core/engineoverlay";
-import { useCpropClass, usePropStyles } from "../../hooks/usePropStyles";
+import { useCpropClass } from "../../hooks/usePropStyles";
+import { usePrimitiveStyles } from "../../hooks/usePrimitiveStyles";
 import {
 	SURFACE_BASE,
 	clampDuration,
@@ -48,19 +49,23 @@ export const EngineDrawer = memo(function EngineDrawer({
 		: side === "right" ? { right: 0, top: 0, bottom: 0 }
 			: side === "top" ? { top: 0, left: 0, right: 0 }
 				: { bottom: 0, left: 0, right: 0 };
-	const panelStyle = usePropStyles(props as any, {
-		...SURFACE_BASE,
-		position: "fixed",
-		...edgeStyle,
-		width: horizontal ? size : "100%",
-		height: horizontal ? "100%" : size,
-		borderRadius: 0,
-		overflow: "auto",
-		padding: "1.25rem",
-		opacity: active ? 1 : 0.98,
-		transform: active ? "translate(0,0)" : hiddenTransform,
-		transition: `transform ${transitionMs}ms cubic-bezier(.2,.8,.2,1), opacity ${transitionMs}ms ease`,
-		...style,
+	const panelStyle = usePrimitiveStyles(props as any, {
+		defaults: {
+			...SURFACE_BASE,
+			position: "fixed",
+			...edgeStyle,
+			width: horizontal ? size : "100%",
+			height: horizontal ? "100%" : size,
+			borderRadius: 0,
+			overflow: "auto",
+			padding: "1.25rem",
+		},
+		style,
+		runtime: {
+			opacity: active ? 1 : 0.98,
+			transform: active ? "translate(0,0)" : hiddenTransform,
+			transition: `transform ${transitionMs}ms cubic-bezier(.2,.8,.2,1), opacity ${transitionMs}ms ease`,
+		},
 	});
 	const panelClass = [className, useCpropClass(cprop)].filter(Boolean).join(" ") || undefined;
 	const target = typeof document !== "undefined"
