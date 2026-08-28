@@ -158,6 +158,30 @@ function recordPatchName(state: AnalyzerState, node: SchemaNode, path: string): 
 	);
 }
 
+function hasEngineScrollPointMetadata(props: Record<string, unknown>): boolean {
+	return props.pointGroup !== undefined
+		|| props.pointAlign !== undefined
+		|| props.pointOffset !== undefined;
+}
+
+function warnOrphanedEngineScrollPointMetadata(
+	state: AnalyzerState,
+	props: Record<string, unknown>,
+	path: string,
+): void {
+	if (!hasEngineScrollPointMetadata(props)) return;
+	if (typeof props.point === "string" && props.point.trim().length > 0) return;
+
+	push(
+		state,
+		"warn",
+		"W008",
+		"EngineScroll point metadata is present but this node has no non-empty point name.",
+		path,
+		"Add props.point or remove pointGroup/pointAlign/pointOffset; those fields only affect registered EngineScroll points.",
+	);
+}
+
 function describeNodeValue(value: unknown): string {
 	if (value === null) return "null";
 	if (Array.isArray(value)) return "array";
@@ -218,6 +242,7 @@ function walkNode(node: unknown, path: string, depth: number, state: AnalyzerSta
 	recordNavigationTarget(state, props.id, "id", path);
 	recordNavigationTarget(state, props.point, "point", path);
 	recordPatchName(state, schemaNode, path);
+	warnOrphanedEngineScrollPointMetadata(state, props, path);
 
 	if (type === "image" && props.alt == null) {
 		push(state, "warn", "W001", "Image node is missing an \"alt\" prop.", path, "Add alt=\"\" for decorative images or descriptive text for meaningful images.");

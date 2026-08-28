@@ -59,10 +59,20 @@ export { EngineScrollPointManager } from "./EngineScrollPointManager";
 export type {
 	EngineRegisteredPoint,
 	EngineScrollPointGroupInput,
+	EngineScrollPointLocation,
 	EngineScrollPointOptions,
 	EngineScrollRegisteredPoint,
 	EngineScrollResolvedPoint,
 } from "./EngineScrollPointManager";
+
+export { EngineScrollPointTracker } from "./EngineScrollPointTracker";
+export type {
+	EngineScrollPointChangeSubscriber,
+	EngineScrollPointTrackerConfig,
+	EngineScrollPointTrackerFrame,
+	EngineScrollPointTrackerSource,
+	EngineScrollPointTrackerSubscriber,
+} from "./EngineScrollPointTracker";
 
 export { EngineScrollEasing } from "./EngineScrollEasing";
 export type { EngineScrollEasingFunction } from "./EngineScrollEasing";

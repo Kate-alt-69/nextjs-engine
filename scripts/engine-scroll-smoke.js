@@ -37,6 +37,7 @@ function main() {
 			"EngineScrollRuntime.ts",
 			"EngineScrollEasing.ts",
 			"EngineScrollPointManager.ts",
+			"EngineScrollPointTracker.ts",
 			"EngineScrollAnimation.ts",
 			"EngineScrollMovement.ts",
 			"EngineScrollHash.ts",
@@ -64,6 +65,7 @@ function main() {
 		const { EngineScrollTimelineTrack } = require(path.join(root, "EngineScrollTimelineTrack.js"));
 		const { EngineScrollSnap } = require(path.join(root, "EngineScrollSnap.js"));
 		const { EngineScrollPointManager } = require(path.join(root, "EngineScrollPointManager.js"));
+		const { EngineScrollPointTracker } = require(path.join(root, "EngineScrollPointTracker.js"));
 		const { EngineScrollMovement } = require(path.join(root, "EngineScrollMovement.js"));
 		const { EngineScrollPhysics } = require(path.join(root, "EngineScrollPhysics.js"));
 		const runtime = EngineScrollRuntime.get();
@@ -167,11 +169,49 @@ function main() {
 		EngineScrollPointManager.register("intro", 10, elementAt(10), { group: ["slides", "chapters", "slides"] });
 		EngineScrollPointManager.register("details", 30, elementAt(30), { group: "chapters" });
 		EngineScrollPointManager.register("demo", 50, elementAt(50), { group: "slides" });
+		EngineScrollPointManager.register("pricing", 70, elementAt(70), { group: "chapters" });
 		assert.deepEqual(EngineScrollPointManager.groups(), ["chapters", "slides"]);
 		assert.deepEqual(EngineScrollPointManager.names("slides"), ["intro", "demo"]);
 		assert.equal(EngineScrollPointManager.nearest(42, "slides").name, "demo");
 		assert.equal(EngineScrollPointManager.next(10, false, "chapters").name, "details");
 		assert.equal(EngineScrollPointManager.previous(40, false, "slides").name, "intro");
+
+		let location = EngineScrollPointManager.locate(5, "chapters");
+		assert.equal(location.current, null);
+		assert.equal(location.next.name, "intro");
+		assert.equal(location.index, -1);
+		assert.equal(location.count, 3);
+		location = EngineScrollPointManager.locate(20, "chapters");
+		assert.equal(location.current.name, "intro");
+		assert.equal(location.next.name, "details");
+		assert.equal(location.progress, 0.5);
+		location = EngineScrollPointManager.locate(35, "chapters");
+		assert.equal(location.current.name, "details");
+		assert.equal(location.next.name, "pricing");
+		assert.equal(location.progress, 0.125);
+
+		state.viewport.current = 20;
+		const pointTracker = new EngineScrollPointTracker({ group: "chapters", source: "current" });
+		assert.equal(pointTracker.snapshot().current.name, "intro");
+		assert.equal(pointTracker.snapshot().progress, 0.5);
+		let trackerFrames = 0;
+		const pointChanges = [];
+		const stopTracker = pointTracker.subscribe(() => { trackerFrames += 1; }, false);
+		const stopPointChanges = pointTracker.onChange((trackerFrame, previousPoint) => {
+			pointChanges.push([previousPoint?.name ?? null, trackerFrame.current?.name ?? null]);
+		});
+		state.viewport.current = 35;
+		runtime.notify();
+		runtime.notify();
+		state.viewport.current = 75;
+		pointTracker.snapshot();
+		runtime.notify();
+		assert.equal(trackerFrames, 2);
+		assert.deepEqual(pointChanges, [["intro", "details"], ["details", "pricing"]]);
+		stopTracker();
+		stopPointChanges();
+		pointTracker.dispose();
+
 		EngineScrollPointManager.clear();
 		global.window = previousWindow;
 

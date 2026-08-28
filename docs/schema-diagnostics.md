@@ -47,7 +47,8 @@ Warnings do not make `valid` false; structural errors do.
 The analyzer is the deeper static-diagnostics pass. In addition to unknown/missing
 schema data it checks duplicate navigation targets, ambiguous mobile patch names,
 shared node objects, malformed runtime node values, accessibility hints, large
-child lists, excessive tree depth, and leaf-node misuse.
+child lists, excessive tree depth, leaf-node misuse, and orphaned EngineScroll
+point metadata.
 
 Current codes:
 
@@ -66,6 +67,7 @@ Current codes:
 | `W005` | warn | Tree deeper than 15 levels |
 | `W006` | warn | Schema child nodes attached to a runtime type that does not support them |
 | `W007` | warn | Duplicate `SchemaNode.name` makes a MobilePatcher selector ambiguous |
+| `W008` | warn | EngineScroll point metadata exists without a non-empty `point` name |
 
 ### Malformed runtime data
 
@@ -100,6 +102,39 @@ These therefore conflict:
 
 A single node may use the same value for both `id` and `point`; that represents
 one anchor and is not reported as a duplicate.
+
+### EngineScroll point metadata
+
+`pointGroup`, `pointAlign`, and `pointOffset` modify a registered EngineScroll
+point. They do not create a point by themselves.
+
+This therefore emits W008:
+
+```ts
+{
+	type: "section",
+	props: {
+		pointGroup: "chapters",
+		pointAlign: "center",
+	},
+}
+```
+
+Add a non-empty `point` name:
+
+```ts
+{
+	type: "section",
+	props: {
+		point: "features",
+		pointGroup: "chapters",
+		pointAlign: "center",
+	},
+}
+```
+
+W008 is advisory because dead point metadata does not make the schema
+structurally invalid; `SchemaRenderer` simply has no point to register.
 
 ### Mobile patch names
 
