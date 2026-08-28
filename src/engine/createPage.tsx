@@ -15,7 +15,6 @@ import type {
 import { EngineCollectedStyles, EngineProvider } from "./providers/EngineProvider";
 import { EngineScrollProvider } from "./core/enginescroll";
 import { SchemaRenderer } from "./core/SchemaRenderer";
-import { clearResolverCache } from "./core/resolver";
 import { applyMobilePatches } from "./core/EngineMobilePatcher";
 
 interface CreateOptionsBase {
@@ -233,8 +232,6 @@ export function createPage(options: CreatePageOptions): EnginePageComponent {
 	const hasMobilePatches = mobile !== undefined && mobile.length > 0;
 
 	function renderPage(resolvedSchema: PageSchema) {
-		clearResolverCache();
-
 		return (
 			<EngineScrollProvider>
 				<EngineProvider
