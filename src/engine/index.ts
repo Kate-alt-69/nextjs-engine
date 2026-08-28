@@ -121,7 +121,13 @@ export type {
 	EngineOverlayOpenChange,
 	EnginePopoverProps,
 } from "./components/EngineOverlay";
-export { computePopoverPosition } from "./core/engineoverlay";
+export {
+	computePopoverPosition,
+	getFocusableElements,
+	isTopOverlay,
+	lockBodyScroll,
+	registerOverlay,
+} from "./core/engineoverlay";
 export type {
 	EnginePopoverAlign,
 	EnginePopoverPlacement,
