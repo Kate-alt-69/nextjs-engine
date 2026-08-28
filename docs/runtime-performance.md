@@ -58,6 +58,13 @@ using stale metadata. Artifact promise cleanup is identity-checked as well: an
 old rejected request cannot delete a replacement promise created after a cache
 clear.
 
+Development hot reload does not force a second manifest request while the initial
+shader manifest is still loading. Once a baseline exists, the poller owns forced
+manifest refreshes and notifies affected shaders; component reloads then reuse the
+fresh manifest already in cache instead of immediately requesting it again. If an
+initial load failed and no request remains pending, polling can establish a fresh
+baseline and wake subscribers.
+
 ## EngineManim
 
 Manim2D compiles shape geometry outside RAF. Transform pairs with mismatched
