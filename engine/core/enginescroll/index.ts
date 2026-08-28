@@ -21,6 +21,15 @@ export type {
 	EngineScrollRangeTarget,
 } from "./EngineScrollRange";
 
+export { EngineScrollDirector } from "./EngineScrollDirector";
+export type {
+	EngineScrollDirectorConfig,
+	EngineScrollDirectorFrame,
+	EngineScrollDirectorName,
+	EngineScrollDirectorSubscriber,
+	EngineScrollDirectorTimelineFrames,
+} from "./EngineScrollDirector";
+
 export { useEngineScrollTimeline } from "./useEngineScrollTimeline";
 export { EngineScrollTimeline } from "./EngineScrollTimeline";
 export type {
@@ -40,6 +49,7 @@ export { EngineScrollTimelineTrack } from "./EngineScrollTimelineTrack";
 export type { EngineScrollTimelineKeyframe } from "./EngineScrollTimelineTrack";
 export { bindEngineScrollTimelineStyles } from "./EngineScrollTimelineBinding";
 export type {
+	EngineScrollTimelineFrameSource,
 	EngineScrollTimelineStyleBinding,
 	EngineScrollTimelineStyleBindings,
 	EngineScrollTimelineStyleKeyframes,

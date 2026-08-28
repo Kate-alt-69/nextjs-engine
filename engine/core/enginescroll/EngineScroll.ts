@@ -4,6 +4,10 @@
 
 import { EngineScrollAnimation } from "./EngineScrollAnimation";
 import { EngineScrollBrowser } from "./EngineScrollBrowser";
+import {
+	EngineScrollDirector,
+	type EngineScrollDirectorConfig,
+} from "./EngineScrollDirector";
 import { EngineScrollHash } from "./EngineScrollHash";
 import { EngineScrollMovement } from "./EngineScrollMovement";
 import { EngineScrollNavigator } from "./EngineScrollNavigator";
@@ -69,6 +73,13 @@ export class EngineScroll {
 	public static timeline(config: EngineScrollTimelineConfig): EngineScrollTimeline {
 		this.initialize();
 		return new EngineScrollTimeline(config);
+	}
+
+	public static direct<const TConfig extends EngineScrollDirectorConfig>(
+		config: TConfig,
+	): EngineScrollDirector<TConfig> {
+		this.initialize();
+		return new EngineScrollDirector(config);
 	}
 
 	public static trackPoints(
