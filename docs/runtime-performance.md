@@ -40,6 +40,17 @@ when geometry has not changed. Replacing those arrays tells retained renderers
 that geometry needs rebuilding. For Engine2D specifically, material and transform
 updates do not invalidate cached geometry paths.
 
+## EngineShader
+
+Animated EngineShader instances share one `EngineShaderScheduler` RAF rather
+than starting one browser frame loop per shader. The scheduler isolates frame
+callback failures: if one shader callback throws, that callback is removed from
+the shared scheduler while the remaining shaders still receive the same frame
+and continue scheduling future frames. This prevents one broken shader from
+freezing every animated EngineShader or throwing again on every RAF indefinitely.
+
+The shared RAF is cancelled when the final callback leaves the scheduler.
+
 ## EngineManim
 
 Manim2D compiles shape geometry outside RAF. Transform pairs with mismatched
@@ -168,7 +179,7 @@ builds from re-running package resolution for no reason.
 The main CI workflow currently performs:
 
 1. dependency install;
-2. APIStatic, EngineShader, EngineBrowser, EngineTransitions, EngineScroll, EngineOverlay, and style-compiler regression smoke tests;
+2. APIStatic, EngineShader compiler/runtime, EngineBrowser, EngineTransitions, EngineScroll, EngineOverlay, and style-compiler regression smoke tests;
 3. TypeScript check;
 4. optimized Next.js integration build;
 5. client chunk inventory from the configured `dist/static/chunks` output.
