@@ -14,6 +14,13 @@ export type {
 	EngineScrollProviderProps,
 } from "./EngineScrollProvider";
 
+export { EngineScrollRange } from "./EngineScrollRange";
+export type {
+	EngineScrollRangeConfig,
+	EngineScrollRangeSnapshot,
+	EngineScrollRangeTarget,
+} from "./EngineScrollRange";
+
 export { useEngineScrollTimeline } from "./useEngineScrollTimeline";
 export { EngineScrollTimeline } from "./EngineScrollTimeline";
 export type {

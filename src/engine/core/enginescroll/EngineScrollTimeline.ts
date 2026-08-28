@@ -7,38 +7,28 @@ import {
 	bindEngineScrollTimelineStyles,
 	type EngineScrollTimelineStyleBindings,
 } from "./EngineScrollTimelineBinding";
-import { EngineScrollMovement } from "./EngineScrollMovement";
-import { EngineScrollNavigator } from "./EngineScrollNavigator";
-import { EngineScrollPointManager } from "./EngineScrollPointManager";
+import {
+	EngineScrollRange,
+	type EngineScrollRangeConfig,
+	type EngineScrollRangeTarget,
+} from "./EngineScrollRange";
 import { EngineScrollRuntime } from "./EngineScrollRuntime";
 import {
 	EngineScrollTimelineTrack,
 	type EngineScrollTimelineKeyframe,
 } from "./EngineScrollTimelineTrack";
 import type {
-	EngineScrollAlignment,
 	EngineScrollDirection,
 	EngineScrollEasingName,
 	EngineScrollMoveOptions,
 	EngineScrollState,
 } from "./EngineScrollTypes";
 
-export type EngineScrollTimelineTarget =
-	| number
-	| "top"
-	| "bottom"
-	| `#${string}`;
-
+export type EngineScrollTimelineTarget = EngineScrollRangeTarget;
 export type EngineScrollTimelineSource = "top" | "current" | "bottom";
 
-export interface EngineScrollTimelineConfig {
-	start: EngineScrollTimelineTarget;
-	end: EngineScrollTimelineTarget;
+export interface EngineScrollTimelineConfig extends EngineScrollRangeConfig {
 	source?: EngineScrollTimelineSource;
-	startOffset?: number;
-	endOffset?: number;
-	startAlign?: EngineScrollAlignment;
-	endAlign?: EngineScrollAlignment;
 	easing?: EngineScrollEasingName;
 }
 
@@ -85,10 +75,6 @@ export type EngineScrollTimelineActivitySubscriber = (
 	event: Readonly<EngineScrollTimelineActivityEvent>,
 ) => void;
 
-function finiteOr(value: number | undefined, fallback: number): number {
-	return Number.isFinite(value) ? value! : fallback;
-}
-
 function clamp01(value: number): number {
 	return Math.max(0, Math.min(1, value));
 }
@@ -112,60 +98,17 @@ function sameFrame(
 
 export class EngineScrollTimeline {
 	private readonly runtime = EngineScrollRuntime.get();
+	private readonly range: EngineScrollRange;
 	private readonly subscribers = new Set<EngineScrollTimelineSubscriber>();
 	private readonly crossSubscribers = new Map<number, Set<EngineScrollTimelineCrossSubscriber>>();
 	private readonly enterSubscribers = new Set<EngineScrollTimelineActivitySubscriber>();
 	private readonly leaveSubscribers = new Set<EngineScrollTimelineActivitySubscriber>();
 	private unsubscribeRuntime: (() => void) | null = null;
-	private boundaryRevision = -1;
-	private boundaryMaximum = Number.NaN;
-	private resolvedStart: number | null = null;
-	private resolvedEnd: number | null = null;
 	private latestFrame: EngineScrollTimelineFrame | null = null;
 	private lastObservedFrame: EngineScrollTimelineFrame | null = null;
 
-	public constructor(public readonly config: Readonly<EngineScrollTimelineConfig>) {}
-
-	private resolveTarget(
-		target: EngineScrollTimelineTarget,
-		align: EngineScrollAlignment | undefined,
-		offset: number,
-	): number | null {
-		if (typeof target === "string" && target.startsWith("#")) {
-			const resolved = EngineScrollPointManager.resolve(target.slice(1), {
-				align,
-				offset,
-			});
-			return resolved?.point ?? null;
-		}
-
-		return EngineScrollNavigator.resolve(target, {
-			align,
-			offset,
-		}) ?? null;
-	}
-
-	private resolveBoundaries(state: Readonly<EngineScrollState>): void {
-		const revision = EngineScrollPointManager.revision();
-		if (
-			this.boundaryRevision === revision
-			&& this.boundaryMaximum === state.page.totalPoints
-		) {
-			return;
-		}
-
-		this.resolvedStart = this.resolveTarget(
-			this.config.start,
-			this.config.startAlign,
-			finiteOr(this.config.startOffset, 0),
-		);
-		this.resolvedEnd = this.resolveTarget(
-			this.config.end,
-			this.config.endAlign,
-			finiteOr(this.config.endOffset, 0),
-		);
-		this.boundaryRevision = EngineScrollPointManager.revision();
-		this.boundaryMaximum = state.page.totalPoints;
+	public constructor(public readonly config: Readonly<EngineScrollTimelineConfig>) {
+		this.range = new EngineScrollRange(config);
 	}
 
 	private sourcePoint(state: Readonly<EngineScrollState>): number {
@@ -174,14 +117,14 @@ export class EngineScrollTimeline {
 	}
 
 	private createFrame(state: Readonly<EngineScrollState>): EngineScrollTimelineFrame {
-		this.resolveBoundaries(state);
 		const point = this.sourcePoint(state);
 		const cache = this.runtime.getCache();
-		if (this.resolvedStart === null || this.resolvedEnd === null) {
+		const range = this.range.snapshot(state);
+		if (!range.valid) {
 			return {
 				point,
-				startPoint: this.resolvedStart,
-				endPoint: this.resolvedEnd,
+				startPoint: range.startPoint,
+				endPoint: range.endPoint,
 				rawProgress: 0,
 				progress: 0,
 				before: true,
@@ -192,17 +135,7 @@ export class EngineScrollTimeline {
 			};
 		}
 
-		const span = this.resolvedEnd - this.resolvedStart;
-		let rawProgress: number;
-		if (Math.abs(span) < 0.000001) {
-			rawProgress = point < this.resolvedStart
-				? -1
-				: point > this.resolvedStart
-					? 2
-					: 1;
-		} else {
-			rawProgress = (point - this.resolvedStart) / span;
-		}
+		const rawProgress = this.range.rawProgressAt(point, state) ?? 0;
 		const clampedProgress = clamp01(rawProgress);
 		const progress = EngineScrollEasing.resolve(this.config.easing ?? "linear")(
 			clampedProgress,
@@ -210,8 +143,8 @@ export class EngineScrollTimeline {
 
 		return {
 			point,
-			startPoint: this.resolvedStart,
-			endPoint: this.resolvedEnd,
+			startPoint: range.startPoint,
+			endPoint: range.endPoint,
 			rawProgress,
 			progress,
 			before: rawProgress < 0,
@@ -387,16 +320,13 @@ export class EngineScrollTimeline {
 	}
 
 	public invalidate(): void {
-		this.boundaryRevision = -1;
+		this.range.invalidate();
 		this.latestFrame = null;
+		this.lastObservedFrame = null;
 	}
 
 	public pointAt(progress: number): number | null {
-		this.resolveBoundaries(this.runtime.getState());
-		if (this.resolvedStart === null || this.resolvedEnd === null) return null;
-		const safeProgress = clamp01(Number.isFinite(progress) ? progress : 0);
-		return this.resolvedStart
-			+ (this.resolvedEnd - this.resolvedStart) * safeProgress;
+		return this.range.pointAt(progress);
 	}
 
 	public segment(
@@ -439,10 +369,7 @@ export class EngineScrollTimeline {
 		progress: number,
 		options?: number | EngineScrollMoveOptions,
 	): boolean {
-		const point = this.pointAt(progress);
-		if (point === null) return false;
-		EngineScrollMovement.move(point, options);
-		return true;
+		return this.range.moveTo(progress, options);
 	}
 
 	public dispose(): void {

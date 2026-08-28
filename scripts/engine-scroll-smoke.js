@@ -42,6 +42,7 @@ function main() {
 			"EngineScrollMovement.ts",
 			"EngineScrollHash.ts",
 			"EngineScrollNavigator.ts",
+			"EngineScrollRange.ts",
 			"EngineScrollTimelineTrack.ts",
 			"EngineScrollTimelineBinding.ts",
 			"EngineScrollTimeline.ts",
@@ -61,6 +62,7 @@ function main() {
 		);
 
 		const { EngineScrollRuntime } = require(path.join(root, "EngineScrollRuntime.js"));
+		const { EngineScrollRange } = require(path.join(root, "EngineScrollRange.js"));
 		const { EngineScrollTimeline } = require(path.join(root, "EngineScrollTimeline.js"));
 		const { EngineScrollTimelineTrack } = require(path.join(root, "EngineScrollTimelineTrack.js"));
 		const { EngineScrollSnap } = require(path.join(root, "EngineScrollSnap.js"));
@@ -78,12 +80,41 @@ function main() {
 		cache.scrollDirection = 1;
 		cache.scrollVelocity = 0.25;
 
+		const range = new EngineScrollRange({ start: 10, end: 40 });
+		let rangeFrame = range.snapshot();
+		assert.equal(rangeFrame.valid, true);
+		assert.equal(rangeFrame.startPoint, 10);
+		assert.equal(rangeFrame.endPoint, 40);
+		assert.equal(rangeFrame.span, 30);
+		assert.equal(rangeFrame.direction, 1);
+		assert.equal(range.pointAt(0.5), 25);
+		assert.equal(range.pointAt(2), 40);
+		assert.equal(range.pointAt(2, false), 70);
+		assert.equal(range.progressAt(25), 0.5);
+		assert.equal(range.progressAt(55), 1);
+		assert.equal(range.progressAt(55, false), 1.5);
+		assert.equal(range.contains(25), true);
+		assert.equal(range.contains(50), false);
+
+		const reversedRange = new EngineScrollRange({ start: 80, end: 20 });
+		rangeFrame = reversedRange.snapshot();
+		assert.equal(rangeFrame.direction, -1);
+		assert.equal(reversedRange.pointAt(0.25), 65);
+		assert.equal(reversedRange.progressAt(50), 0.5);
+		assert.equal(reversedRange.contains(50), true);
+
+		const zeroRangeGeometry = new EngineScrollRange({ start: 50, end: 50 });
+		assert.equal(zeroRangeGeometry.rawProgressAt(49), -1);
+		assert.equal(zeroRangeGeometry.rawProgressAt(50), 1);
+		assert.equal(zeroRangeGeometry.rawProgressAt(51), 2);
+
 		const timeline = new EngineScrollTimeline({ start: 10, end: 40, source: "current" });
 		let frame = timeline.snapshot();
 		assert.equal(frame.rawProgress, 0.5);
 		assert.equal(frame.progress, 0.5);
 		assert.equal(frame.active, true);
 		assert.equal(timeline.segment(0.25, 0.75), 0.5);
+		assert.equal(timeline.pointAt(0.5), range.pointAt(0.5));
 		const track = timeline.track([
 			{ at: 0, value: 0, easing: "linear" },
 			{ at: 0.5, value: 100, easing: "linear" },
@@ -190,6 +221,10 @@ function main() {
 		assert.equal(location.next.name, "pricing");
 		assert.equal(location.progress, 0.125);
 
+		const namedRange = new EngineScrollRange({ start: "#intro", end: "#pricing" });
+		assert.equal(namedRange.pointAt(0.5), 40);
+		assert.equal(namedRange.progressAt(25), 0.25);
+
 		state.viewport.current = 20;
 		const pointTracker = new EngineScrollPointTracker({ group: "chapters", source: "current" });
 		assert.equal(pointTracker.snapshot().current.name, "intro");
@@ -233,6 +268,13 @@ function main() {
 		assert.equal(snappedGroup, "slides");
 		assert.equal(snappedPoint, 22);
 		assert.equal(EngineScrollSnap.now({ threshold: 1 }), false);
+
+		let rangeMovedPoint = null;
+		EngineScrollMovement.move = (point) => { rangeMovedPoint = point; };
+		const movableRange = new EngineScrollRange({ start: 10, end: 30 });
+		assert.equal(movableRange.moveTo(0.5, { duration: 0 }), true);
+		assert.equal(rangeMovedPoint, 20);
+
 		EngineScrollPointManager.nearest = originalNearest;
 		EngineScrollPointManager.resolve = originalResolve;
 		EngineScrollMovement.move = originalMove;
