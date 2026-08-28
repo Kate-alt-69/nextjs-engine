@@ -197,12 +197,28 @@ export class EngineShaderScheduler {
 	private static callbacks = new Set<EngineShaderFrameCallback>();
 	private static frameId = 0;
 
+	private static reportCallbackError(reason: unknown): void {
+		if (process.env.NODE_ENV !== "production") {
+			console.error("[EngineShader] Animated frame callback failed and was removed from the shared scheduler.", reason);
+		}
+	}
+
 	private static tick = (timestamp: number): void => {
 		this.frameId = 0;
-		if (typeof document === "undefined" || !document.hidden) {
-			for (const callback of this.callbacks) callback(timestamp);
+		try {
+			if (typeof document === "undefined" || !document.hidden) {
+				for (const callback of this.callbacks) {
+					try {
+						callback(timestamp);
+					} catch (reason) {
+						this.callbacks.delete(callback);
+						this.reportCallbackError(reason);
+					}
+				}
+			}
+		} finally {
+			this.ensureFrame();
 		}
-		this.ensureFrame();
 	};
 
 	private static ensureFrame(): void {
