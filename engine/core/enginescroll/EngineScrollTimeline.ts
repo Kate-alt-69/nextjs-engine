@@ -2,7 +2,10 @@
 // EngineScrollTimeline.ts
 // ============================================================================
 
-import { EngineScrollEasing } from "./EngineScrollEasing";
+import {
+	EngineScrollEasing,
+	type EngineScrollEasingFunction,
+} from "./EngineScrollEasing";
 import {
 	bindEngineScrollTimelineStyles,
 	type EngineScrollTimelineStyleBindings,
@@ -96,10 +99,25 @@ function sameFrame(
 		&& left.velocity === right.velocity;
 }
 
+function sameProgressState(
+	left: EngineScrollTimelineFrame | null,
+	right: EngineScrollTimelineFrame,
+): boolean {
+	if (!left) return false;
+	return left.startPoint === right.startPoint
+		&& left.endPoint === right.endPoint
+		&& left.progress === right.progress
+		&& left.before === right.before
+		&& left.active === right.active
+		&& left.after === right.after;
+}
+
 export class EngineScrollTimeline {
 	private readonly runtime = EngineScrollRuntime.get();
 	private readonly range: EngineScrollRange;
+	private readonly easing: EngineScrollEasingFunction;
 	private readonly subscribers = new Set<EngineScrollTimelineSubscriber>();
+	private readonly progressSubscribers = new Set<EngineScrollTimelineSubscriber>();
 	private readonly crossSubscribers = new Map<number, Set<EngineScrollTimelineCrossSubscriber>>();
 	private readonly enterSubscribers = new Set<EngineScrollTimelineActivitySubscriber>();
 	private readonly leaveSubscribers = new Set<EngineScrollTimelineActivitySubscriber>();
@@ -109,6 +127,7 @@ export class EngineScrollTimeline {
 
 	public constructor(public readonly config: Readonly<EngineScrollTimelineConfig>) {
 		this.range = new EngineScrollRange(config);
+		this.easing = EngineScrollEasing.resolve(config.easing ?? "linear");
 	}
 
 	private sourcePoint(state: Readonly<EngineScrollState>): number {
@@ -136,10 +155,7 @@ export class EngineScrollTimeline {
 		}
 
 		const rawProgress = this.range.rawProgressAt(point, state) ?? 0;
-		const clampedProgress = clamp01(rawProgress);
-		const progress = EngineScrollEasing.resolve(this.config.easing ?? "linear")(
-			clampedProgress,
-		);
+		const progress = this.easing(clamp01(rawProgress));
 
 		return {
 			point,
@@ -156,7 +172,10 @@ export class EngineScrollTimeline {
 	}
 
 	private listenerCount(): number {
-		let count = this.subscribers.size + this.enterSubscribers.size + this.leaveSubscribers.size;
+		let count = this.subscribers.size
+			+ this.progressSubscribers.size
+			+ this.enterSubscribers.size
+			+ this.leaveSubscribers.size;
 		for (const subscribers of this.crossSubscribers.values()) count += subscribers.size;
 		return count;
 	}
@@ -249,9 +268,13 @@ export class EngineScrollTimeline {
 		this.lastObservedFrame = nextFrame;
 		if (sameFrame(previousFrame, nextFrame)) return;
 
+		const progressChanged = !sameProgressState(previousFrame, nextFrame);
 		this.emitActivity(previousFrame, nextFrame);
 		this.emitCrossings(previousFrame, nextFrame);
 		for (const subscriber of this.subscribers) subscriber(nextFrame);
+		if (progressChanged) {
+			for (const subscriber of this.progressSubscribers) subscriber(nextFrame);
+		}
 	};
 
 	public snapshot(
@@ -272,6 +295,20 @@ export class EngineScrollTimeline {
 
 		return () => {
 			this.subscribers.delete(callback);
+			this.releaseRuntimeSubscription();
+		};
+	}
+
+	public subscribeProgress(
+		callback: EngineScrollTimelineSubscriber,
+		emitInitial = true,
+	): () => void {
+		this.progressSubscribers.add(callback);
+		this.ensureRuntimeSubscription();
+		if (emitInitial) callback(this.snapshot());
+
+		return () => {
+			this.progressSubscribers.delete(callback);
 			this.releaseRuntimeSubscription();
 		};
 	}
@@ -374,6 +411,7 @@ export class EngineScrollTimeline {
 
 	public dispose(): void {
 		this.subscribers.clear();
+		this.progressSubscribers.clear();
 		this.crossSubscribers.clear();
 		this.enterSubscribers.clear();
 		this.leaveSubscribers.clear();
