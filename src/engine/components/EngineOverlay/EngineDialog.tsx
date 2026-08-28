@@ -2,6 +2,7 @@
 
 import React, { memo, useCallback, useId, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
+import { isTopOverlay } from "../../core/engineoverlay";
 import { useCpropClass, usePropStyles } from "../../hooks/usePropStyles";
 import {
 	SURFACE_BASE,
@@ -88,8 +89,12 @@ export const EngineDialog = memo(function EngineDialog({
 			{target && present && createPortal(
 				<div
 					style={{ position: "fixed", inset: 0, zIndex, display: "grid", placeItems: "center", padding: "1rem", background: "rgba(2,6,23,.58)", backdropFilter: "blur(6px)", opacity: active ? 1 : 0, transition: `opacity ${transitionMs}ms ease`, ...overlayStyle }}
-					onMouseDown={(event) => {
-						if (closeOnBackdrop && event.target === event.currentTarget) close();
+					onPointerDown={(event) => {
+						if (
+							closeOnBackdrop
+							&& event.target === event.currentTarget
+							&& isTopOverlay(panelId)
+						) close();
 					}}
 				>
 					<div ref={panelRef} id={panelId} role={role} aria-modal="true" aria-label={title == null ? (ariaLabel ?? triggerLabel ?? "Dialog") : undefined} aria-labelledby={title != null ? titleId : undefined} aria-describedby={description != null ? descriptionId : undefined} tabIndex={-1} className={panelClass} style={panelStyle} data-state={active ? "open" : "closed"}>
