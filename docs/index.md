@@ -13,6 +13,7 @@ These docs are maintained against the current `src/engine` implementation.
 | Understand what NE is | [`readme.md`](./readme.md) |
 | Learn schemas / `createPage()` | [`readme.md`](./readme.md) |
 | Learn styling and responsive props | [`styling.md`](./styling.md) |
+| Read version/release history | [`release/index.md`](./release/index.md) |
 | Add page/layout transitions | [`engine-components/enginetransitions.md`](./engine-components/enginetransitions.md) |
 | Write `.shed` GPU effects | [`engine-components/engineshader.md`](./engine-components/engineshader.md) |
 | Draw with Canvas / ECScene / shader mode | [`engine-components/enginecanvas.md`](./engine-components/enginecanvas.md) |
@@ -23,6 +24,21 @@ These docs are maintained against the current `src/engine` implementation.
 | Build in-house static APIs | [`engine-components/apistatic.md`](./engine-components/apistatic.md) |
 | Configure/call external APIs | [`engine-components/engineapi.md`](./engine-components/engineapi.md) |
 | Understand current runtime/performance behavior | [`runtime-performance.md`](./runtime-performance.md) |
+
+---
+
+## Release notes
+
+The maintained release archive lives under [`docs/release`](./release/index.md).
+
+| Version | Release notes |
+|---|---|
+| v2.6.0 | [`NE-v2-6-0.md`](./release/NE-v2-6-0.md) |
+| v2.5.0 | [`NE-v2-5-0.md`](./release/NE-v2-5-0.md) |
+| v2.0.0 | [`NE-v2-0-0.md`](./release/NE-v2-0-0.md) |
+| v1.0.0 | [`NE-v1-0-0.md`](./release/NE-v1-0-0.md) |
+
+Release notes describe the Engine as it existed at that release. The current component pages remain the source of truth for present-day APIs.
 
 ---
 
@@ -170,6 +186,7 @@ The docs call out future/reserved APIs clearly so examples do not pretend an uni
 
 | Topic | Documentation |
 |---|---|
+| Release/version history | [`release/index.md`](./release/index.md) |
 | Styling, responsive values, at-rules, pseudo states | [`styling.md`](./styling.md) |
 | Page/layout transitions and shared morphs | [`engine-components/enginetransitions.md`](./engine-components/enginetransitions.md) |
 | GPU `.shed` language and surface pipeline | [`engine-components/engineshader.md`](./engine-components/engineshader.md) |
