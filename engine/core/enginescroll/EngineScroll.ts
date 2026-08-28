@@ -10,6 +10,7 @@ import { EngineScrollNavigator } from "./EngineScrollNavigator";
 import { EngineScrollObserver } from "./EngineScrollObserver";
 import { EngineScrollPhysics } from "./EngineScrollPhysics";
 import { EngineScrollPointManager } from "./EngineScrollPointManager";
+import { EngineScrollPointTracker } from "./EngineScrollPointTracker";
 import { EngineScrollRuntime } from "./EngineScrollRuntime";
 import { EngineScrollSnap } from "./EngineScrollSnap";
 import { EngineScrollTimeline } from "./EngineScrollTimeline";
@@ -18,6 +19,7 @@ import { Viewport } from "./viewport/Viewport";
 import type {
 	EngineScrollNavigationOptions,
 } from "./EngineScrollNavigator";
+import type { EngineScrollPointTrackerConfig } from "./EngineScrollPointTracker";
 import type { EngineScrollSnapOptions } from "./EngineScrollSnap";
 import type { EngineScrollTimelineConfig } from "./EngineScrollTimeline";
 import type { EngineScrollMoveOptions } from "./EngineScrollTypes";
@@ -60,6 +62,13 @@ export class EngineScroll {
 	public static timeline(config: EngineScrollTimelineConfig): EngineScrollTimeline {
 		this.initialize();
 		return new EngineScrollTimeline(config);
+	}
+
+	public static trackPoints(
+		config: EngineScrollPointTrackerConfig = {},
+	): EngineScrollPointTracker {
+		this.initialize();
+		return new EngineScrollPointTracker(config);
 	}
 
 	public static move(

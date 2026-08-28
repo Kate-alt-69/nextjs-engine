@@ -192,6 +192,7 @@ export {
 	EngineScrollHash,
 	EngineScrollSnap,
 	EngineScrollPointManager,
+	EngineScrollPointTracker,
 	EngineScrollEasing,
 } from "./core/enginescroll";
 export type {
@@ -202,9 +203,15 @@ export type {
 	EngineScrollPoint,
 	EngineRegisteredPoint,
 	EngineScrollPointGroupInput,
+	EngineScrollPointLocation,
 	EngineScrollPointOptions,
 	EngineScrollRegisteredPoint,
 	EngineScrollResolvedPoint,
+	EngineScrollPointChangeSubscriber,
+	EngineScrollPointTrackerConfig,
+	EngineScrollPointTrackerFrame,
+	EngineScrollPointTrackerSource,
+	EngineScrollPointTrackerSubscriber,
 	EngineScrollAlignment,
 	EngineScrollDirection,
 	EngineScrollEasingName,

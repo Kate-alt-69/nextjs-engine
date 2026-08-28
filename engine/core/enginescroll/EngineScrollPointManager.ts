@@ -26,6 +26,18 @@ export interface EngineScrollResolvedPoint extends EngineScrollRegisteredPoint {
 	point: number;
 }
 
+export interface EngineScrollPointLocation {
+	referencePoint: number;
+	current: EngineScrollRegisteredPoint | null;
+	previous: EngineScrollRegisteredPoint | null;
+	next: EngineScrollRegisteredPoint | null;
+	index: number;
+	count: number;
+	progress: number;
+}
+
+const POINT_EPSILON = 0.0001;
+
 export class EngineScrollPointManager {
 	private static readonly points = new Map<string, EngineScrollRegisteredPoint>();
 	private static readonly observedElementRefs = new Map<HTMLElement, number>();
@@ -150,20 +162,45 @@ export class EngineScrollPointManager {
 		}
 
 		const nextPoint = this.startPointForElement(registeredPoint.element);
-		if (Math.abs(nextPoint - registeredPoint.point) > 0.0001) {
+		if (Math.abs(nextPoint - registeredPoint.point) > POINT_EPSILON) {
 			registeredPoint.point = nextPoint;
 			this.invalidateOrder();
 		}
 		return registeredPoint;
 	}
 
-	private static ordered(): EngineScrollRegisteredPoint[] {
+	private static ordered(): readonly EngineScrollRegisteredPoint[] {
 		this.recalculate();
 		if (!this.orderedCache) {
 			this.orderedCache = [...this.points.values()]
 				.sort((left, right) => left.point - right.point || left.name.localeCompare(right.name));
 		}
 		return this.orderedCache;
+	}
+
+	private static orderedFor(group?: string): readonly EngineScrollRegisteredPoint[] {
+		const ordered = this.ordered();
+		if (group === undefined) return ordered;
+
+		const normalizedGroup = this.normalizeGroupName(group);
+		if (!normalizedGroup) return [];
+
+		let cached = this.groupOrderCache.get(normalizedGroup);
+		if (!cached) {
+			cached = ordered.filter((point) => point.groups.includes(normalizedGroup));
+			this.groupOrderCache.set(normalizedGroup, cached);
+		}
+		return cached;
+	}
+
+	private static defaultReference(): number {
+		return EngineScrollRuntime.get().getState().viewport.top;
+	}
+
+	private static normalizeReference(referencePoint?: number): number {
+		return Number.isFinite(referencePoint)
+			? referencePoint!
+			: this.defaultReference();
 	}
 
 	public static register(
@@ -251,23 +288,77 @@ export class EngineScrollPointManager {
 		if (!resolved) return undefined;
 		const origin = Number.isFinite(fromPoint)
 			? fromPoint!
-			: EngineScrollRuntime.get().getState().viewport.top;
+			: this.defaultReference();
 		return resolved.point - origin;
 	}
 
-	public static sorted(group?: string): EngineScrollRegisteredPoint[] {
-		const ordered = this.ordered();
-		if (group === undefined) return [...ordered];
-
-		const normalizedGroup = this.normalizeGroupName(group);
-		if (!normalizedGroup) return [];
-
-		let cached = this.groupOrderCache.get(normalizedGroup);
-		if (!cached) {
-			cached = ordered.filter((point) => point.groups.includes(normalizedGroup));
-			this.groupOrderCache.set(normalizedGroup, cached);
+	public static locate(
+		referencePoint?: number,
+		group?: string,
+	): EngineScrollPointLocation {
+		const points = this.orderedFor(group);
+		const reference = this.normalizeReference(referencePoint);
+		if (points.length === 0) {
+			return {
+				referencePoint: reference,
+				current: null,
+				previous: null,
+				next: null,
+				index: -1,
+				count: 0,
+				progress: 0,
+			};
 		}
-		return [...cached];
+
+		let low = 0;
+		let high = points.length - 1;
+		let currentIndex = -1;
+		while (low <= high) {
+			const middle = (low + high) >> 1;
+			if (points[middle].point <= reference + POINT_EPSILON) {
+				currentIndex = middle;
+				low = middle + 1;
+			} else {
+				high = middle - 1;
+			}
+		}
+
+		if (currentIndex < 0) {
+			return {
+				referencePoint: reference,
+				current: null,
+				previous: null,
+				next: points[0],
+				index: -1,
+				count: points.length,
+				progress: 0,
+			};
+		}
+
+		const current = points[currentIndex];
+		const previous = currentIndex > 0 ? points[currentIndex - 1] : null;
+		const next = currentIndex + 1 < points.length ? points[currentIndex + 1] : null;
+		let progress = 1;
+		if (next) {
+			const span = next.point - current.point;
+			progress = Math.abs(span) <= POINT_EPSILON
+				? 1
+				: Math.max(0, Math.min(1, (reference - current.point) / span));
+		}
+
+		return {
+			referencePoint: reference,
+			current,
+			previous,
+			next,
+			index: currentIndex,
+			count: points.length,
+			progress,
+		};
+	}
+
+	public static sorted(group?: string): EngineScrollRegisteredPoint[] {
+		return [...this.orderedFor(group)];
 	}
 
 	public static inGroup(group: string): EngineScrollRegisteredPoint[] {
@@ -278,20 +369,12 @@ export class EngineScrollPointManager {
 		referencePoint?: number,
 		group?: string,
 	): EngineScrollRegisteredPoint | undefined {
-		const points = this.sorted(group);
-		if (points.length === 0) return undefined;
-		const reference = Number.isFinite(referencePoint)
-			? referencePoint!
-			: EngineScrollRuntime.get().getState().viewport.top;
-		let nearest = points[0];
-		let nearestDistance = Math.abs(nearest.point - reference);
-		for (let index = 1; index < points.length; index += 1) {
-			const distance = Math.abs(points[index].point - reference);
-			if (distance >= nearestDistance) continue;
-			nearest = points[index];
-			nearestDistance = distance;
-		}
-		return nearest;
+		const location = this.locate(referencePoint, group);
+		if (!location.current) return location.next ?? undefined;
+		if (!location.next) return location.current;
+		const currentDistance = Math.abs(location.current.point - location.referencePoint);
+		const nextDistance = Math.abs(location.next.point - location.referencePoint);
+		return nextDistance < currentDistance ? location.next : location.current;
 	}
 
 	public static next(
@@ -299,13 +382,10 @@ export class EngineScrollPointManager {
 		wrap = false,
 		group?: string,
 	): EngineScrollRegisteredPoint | undefined {
-		const points = this.sorted(group);
+		const points = this.orderedFor(group);
 		if (points.length === 0) return undefined;
-		const reference = Number.isFinite(referencePoint)
-			? referencePoint!
-			: EngineScrollRuntime.get().getState().viewport.top;
-		const nextPoint = points.find((point) => point.point > reference + 0.0001);
-		return nextPoint ?? (wrap ? points[0] : undefined);
+		const location = this.locate(referencePoint, group);
+		return location.next ?? (wrap ? points[0] : undefined);
 	}
 
 	public static previous(
@@ -313,20 +393,19 @@ export class EngineScrollPointManager {
 		wrap = false,
 		group?: string,
 	): EngineScrollRegisteredPoint | undefined {
-		const points = this.sorted(group);
+		const points = this.orderedFor(group);
 		if (points.length === 0) return undefined;
-		const reference = Number.isFinite(referencePoint)
-			? referencePoint!
-			: EngineScrollRuntime.get().getState().viewport.top;
-		for (let index = points.length - 1; index >= 0; index -= 1) {
-			if (points[index].point < reference - 0.0001) return points[index];
+		const location = this.locate(referencePoint, group);
+		if (!location.current) return wrap ? points[points.length - 1] : undefined;
+		if (Math.abs(location.current.point - location.referencePoint) <= POINT_EPSILON) {
+			return location.previous ?? (wrap ? points[points.length - 1] : undefined);
 		}
-		return wrap ? points[points.length - 1] : undefined;
+		return location.current;
 	}
 
 	public static names(group?: string): string[] {
 		if (group === undefined) return [...this.points.keys()];
-		return this.sorted(group).map((point) => point.name);
+		return this.orderedFor(group).map((point) => point.name);
 	}
 
 	public static groups(): string[] {
