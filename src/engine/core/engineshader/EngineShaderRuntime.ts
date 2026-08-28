@@ -12,8 +12,10 @@ const DEV_POLL_MS = 700;
 
 const manifestCache = new Map<string, EngineShaderManifest>();
 const manifestPromises = new Map<string, Promise<EngineShaderManifest>>();
+const manifestRequestIds = new Map<string, number>();
 const artifactCache = new Map<string, Promise<EngineShaderRenderPlan>>();
 const hotListeners = new Map<string, Set<() => void>>();
+let manifestRequestSerial = 0;
 let hotTimer: ReturnType<typeof setInterval> | null = null;
 
 function isDevelopment(): boolean {
@@ -68,12 +70,19 @@ function pruneArtifactCache(
 	}
 }
 
+function beginManifestRequest(basePath: string): number {
+	manifestRequestSerial += 1;
+	manifestRequestIds.set(basePath, manifestRequestSerial);
+	return manifestRequestSerial;
+}
+
 async function fetchManifest(force = false, requestedBasePath?: string): Promise<EngineShaderManifest> {
 	const basePath = normalizeBasePath(requestedBasePath);
 	const cached = manifestCache.get(basePath);
 	if (!force && cached) return cached;
 	const pending = manifestPromises.get(basePath);
 	if (!force && pending) return pending;
+	const requestId = beginManifestRequest(basePath);
 	const request = (async () => {
 		const suffix = force && isDevelopment() ? `?esh=${Date.now()}` : "";
 		const response = await fetch(`${assetURL(basePath, MANIFEST_FILE)}${suffix}`, {
@@ -84,8 +93,10 @@ async function fetchManifest(force = false, requestedBasePath?: string): Promise
 		if (!manifest || manifest.version !== 1 || typeof manifest.shaders !== "object") {
 			throw new Error("[EngineShader] Invalid shader manifest.");
 		}
-		manifestCache.set(basePath, manifest);
-		pruneArtifactCache(manifest, basePath);
+		if (manifestRequestIds.get(basePath) === requestId) {
+			manifestCache.set(basePath, manifest);
+			pruneArtifactCache(manifest, basePath);
+		}
 		return manifest;
 	})();
 	if (!force) manifestPromises.set(basePath, request);
@@ -93,6 +104,7 @@ async function fetchManifest(force = false, requestedBasePath?: string): Promise
 		return await request;
 	} finally {
 		if (!force && manifestPromises.get(basePath) === request) manifestPromises.delete(basePath);
+		if (manifestRequestIds.get(basePath) === requestId) manifestRequestIds.delete(basePath);
 	}
 }
 
@@ -127,15 +139,18 @@ export async function loadEngineShader(
 	const cacheKey = artifactCacheKey(basePath, entry);
 	let pending = artifactCache.get(cacheKey);
 	if (!pending) {
-		pending = (async () => {
+		const request = (async () => {
 			const response = await fetch(assetURL(basePath, entry.file), {
 				cache: isDevelopment() ? "no-store" : "force-cache",
 			});
 			if (!response.ok) throw new Error(`[EngineShader] Failed to fetch ${logicalName} (${response.status}).`);
 			return decodeRenderPlan(await response.arrayBuffer());
 		})();
-		artifactCache.set(cacheKey, pending);
-		pending.catch(() => artifactCache.delete(cacheKey));
+		artifactCache.set(cacheKey, request);
+		request.catch(() => {
+			if (artifactCache.get(cacheKey) === request) artifactCache.delete(cacheKey);
+		});
+		pending = request;
 	}
 	return { plan: await pending, entry };
 }
@@ -188,6 +203,7 @@ export function subscribeEngineShaderHotReload(name: string, listener: () => voi
 export function clearEngineShaderCache(): void {
 	manifestCache.clear();
 	manifestPromises.clear();
+	manifestRequestIds.clear();
 	artifactCache.clear();
 }
 
