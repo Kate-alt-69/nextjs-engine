@@ -367,7 +367,7 @@ function NodeRenderer({ node, depth, path }: NodeRendererProps) {
 						placeholderHeight={lazy.placeholderHeight}
 						className={visibilityClass}
 					/>
-			}
+				)}
 			>
 				{anchoredElement}
 			</Suspense>
