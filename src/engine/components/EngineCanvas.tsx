@@ -74,3 +74,4 @@ export const EngineCanvas = memo(function EngineCanvas({
 });
 
 export { useEngineCanvas };
+export type { EngineCanvasFrameInfo } from "../core/enginecanvas/EngineCanvas";
