@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EngineDialog } from "../../src/engine/components/EngineOverlay";
 import { EngineNav } from "../../src/engine/components/EngineNav";
 import { EngineTransitionLink } from "../../src/engine/components/EngineTransitionLink";
@@ -11,6 +11,11 @@ export default function EngineCompatibilityPage() {
 	const transitions = useEngineTransitions();
 	const [count, setCount] = useState(0);
 	const [sameUrlStatus, setSameUrlStatus] = useState("idle");
+	const [effectTransitionStatus, setEffectTransitionStatus] = useState("pending");
+
+	useEffect(() => {
+		void transitions.run(() => setEffectTransitionStatus("done"), "slide");
+	}, [transitions]);
 
 	const runLiquid = async () => {
 		await transitions.run(() => setCount((value) => value + 1), "liquid");
@@ -33,6 +38,7 @@ export default function EngineCompatibilityPage() {
 				/>
 
 				<h1>Engine browser compatibility harness</h1>
+				<p data-testid="effect-transition-status">{effectTransitionStatus}</p>
 				<p data-testid="count">{count}</p>
 				<button data-testid="liquid" type="button" onClick={() => void runLiquid()}>
 					Run liquid transition

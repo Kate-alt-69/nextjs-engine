@@ -4,9 +4,11 @@ function watchBrowserFailures(page: Page) {
 	const failures: string[] = [];
 	page.on("pageerror", (error) => failures.push(`pageerror: ${error.message}`));
 	page.on("console", (message) => {
-		if (message.type() !== "error") return;
+		if (message.type() !== "error" && message.type() !== "warning") return;
 		const text = message.text();
-		if (/hydration|hydrated|didn't match|recoverable/i.test(text)) failures.push(`console: ${text}`);
+		if (/hydration|hydrated|didn't match|recoverable|flushSync was called from inside a lifecycle method/i.test(text)) {
+			failures.push(`console: ${text}`);
+		}
 	});
 	return failures;
 }
@@ -18,6 +20,7 @@ test("Transitions+, overlays, Nav and generated styles survive real hydration", 
 	await expect(page.getByTestId("dialog-body")).toBeVisible();
 	await expect(page.getByRole("link", { name: "Compat" })).toHaveAttribute("aria-current", "page");
 	await expect(page.getByRole("link", { name: "Near prefix" })).not.toHaveAttribute("aria-current", "page");
+	await expect(page.getByTestId("effect-transition-status")).toHaveText("done");
 	await expect(page.getByTestId("count")).toHaveText("0");
 
 	await page.getByTestId("liquid").click();
@@ -47,6 +50,7 @@ test("navigation remains animated when native View Transitions are unavailable",
 	const failures = watchBrowserFailures(page);
 	await page.goto("/__engine-compat");
 
+	await expect(page.getByTestId("effect-transition-status")).toHaveText("done");
 	await page.getByTestId("liquid").click();
 	await expect(page.getByTestId("count")).toHaveText("1");
 	await page.getByRole("link", { name: "Target page" }).click();
@@ -60,6 +64,7 @@ test("reduced motion keeps transitions functional without animation stalls", asy
 	const failures = watchBrowserFailures(page);
 	await page.goto("/__engine-compat");
 
+	await expect(page.getByTestId("effect-transition-status")).toHaveText("done");
 	await page.getByTestId("liquid").click();
 	await expect(page.getByTestId("count")).toHaveText("1");
 	await page.getByRole("link", { name: "Target page" }).click();

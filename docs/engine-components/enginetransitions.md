@@ -130,6 +130,31 @@ export function CompactToggle() {
 
 `run()` is useful when the URL does not change but the UI does.
 
+`run()` is also safe to call from React effects, observers, timers, subscriptions, and external-store reactions. The runtime yields one microtask before entering the synchronous View Transition update, so React can finish the current render/commit lifecycle before NE uses `flushSync()` for snapshot correctness.
+
+```tsx
+"use client";
+
+import { useEffect, useState } from "react";
+import { useEngineTransitions } from "nextjs-engine";
+
+export function ScrollDrivenScene({ sceneIndex }: { sceneIndex: number }) {
+	const [activeIndex, setActiveIndex] = useState(sceneIndex);
+	const transitions = useEngineTransitions();
+
+	useEffect(() => {
+		void transitions.run(
+			() => setActiveIndex(sceneIndex),
+			"slide",
+		);
+	}, [sceneIndex, transitions]);
+
+	return <div>Scene {activeIndex}</div>;
+}
+```
+
+This is the intended path for EngineScroll-driven UI, async data, media state, timers, and other lifecycle-driven state changes; callers do not need `setTimeout()` or `requestAnimationFrame()` workarounds.
+
 ### Programmatic navigation
 
 ```tsx
@@ -456,6 +481,7 @@ EngineTransitions+ deliberately preserves normal browser/Next.js behavior where 
 - hash-only navigation is not hijacked by the page-transition runtime;
 - unsupported browsers perform the update/navigation without animation;
 - `prefers-reduced-motion: reduce` users receive effectively instant transitions;
+- `run()` yields one microtask before its synchronous React snapshot update, so lifecycle/effect-driven transitions do not call `flushSync()` from inside React's current commit stack;
 - a newly started transition skips the previous active transition instead of building a queue;
 - shared-element inline `view-transition-name` values are restored after the transition;
 - `duration` is clamped so accidental huge values cannot lock the page in a multi-minute animation.

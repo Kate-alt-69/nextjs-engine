@@ -67,6 +67,11 @@ function main() {
 		assert.match(runtimeSource, /runLegacyTransition/, "older browsers should retain an animated fallback path");
 		assert.match(runtimeSource, /isExactTransitionLocation/, "same-URL navigation should bypass transition waiting");
 		assert.match(runtimeSource, /safeSharedTransitionName/, "shared transition ids should use collision-safe names");
+		assert.match(
+			runtimeSource,
+			/await Promise\.resolve\(\);[\s\S]*flushSync/,
+			"Transitions+ run() must leave the current React lifecycle stack before flushSync",
+		);
 
 		console.log("EngineTransitions compatibility smoke tests passed");
 	} finally {

@@ -393,6 +393,9 @@ export async function navigateWithEngineTransition(
 export function useEngineTransitions(): EngineTransitionsController {
 	const router = useRouter();
 	const run = useCallback(async (update: () => void | Promise<void>, transition: EngineTransitionInput = "layout"): Promise<void> => {
+		// `run()` can be driven by effects, observers, timers, stores, or events. Yield
+		// once so React has left its current render/commit stack before `flushSync()`.
+		await Promise.resolve();
 		await runEngineTransition(() => {
 			let result: void | Promise<void>;
 			flushSync(() => { result = update(); });
