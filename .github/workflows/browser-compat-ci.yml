@@ -1,0 +1,39 @@
+name: Engine browser compatibility
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  browser-compat:
+    name: ${{ matrix.browser }} compatibility
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Install ${{ matrix.browser }} browser
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Test ${{ matrix.browser }}
+        run: npx playwright test --project=${{ matrix.browser }}
+      - name: Upload failed traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-browser-${{ matrix.browser }}-traces
+          path: test-results/
+          if-no-files-found: ignore

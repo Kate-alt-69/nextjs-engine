@@ -11,6 +11,7 @@ import {
 	useOverlayBehavior,
 	useOverlayPresence,
 	useOverlayState,
+	usePortalTarget,
 	useReducedMotion,
 } from "./OverlayShared";
 import { OverlayContent, OverlayTrigger } from "./OverlayParts";
@@ -34,6 +35,7 @@ export const EnginePopover = memo(function EnginePopover({
 	const { present, active } = useOverlayPresence(isOpen, transitionMs);
 	const panelRef = useRef<HTMLDivElement>(null);
 	const triggerRef = useRef<HTMLButtonElement>(null);
+	const target = usePortalTarget(portalTargetId);
 	const [position, setPosition] = useState<{ top: number; left: number; placement: EnginePopoverPlacement } | null>(null);
 	const close = useCallback(() => setOpen(false), [setOpen]);
 	const behavior = useMemo(() => ({
@@ -43,7 +45,7 @@ export const EnginePopover = memo(function EnginePopover({
 	useOverlayBehavior(behavior);
 
 	useEffect(() => {
-		if (!present) return;
+		if (!present || !target) return;
 		let frame = 0;
 		const update = () => {
 			cancelAnimationFrame(frame);
@@ -52,8 +54,13 @@ export const EnginePopover = memo(function EnginePopover({
 				const panelElement = panelRef.current;
 				if (!triggerElement || !panelElement) return;
 				const triggerRect = triggerElement.getBoundingClientRect();
+				const visualViewport = window.visualViewport;
+				const viewportWidth = visualViewport?.width ?? window.innerWidth;
+				const viewportHeight = visualViewport?.height ?? window.innerHeight;
+				const viewportLeft = visualViewport?.offsetLeft ?? 0;
+				const viewportTop = visualViewport?.offsetTop ?? 0;
 				if (matchTriggerWidth) {
-					const usableViewportWidth = Math.max(0, window.innerWidth - viewportPadding * 2);
+					const usableViewportWidth = Math.max(0, viewportWidth - viewportPadding * 2);
 					panelElement.style.setProperty(
 						"--e-popover-trigger-width",
 						`${Math.min(triggerRect.width, usableViewportWidth)}px`,
@@ -63,9 +70,13 @@ export const EnginePopover = memo(function EnginePopover({
 				}
 				const panelRect = panelElement.getBoundingClientRect();
 				setPosition(computePopoverPosition(triggerRect, panelRect, {
-					placement, align, offset,
-					viewportWidth: window.innerWidth,
-					viewportHeight: window.innerHeight,
+					placement,
+					align,
+					offset,
+					viewportWidth,
+					viewportHeight,
+					viewportLeft,
+					viewportTop,
 					viewportPadding,
 				}));
 			});
@@ -73,6 +84,8 @@ export const EnginePopover = memo(function EnginePopover({
 		update();
 		window.addEventListener("resize", update, { passive: true });
 		window.addEventListener("scroll", update, { passive: true, capture: true });
+		window.visualViewport?.addEventListener("resize", update, { passive: true });
+		window.visualViewport?.addEventListener("scroll", update, { passive: true });
 		const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
 		if (observer && triggerRef.current) observer.observe(triggerRef.current);
 		if (observer && panelRef.current) observer.observe(panelRef.current);
@@ -80,16 +93,18 @@ export const EnginePopover = memo(function EnginePopover({
 			cancelAnimationFrame(frame);
 			window.removeEventListener("resize", update);
 			window.removeEventListener("scroll", update, true);
+			window.visualViewport?.removeEventListener("resize", update);
+			window.visualViewport?.removeEventListener("scroll", update);
 			observer?.disconnect();
 		};
-	}, [align, matchTriggerWidth, offset, placement, present, viewportPadding]);
+	}, [align, matchTriggerWidth, offset, placement, present, target, viewportPadding]);
 
 	useEffect(() => {
 		if (!isOpen || !closeOnOutsideClick) return;
 		const onPointerDown = (event: PointerEvent) => {
 			if (!isTopOverlay(panelId)) return;
-			const target = event.target as Node | null;
-			if (target && (panelRef.current?.contains(target) || triggerRef.current?.contains(target))) return;
+			const eventTarget = event.target as Node | null;
+			if (eventTarget && (panelRef.current?.contains(eventTarget) || triggerRef.current?.contains(eventTarget))) return;
 			close();
 		};
 		document.addEventListener("pointerdown", onPointerDown, true);
@@ -122,16 +137,25 @@ export const EnginePopover = memo(function EnginePopover({
 		},
 	});
 	const panelClass = [className, useCpropClass(cprop)].filter(Boolean).join(" ") || undefined;
-	const target = typeof document !== "undefined"
-		? (portalTargetId ? document.getElementById(portalTargetId) ?? document.body : document.body)
-		: null;
 	const hasPopup: React.AriaAttributes["aria-haspopup"] = role === "menu" ? "menu" : role === "listbox" ? "listbox" : "dialog";
 
 	return (
 		<>
 			<OverlayTrigger label={triggerLabel} children={trigger} className={triggerClassName} style={triggerStyle} disabled={triggerDisabled} expanded={isOpen} controls={panelId} hasPopup={hasPopup} ariaLabel={triggerAriaLabel} onClick={() => setOpen(!isOpen)} triggerRef={triggerRef} />
 			{target && present && createPortal(
-				<div ref={panelRef} id={panelId} role={role} aria-label={title == null ? (ariaLabel ?? triggerLabel ?? "Popover") : undefined} aria-labelledby={title != null ? titleId : undefined} aria-describedby={description != null ? descriptionId : undefined} tabIndex={-1} className={panelClass} style={{ ...panelStyle, zIndex }} data-state={active ? "open" : "closed"} data-placement={actualPlacement}>
+				<div
+					ref={panelRef}
+					id={panelId}
+					role={role}
+					aria-label={title == null ? (ariaLabel ?? triggerLabel ?? "Popover") : undefined}
+					aria-labelledby={title != null ? titleId : undefined}
+					aria-describedby={description != null ? descriptionId : undefined}
+					tabIndex={-1}
+					className={panelClass}
+					style={{ ...panelStyle, zIndex }}
+					data-state={active ? "open" : "closed"}
+					data-placement={actualPlacement}
+				>
 					<OverlayContent title={title} description={description} actions={actions} close={close} showCloseButton={showCloseButton} closeLabel={closeLabel} titleId={titleId} descriptionId={descriptionId}>{children}</OverlayContent>
 				</div>,
 				target,

@@ -30,9 +30,7 @@ export function useEngineScroll(): ScrollContextValue | null {
 type EasingFn = (t: number) => number;
 
 const EASING: Record<NonNullable<EngineScrollProps["easing"]>, EasingFn> = {
-	"ease-in-out": (t) => t < 0.5
-		? 4 * t * t * t
-		: 1 - Math.pow(-2 * t + 2, 3) / 2,
+	"ease-in-out": (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
 	"ease-in": (t) => t * t * t,
 	"ease-out": (t) => 1 - Math.pow(1 - t, 3),
 	linear: (t) => t,
@@ -53,6 +51,24 @@ function decodeAnchorId(value: string): string {
 	}
 }
 
+/** Hydration-safe reduced-motion preference with older MediaQueryList fallback. */
+function useReducedMotionPreference(): boolean {
+	const [reducedMotion, setReducedMotion] = useState(false);
+	useEffect(() => {
+		if (typeof window.matchMedia !== "function") return;
+		const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+		const update = () => setReducedMotion(query.matches);
+		update();
+		if (typeof query.addEventListener === "function") {
+			query.addEventListener("change", update);
+			return () => query.removeEventListener("change", update);
+		}
+		query.addListener?.(update);
+		return () => query.removeListener?.(update);
+	}, []);
+	return reducedMotion;
+}
+
 export interface EngineScrollProviderProps extends EngineScrollProps {
 	children?: ReactNode;
 }
@@ -69,6 +85,7 @@ export const EngineScrollProvider = memo(function EngineScrollProvider({
 }: EngineScrollProviderProps) {
 	const router = useRouter();
 	const pathname = usePathname();
+	const reducedMotion = useReducedMotionPreference();
 	const [visible, setVisible] = useState(!pageTransition);
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const activeRafRef = useRef<number | null>(null);
@@ -77,16 +94,10 @@ export const EngineScrollProvider = memo(function EngineScrollProvider({
 	const mountedRef = useRef(false);
 
 	const easingFn = EASING[easing] ?? EASING["ease-in-out"];
-	const parsedOffset = typeof scrollOffset === "number"
-		? scrollOffset
-		: Number.parseFloat(scrollOffset);
+	const parsedOffset = typeof scrollOffset === "number" ? scrollOffset : Number.parseFloat(scrollOffset);
 	const offsetPx = Number.isFinite(parsedOffset) ? parsedOffset : 80;
-	const safeScrollDuration = Number.isFinite(scrollDuration)
-		? Math.max(0, scrollDuration)
-		: 600;
-	const safeTransitionDuration = Number.isFinite(transitionDuration)
-		? Math.max(0, transitionDuration)
-		: 350;
+	const safeScrollDuration = Number.isFinite(scrollDuration) ? Math.max(0, scrollDuration) : 600;
+	const safeTransitionDuration = Number.isFinite(transitionDuration) ? Math.max(0, transitionDuration) : 350;
 
 	const cancelEaseScroll = useCallback((): void => {
 		if (activeRafRef.current === null) return;
@@ -96,63 +107,45 @@ export const EngineScrollProvider = memo(function EngineScrollProvider({
 
 	const easeScrollTo = useCallback((targetY: number): void => {
 		cancelEaseScroll();
-		if (EngineBrowser.supports.reducedMotion || safeScrollDuration === 0) {
+		if (reducedMotion || safeScrollDuration === 0) {
 			window.scrollTo(0, targetY);
 			return;
 		}
-
 		const startY = window.scrollY;
 		const delta = targetY - startY;
 		const startTime = performance.now();
 		if (EngineBrowser.is.safari) window.scrollTo(window.scrollX, window.scrollY);
-
 		const step = (now: number): void => {
 			const progress = Math.min(Math.max((now - startTime) / safeScrollDuration, 0), 1);
 			window.scrollTo(0, startY + delta * easingFn(progress));
-			if (progress < 1) {
-				activeRafRef.current = requestAnimationFrame(step);
-			} else {
-				activeRafRef.current = null;
-			}
+			if (progress < 1) activeRafRef.current = requestAnimationFrame(step);
+			else activeRafRef.current = null;
 		};
-
 		activeRafRef.current = requestAnimationFrame(step);
-	}, [cancelEaseScroll, easingFn, safeScrollDuration]);
+	}, [cancelEaseScroll, easingFn, reducedMotion, safeScrollDuration]);
 
 	const smoothScrollTo = useCallback((elementId: string, customOffset?: number): void => {
 		const element = document.getElementById(decodeAnchorId(elementId));
 		if (!element) return;
-
 		const offset = customOffset ?? offsetPx;
 		const targetY = element.getBoundingClientRect().top + window.scrollY - offset;
-
 		if (method === "instant") {
 			cancelEaseScroll();
 			window.scrollTo(0, targetY);
 			return;
 		}
-
 		if (method === "smooth") {
 			cancelEaseScroll();
-			window.scrollTo({
-				top: targetY,
-				left: window.scrollX,
-				behavior: EngineBrowser.supports.reducedMotion ? "auto" : "smooth",
-			});
+			window.scrollTo({ top: targetY, left: window.scrollX, behavior: reducedMotion ? "auto" : "smooth" });
 			return;
 		}
-
 		if (method === "snap") {
 			cancelEaseScroll();
-			element.scrollIntoView({
-				behavior: EngineBrowser.supports.reducedMotion ? "auto" : "smooth",
-				block: "start",
-			});
+			element.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
 			return;
 		}
-
 		easeScrollTo(targetY);
-	}, [cancelEaseScroll, easeScrollTo, method, offsetPx]);
+	}, [cancelEaseScroll, easeScrollTo, method, offsetPx, reducedMotion]);
 
 	const navigateTo = useCallback(async (href: string): Promise<void> => {
 		let url: URL;
@@ -161,42 +154,31 @@ export const EngineScrollProvider = memo(function EngineScrollProvider({
 		} catch {
 			return;
 		}
-
-		if ((url.protocol !== "http:" && url.protocol !== "https:")
-			|| url.origin !== window.location.origin) {
+		if ((url.protocol !== "http:" && url.protocol !== "https:") || url.origin !== window.location.origin) {
 			window.location.assign(url.href);
 			return;
 		}
-
 		const targetPath = url.pathname + url.search;
 		const currentPath = window.location.pathname + window.location.search;
 		const anchor = url.hash.slice(1);
-
 		if (targetPath === currentPath) {
 			if (!anchor) return;
-			if (window.location.hash !== url.hash) {
-				window.history.pushState(null, "", targetPath + url.hash);
-			}
+			if (window.location.hash !== url.hash) window.history.pushState(null, "", targetPath + url.hash);
 			smoothScrollTo(anchor);
 			return;
 		}
-
-		const animateTransition = pageTransition && !EngineBrowser.supports.reducedMotion;
+		const animateTransition = pageTransition && !reducedMotion;
 		if (animateTransition && navigatingRef.current) return;
 		pendingAnchorRef.current = anchor || null;
-
 		if (animateTransition) {
 			navigatingRef.current = true;
 			setVisible(false);
-			await new Promise<void>((resolve) => {
-				window.setTimeout(resolve, safeTransitionDuration);
-			});
+			await new Promise<void>((resolve) => window.setTimeout(resolve, safeTransitionDuration));
 			if (!mountedRef.current) return;
 		}
-
 		router.push(targetPath + url.hash);
 		navigatingRef.current = false;
-	}, [pageTransition, router, safeTransitionDuration, smoothScrollTo]);
+	}, [pageTransition, reducedMotion, router, safeTransitionDuration, smoothScrollTo]);
 
 	useEffect(() => {
 		mountedRef.current = true;
@@ -208,26 +190,22 @@ export const EngineScrollProvider = memo(function EngineScrollProvider({
 
 	useEffect(() => {
 		navigatingRef.current = false;
-		if (!pageTransition || EngineBrowser.supports.reducedMotion) {
+		if (!pageTransition || reducedMotion) {
 			setVisible(true);
 			return;
 		}
-
 		const fadeFrame = requestAnimationFrame(() => setVisible(true));
 		return () => cancelAnimationFrame(fadeFrame);
-	}, [pageTransition, pathname]);
+	}, [pageTransition, pathname, reducedMotion]);
 
 	useEffect(() => {
 		const anchor = pendingAnchorRef.current ?? window.location.hash.slice(1);
 		pendingAnchorRef.current = null;
 		if (!anchor || anchor.startsWith("-es?")) return;
-
-		const delay = pageTransition && !EngineBrowser.supports.reducedMotion
-			? safeTransitionDuration + 50
-			: 0;
+		const delay = pageTransition && !reducedMotion ? safeTransitionDuration + 50 : 0;
 		const timer = window.setTimeout(() => smoothScrollTo(anchor), delay);
 		return () => window.clearTimeout(timer);
-	}, [pageTransition, pathname, safeTransitionDuration, smoothScrollTo]);
+	}, [pageTransition, pathname, reducedMotion, safeTransitionDuration, smoothScrollTo]);
 
 	useEffect(() => {
 		const handleHistoryAnchor = (): void => {
@@ -235,7 +213,6 @@ export const EngineScrollProvider = memo(function EngineScrollProvider({
 			if (!hash || hash.startsWith("#-es?")) return;
 			smoothScrollTo(hash.slice(1));
 		};
-
 		window.addEventListener("hashchange", handleHistoryAnchor);
 		window.addEventListener("popstate", handleHistoryAnchor);
 		return () => {
@@ -247,57 +224,43 @@ export const EngineScrollProvider = memo(function EngineScrollProvider({
 	useEffect(() => {
 		const root = containerRef.current;
 		if (!root) return;
-
 		const handleAnchorClick = (event: MouseEvent): void => {
 			if (event.defaultPrevented || event.button !== 0) return;
 			if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
 			if (!(event.target instanceof Element)) return;
-
 			const anchor = event.target.closest("a[href]");
-			if (!(anchor instanceof HTMLAnchorElement) || !root.contains(anchor)) return;
-			if (anchor.hasAttribute("download")) return;
-
+			if (!(anchor instanceof HTMLAnchorElement) || !root.contains(anchor) || anchor.hasAttribute("download")) return;
 			const target = anchor.getAttribute("target");
 			if (target && target.toLowerCase() !== "_self") return;
-
 			let url: URL;
 			try {
 				url = new URL(anchor.href, window.location.href);
 			} catch {
 				return;
 			}
-
 			if (!url.hash || url.origin !== window.location.origin) return;
 			event.preventDefault();
 			void navigateTo(url.href);
 		};
-
 		root.addEventListener("click", handleAnchorClick, { capture: true });
 		return () => root.removeEventListener("click", handleAnchorClick, { capture: true });
 	}, [navigateTo]);
 
 	const containerStyle: CSSProperties = {
 		...(pageTransition ? { background: transitionColor } : {}),
-		...(method === "snap"
-			? {
-				height: "100vh",
-				overflowY: "scroll",
-				scrollSnapType: "y mandatory",
-				scrollBehavior: EngineBrowser.supports.reducedMotion ? "auto" : "smooth",
-				scrollPaddingTop: `${offsetPx}px`,
-			}
-			: {}),
+		...(method === "snap" ? {
+			height: "100vh",
+			overflowY: "scroll",
+			scrollSnapType: "y mandatory",
+			scrollBehavior: reducedMotion ? "auto" : "smooth",
+			scrollPaddingTop: `${offsetPx}px`,
+		} : {}),
 	};
 	const contentStyle: CSSProperties = {
 		opacity: pageTransition ? (visible ? 1 : 0) : 1,
-		transition: pageTransition && !EngineBrowser.supports.reducedMotion
-			? `opacity ${safeTransitionDuration}ms ease`
-			: undefined,
+		transition: pageTransition && !reducedMotion ? `opacity ${safeTransitionDuration}ms ease` : undefined,
 	};
-	const contextValue = useMemo<ScrollContextValue>(
-		() => ({ navigateTo, smoothScrollTo }),
-		[navigateTo, smoothScrollTo],
-	);
+	const contextValue = useMemo<ScrollContextValue>(() => ({ navigateTo, smoothScrollTo }), [navigateTo, smoothScrollTo]);
 
 	return (
 		<EngineScrollContext.Provider value={contextValue}>
@@ -308,13 +271,6 @@ export const EngineScrollProvider = memo(function EngineScrollProvider({
 	);
 });
 
-export const EngineScroll = memo(function EngineScroll({
-	children,
-	...props
-}: EngineScrollProviderProps) {
-	return (
-		<EngineScrollProvider {...props}>
-			{children}
-		</EngineScrollProvider>
-	);
+export const EngineScroll = memo(function EngineScroll({ children, ...props }: EngineScrollProviderProps) {
+	return <EngineScrollProvider {...props}>{children}</EngineScrollProvider>;
 });

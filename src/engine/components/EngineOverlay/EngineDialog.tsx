@@ -11,6 +11,7 @@ import {
 	useOverlayBehavior,
 	useOverlayPresence,
 	useOverlayState,
+	usePortalTarget,
 	useReducedMotion,
 } from "./OverlayShared";
 import { OverlayContent, OverlayTrigger } from "./OverlayParts";
@@ -60,6 +61,7 @@ export const EngineDialog = memo(function EngineDialog({
 	const { present, active } = useOverlayPresence(isOpen, transitionMs);
 	const panelRef = useRef<HTMLDivElement>(null);
 	const triggerRef = useRef<HTMLButtonElement>(null);
+	const target = usePortalTarget(portalTargetId);
 	const close = useCallback(() => setOpen(false), [setOpen]);
 	const behavior = useMemo(() => ({
 		open: isOpen, overlayId: panelId, panelRef, triggerRef, close,
@@ -84,25 +86,54 @@ export const EngineDialog = memo(function EngineDialog({
 		},
 	});
 	const panelClass = [className, useCpropClass(cprop)].filter(Boolean).join(" ") || undefined;
-	const target = typeof document !== "undefined"
-		? (portalTargetId ? document.getElementById(portalTargetId) ?? document.body : document.body)
-		: null;
 
 	return (
 		<>
-			<OverlayTrigger label={triggerLabel} children={trigger} className={triggerClassName} style={triggerStyle} disabled={triggerDisabled} expanded={isOpen} controls={panelId} hasPopup="dialog" ariaLabel={triggerAriaLabel} onClick={() => setOpen(!isOpen)} triggerRef={triggerRef} />
+			<OverlayTrigger
+				label={triggerLabel}
+				children={trigger}
+				className={triggerClassName}
+				style={triggerStyle}
+				disabled={triggerDisabled}
+				expanded={isOpen}
+				controls={panelId}
+				hasPopup="dialog"
+				ariaLabel={triggerAriaLabel}
+				onClick={() => setOpen(!isOpen)}
+				triggerRef={triggerRef}
+			/>
 			{target && present && createPortal(
 				<div
-					style={{ position: "fixed", inset: 0, zIndex, display: "grid", placeItems: "center", padding: "1rem", background: "rgba(2,6,23,.58)", backdropFilter: "blur(6px)", opacity: active ? 1 : 0, transition: `opacity ${transitionMs}ms ease`, ...overlayStyle }}
+					style={{
+						position: "fixed",
+						inset: 0,
+						zIndex,
+						display: "grid",
+						placeItems: "center",
+						padding: "1rem",
+						background: "rgba(2,6,23,.58)",
+						backdropFilter: "blur(6px)",
+						opacity: active ? 1 : 0,
+						transition: `opacity ${transitionMs}ms ease`,
+						...overlayStyle,
+					}}
 					onPointerDown={(event) => {
-						if (
-							closeOnBackdrop
-							&& event.target === event.currentTarget
-							&& isTopOverlay(panelId)
-						) close();
+						if (closeOnBackdrop && event.target === event.currentTarget && isTopOverlay(panelId)) close();
 					}}
 				>
-					<div ref={panelRef} id={panelId} role={role} aria-modal="true" aria-label={title == null ? (ariaLabel ?? triggerLabel ?? "Dialog") : undefined} aria-labelledby={title != null ? titleId : undefined} aria-describedby={description != null ? descriptionId : undefined} tabIndex={-1} className={panelClass} style={panelStyle} data-state={active ? "open" : "closed"}>
+					<div
+						ref={panelRef}
+						id={panelId}
+						role={role}
+						aria-modal="true"
+						aria-label={title == null ? (ariaLabel ?? triggerLabel ?? "Dialog") : undefined}
+						aria-labelledby={title != null ? titleId : undefined}
+						aria-describedby={description != null ? descriptionId : undefined}
+						tabIndex={-1}
+						className={panelClass}
+						style={panelStyle}
+						data-state={active ? "open" : "closed"}
+					>
 						<OverlayContent title={title} description={description} actions={actions} close={close} showCloseButton={showCloseButton} closeLabel={closeLabel} titleId={titleId} descriptionId={descriptionId}>{children}</OverlayContent>
 					</div>
 				</div>,

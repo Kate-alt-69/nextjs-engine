@@ -31,13 +31,31 @@ export function clampDuration(value: number | undefined, fallback = 180): number
 export function useReducedMotion(): boolean {
 	const [reduced, setReduced] = useState(false);
 	useEffect(() => {
+		if (typeof window.matchMedia !== "function") return;
 		const query = window.matchMedia("(prefers-reduced-motion: reduce)");
 		const update = () => setReduced(query.matches);
 		update();
-		query.addEventListener?.("change", update);
-		return () => query.removeEventListener?.("change", update);
+		if (typeof query.addEventListener === "function") {
+			query.addEventListener("change", update);
+			return () => query.removeEventListener("change", update);
+		}
+		query.addListener?.(update);
+		return () => query.removeListener?.(update);
 	}, []);
 	return reduced;
+}
+
+/** Resolve portal ownership only after mount so SSR and first hydration match. */
+export function usePortalTarget(portalTargetId?: string): HTMLElement | null {
+	const [target, setTarget] = useState<HTMLElement | null>(null);
+	useEffect(() => {
+		const nextTarget = portalTargetId
+			? document.getElementById(portalTargetId) ?? document.body
+			: document.body;
+		setTarget(nextTarget);
+		return () => setTarget(null);
+	}, [portalTargetId]);
+	return target;
 }
 
 export function useOverlayState(
@@ -109,13 +127,19 @@ export function useOverlayBehavior(options: OverlayBehaviorOptions) {
 	const currentOptions = useRef(options);
 	currentOptions.current = options;
 
+	// Scroll locking owns its own lifecycle so `lockScroll` can change live while
+	// an overlay remains open without recreating keyboard/focus registration.
+	useEffect(() => {
+		if (!options.open || !options.lockScroll) return;
+		return lockBodyScroll();
+	}, [options.lockScroll, options.open]);
+
 	useEffect(() => {
 		if (!options.open) return;
 		previousFocus.current = document.activeElement instanceof HTMLElement
 			? document.activeElement
 			: null;
 		const unregister = registerOverlay(options.overlayId);
-		const unlock = options.lockScroll ? lockBodyScroll() : () => undefined;
 		const frame = requestAnimationFrame(() => {
 			const current = currentOptions.current;
 			if (!current.autoFocus) return;
@@ -158,7 +182,6 @@ export function useOverlayBehavior(options: OverlayBehaviorOptions) {
 		return () => {
 			cancelAnimationFrame(frame);
 			document.removeEventListener("keydown", onKeyDown);
-			unlock();
 			unregister();
 			const current = currentOptions.current;
 			if (!current.restoreFocus) return;

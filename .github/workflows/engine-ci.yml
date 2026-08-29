@@ -31,8 +31,10 @@ jobs:
           node scripts/engine-shader-runtime-smoke.js
       - name: Test EngineBrowser SSR safety
         run: node scripts/engine-browser-smoke.js
-      - name: Test EngineTransitions presets
-        run: node scripts/engine-transitions-smoke.js
+      - name: Test EngineTransitions presets and compatibility
+        run: |
+          node scripts/engine-transitions-smoke.js
+          node scripts/engine-transitions-compat-smoke.js
       - name: Test EngineScroll core
         run: |
           node scripts/engine-scroll-smoke.js
@@ -44,6 +46,8 @@ jobs:
         run: |
           node scripts/style-compiler-smoke.js
           node scripts/primitive-style-precedence-smoke.js
+      - name: Test React and Next compatibility contracts
+        run: node scripts/react-runtime-compat-smoke.js
       - name: Type-check engine
         run: npm run type-check
       - name: Build Next.js integration app

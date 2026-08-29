@@ -18,7 +18,8 @@ export class EngineScrollBrowser {
 
 	public static initialize(): void {
 		if (typeof window === "undefined") return;
-		if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+		// Keep browser/Next.js history restoration ownership intact. EngineScroll
+		// only controls scroll position for explicit Engine movement operations.
 	}
 
 	public static update(): void {

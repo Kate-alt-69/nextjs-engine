@@ -11,6 +11,7 @@ import {
 	useOverlayBehavior,
 	useOverlayPresence,
 	useOverlayState,
+	usePortalTarget,
 	useReducedMotion,
 } from "./OverlayShared";
 import { OverlayContent, OverlayTrigger } from "./OverlayParts";
@@ -34,6 +35,7 @@ export const EngineDrawer = memo(function EngineDrawer({
 	const { present, active } = useOverlayPresence(isOpen, transitionMs);
 	const panelRef = useRef<HTMLDivElement>(null);
 	const triggerRef = useRef<HTMLButtonElement>(null);
+	const target = usePortalTarget(portalTargetId);
 	const close = useCallback(() => setOpen(false), [setOpen]);
 	const behavior = useMemo(() => ({
 		open: isOpen, overlayId: panelId, panelRef, triggerRef, close,
@@ -68,9 +70,6 @@ export const EngineDrawer = memo(function EngineDrawer({
 		},
 	});
 	const panelClass = [className, useCpropClass(cprop)].filter(Boolean).join(" ") || undefined;
-	const target = typeof document !== "undefined"
-		? (portalTargetId ? document.getElementById(portalTargetId) ?? document.body : document.body)
-		: null;
 
 	return (
 		<>
@@ -84,7 +83,20 @@ export const EngineDrawer = memo(function EngineDrawer({
 							if (closeOnBackdrop && isTopOverlay(panelId)) close();
 						}}
 					/>
-					<div ref={panelRef} id={panelId} role="dialog" aria-modal="true" aria-label={title == null ? (ariaLabel ?? triggerLabel ?? "Drawer") : undefined} aria-labelledby={title != null ? titleId : undefined} aria-describedby={description != null ? descriptionId : undefined} tabIndex={-1} className={panelClass} style={{ ...panelStyle, zIndex: zIndex + 1 }} data-state={active ? "open" : "closed"} data-side={side}>
+					<div
+						ref={panelRef}
+						id={panelId}
+						role="dialog"
+						aria-modal="true"
+						aria-label={title == null ? (ariaLabel ?? triggerLabel ?? "Drawer") : undefined}
+						aria-labelledby={title != null ? titleId : undefined}
+						aria-describedby={description != null ? descriptionId : undefined}
+						tabIndex={-1}
+						className={panelClass}
+						style={{ ...panelStyle, zIndex: zIndex + 1 }}
+						data-state={active ? "open" : "closed"}
+						data-side={side}
+					>
 						<OverlayContent title={title} description={description} actions={actions} close={close} showCloseButton={showCloseButton} closeLabel={closeLabel} titleId={titleId} descriptionId={descriptionId}>{children}</OverlayContent>
 					</div>
 				</>,

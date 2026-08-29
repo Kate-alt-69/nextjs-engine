@@ -20,6 +20,8 @@ export interface PopoverPositionOptions {
 	offset?: number;
 	viewportWidth: number;
 	viewportHeight: number;
+	viewportLeft?: number;
+	viewportTop?: number;
 	viewportPadding?: number;
 }
 
@@ -54,13 +56,17 @@ function oppositePlacement(placement: EnginePopoverPlacement): EnginePopoverPlac
 function availableSpace(
 	trigger: OverlayRect,
 	placement: EnginePopoverPlacement,
-	width: number,
-	height: number,
+	viewportLeft: number,
+	viewportTop: number,
+	viewportWidth: number,
+	viewportHeight: number,
 ): number {
-	if (placement === "top") return trigger.top;
-	if (placement === "bottom") return height - trigger.bottom;
-	if (placement === "left") return trigger.left;
-	return width - trigger.right;
+	const viewportRight = viewportLeft + viewportWidth;
+	const viewportBottom = viewportTop + viewportHeight;
+	if (placement === "top") return trigger.top - viewportTop;
+	if (placement === "bottom") return viewportBottom - trigger.bottom;
+	if (placement === "left") return trigger.left - viewportLeft;
+	return viewportRight - trigger.right;
 }
 
 export function computePopoverPosition(
@@ -70,6 +76,8 @@ export function computePopoverPosition(
 ): PopoverPosition {
 	const offset = Math.max(0, options.offset ?? 8);
 	const padding = Math.max(0, options.viewportPadding ?? 8);
+	const viewportLeft = options.viewportLeft ?? 0;
+	const viewportTop = options.viewportTop ?? 0;
 	const preferred = options.placement ?? "bottom";
 	const requiredSpace = (
 		preferred === "top" || preferred === "bottom"
@@ -79,6 +87,8 @@ export function computePopoverPosition(
 	const preferredSpace = availableSpace(
 		trigger,
 		preferred,
+		viewportLeft,
+		viewportTop,
 		options.viewportWidth,
 		options.viewportHeight,
 	);
@@ -86,6 +96,8 @@ export function computePopoverPosition(
 	const oppositeSpace = availableSpace(
 		trigger,
 		opposite,
+		viewportLeft,
+		viewportTop,
 		options.viewportWidth,
 		options.viewportHeight,
 	);
@@ -112,8 +124,16 @@ export function computePopoverPosition(
 	}
 
 	return {
-		top: clamp(top, padding, options.viewportHeight - panel.height - padding),
-		left: clamp(left, padding, options.viewportWidth - panel.width - padding),
+		top: clamp(
+			top,
+			viewportTop + padding,
+			viewportTop + options.viewportHeight - panel.height - padding,
+		),
+		left: clamp(
+			left,
+			viewportLeft + padding,
+			viewportLeft + options.viewportWidth - panel.width - padding,
+		),
 		placement,
 	};
 }
@@ -121,13 +141,8 @@ export function computePopoverPosition(
 export function registerOverlay(id: string): () => void {
 	const existingIndex = overlayStack.findIndex((entry) => entry.id === id);
 	if (existingIndex >= 0) overlayStack.splice(existingIndex, 1);
-
-	const registration = {
-		id,
-		token: ++overlayRegistrationToken,
-	};
+	const registration = { id, token: ++overlayRegistrationToken };
 	overlayStack.push(registration);
-
 	return () => {
 		const index = overlayStack.findIndex((entry) => (
 			entry.id === registration.id && entry.token === registration.token
@@ -154,21 +169,17 @@ export function lockBodyScroll(): () => void {
 			window.getComputedStyle(body).paddingRight,
 		) || 0;
 		body.style.overflow = "hidden";
-		if (scrollbarWidth > 0) {
-			body.style.paddingRight = `${computedPaddingRight + scrollbarWidth}px`;
-		}
+		if (scrollbarWidth > 0) body.style.paddingRight = `${computedPaddingRight + scrollbarWidth}px`;
 	}
 	bodyLockCount += 1;
-
 	let released = false;
 	return () => {
 		if (released) return;
 		released = true;
 		bodyLockCount = Math.max(0, bodyLockCount - 1);
-		if (bodyLockCount === 0) {
-			body.style.overflow = previousOverflow;
-			body.style.paddingRight = previousPaddingRight;
-		}
+		if (bodyLockCount !== 0) return;
+		body.style.overflow = previousOverflow;
+		body.style.paddingRight = previousPaddingRight;
 	};
 }
 
