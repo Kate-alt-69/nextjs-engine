@@ -25,6 +25,44 @@ const stop = timeline.subscribe((frame) => {
 });
 ```
 
+Since v2.6.2, `#hero` / `#features` use the same target semantics as
+`EngineScroll.move("#hero")`: a registered EngineScroll point is preferred, then
+EngineScroll falls back to a normal DOM element with the matching `id`.
+
+Plain DOM ids are resolved live rather than being permanently cached by the
+registered-point revision. That means a target can mount after Timeline creation
+or move after a dynamic layout update and still resolve correctly. Registered
+points keep the faster cached geometry path.
+
+## Timeline source and viewport focus
+
+`source` chooses the viewport point that drives timeline progress:
+
+```ts
+source: "top"
+source: "current"
+source: "bottom"
+```
+
+`top` and `bottom` are exact physical viewport edges. `current` is the logical
+viewport focus.
+
+Starting in v2.6.2, the default focus strategy is `"progressive"`: at document
+start it resolves to the viewport top, halfway through the document it resolves
+to the viewport center, and at the document end it resolves to the viewport
+bottom. This avoids giving reading/progress timelines a permanent half-viewport
+head start.
+
+Applications that intentionally want the historical permanent center behavior
+can opt back in:
+
+```ts
+EngineScroll.setFocus("center");
+```
+
+Other supported values are `"top"`, `"bottom"`, `"progressive"`, or a custom
+numeric focus from `0..1`. See [`enginescroll-focus.md`](./enginescroll-focus.md).
+
 ## Full frames vs visual progress
 
 `subscribe()` is the full-fidelity channel. It can emit while a timeline is
@@ -110,6 +148,10 @@ interface EngineScrollTimelineFrame {
 `progress` is clamped to `0..1`. `rawProgress` remains unbounded so
 orchestration code can tell how far before or after the range the viewport is.
 
+`direction` and `velocity` represent physical page movement and are measured
+from the viewport's top scroll edge. They therefore remain stable even when the
+logical `current` focus strategy changes.
+
 ## Alignment and offsets
 
 ```ts
@@ -122,6 +164,8 @@ const timeline = EngineScroll.timeline({
 	endOffset: 8,
 });
 ```
+
+Alignment/offset behavior is shared with `EngineScroll.move()` and Range.
 
 ## Segments and tracks
 

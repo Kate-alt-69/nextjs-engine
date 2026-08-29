@@ -21,8 +21,27 @@ Range targets use the same boundary syntax as EngineScroll Timeline:
 number
 "top"
 "bottom"
-"#named-point"
+"#registered-point-or-dom-id"
 ```
+
+Since v2.6.2, `#...` uses the same target resolver as navigation. Resolution order is:
+
+```text
+registered EngineScroll point
+        ↓ when missing
+normal DOM element with matching id
+```
+
+So this works for both an Engine schema point and an ordinary mounted element:
+
+```ts
+const chapter = EngineScroll.range({
+	start: "#article-start",
+	end: "#article-end",
+});
+```
+
+Registered points take precedence when a registered point and DOM id share the same name.
 
 Alignment and offsets are also shared:
 
@@ -54,6 +73,8 @@ frame.valid;
 ```
 
 A missing named boundary produces `valid: false`. A reversed range is valid and reports `direction: -1`.
+
+A plain DOM id that is missing on the first read is **not permanently cached as missing**. If a lazy/Suspense target mounts later, the next Range/Timeline read can resolve it without recreating the range.
 
 ## Point at progress
 
@@ -131,18 +152,22 @@ Timeline
   keyframes / style bindings
 ```
 
-Timeline internally reuses `EngineScrollRange`, so named-point alignment, offsets, invalidation, and boundary caching have one implementation.
+Timeline internally reuses `EngineScrollRange`, so target semantics, alignment, offsets, invalidation, and boundary behavior have one implementation.
 
 ## Caching
 
-A Range remembers resolved boundaries until either:
+Registered EngineScroll point boundaries are cached until either:
 
 - `EngineScrollPointManager.revision()` changes because point/layout geometry was invalidated; or
 - the page's maximum reachable point changes.
 
-Normal scroll movement does not invalidate named boundary geometry by itself. Document/viewport size changes are detected by the existing EngineScroll browser measurement pass and invalidate the shared point registry.
+Plain DOM ids are deliberately different. They are not owned/observed by the point registry, so Range treats them as live boundaries and re-resolves their current DOM geometry when read. This avoids stale coordinates when ordinary elements move and avoids permanently caching a target that had not mounted yet.
 
-You can explicitly refresh a Range when external code changes layout in a way the browser observers cannot infer:
+For large orchestration graphs where boundary measurement cost matters, register frequently-used boundaries as EngineScroll points.
+
+Normal scroll movement does not invalidate registered boundary geometry by itself. Document/viewport size changes are detected by the existing EngineScroll browser measurement pass and invalidate the shared point registry.
+
+You can explicitly refresh a Range when external code changes registered layout in a way the browser observers cannot infer:
 
 ```ts
 chapter.invalidate();

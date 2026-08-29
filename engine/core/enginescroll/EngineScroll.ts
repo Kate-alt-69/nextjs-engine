@@ -20,7 +20,12 @@ import { EngineScrollRuntime } from "./EngineScrollRuntime";
 import { EngineScrollSnap } from "./EngineScrollSnap";
 import { EngineScrollTimeline } from "./EngineScrollTimeline";
 import { BrowserEvents } from "./browser/BrowserEvents";
+import { BrowserScheduler } from "./browser/BrowserScheduler";
 import { Viewport } from "./viewport/Viewport";
+import {
+	ViewportPoints,
+	type EngineScrollViewportFocus,
+} from "./viewport/ViewportPoints";
 import type {
 	EngineScrollNavigationOptions,
 } from "./EngineScrollNavigator";
@@ -38,6 +43,7 @@ export class EngineScroll {
 		this.initialized = true;
 		const runtime = EngineScrollRuntime.get();
 		runtime.initialize();
+		EngineScrollBrowser.initialize();
 		BrowserEvents.initialize(this.update);
 		this.update();
 	}
@@ -94,22 +100,26 @@ export class EngineScroll {
 		offsetOrOptions?: number | EngineScrollNavigationOptions,
 		duration?: number,
 	): boolean {
+		this.initialize();
 		return EngineScrollNavigator.move(target, offsetOrOptions, duration);
 	}
 
 	public static nearest(options?: EngineScrollNavigationOptions): boolean {
+		this.initialize();
 		return EngineScrollNavigator.nearest(options);
 	}
 
 	public static next(
 		options?: EngineScrollNavigationOptions & { wrap?: boolean },
 	): boolean {
+		this.initialize();
 		return EngineScrollNavigator.next(options);
 	}
 
 	public static previous(
 		options?: EngineScrollNavigationOptions & { wrap?: boolean },
 	): boolean {
+		this.initialize();
 		return EngineScrollNavigator.previous(options);
 	}
 
@@ -131,19 +141,37 @@ export class EngineScroll {
 		return EngineScrollSnap.isEnabled();
 	}
 
+	public static setFocus(focus: EngineScrollViewportFocus): void {
+		ViewportPoints.setFocus(focus);
+		this.initialize();
+		BrowserScheduler.request(this.update);
+	}
+
+	public static getFocus(): number {
+		return ViewportPoints.getFocus();
+	}
+
+	public static getFocusMode(): EngineScrollViewportFocus {
+		return ViewportPoints.getFocusMode();
+	}
+
 	public static moveBy(offset: number, options?: number | EngineScrollMoveOptions): void {
+		this.initialize();
 		EngineScrollMovement.moveBy(offset, options);
 	}
 
 	public static movePercent(percent: number, options?: number | EngineScrollMoveOptions): void {
+		this.initialize();
 		EngineScrollMovement.movePercent(percent, options);
 	}
 
 	public static top(options?: number | EngineScrollMoveOptions): void {
+		this.initialize();
 		EngineScrollMovement.top(options);
 	}
 
 	public static bottom(options?: number | EngineScrollMoveOptions): void {
+		this.initialize();
 		EngineScrollMovement.bottom(options);
 	}
 
@@ -152,6 +180,7 @@ export class EngineScroll {
 	}
 
 	public static moveToHash(hash: string, duration?: number, offset?: number): boolean {
+		this.initialize();
 		return EngineScrollHash.moveToHash(hash, duration, offset);
 	}
 

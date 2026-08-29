@@ -8,10 +8,17 @@ export class EngineScrollPhysics {
 	private static previousPoint = 0;
 	private static initialized = false;
 
+	public static reset(): void {
+		this.initialized = false;
+		this.previousPoint = 0;
+	}
+
 	public static update(deltaTime: number): void {
 		const runtime = EngineScrollRuntime.get();
 		const cache = runtime.getCache();
-		const current = runtime.getState().viewport.current;
+		// Scroll velocity describes physical page movement. It must not depend on
+		// the configurable logical viewport.current focus strategy.
+		const current = runtime.getState().viewport.top;
 
 		if (!this.initialized) {
 			this.initialized = true;

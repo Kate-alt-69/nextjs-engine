@@ -15,6 +15,11 @@ import type {
 
 /* ========================================================================== */
 
+function reportSubscriberError(reason: unknown): void {
+	if (typeof console === "undefined") return;
+	console.error("[EngineScroll] Subscriber callback failed.", reason);
+}
+
 export class EngineScrollRuntime {
 
 	private static instance: EngineScrollRuntime | null = null;
@@ -119,11 +124,12 @@ export class EngineScrollRuntime {
 	public notify(): void {
 
 		const snapshot = this.getState();
-
-		for (const subscriber of this.subscribers) {
-
-			subscriber(snapshot);
-
+		for (const subscriber of [...this.subscribers]) {
+			try {
+				subscriber(snapshot);
+			} catch (reason) {
+				reportSubscriberError(reason);
+			}
 		}
 
 	}

@@ -6,7 +6,10 @@ import { EngineScrollHash } from "./EngineScrollHash";
 import { EngineScrollMovement } from "./EngineScrollMovement";
 import { EngineScrollPointManager } from "./EngineScrollPointManager";
 import { EngineScrollRuntime } from "./EngineScrollRuntime";
-import type { EngineScrollMoveOptions } from "./EngineScrollTypes";
+import type {
+	EngineScrollAlignment,
+	EngineScrollMoveOptions,
+} from "./EngineScrollTypes";
 
 export type EngineScrollTarget =
 	| number
@@ -15,8 +18,108 @@ export type EngineScrollTarget =
 	| "current"
 	| `#${string}`;
 
+export interface EngineScrollTargetResolveOptions {
+	align?: EngineScrollAlignment;
+	offset?: number;
+}
+
+export type EngineScrollTargetResolutionKind =
+	| "coordinate"
+	| "registered"
+	| "dom";
+
+export interface EngineScrollTargetResolution {
+	point: number;
+	kind: EngineScrollTargetResolutionKind;
+}
+
 export interface EngineScrollNavigationOptions extends EngineScrollMoveOptions {
 	group?: string;
+}
+
+function finiteOffset(value: number | undefined): number {
+	return Number.isFinite(value) ? value! : 0;
+}
+
+function rawHashName(target: string): string {
+	return target.startsWith("#") ? target.slice(1) : target;
+}
+
+function decodedHashName(name: string): string {
+	try {
+		return decodeURIComponent(name);
+	} catch {
+		return name;
+	}
+}
+
+/** Shared target semantics used by navigation, Range, and Timeline. */
+export class EngineScrollTargetResolver {
+	public static resolveDetailed(
+		target: EngineScrollTarget,
+		options: EngineScrollTargetResolveOptions = {},
+	): EngineScrollTargetResolution | undefined {
+		const offset = finiteOffset(options.offset);
+		const state = EngineScrollRuntime.get().getState();
+
+		if (typeof target === "number") {
+			return Number.isFinite(target)
+				? { point: target + offset, kind: "coordinate" }
+				: undefined;
+		}
+		if (target === "top") return { point: offset, kind: "coordinate" };
+		if (target === "bottom") {
+			return { point: state.page.totalPoints + offset, kind: "coordinate" };
+		}
+		if (target === "current") {
+			return { point: state.viewport.top + offset, kind: "coordinate" };
+		}
+		if (!target.startsWith("#")) return undefined;
+
+		const name = rawHashName(target);
+		if (!name) return undefined;
+		const registered = EngineScrollPointManager.resolve(name, {
+			align: options.align,
+			offset,
+		});
+		if (registered) {
+			return { point: registered.point, kind: "registered" };
+		}
+
+		if (typeof document === "undefined") return undefined;
+		const element = document.getElementById(decodedHashName(name));
+		if (!element) return undefined;
+		return {
+			point: EngineScrollPointManager.resolveElement(element, {
+				align: options.align,
+				offset,
+			}),
+			kind: "dom",
+		};
+	}
+
+	public static resolve(
+		target: EngineScrollTarget,
+		options: EngineScrollTargetResolveOptions = {},
+	): number | undefined {
+		return this.resolveDetailed(target, options)?.point;
+	}
+
+	/**
+	 * Plain DOM ids are intentionally resolved live by ranges/timelines. They are
+	 * not observed by EngineScrollPointManager, so caching them could preserve an
+	 * initial miss or stale geometry forever.
+	 */
+	public static requiresLiveResolution(target: EngineScrollTarget): boolean {
+		if (typeof target !== "string" || !target.startsWith("#")) return false;
+		const name = rawHashName(target);
+		if (!name) return false;
+		try {
+			return !EngineScrollPointManager.has(name);
+		} catch {
+			return false;
+		}
+	}
 }
 
 export class EngineScrollNavigator {
@@ -45,36 +148,7 @@ export class EngineScrollNavigator {
 		target: EngineScrollTarget,
 		options: EngineScrollNavigationOptions = {},
 	): number | undefined {
-		const offset = Number.isFinite(options.offset) ? options.offset! : 0;
-		const state = EngineScrollRuntime.get().getState();
-		if (typeof target === "number") {
-			return Number.isFinite(target) ? target + offset : undefined;
-		}
-		if (target === "top") return offset;
-		if (target === "bottom") return state.page.totalPoints + offset;
-		if (target === "current") return state.viewport.top + offset;
-		if (!target.startsWith("#")) return undefined;
-
-		const name = target.slice(1);
-		const registered = EngineScrollPointManager.resolve(name, {
-			align: options.align,
-			offset,
-		});
-		if (registered) return registered.point;
-
-		if (typeof document === "undefined") return undefined;
-		let decodedName = name;
-		try {
-			decodedName = decodeURIComponent(name);
-		} catch {
-			// Keep the raw DOM id when the hash is not valid percent-encoding.
-		}
-		const element = document.getElementById(decodedName);
-		if (!element) return undefined;
-		return EngineScrollPointManager.resolveElement(element, {
-			align: options.align,
-			offset,
-		});
+		return EngineScrollTargetResolver.resolve(target, options);
 	}
 
 	public static move(
@@ -127,10 +201,10 @@ export class EngineScrollNavigator {
 	}
 
 	public static current(): number {
-		return EngineScrollRuntime.get().getState().viewport.current;
+		return EngineScrollTargetResolver.resolve("current") ?? 0;
 	}
 
 	public static maximum(): number {
-		return EngineScrollRuntime.get().getState().page.totalPoints;
+		return EngineScrollTargetResolver.resolve("bottom") ?? 0;
 	}
 }

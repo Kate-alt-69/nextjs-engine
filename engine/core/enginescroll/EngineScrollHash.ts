@@ -11,6 +11,7 @@ export class EngineScrollHash {
 		duration: number | undefined = 550,
 		offset = 0,
 	): boolean {
+		if (typeof document === "undefined" || typeof window === "undefined") return false;
 		const rawId = hash.startsWith("#") ? hash.slice(1) : hash;
 		if (!rawId) return false;
 

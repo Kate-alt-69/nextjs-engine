@@ -6,6 +6,7 @@ import type { EngineScrollTarget } from "./EngineScrollNavigator";
 import { EngineScrollNavigator } from "./EngineScrollNavigator";
 
 const PROTOCOL = "#-es";
+const PROTOCOL_QUERY = `${PROTOCOL}?`;
 const DECIMAL_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/;
 
 function parseProtocolNumber(value: string | null): number | undefined {
@@ -19,13 +20,13 @@ function parseProtocolNumber(value: string | null): number | undefined {
 export class EngineScrollURL {
 	public static has(): boolean {
 		if (typeof window === "undefined") return false;
-		return window.location.hash.startsWith(PROTOCOL);
+		return window.location.hash.startsWith(PROTOCOL_QUERY);
 	}
 
 	public static execute(): boolean {
 		if (!this.has()) return false;
 
-		const queryString = window.location.hash.slice(PROTOCOL.length + 1);
+		const queryString = window.location.hash.slice(PROTOCOL_QUERY.length);
 		const params = new URLSearchParams(queryString);
 		const move = params.get("move");
 		const offset = parseProtocolNumber(params.get("offset")) ?? 0;
@@ -34,17 +35,18 @@ export class EngineScrollURL {
 			? undefined
 			: Math.max(0, parsedDuration);
 
-		this.clean();
 		if (!move) return false;
-
-		return EngineScrollNavigator.move(
+		const moved = EngineScrollNavigator.move(
 			this.resolveTarget(move),
 			offset,
 			duration,
 		);
+		if (moved) this.clean();
+		return moved;
 	}
 
 	public static listen(): () => void {
+		if (typeof window === "undefined") return () => {};
 		const handler = (): void => {
 			if (this.has()) this.execute();
 		};
@@ -63,7 +65,7 @@ export class EngineScrollURL {
 	}
 
 	private static clean(): void {
-		if (typeof history === "undefined") return;
+		if (typeof history === "undefined" || typeof window === "undefined") return;
 		history.replaceState(
 			null,
 			"",

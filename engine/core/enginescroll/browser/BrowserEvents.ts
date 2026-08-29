@@ -80,11 +80,9 @@ export class BrowserEvents {
 	}
 
 	private static onResize(update: () => void): void {
-		const cache = EngineScrollRuntime.get().getCache();
-		cache.viewportHeight = window.innerHeight;
-		cache.viewportWidth = window.innerWidth;
-		cache.documentHeight = document.documentElement.scrollHeight;
-		cache.documentWidth = document.documentElement.scrollWidth;
+		// EngineScrollBrowser.update() owns browser measurement. Do not pre-write
+		// the cache here or it loses the old dimensions needed to detect a layout
+		// change and invalidate registered point geometry.
 		BrowserScheduler.request(update);
 	}
 
