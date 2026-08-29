@@ -1,9 +1,6 @@
 "use client";
 // ─────────────────────────────────────────────────────────────────────────────
-//  Engine — EngineProvider
-//
-//  Root React context for the engine. Carries config, handlers, slots, and the
-//  style collector used by generated engine styles.
+// Engine — EngineProvider
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, {
@@ -22,11 +19,8 @@ import {
 
 export interface EngineContextValue {
 	config: Required<EngineConfig>;
-	/** Named event handlers — keyed by string matching SchemaNode handler props. */
 	handlers: Record<string, (...args: unknown[]) => void>;
-	/** Named slot content — keyed by string matching SlotProps.name. */
 	slots: Record<string, ReactNode>;
-	/** Collector owned by the current EngineProvider render boundary. */
 	styleCollector: StyleCollector;
 }
 
@@ -63,9 +57,7 @@ export function EngineProvider({
 	children,
 }: EngineProviderProps) {
 	const ownedStyleCollectorRef = React.useRef<StyleCollector | null>(null);
-	if (ownedStyleCollectorRef.current === null) {
-		ownedStyleCollectorRef.current = new StyleCollector();
-	}
+	if (ownedStyleCollectorRef.current === null) ownedStyleCollectorRef.current = new StyleCollector();
 	const collector = styleCollector ?? ownedStyleCollectorRef.current;
 	const resolvedHandlers = handlers ?? EMPTY_HANDLERS;
 	const resolvedSlots = slots ?? EMPTY_SLOTS;
@@ -86,12 +78,10 @@ export function EngineProvider({
 			slots: resolvedSlots,
 			styleCollector: collector,
 		}),
-		[mergedConfig, resolvedHandlers, resolvedSlots, collector],
+		[collector, mergedConfig, resolvedHandlers, resolvedSlots],
 	);
 
-	return (
-		<EngineContext.Provider value={value}>{children}</EngineContext.Provider>
-	);
+	return <EngineContext.Provider value={value}>{children}</EngineContext.Provider>;
 }
 
 export function useEngineContext(): EngineContextValue {
@@ -115,21 +105,43 @@ export function useSlot(name: string): ReactNode | undefined {
 }
 
 export interface EngineCollectedStylesProps {
-	/** Preserve the historical page-level style id when createPage owns emission. */
 	id?: string;
 }
 
-/** Emit only CSS collected by the nearest EngineProvider. */
+/**
+ * Emit CSS collected by the nearest EngineProvider.
+ *
+ * During hydration the client adopts the exact server-emitted text already in
+ * the DOM, then reconciles to the deterministic collector snapshot after mount.
+ * This keeps React's first client tree byte-for-byte aligned with SSR even when
+ * concurrent/Suspense traversal order differs. Later dynamic rules are flushed
+ * through the collector subscription without mutating React state during render.
+ */
 export function EngineCollectedStyles({ id }: EngineCollectedStylesProps) {
 	const styleCollector = useStyleCollector();
 	const generatedId = React.useId().replace(/:/g, "");
-	const css = styleCollector.collect();
-	if (!css) return null;
+	const resolvedId = id ?? `__engine_styles_${generatedId}`;
+	const renderSnapshot = styleCollector.collect();
+	const [css, setCss] = React.useState(() => {
+		if (typeof document === "undefined") return renderSnapshot;
+		const existing = document.getElementById(resolvedId);
+		return existing?.textContent ?? renderSnapshot;
+	});
+
+	React.useEffect(() => {
+		const sync = () => {
+			const nextCss = styleCollector.collect();
+			setCss((currentCss) => currentCss === nextCss ? currentCss : nextCss);
+		};
+		sync();
+		return styleCollector.subscribe(sync);
+	}, [styleCollector]);
 
 	return (
 		<style
-			id={id ?? `__engine_styles_${generatedId}`}
-			precedence="default"
+			id={resolvedId}
+			data-engine-generated="true"
+			precedence="engine"
 			dangerouslySetInnerHTML={{ __html: css }}
 		/>
 	);
@@ -161,21 +173,18 @@ function handleViewportResize(): void {
 function subscribeViewportWidth(subscriber: ViewportSubscriber): () => void {
 	if (typeof window === "undefined") return () => undefined;
 	viewportSubscribers.add(subscriber);
-
 	if (!viewportListenerAttached) {
 		viewportListenerAttached = true;
 		window.addEventListener("resize", handleViewportResize, { passive: true });
 	}
-
 	return () => {
 		viewportSubscribers.delete(subscriber);
-		if (viewportSubscribers.size === 0 && viewportListenerAttached) {
-			window.removeEventListener("resize", handleViewportResize);
-			viewportListenerAttached = false;
-			if (viewportFrame !== null) {
-				window.cancelAnimationFrame(viewportFrame);
-				viewportFrame = null;
-			}
+		if (viewportSubscribers.size !== 0 || !viewportListenerAttached) return;
+		window.removeEventListener("resize", handleViewportResize);
+		viewportListenerAttached = false;
+		if (viewportFrame !== null) {
+			window.cancelAnimationFrame(viewportFrame);
+			viewportFrame = null;
 		}
 	};
 }
@@ -191,16 +200,9 @@ function resolveBreakpoint(width: number, breakpoints: Required<EngineConfig>["b
 	return "xs";
 }
 
-/**
- * Returns the current active breakpoint.
- * SSR-safe: returns "xs" on the server / before hydration.
- * All hook instances share one RAF-coalesced passive window resize listener,
- * and React is notified only when this hook's resolved breakpoint changes.
- */
 export function useBreakpoint(): Breakpoint {
 	const { config } = useContext(EngineContext);
 	const breakpoints = config.breakpoints;
-
 	const subscribe = useCallback((notify: () => void) => {
 		let currentBreakpoint = resolveBreakpoint(readViewportWidth(), breakpoints);
 		return subscribeViewportWidth((width) => {
@@ -210,16 +212,13 @@ export function useBreakpoint(): Breakpoint {
 			notify();
 		});
 	}, [breakpoints]);
-
 	const getSnapshot = useCallback(
 		() => resolveBreakpoint(readViewportWidth(), breakpoints),
 		[breakpoints],
 	);
-
 	return React.useSyncExternalStore(subscribe, getSnapshot, () => "xs");
 }
 
-/** Returns true if the current viewport is at or above the target breakpoint. */
 export function useMinBreakpoint(target: Breakpoint): boolean {
 	const current = useBreakpoint();
 	return breakpointOrder.indexOf(current) >= breakpointOrder.indexOf(target);
