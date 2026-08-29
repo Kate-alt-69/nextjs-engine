@@ -5,7 +5,7 @@
 //
 // Keeps expensive work out of the hot frame path:
 // · built-in graphics engines are dynamically imported only when selected
-// · adaptive DPR changes are rate-limited and use hysteresis
+// · adaptive DPR follows the observed display cadence instead of assuming 60 Hz
 // · responsive CSS sizing is never replaced with fixed inline pixel sizing
 // · offscreen + hidden pause reasons cannot accidentally resume each other
 // · callback/scene refs stay current without tearing down the canvas runtime
@@ -21,6 +21,12 @@ import React, {
 } from "react";
 import type { ECScene } from "./ECTypes";
 import type { ECRenderContext, RenderingEngine } from "./RenderingEngine";
+import {
+	ECFrameClock,
+	getAdaptiveFrameThresholds,
+	resolveAdaptiveTargetFps,
+	type ECFrameTiming,
+} from "./ECFrameClock";
 import { useHandler } from "../../providers/EngineProvider";
 
 type Mode = "2d" | "webgl" | "webgl2" | "auto";
@@ -31,6 +37,7 @@ type AnyCtx = Ctx2D | CtxGL | CtxGL2;
 
 /** Return false from an onDraw callback when it has no more frames to produce. */
 export type EngineCanvasDrawResult = void | false;
+export type EngineCanvasFrameInfo = ECFrameTiming;
 
 export interface EngineCanvasProps {
 	mode?: Mode;
@@ -40,13 +47,22 @@ export interface EngineCanvasProps {
 	dpr?: number | "auto";
 	maxDpr?: number;
 	adaptive?: boolean;
+	adaptiveTargetFps?: number | "display";
 	pauseWhenOffscreen?: boolean;
 	pauseWhenHidden?: boolean;
 	alpha?: boolean;
 	antialias?: boolean;
+	/** Opt into the low-latency 2D context hint. Disabled by default to avoid presentation tearing. */
+	desynchronized?: boolean;
 	powerPreference?: "default" | "high-performance" | "low-power";
 	onSetup?: string | ((ctx: AnyCtx, canvas: HTMLCanvasElement) => (() => void) | void);
-	onDraw?: string | ((ctx: AnyCtx, canvas: HTMLCanvasElement, delta: number, frame: number) => EngineCanvasDrawResult);
+	onDraw?: string | ((
+		ctx: AnyCtx,
+		canvas: HTMLCanvasElement,
+		delta: number,
+		frame: number,
+		timing: EngineCanvasFrameInfo,
+	) => EngineCanvasDrawResult);
 	onResize?: string | ((ctx: AnyCtx, canvas: HTMLCanvasElement, width: number, height: number) => void);
 	graphics?: {
 		engine: string;
@@ -56,32 +72,15 @@ export interface EngineCanvasProps {
 	className?: string;
 }
 
-class FPSTracker {
-	private readonly samples: number[];
-	private index = 0;
-	private total: number;
-
-	constructor(private readonly size = 30) {
-		this.samples = Array(size).fill(60);
-		this.total = size * 60;
-	}
-
-	push(fps: number): void {
-		const sampleIndex = this.index++ % this.size;
-		this.total -= this.samples[sampleIndex];
-		this.samples[sampleIndex] = fps;
-		this.total += fps;
-	}
-
-	avg(): number {
-		return this.total / this.size;
-	}
-}
-
 function getContext(
 	canvas: HTMLCanvasElement,
 	mode: Mode,
-	options: { alpha: boolean; antialias: boolean; powerPreference: string },
+	options: {
+		alpha: boolean;
+		antialias: boolean;
+		desynchronized: boolean;
+		powerPreference: string;
+	},
 ): { ctx: AnyCtx; resolvedMode: "2d" | "webgl" | "webgl2" } | null {
 	const webglOptions = {
 		alpha: options.alpha,
@@ -90,12 +89,13 @@ function getContext(
 		preserveDrawingBuffer: false,
 		failIfMajorPerformanceCaveat: false,
 	};
+	const canvas2dOptions: CanvasRenderingContext2DSettings = {
+		alpha: options.alpha,
+		desynchronized: options.desynchronized,
+	};
 
 	if (mode === "2d") {
-		const context = canvas.getContext("2d", {
-			alpha: options.alpha,
-			desynchronized: true,
-		}) as Ctx2D | null;
+		const context = canvas.getContext("2d", canvas2dOptions) as Ctx2D | null;
 		return context ? { ctx: context, resolvedMode: "2d" } : null;
 	}
 
@@ -111,10 +111,7 @@ function getContext(
 		if (mode === "webgl") return null;
 	}
 
-	const context = canvas.getContext("2d", {
-		alpha: options.alpha,
-		desynchronized: true,
-	}) as Ctx2D | null;
+	const context = canvas.getContext("2d", canvas2dOptions) as Ctx2D | null;
 	return context ? { ctx: context, resolvedMode: "2d" } : null;
 }
 
@@ -165,6 +162,22 @@ function getCanvasCssSize(
 	};
 }
 
+function resolveAdaptiveDpr(
+	currentDpr: number,
+	targetDpr: number,
+	averageFps: number,
+	targetFps: number,
+): number {
+	const thresholds = getAdaptiveFrameThresholds(targetFps);
+	if (averageFps < thresholds.degradeBelow && currentDpr > 0.5) {
+		return Math.max(0.5, currentDpr - 0.25);
+	}
+	if (averageFps > thresholds.recoverAbove && currentDpr < targetDpr - 0.05) {
+		return Math.min(targetDpr, currentDpr + 0.25);
+	}
+	return currentDpr;
+}
+
 export const EngineCanvas = memo(function EngineCanvas({
 	mode = "auto",
 	width,
@@ -173,10 +186,12 @@ export const EngineCanvas = memo(function EngineCanvas({
 	dpr: dprProp = "auto",
 	maxDpr = 2,
 	adaptive = true,
+	adaptiveTargetFps = "display",
 	pauseWhenOffscreen = true,
 	pauseWhenHidden = true,
 	alpha = false,
 	antialias = true,
+	desynchronized = false,
 	powerPreference = "high-performance",
 	onSetup: onSetupRaw,
 	onDraw: onDrawRaw,
@@ -193,7 +208,7 @@ export const EngineCanvas = memo(function EngineCanvas({
 		| ((ctx: AnyCtx, canvas: HTMLCanvasElement) => (() => void) | void)
 		| undefined;
 	const resolvedOnDraw = (typeof onDrawRaw === "function" ? onDrawRaw : onDrawFromContext) as
-		| ((ctx: AnyCtx, canvas: HTMLCanvasElement, delta: number, frame: number) => EngineCanvasDrawResult)
+		| ((ctx: AnyCtx, canvas: HTMLCanvasElement, delta: number, frame: number, timing: EngineCanvasFrameInfo) => EngineCanvasDrawResult)
 		| undefined;
 	const resolvedOnResize = (typeof onResizeRaw === "function" ? onResizeRaw : onResizeFromContext) as
 		| ((ctx: AnyCtx, canvas: HTMLCanvasElement, width: number, height: number) => void)
@@ -218,6 +233,7 @@ export const EngineCanvas = memo(function EngineCanvas({
 		const contextResult = getContext(canvas, resolvedMode, {
 			alpha,
 			antialias,
+			desynchronized,
 			powerPreference,
 		});
 		if (!contextResult) {
@@ -232,14 +248,13 @@ export const EngineCanvas = memo(function EngineCanvas({
 		let running = false;
 		let drawCompleted = false;
 		let frame = 0;
-		let lastFrameTime = 0;
 		let lastDprAdjustment = 0;
 		let currentDpr = getTargetDpr(dprProp, maxDpr);
 		let lastCssWidth = 0;
 		let lastCssHeight = 0;
 		let offscreenPaused = false;
 		let hiddenPaused = pauseWhenHidden && document.hidden;
-		const fpsTracker = new FPSTracker(30);
+		const frameClock = new ECFrameClock(48);
 
 		const resizeBackingStore = (
 			cssWidth: number,
@@ -280,28 +295,23 @@ export const EngineCanvas = memo(function EngineCanvas({
 			if (!running) return;
 			running = false;
 			cancelAnimationFrame(raf);
+			frameClock.discontinuity();
 		};
 
 		const tick = (now: number): void => {
 			if (disposed || shouldPause()) {
 				running = false;
+				frameClock.discontinuity();
 				return;
 			}
 
-			const delta = lastFrameTime === 0 ? 16 : Math.min(250, now - lastFrameTime);
-			lastFrameTime = now;
-			fpsTracker.push(1000 / Math.max(delta, 1));
+			const timing = frameClock.step(now);
+			const delta = timing.delta;
 
-			if (adaptive && now - lastDprAdjustment >= 750) {
-				const averageFps = fpsTracker.avg();
+			if (adaptive && timing.averageFps > 0 && now - lastDprAdjustment >= 750) {
 				const targetDpr = getTargetDpr(dprProp, maxDpr);
-				let nextDpr = currentDpr;
-
-				if (averageFps < 32 && currentDpr > 0.5) {
-					nextDpr = Math.max(0.5, currentDpr - 0.25);
-				} else if (averageFps > 56 && currentDpr < targetDpr - 0.05) {
-					nextDpr = Math.min(targetDpr, currentDpr + 0.25);
-				}
+				const targetFps = resolveAdaptiveTargetFps(adaptiveTargetFps, timing.refreshRate);
+				const nextDpr = resolveAdaptiveDpr(currentDpr, targetDpr, timing.averageFps, targetFps);
 
 				if (Math.abs(nextDpr - currentDpr) >= 0.05) {
 					resizeBackingStore(lastCssWidth, lastCssHeight, nextDpr, true);
@@ -318,7 +328,7 @@ export const EngineCanvas = memo(function EngineCanvas({
 					running = false;
 					return;
 				}
-				if (draw(context, canvas, delta, frame++) === false) {
+				if (draw(context, canvas, delta, frame++, timing) === false) {
 					drawCompleted = true;
 					running = false;
 					return;
@@ -332,7 +342,7 @@ export const EngineCanvas = memo(function EngineCanvas({
 			if (running || disposed || shouldPause()) return;
 			if (!graphicsRef.current && (drawCompleted || !onDrawRef.current)) return;
 			running = true;
-			lastFrameTime = 0;
+			frameClock.discontinuity();
 			raf = requestAnimationFrame(tick);
 		};
 
@@ -430,6 +440,7 @@ export const EngineCanvas = memo(function EngineCanvas({
 		resolvedMode,
 		alpha,
 		antialias,
+		desynchronized,
 		powerPreference,
 		width,
 		height,
@@ -437,6 +448,7 @@ export const EngineCanvas = memo(function EngineCanvas({
 		dprProp,
 		maxDpr,
 		adaptive,
+		adaptiveTargetFps,
 		pauseWhenOffscreen,
 		pauseWhenHidden,
 		graphics?.engine,
@@ -465,34 +477,41 @@ export const EngineCanvas = memo(function EngineCanvas({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function useEngineCanvas(
-	options: Pick<EngineCanvasProps, "mode" | "alpha" | "antialias" | "powerPreference"> = {},
+	options: Pick<EngineCanvasProps, "mode" | "alpha" | "antialias" | "desynchronized" | "powerPreference"> = {},
 ) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const mode = options.mode ?? "auto";
 	const alpha = options.alpha ?? false;
 	const antialias = options.antialias ?? true;
+	const desynchronized = options.desynchronized ?? false;
 	const powerPreference = options.powerPreference ?? "high-performance";
 
 	const setup = useCallback((
-		handlers: Pick<EngineCanvasProps, "adaptive" | "maxDpr"> & {
+		handlers: Pick<EngineCanvasProps, "adaptive" | "adaptiveTargetFps" | "maxDpr"> & {
 			onSetup?: (ctx: AnyCtx, canvas: HTMLCanvasElement) => (() => void) | void;
-			onDraw?: (ctx: AnyCtx, canvas: HTMLCanvasElement, delta: number, frame: number) => EngineCanvasDrawResult;
+			onDraw?: (
+				ctx: AnyCtx,
+				canvas: HTMLCanvasElement,
+				delta: number,
+				frame: number,
+				timing: EngineCanvasFrameInfo,
+			) => EngineCanvasDrawResult;
 			onResize?: (ctx: AnyCtx, canvas: HTMLCanvasElement, width: number, height: number) => void;
 		},
 	): (() => void) => {
 		const canvas = canvasRef.current;
 		if (!canvas) return () => {};
 
-		const contextResult = getContext(canvas, mode, { alpha, antialias, powerPreference });
+		const contextResult = getContext(canvas, mode, { alpha, antialias, desynchronized, powerPreference });
 		if (!contextResult) return () => {};
 
 		const context = contextResult.ctx;
 		const maxDpr = handlers.maxDpr ?? 2;
 		const adaptive = handlers.adaptive ?? true;
-		const fpsTracker = new FPSTracker(30);
+		const adaptiveTargetFps = handlers.adaptiveTargetFps ?? "display";
+		const frameClock = new ECFrameClock(48);
 		let currentDpr = getTargetDpr("auto", maxDpr);
 		let lastDprAdjustment = 0;
-		let lastFrameTime = 0;
 		let frame = 0;
 		let raf = 0;
 
@@ -511,30 +530,30 @@ export function useEngineCanvas(
 
 		const cleanup = handlers.onSetup?.(context, canvas);
 		const tick = (now: number): void => {
-			const delta = lastFrameTime === 0 ? 16 : Math.min(250, now - lastFrameTime);
-			lastFrameTime = now;
-			fpsTracker.push(1000 / Math.max(delta, 1));
+			const timing = frameClock.step(now);
+			const delta = timing.delta;
 
-			if (adaptive && now - lastDprAdjustment >= 750) {
-				const averageFps = fpsTracker.avg();
+			if (adaptive && timing.averageFps > 0 && now - lastDprAdjustment >= 750) {
 				const targetDpr = getTargetDpr("auto", maxDpr);
-				let nextDpr = currentDpr;
-				if (averageFps < 32 && currentDpr > 0.5) nextDpr = Math.max(0.5, currentDpr - 0.25);
-				else if (averageFps > 56 && currentDpr < targetDpr - 0.05) nextDpr = Math.min(targetDpr, currentDpr + 0.25);
+				const targetFps = resolveAdaptiveTargetFps(adaptiveTargetFps, timing.refreshRate);
+				const nextDpr = resolveAdaptiveDpr(currentDpr, targetDpr, timing.averageFps, targetFps);
 				if (Math.abs(nextDpr - currentDpr) >= 0.05) resize(nextDpr);
 				lastDprAdjustment = now;
 			}
 
-			if (handlers.onDraw?.(context, canvas, delta, frame++) === false) return;
+			if (handlers.onDraw?.(context, canvas, delta, frame++, timing) === false) return;
 			raf = requestAnimationFrame(tick);
 		};
-		if (handlers.onDraw) raf = requestAnimationFrame(tick);
+		if (handlers.onDraw) {
+			frameClock.discontinuity();
+			raf = requestAnimationFrame(tick);
+		}
 
 		return () => {
 			cancelAnimationFrame(raf);
 			cleanup?.();
 		};
-	}, [mode, alpha, antialias, powerPreference]);
+	}, [mode, alpha, antialias, desynchronized, powerPreference]);
 
 	return { canvasRef, setup };
 }
