@@ -24,6 +24,7 @@ export class EngineScrollSnap {
 	private static options: EngineScrollSnapOptions = {};
 	private static wasUserScrolling = false;
 	private static lastDirection: EngineScrollDirection = 0;
+	private static owner: symbol | null = null;
 
 	private static normalizeAutoOptions(
 		options: EngineScrollSnapOptions,
@@ -101,17 +102,22 @@ export class EngineScrollSnap {
 
 	public static enable(options: EngineScrollSnapOptions = {}): () => void {
 		this.disable();
+		const owner = Symbol("EngineScrollSnap");
+		this.owner = owner;
 		this.options = this.normalizeAutoOptions(options);
 		const cache = EngineScrollRuntime.get().getCache();
 		this.wasUserScrolling = cache.isUserScrolling;
 		this.lastDirection = cache.scrollDirection;
 		this.unsubscribeRuntime = EngineScrollRuntime.get().subscribe(this.handleRuntime);
-		return () => this.disable();
+		return () => {
+			if (this.owner === owner) this.disable();
+		};
 	}
 
 	public static disable(): void {
 		this.unsubscribeRuntime?.();
 		this.unsubscribeRuntime = null;
+		this.owner = null;
 		this.wasUserScrolling = false;
 		this.lastDirection = 0;
 	}
@@ -121,12 +127,14 @@ export class EngineScrollSnap {
 	}
 
 	public static now(options: EngineScrollSnapOptions = {}): boolean {
+		const currentDirection = EngineScrollRuntime.get().getCache().scrollDirection;
+		const direction = this.lastDirection !== 0 ? this.lastDirection : currentDirection;
 		return this.snapWithOptions(
 			{
 				...options,
 				mode: options.mode ?? "nearest",
 			},
-			this.lastDirection,
+			direction,
 		);
 	}
 }

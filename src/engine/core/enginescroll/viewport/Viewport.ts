@@ -18,15 +18,6 @@ export class Viewport {
 			cache.scrollY + cache.viewportHeight,
 			spacing,
 		);
-		const currentPoint = ViewportMath.lerp(
-			topPoint,
-			bottomPoint,
-			ViewportPoints.getFocus(),
-		);
-
-		state.viewport.top = topPoint;
-		state.viewport.current = currentPoint;
-		state.viewport.bottom = bottomPoint;
 
 		// Movement points represent the top scroll edge. The maximum reachable
 		// top edge is documentHeight - viewportHeight, not the document bottom.
@@ -34,5 +25,16 @@ export class Viewport {
 			Math.max(0, cache.documentHeight - cache.viewportHeight),
 			spacing,
 		);
+
+		const focus = ViewportPoints.resolveFocus(
+			cache.scrollY,
+			cache.documentHeight,
+			cache.viewportHeight,
+		);
+		const currentPoint = ViewportMath.lerp(topPoint, bottomPoint, focus);
+
+		state.viewport.top = topPoint;
+		state.viewport.current = currentPoint;
+		state.viewport.bottom = bottomPoint;
 	}
 }

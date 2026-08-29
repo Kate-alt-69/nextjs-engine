@@ -3,7 +3,10 @@
 // ============================================================================
 
 import { EngineScrollMovement } from "./EngineScrollMovement";
-import { EngineScrollNavigator } from "./EngineScrollNavigator";
+import {
+	EngineScrollTargetResolver,
+	type EngineScrollTarget,
+} from "./EngineScrollNavigator";
 import { EngineScrollPointManager } from "./EngineScrollPointManager";
 import { EngineScrollRuntime } from "./EngineScrollRuntime";
 import type {
@@ -13,11 +16,7 @@ import type {
 	EngineScrollState,
 } from "./EngineScrollTypes";
 
-export type EngineScrollRangeTarget =
-	| number
-	| "top"
-	| "bottom"
-	| `#${string}`;
+export type EngineScrollRangeTarget = Exclude<EngineScrollTarget, "current">;
 
 export interface EngineScrollRangeConfig {
 	start: EngineScrollRangeTarget;
@@ -63,15 +62,7 @@ export class EngineScrollRange {
 		align: EngineScrollAlignment | undefined,
 		offset: number,
 	): number | null {
-		if (typeof target === "string" && target.startsWith("#")) {
-			const resolved = EngineScrollPointManager.resolve(target.slice(1), {
-				align,
-				offset,
-			});
-			return resolved?.point ?? null;
-		}
-
-		return EngineScrollNavigator.resolve(target, {
+		return EngineScrollTargetResolver.resolve(target, {
 			align,
 			offset,
 		}) ?? null;
@@ -79,8 +70,12 @@ export class EngineScrollRange {
 
 	private resolveBoundaries(state: Readonly<EngineScrollState>): void {
 		const revision = EngineScrollPointManager.revision();
+		const liveStart = EngineScrollTargetResolver.requiresLiveResolution(this.config.start);
+		const liveEnd = EngineScrollTargetResolver.requiresLiveResolution(this.config.end);
 		if (
-			this.boundaryRevision === revision
+			!liveStart
+			&& !liveEnd
+			&& this.boundaryRevision === revision
 			&& this.boundaryMaximum === state.page.totalPoints
 		) {
 			return;

@@ -37,6 +37,7 @@ jobs:
         run: |
           node scripts/engine-scroll-smoke.js
           node scripts/engine-scroll-progress-smoke.js
+          node scripts/engine-scroll-262-smoke.js
       - name: Test EngineOverlay runtime
         run: node scripts/engine-overlay-smoke.js
       - name: Test style compiler and primitive precedence
