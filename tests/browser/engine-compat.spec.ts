@@ -15,7 +15,7 @@ function watchBrowserFailures(page: Page) {
 
 test("Transitions+, overlays, Nav and generated styles survive real hydration", async ({ page }) => {
 	const failures = watchBrowserFailures(page);
-	await page.goto("/__engine-compat");
+	await page.goto("/engine-compat-test");
 
 	await expect(page.getByTestId("dialog-body")).toBeVisible();
 	await expect(page.getByRole("link", { name: "Compat" })).toHaveAttribute("aria-current", "page");
@@ -30,7 +30,7 @@ test("Transitions+, overlays, Nav and generated styles survive real hydration", 
 	await expect(page.getByTestId("same-url-status")).toHaveText("done", { timeout: 1_500 });
 
 	await page.getByRole("link", { name: "Target page" }).click();
-	await expect(page).toHaveURL(/\/__engine-compat\/target$/);
+	await expect(page).toHaveURL(/\/engine-compat-test\/target$/);
 	await expect(page.getByTestId("target-title")).toBeVisible();
 
 	expect(failures, failures.join("\n")).toEqual([]);
@@ -48,13 +48,13 @@ test("navigation remains animated when native View Transitions are unavailable",
 		}
 	});
 	const failures = watchBrowserFailures(page);
-	await page.goto("/__engine-compat");
+	await page.goto("/engine-compat-test");
 
 	await expect(page.getByTestId("effect-transition-status")).toHaveText("done");
 	await page.getByTestId("liquid").click();
 	await expect(page.getByTestId("count")).toHaveText("1");
 	await page.getByRole("link", { name: "Target page" }).click();
-	await expect(page).toHaveURL(/\/__engine-compat\/target$/);
+	await expect(page).toHaveURL(/\/engine-compat-test\/target$/);
 
 	expect(failures, failures.join("\n")).toEqual([]);
 });
@@ -62,13 +62,13 @@ test("navigation remains animated when native View Transitions are unavailable",
 test("reduced motion keeps transitions functional without animation stalls", async ({ page }) => {
 	await page.emulateMedia({ reducedMotion: "reduce" });
 	const failures = watchBrowserFailures(page);
-	await page.goto("/__engine-compat");
+	await page.goto("/engine-compat-test");
 
 	await expect(page.getByTestId("effect-transition-status")).toHaveText("done");
 	await page.getByTestId("liquid").click();
 	await expect(page.getByTestId("count")).toHaveText("1");
 	await page.getByRole("link", { name: "Target page" }).click();
-	await expect(page).toHaveURL(/\/__engine-compat\/target$/);
+	await expect(page).toHaveURL(/\/engine-compat-test\/target$/);
 
 	expect(failures, failures.join("\n")).toEqual([]);
 });

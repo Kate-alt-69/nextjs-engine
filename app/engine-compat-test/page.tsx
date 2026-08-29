@@ -23,7 +23,7 @@ export default function EngineCompatibilityPage() {
 
 	const runSameUrl = async () => {
 		setSameUrlStatus("pending");
-		await transitions.push("/__engine-compat", "portal");
+		await transitions.push("/engine-compat-test", "portal");
 		setSameUrlStatus("done");
 	};
 
@@ -32,8 +32,8 @@ export default function EngineCompatibilityPage() {
 			<main style={{ minHeight: "140vh", padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
 				<EngineNav
 					items={[
-						{ label: "Compat", href: "/__engine-compat" },
-						{ label: "Near prefix", href: "/__engine" },
+						{ label: "Compat", href: "/engine-compat-test" },
+						{ label: "Near prefix", href: "/engine-compat" },
 					]}
 				/>
 
@@ -48,7 +48,7 @@ export default function EngineCompatibilityPage() {
 				</button>
 				<p data-testid="same-url-status">{sameUrlStatus}</p>
 
-				<EngineTransitionLink href="/__engine-compat/target" transition="portal">
+				<EngineTransitionLink href="/engine-compat-test/target" transition="portal">
 					Target page
 				</EngineTransitionLink>
 
