@@ -13,11 +13,18 @@ function watchBrowserFailures(page: Page) {
 	return failures;
 }
 
+async function closeCompatibilityDialog(page: Page) {
+	const dialogBody = page.getByTestId("dialog-body");
+	await expect(dialogBody).toBeVisible();
+	await page.keyboard.press("Escape");
+	await expect(dialogBody).toBeHidden();
+}
+
 test("Transitions+, overlays, Nav and generated styles survive real hydration", async ({ page }) => {
 	const failures = watchBrowserFailures(page);
 	await page.goto("/engine-compat-test");
 
-	await expect(page.getByTestId("dialog-body")).toBeVisible();
+	await closeCompatibilityDialog(page);
 	await expect(page.getByRole("link", { name: "Compat" })).toHaveAttribute("aria-current", "page");
 	await expect(page.getByRole("link", { name: "Near prefix" })).not.toHaveAttribute("aria-current", "page");
 	await expect(page.getByTestId("effect-transition-status")).toHaveText("done");
@@ -51,6 +58,7 @@ test("navigation remains animated when native View Transitions are unavailable",
 	await page.goto("/engine-compat-test");
 
 	await expect(page.getByTestId("effect-transition-status")).toHaveText("done");
+	await closeCompatibilityDialog(page);
 	await page.getByTestId("liquid").click();
 	await expect(page.getByTestId("count")).toHaveText("1");
 	await page.getByRole("link", { name: "Target page" }).click();
@@ -65,6 +73,7 @@ test("reduced motion keeps transitions functional without animation stalls", asy
 	await page.goto("/engine-compat-test");
 
 	await expect(page.getByTestId("effect-transition-status")).toHaveText("done");
+	await closeCompatibilityDialog(page);
 	await page.getByTestId("liquid").click();
 	await expect(page.getByTestId("count")).toHaveText("1");
 	await page.getByRole("link", { name: "Target page" }).click();
