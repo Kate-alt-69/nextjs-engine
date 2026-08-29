@@ -1,0 +1,361 @@
+name: One-shot DOCUMENT refresh
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/document-refresh-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-document:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Refresh DOCUMENT.md
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          document_path = Path("DOCUMENT.md")
+          text = document_path.read_text(encoding="utf-8")
+
+          header = r'''# Next.js Engine — Technical Documentation
+
+> **Last updated:** 2026-08-29  
+> **Current source baseline:** v2.6-era runtime on `main`.  
+> **Latest correctness baseline:** `25bcc4a5` (`Fix Engine primitive style precedence`).  
+> **Release note:** `docs/release/NE-v2-6-0.md` describes the v2.6 feature set; `package.json` still reports `2.5.0` until the release-version publishing step is completed.
+
+## 2026-08-29 Current Update
+
+This refresh brings the original large technical document forward from its June snapshot. The maintained component guides under `docs/` remain the most detailed per-system references; this file is the broad architecture/history document and now reflects the current runtime again.
+
+### Latest correctness fixes
+
+- **Primitive style precedence fixed** — built-in component defaults no longer overwrite Engine/schema styling. The enforced ordinary styling order is `defaults < derived/variant styles < schema props < explicit style={} < required runtime state`.
+- **New `usePrimitiveStyles()` helper** — `src/engine/hooks/usePrimitiveStyles.ts` separates defaults, derived semantic styling, explicit caller style, and required live state instead of abusing `usePropStyles()`'s explicit-style parameter.
+- **Card fixed** — `bg`/`background` and `borderRadius` beat Card variant defaults; interactive hover cleanup restores the resolved transform/shadow instead of erasing caller styling.
+- **Button fixed** — schema `bg`, `color`, and `fontWeight` beat variant/base defaults; disabled opacity/cursor remain required runtime state.
+- **Text/Heading fixed** — schema `fontSize`/`fontWeight` beat heading/text variant presets while explicit `style` remains strongest ordinary styling.
+- **Mixed style callers audited** — Stack, Grid, Text/Heading, Section, Button, Card, EngineHero, EngineMarkdown, CustomSelect, EngineDialog, EngineDrawer, and EnginePopover now keep defaults out of the explicit-style layer.
+- **Regression coverage added** — `scripts/primitive-style-precedence-smoke.js` is part of Engine runtime CI.
+- **EngineShader hot reload hardened** — changed-artifact polling is serialized and stale request races are guarded so hot reload cannot reorder plan state.
+- Earlier correctness work retained: EngineCanvas mount/setup race fix, EngineManim timing/blank-canvas fixes, EngineScrollHash variable fix, APIStatic parser/runtime hardening, EngineBrowser SSR safety, retained Canvas/SVG/3D lifecycle fixes, and scoped style-collector fixes.
+
+### Current first-class systems added/expanded since the old DOCUMENT snapshot
+
+- **EngineShader** — compiled `.shed` GPU surfaces with static/event/animated execution, runtime variables, pointer/scroll/viewport inputs, dead-pass elimination, shared scheduling, artifact manifests, and dev hot reload.
+- **EngineTransitions+** — 20 transition mechanics (`fade`, `slide`, `zoom`, `morph`, `layout`, `reveal`, `wipe`, `split`, `curtain`, `pixel`, `dissolve`, `liquid`, `smear`, `depth`, `flip`, `page-turn`, `spring`, `scatter`, `rgb`, `portal`) with EngineNav/EngineLink and programmatic integration.
+- **EngineOverlay** — first-class `dialog`, `drawer`, and `popover` schema nodes with portals, focus/stack/Escape behavior, outside-click handling, reduced-motion-aware presence, and positioning.
+- **EngineScroll orchestration** — timelines, reusable ranges, active-point tracking, point groups, snapping, crossing/activity events, CSS bindings, and the multi-track Director on the shared runtime.
+- **EngineCanvas / EngineSVG / Engine3D** — retained renderers, demand-driven work, stronger resource cleanup, SVG import/export/topology fixes, and Shader surface mode.
+- **APIStatic** — build-time `.route` compilation, endpoint manifests, typed/coerced inputs, generated static endpoint artifacts, logical endpoint lookup, last-known-good development behavior, and EngineAPIResolver integration.
+- **Runtime/performance work** — scoped StyleCollector ownership, bounded responsive resolver caching, pooled observers/listeners, lazy optional modules, lighter ordinary navigation, and reduced idle animation/render work.
+
+### New or heavily edited current files
+
+```text
+src/engine/hooks/usePrimitiveStyles.ts
+src/engine/hooks/usePropStyles.ts
+src/engine/components/primitives.tsx
+src/engine/components/EngineHero.tsx
+src/engine/components/EngineMarkdown.tsx
+src/engine/components/CustomSelect.tsx
+src/engine/components/EngineShader.tsx
+src/engine/components/EngineShaderSurface.tsx
+src/engine/components/EngineCanvas.tsx
+src/engine/components/EngineOverlay/*
+src/engine/core/engineshader/*
+src/engine/core/enginetransitions/*
+src/engine/core/enginescroll/*
+src/engine/core/enginecanvas/*
+src/engine/core/engineoverlay/*
+src/engine/core/APIStatic.ts
+src/engine/core/SchemaRenderer.tsx
+src/engine/plugins/apiStaticCompiler.js
+src/engine/plugins/engineShaderCompiler.js
+src/engine/plugins/engineShaderCompilerBase.js
+src/engine/plugins/engineShaderPlugin.js
+src/engine/plugins/enginePlugin.js
+scripts/primitive-style-precedence-smoke.js
+scripts/engine-shader-smoke.js
+scripts/engine-shader-runtime-smoke.js
+scripts/engine-transitions-smoke.js
+scripts/engine-scroll-smoke.js
+scripts/engine-scroll-progress-smoke.js
+scripts/engine-overlay-smoke.js
+scripts/style-compiler-smoke.js
+docs/styling.md
+docs/runtime-performance.md
+docs/engine-components/engineshader.md
+docs/engine-components/enginetransitions.md
+docs/engine-components/engineoverlay.md
+docs/engine-components/enginecanvas.md
+docs/engine-components/enginesvg.md
+docs/engine-components/engine3d.md
+docs/release/NE-v2-6-0.md
+.github/workflows/engine-ci.yml
+.github/workflows/sync-main-empty.yml
+```
+
+'''
+
+          marker = "## What It Is"
+          if marker not in text:
+          	raise RuntimeError("DOCUMENT.md is missing the What It Is marker")
+          text = header + marker + text.split(marker, 1)[1]
+
+          architecture = r'''## Architecture Overview
+
+```text
+src/engine/
+├── schema/
+│   ├── types.ts                       Main schema/component types
+│   └── EngineShaderSchemaTypes.ts     Shader surface schema augmentation
+├── core/
+│   ├── resolver.ts                    Responsive/style value compiler + bounded cache
+│   ├── StyleCollector.ts              Scoped generated CSS collection
+│   ├── SchemaRenderer.tsx             Schema traversal, lazy/split/shader integration
+│   ├── registry.ts                    Built-in node registry
+│   ├── lazyDetect.ts                  Lazy/eager strategy analysis
+│   ├── EngineAPIResolver.ts           Runtime API orchestration
+│   ├── EngineAPIConfigParser.ts       .EngineAPIConfig compiler/parser
+│   ├── APIStatic.ts                   Runtime client for compiled static endpoints
+│   ├── EngineBrowser.ts               Browser/interact/media/speech/network facade
+│   ├── EngineDevice.ts                Server/client device detection
+│   ├── EngineMobilePatcher.ts         Server-side mobile schema patching
+│   ├── schemaAnalyzer.ts              Static diagnostics
+│   ├── validateSchema.ts              Runtime schema validation
+│   ├── enginecanvas/                  EngineCanvas, Engine2D/3D/SVG + EC registry/types
+│   ├── enginescroll/                  Shared scroll runtime, timelines/ranges/director/points
+│   ├── engineshader/                  Shader runtime/types/scheduler/cache helpers
+│   ├── enginetransitions/             Transition runtime, types and 20 presets
+│   └── engineoverlay/                 Shared overlay stack/position/runtime helpers
+├── hooks/
+│   ├── useInView.ts                   Pooled/SSR-safe viewport observation
+│   ├── usePropStyles.ts               Engine/schema props + explicit style compiler
+│   └── usePrimitiveStyles.ts          Defaults/schema/style/runtime precedence helper
+├── providers/
+│   └── EngineProvider.tsx             Config, handlers, slots, scoped style collector
+├── components/
+│   ├── primitives.tsx                 Box/Stack/Grid/Text/Heading/Section/Button/Card/etc.
+│   ├── EngineLink.tsx                 Transition-aware link surface
+│   ├── EngineNav.tsx                  Navigation + transition integration
+│   ├── EngineHero.tsx                 Hero layouts/parallax
+│   ├── EngineSuspense.tsx             Schema-native Suspense presets
+│   ├── EngineForms.tsx                Form/input primitives
+│   ├── EngineMarkdown.tsx             Trusted/local Markdown rendering
+│   ├── EngineImage.tsx                Optimized image surface
+│   ├── EngineVideo.tsx                Lazy media surface
+│   ├── EngineCanvas.tsx               Public Canvas/graphics/Shader surface wrapper
+│   ├── EngineShader.tsx               Dedicated WebGL Shader surface
+│   ├── EngineShaderSurface.tsx        Schema host for lazy Shader surfaces
+│   ├── EngineOverlay/                 Dialog/Drawer/Popover components
+│   └── EngineManim/                   Manim compiler/runtime/components
+├── plugins/
+│   ├── enginePlugin.js                Combined Engine build plugin
+│   ├── engineApiPlugin.js             EngineAPI build integration
+│   ├── apiStaticCompiler.js           .route compiler
+│   ├── engineShaderPlugin.js          .shed build/dev integration
+│   ├── engineShaderCompiler.js        Shader graph/effect compiler
+│   └── engineShaderCompilerBase.js    Shader compiler/artifact base helpers
+├── createPage.tsx                     Top-level page factory
+├── createComponent.tsx                Reusable schema-rendered component factory
+└── index.ts                           Public API exports
+```
+
+The directories above are the current high-level runtime layout. Smaller helpers and specialized files are intentionally omitted from this map; use the maintained guides in `docs/` for subsystem-level file maps.
+
+---'''
+
+          text, architecture_count = re.subn(
+          	r"## Architecture Overview\n\n```.*?```\n\n---",
+          	architecture,
+          	text,
+          	count=1,
+          	flags=re.S,
+          )
+          if architecture_count != 1:
+          	raise RuntimeError("Could not replace the Architecture Overview section")
+
+          style_precedence = r'''## Style Precedence
+
+Built-in Engine components now use one explicit precedence contract:
+
+```text
+component defaults
+< derived / semantic / variant defaults
+< Engine + schema props
+< explicit style={}
+< required live runtime state
+```
+
+`usePropStyles(props, style)` still treats its second argument as an explicit caller override. Components that also need internal defaults use `usePrimitiveStyles()` so those defaults cannot silently defeat public Engine props.
+
+```ts
+const resolvedStyle = usePrimitiveStyles(props, {
+	defaults: { borderRadius: "12px", background: "#fff" },
+	derived: variantStyle,
+	style,
+	runtime: disabled ? { opacity: 0.5, cursor: "not-allowed" } : undefined,
+});
+```
+
+This is why `Card` `bg`/`borderRadius`, Button `bg`/`color`/`fontWeight`, and Text/Heading `fontSize`/`fontWeight` now override built-in presets correctly. Explicit `style` still wins over schema props. Only state required for behavior/accessibility is intentionally stronger than explicit styling.
+
+For the canonical style compiler details, responsive behavior, at-rules, and pseudo-state rules, read `docs/styling.md`.
+
+---
+
+'''
+
+          if "## Style Precedence" not in text:
+          	lazy_marker = "## Lazy Loading System"
+          	if lazy_marker not in text:
+          		raise RuntimeError("Could not find Lazy Loading System marker")
+          	text = text.replace(lazy_marker, style_precedence + lazy_marker, 1)
+
+          resolved_notes = r'''## Resolved Correctness Bugs & Current Boundaries
+
+The old June-era `Known Issues` entry described the former cross-render CSS tier registry as a current hydration problem. That architecture is no longer the normal generated-style path, so the entry is retained here as resolved history rather than an active warning.
+
+### Resolved
+
+- **SSR style/hydration instability** — normal generated CSS is scoped to the nearest `EngineProvider` collector; deterministic responsive resolution and exact-content deduplication replaced the old normal cross-render tier behavior.
+- **EngineCanvas setup race** — setup now waits for the actual mounted canvas and reruns when mounting becomes available.
+- **EngineManim freeze / blank setup** — timing uses `performance.now()` correctly and setup rendering no longer stops at only assigning `fillStyle`.
+- **EngineScrollHash undefined-variable bug** — hash execution uses the supplied hash target/options correctly.
+- **Primitive style precedence** — fixed by `usePrimitiveStyles()` and audited across built-in mixed-default callers.
+- **Card hover cleanup** — interactive Card mouse-leave restores the resolved caller transform/shadow rather than forcing an unrelated default.
+- **EngineShader hot-reload ordering** — polling/request state is serialized/guarded against stale artifact responses.
+- **APIStatic correctness** — lexical binding validation, falsy input handling, endpoint override atomicity, deterministic compilation, and last-known-good dev behavior have dedicated regression coverage.
+
+### Current documented boundaries
+
+- `style` rules generated for brand-new dynamic client state after hydration still rely on a mostly server-oriented collector path; a future client flusher should append only newly generated rules.
+- EngineShader v1 operates on Engine-owned GPU surfaces. Browsers do not expose the final arbitrary DOM compositor framebuffer, so a whole-page Minecraft-shader-like `styles.shed` DOM compositor is a future architecture, not a current feature.
+- Reserved Shader frame buffers such as depth/normal/velocity/history are not current surface-ESH inputs.
+- Current Transitions+ `pixel`, `dissolve`, and `liquid` effects animate native View Transition snapshots; they are not full EngineShader framebuffer passes.
+- `EngineSkia` remains a reserved backend rather than a completed CanvasKit renderer.
+
+'''
+
+          text, known_count = re.subn(
+          	r"## Known Issues\n.*?(?=\n## defineSchema)",
+          	resolved_notes.rstrip() + "\n",
+          	text,
+          	count=1,
+          	flags=re.S,
+          )
+          if known_count != 1:
+          	raise RuntimeError("Could not replace the old Known Issues section")
+
+          scoped_styles = r'''## Scoped Style Collection
+
+The former normal-path Global / Group / Local render-count tier system is historical. Current built-in rendering uses a collector owned by the nearest `EngineProvider`.
+
+- Responsive variables, pseudo-state rules, nested at-rules, visibility rules, navigation styles, and other generated CSS are collected per rendering boundary.
+- Exact CSS content is deduplicated inside that collector.
+- Nested `createComponent()` boundaries do not reset the parent collector and do not need to copy the parent's generated rules.
+- Responsive resolver memoization is deterministic and bounded (2,048 entries) instead of being cleared during render or allowed to grow without limit.
+- `staticClass()` accepts the active collector so repeated structural styles can become stable generated classes without falling back to a process-wide page registry.
+- The exported `globalStyleCollector` / `EngineGlobalStyles` path remains for explicitly global compatibility styles, but it is not the ordinary page/request CSS ownership model.
+
+See `docs/styling.md` and `docs/runtime-performance.md` for the current collector and resolver contracts.
+
+---
+
+'''
+
+          text, tiers_count = re.subn(
+          	r"## CSS Tier System\n.*?(?=\n## Image Optimisation)",
+          	scoped_styles.rstrip() + "\n",
+          	text,
+          	count=1,
+          	flags=re.S,
+          )
+          if tiers_count != 1:
+          	raise RuntimeError("Could not replace the historical CSS Tier System section")
+
+          current_systems = r'''## Current v2.6 Runtime Systems
+
+### EngineShader (`.shed`)
+
+Shader source lives under `data/shader/public/**/*.shed`. The build/dev plugin compiles logical shader programs into hashed `public/_static/shader/**/*.shed.dat` artifacts plus a manifest. Runtime plans select `static`, `event`, or `animated` execution automatically from surviving dependencies. Animated surfaces share the EngineShader scheduler instead of creating one permanent RAF loop per shader.
+
+Current pipeline roots are `before`, `render`, `after`, `overlay`, `frame`, and `screen`. Current dynamic sources include time/delta/frame, normalized pointer, scroll progress, and viewport size. The compiler validates graph direction/cycles, removes unreachable passes, folds constants, emits only needed uniforms/helpers, and rejects reserved frame-buffer reads that surface ESH does not provide yet.
+
+Read `docs/engine-components/engineshader.md`.
+
+### EngineTransitions+
+
+Transitions+ currently ships 20 mechanics: `fade`, `slide`, `zoom`, `morph`, `layout`, `reveal`, `wipe`, `split`, `curtain`, `pixel`, `dissolve`, `liquid`, `smear`, `depth`, `flip`, `page-turn`, `spring`, `scatter`, `rgb`, and `portal`. Legacy names such as `page-to-page`, `shared-morph`, `pixel-dissolve`, and `chromatic-shift` remain aliases.
+
+The runtime uses the browser View Transitions API when available, native Web Animations/CSS snapshot effects for the presets, shared-element naming, interruption support, reduced-motion bypass, and direct fallback navigation when the browser cannot animate. EngineNav/EngineLink only lazy-load the transition runtime when animation is actually requested.
+
+Read `docs/engine-components/enginetransitions.md`.
+
+### EngineOverlay
+
+`dialog`, `drawer`, and `popover` are official schema nodes. Their components share overlay stack/focus/Escape behavior while keeping component-specific positioning/presence logic. Dialog/Drawer can trap focus and lock scroll; Popover tracks trigger geometry and viewport bounds.
+
+Read `docs/engine-components/engineoverlay.md`.
+
+### EngineScroll orchestration
+
+The shared EngineScroll runtime now supports semantic points plus timelines, ranges, active/nearest point tracking, groups, snapping, threshold/range events, CSS bindings, and the Director. Director coordinates multiple named tracks through one runtime subscription and exposes aggregate/per-track progress without multiplying global listeners.
+
+Read the maintained EngineScroll guides under `docs/engine-components/`.
+
+### EngineCanvas / EngineSVG / Engine3D
+
+EngineCanvas owns context creation, resize/DPR behavior, demand-driven frame scheduling, offscreen/hidden pausing, cleanup, and retained graphics dispatch. `Engine2D`, `Engine3D`, and `EngineSVG` retain geometry/runtime resources across frames when topology references are unchanged. EngineSVG supports live retained SVG plus import/export; triangle outlines avoid shared internal edges. Engine3D retains/disposes Three.js resources. Shader mode lets EngineShader own the GPU surface instead of stacking duplicate canvases.
+
+Read `docs/engine-components/enginecanvas.md`, `enginesvg.md`, and `engine3d.md`.
+
+### APIStatic + EngineAPI
+
+APIStatic compiles `.route` sources to generated static endpoint JavaScript and a manifest, preserving logical endpoint names while artifacts remain hash-addressed. Runtime helpers support typed inputs, query/body/input/proxy access, controlled `response()`/`error()` behavior, endpoint discovery, hot rebuilds, and EngineAPIResolver integration. Build output is swapped atomically after a successful compile so broken development edits do not destroy the last-known-good endpoint set.
+
+Read `docs/engine-components/apistatic.md` and `engineapi.md`.
+
+### Current CI baseline
+
+`.github/workflows/engine-ci.yml` now runs APIStatic compiler/artifact tests, EngineShader compiler/runtime tests, EngineBrowser SSR safety, all Transitions+ preset tests, EngineScroll core/progress tests, EngineOverlay runtime tests, style compiler + primitive precedence tests, TypeScript type-checking, a full Next.js integration build, and production client bundle reporting. `sync-main-empty.yml` keeps the distributable package branch synchronized after source changes.
+
+---
+
+'''
+
+          metadata_marker = "## Metadata Integration (SEO)"
+          if "## Current v2.6 Runtime Systems" not in text:
+          	if metadata_marker not in text:
+          		raise RuntimeError("Could not find Metadata Integration marker")
+          	text = text.replace(metadata_marker, current_systems + metadata_marker, 1)
+
+          document_path.write_text(text, encoding="utf-8")
+          print(f"DOCUMENT.md refreshed: {len(text.splitlines())} lines, {len(text)} bytes")
+          PY
+          git diff --check
+          grep -q "2026-08-29 Current Update" DOCUMENT.md
+          grep -q "usePrimitiveStyles" DOCUMENT.md
+          grep -q "Current v2.6 Runtime Systems" DOCUMENT.md
+          grep -q "Scoped Style Collection" DOCUMENT.md
+      - name: Commit generated refresh branch
+        shell: bash
+        run: |
+          git config user.name "Nextjs Engine Docs Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout -b document-refresh-20260829
+          git rm .github/workflows/document-refresh-once.yml
+          git add DOCUMENT.md
+          git commit -m "Refresh DOCUMENT for current v2.6 runtime"
+          git push origin document-refresh-20260829
