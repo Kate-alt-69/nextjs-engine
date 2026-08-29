@@ -23,7 +23,7 @@ function clamp(value: number, minimum: number, maximum: number): number {
 }
 
 function nearestCommonRefreshRate(rawRate: number): number {
-	let nearest = COMMON_REFRESH_RATES[0];
+	let nearest: number = COMMON_REFRESH_RATES[0];
 	let nearestDistance = Math.abs(rawRate - nearest);
 	for (const candidate of COMMON_REFRESH_RATES) {
 		const distance = Math.abs(rawRate - candidate);
