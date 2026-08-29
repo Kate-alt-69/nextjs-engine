@@ -33,7 +33,7 @@ export function DemoCanvas() {
 				context.fillStyle = "#0f172a";
 			}}
 			onDraw={(context, canvas) => {
-				context.clearRect(0, 0, canvas.width, canvas.height);
+				context.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
 				context.fillRect(20, 20, 120, 80);
 				return false;
 			}}
@@ -188,13 +188,15 @@ Full `.shed` language reference: [`engineshader.md`](./engineshader.md).
 | `dpr` | `number \| "auto"` | `"auto"` | target device-pixel ratio |
 | `maxDpr` | `number` | `2` | upper DPR cap |
 | `adaptive` | `boolean` | `true` | enables performance-driven density adjustment |
+| `adaptiveTargetFps` | `number \| "display"` | `"display"` | adaptive DPR target; display mode follows detected RAF cadence |
 | `pauseWhenOffscreen` | `boolean` | `true` | suspends useless offscreen work |
 | `pauseWhenHidden` | `boolean` | `true` | suspends work while the tab is hidden |
 | `alpha` | `boolean` | `false` | alpha buffer hint in normal Canvas/WebGL mode |
 | `antialias` | `boolean` | `true` | WebGL antialias hint in normal mode |
+| `desynchronized` | `boolean` | `false` | optional low-latency Canvas 2D hint; synchronized presentation is safer by default |
 | `powerPreference` | WebGL power preference | `"high-performance"` | GPU preference hint |
 | `onSetup` | function or handler name | — | one-time callback after normal context creation; may return cleanup |
-| `onDraw` | function or handler name | — | frame callback; return `false` when complete |
+| `onDraw` | function or handler name | — | frame callback; receives timing metadata as the fifth argument; return `false` when complete |
 | `onResize` | function or handler name | — | receives CSS width/height |
 | `graphics` | `{ engine, scene }` | — | retained EC graphics runtime |
 | `className` / `style` | React values | — | apply to the canvas/surface |
@@ -248,6 +250,8 @@ onDraw returns false
 	→ callback is complete; stop RAF
 ```
 
+EngineCanvas uses `requestAnimationFrame`, so it follows the browser's presentation cadence rather than running a software 60 Hz timer. A 120 Hz or 144 Hz display can therefore deliver roughly 120 or 144 callbacks per second when the browser/device can sustain it.
+
 A backing-store resize clears the native canvas bitmap. If a callback previously finished with `false`, EngineCanvas wakes it for one redraw after resize so the static/final image can be restored. If it returns `false` again, the RAF stops again.
 
 Replacing the `onDraw` callback also wakes callback mode, which lets new data/state produce a new frame without keeping the old callback spinning forever.
@@ -256,25 +260,87 @@ The `false` completion signal belongs to callback mode. Graphics engines control
 
 ---
 
+## Refresh-aware frame timing
+
+The callback signature remains backward compatible with the historical four arguments, but v2.6.2 adds a fifth timing object:
+
+```ts
+onDraw={(context, canvas, delta, frame, timing) => {
+	const seconds = timing.elapsed * .001;
+	// draw using seconds
+}}
+```
+
+`timing` contains:
+
+```ts
+interface EngineCanvasFrameInfo {
+	timestamp: number;
+	delta: number;
+	elapsed: number;
+	fps: number;
+	averageFps: number;
+	refreshRate: number;
+}
+```
+
+`elapsed` is the recommended clock for animation. It accumulates actual active RAF time and does not include hidden/offscreen pause gaps. After a pause/resume boundary the first callback gets `delta = 0`, avoiding a synthetic 16 ms frame or a giant hidden-tab delta.
+
+Do **not** calculate absolute animation time as:
+
+```ts
+const time = frame * delta;
+```
+
+`delta` is the duration of the **current** frame, not the average duration of all previous frames. On a 120 Hz display with occasional dropped frames, multiplying the current ~8.3/16.7 ms interval by the total frame count can make time jump backward and forward. Use `timing.elapsed`, or accumulate `delta` yourself on older Engine versions.
+
+---
+
 ## Adaptive DPR
 
 High DPR can make a canvas dramatically more expensive because fragment/pixel work grows with the backing-store area.
 
-EngineCanvas tracks frame timing and considers a density change at most once every **750 ms**:
+EngineCanvas still considers a density change at most once every **750 ms**, but v2.6.2 no longer judges every screen against fixed 60 Hz thresholds. With the default:
 
-```text
-average FPS below ~32
-	→ DPR - 0.25, down to 0.5
-
-average FPS above ~56
-	→ DPR + 0.25, toward configured target
+```tsx
+<EngineCanvas adaptive adaptiveTargetFps="display" />
 ```
 
-The rate limit prevents the backing store from repeatedly resizing every few frames.
+EC estimates the recent RAF/display cadence and derives performance thresholds relative to that target. For example, a canvas averaging about 60 FPS on a 120 Hz panel is now recognized as substantially below target instead of being treated as perfectly healthy because it exceeded the old `56 FPS` recovery threshold.
 
-Graphics engines receive the new DPR with the resize event, so EngineCanvas and Three.js do not fight over pixel dimensions.
+The observed cadence is matched against common display rates such as 60, 90, 120, 144, 165, 180, 200 and 240 Hz. Occasional dropped frames are tolerated so a 120 Hz stream with intermittent ~16.7 ms intervals does not immediately get classified as 60 Hz.
+
+You can request an explicit target when display cadence is not the desired budget:
+
+```tsx
+<EngineCanvas adaptive adaptiveTargetFps={60} />
+```
+
+The target is clamped to a practical `24..240` FPS range.
+
+The rate limit prevents the backing store from repeatedly resizing every few frames. Graphics engines receive the new DPR with the resize event, so EngineCanvas and Three.js do not fight over pixel dimensions.
 
 EngineShader has its own adaptive density logic when `shader` mode owns the canvas; the facade forwards the relevant configuration instead of running two adaptive systems at once.
+
+---
+
+## Canvas 2D synchronization
+
+Before v2.6.2, normal 2D EngineCanvas contexts always requested:
+
+```ts
+desynchronized: true
+```
+
+That browser hint can reduce latency, but it may also allow presentation that is less tightly synchronized to normal compositor timing. This is especially visible on some high-refresh/mobile combinations as tearing or a previous-frame-looking artifact.
+
+The default is now:
+
+```tsx
+<EngineCanvas desynchronized={false} />
+```
+
+Use `desynchronized` only when lower input latency is more important than compositor-synchronized presentation and you have tested the target browser/device.
 
 ---
 
@@ -407,7 +473,9 @@ export function CustomCanvas() {
 	useEffect(() => setup({
 		maxDpr: 2,
 		adaptive: true,
-		onDraw(gl, canvas) {
+		adaptiveTargetFps: "display",
+		onDraw(gl, canvas, delta, frame, timing) {
+			const seconds = timing.elapsed * .001;
 			// custom drawing
 			if (finished) return false;
 		},
@@ -417,7 +485,7 @@ export function CustomCanvas() {
 }
 ```
 
-The low-level hook avoids RAF when `onDraw` is absent and honors `return false` as completion.
+The low-level hook avoids RAF when `onDraw` is absent and honors `return false` as completion. It shares the same refresh-aware timing and adaptive target logic as the full component.
 
 Unlike the full component, the hook does not own all resize/offscreen/tab observer conveniences; those lifecycle pieces remain the caller's responsibility.
 
@@ -446,6 +514,10 @@ Responsive Canvas keeps a minimum height as a safety fallback. Give the canvas o
 ```tsx
 <EngineCanvas style={{ height: 500 }} />
 ```
+
+### Animation feels like 60 Hz on a high-refresh display
+
+Do not use `frame * delta` as an absolute clock. Read `timing.elapsed` from the fifth `onDraw` argument and leave `adaptiveTargetFps` at its default `"display"` value. Also keep `desynchronized={false}` unless you deliberately need the low-latency 2D presentation hint.
 
 ### Static callback keeps animating
 
