@@ -2,9 +2,11 @@
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
-const os = require("node:os");
 const path = require("node:path");
 const ts = require("typescript");
+
+const repoRoot = path.resolve(__dirname, "..");
+const outDir = path.join(repoRoot, ".react-compat-smoke");
 
 function transpile(sourcePath, destinationPath) {
 	const source = fs.readFileSync(sourcePath, "utf8");
@@ -22,14 +24,15 @@ function transpile(sourcePath, destinationPath) {
 	if (errors.length > 0) {
 		throw new Error(errors.map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")).join("\n"));
 	}
+	fs.mkdirSync(path.dirname(destinationPath), { recursive: true });
 	fs.writeFileSync(destinationPath, result.outputText, "utf8");
 }
 
 function main() {
-	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "engine-react-compat-"));
+	fs.rmSync(outDir, { recursive: true, force: true });
 	try {
-		const collectorOutput = path.join(tempRoot, "StyleCollector.js");
-		transpile(path.join(process.cwd(), "src", "engine", "core", "StyleCollector.ts"), collectorOutput);
+		const collectorOutput = path.join(outDir, "StyleCollector.js");
+		transpile(path.join(repoRoot, "src", "engine", "core", "StyleCollector.ts"), collectorOutput);
 		const { StyleCollector } = require(collectorOutput);
 
 		const left = new StyleCollector();
@@ -47,21 +50,21 @@ function main() {
 		);
 		assert.ok(left.collect().startsWith(":root{--a:1}"), "root variables should retain the low precedence group");
 
-		const providerSource = fs.readFileSync(path.join(process.cwd(), "src", "engine", "providers", "EngineProvider.tsx"), "utf8");
+		const providerSource = fs.readFileSync(path.join(repoRoot, "src", "engine", "providers", "EngineProvider.tsx"), "utf8");
 		assert.match(providerSource, /existing\?\.textContent/, "client hydration should adopt the server style snapshot");
 		assert.match(providerSource, /styleCollector\.subscribe/, "dynamic client styles should flush after hydration");
 
-		const navSource = fs.readFileSync(path.join(process.cwd(), "src", "engine", "components", "EngineNav.tsx"), "utf8");
+		const navSource = fs.readFileSync(path.join(repoRoot, "src", "engine", "components", "EngineNav.tsx"), "utf8");
 		assert.match(navSource, /currentPath\.startsWith\(`\$\{targetPath\}\/`\)/, "nav matching must require a route-segment boundary");
 		assert.match(navSource, /useEffect\(\(\) => setPathname\(routerPathname\)/, "pathname-dependent nav styling must wait until hydration completes");
 
-		const overlaySource = fs.readFileSync(path.join(process.cwd(), "src", "engine", "components", "EngineOverlay", "OverlayShared.tsx"), "utf8");
+		const overlaySource = fs.readFileSync(path.join(repoRoot, "src", "engine", "components", "EngineOverlay", "OverlayShared.tsx"), "utf8");
 		assert.match(overlaySource, /usePortalTarget/, "overlay portals should resolve after mount");
 		assert.match(overlaySource, /\[options\.lockScroll, options\.open\]/, "live scroll-lock changes need an independent lifecycle");
 
 		console.log("React/Next compatibility smoke tests passed");
 	} finally {
-		fs.rmSync(tempRoot, { recursive: true, force: true });
+		fs.rmSync(outDir, { recursive: true, force: true });
 	}
 }
 
