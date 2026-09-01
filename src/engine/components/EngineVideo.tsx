@@ -108,8 +108,14 @@ export const EngineVideo = memo(function EngineVideo({
 	}, []);
 
 	useEffect(() => {
-		if (schedule.near || schedule.visible || schedule.state === "critical") setActivated(true);
-	}, [schedule.near, schedule.state, schedule.visible]);
+		if (
+			schedule.state === "critical"
+			|| schedule.visible
+			|| (schedule.near && !schedule.underFramePressure)
+		) {
+			setActivated(true);
+		}
+	}, [schedule.near, schedule.state, schedule.underFramePressure, schedule.visible]);
 
 	const resolvedPreload = preload ?? (autoPlay ? "auto" : "metadata");
 	const sources = useMemo<VideoSource[]>(() => Array.isArray(src)

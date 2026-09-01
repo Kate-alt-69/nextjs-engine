@@ -96,8 +96,14 @@ export const LazyMount = memo(function LazyMount({
 	const [activated, setActivated] = React.useState(eager);
 
 	React.useEffect(() => {
-		if (schedule.near || schedule.visible || schedule.state === "critical") setActivated(true);
-	}, [schedule.near, schedule.state, schedule.visible]);
+		if (
+			schedule.state === "critical"
+			|| schedule.visible
+			|| (schedule.near && !schedule.underFramePressure)
+		) {
+			setActivated(true);
+		}
+	}, [schedule.near, schedule.state, schedule.underFramePressure, schedule.visible]);
 
 	React.useEffect(() => {
 		injectShimmerCSS();

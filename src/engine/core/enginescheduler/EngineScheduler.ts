@@ -1,11 +1,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Next.js Engine Generation 3 — work scheduler
 //
-// The scheduler reduces unnecessary work. It deliberately does not lower image,
-// Canvas, Shader, or video resolution as a response to frame pressure.
+// The scheduler removes unnecessary work before sacrificing frame delivery. It
+// deliberately does not lower image, Canvas, Shader, or video resolution as a
+// response to frame pressure.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { EngineWorkClass } from "../../compiler/types";
+import {
+	ECFrameClock,
+	resolveAdaptiveTargetFps,
+} from "../enginecanvas/ECFrameClock";
 
 export interface EngineSchedulePolicy {
 	priority?: boolean;
@@ -56,6 +61,7 @@ function subscribeObserver(
 	threshold: number,
 	listener: ObserverListener,
 ): () => void {
+	const key = `${rootMargin}|${threshold}`;
 	const pool = getObserverPool(rootMargin, threshold);
 	let listeners = pool.listeners.get(element);
 	if (!listeners) {
@@ -72,6 +78,9 @@ function subscribeObserver(
 		if (targetListeners.size > 0) return;
 		pool.listeners.delete(element);
 		pool.observer.unobserve(element);
+		if (pool.listeners.size > 0) return;
+		pool.observer.disconnect();
+		viewportPools.delete(key);
 	};
 }
 
@@ -79,6 +88,10 @@ class EngineSchedulerRuntime {
 	private frameSamples: number[] = [];
 	private framePressure = false;
 	private pressureListeners = new Set<(underPressure: boolean) => void>();
+	private frameMonitorUsers = 0;
+	private frameMonitorRaf = 0;
+	private frameClock = new ECFrameClock(48);
+	private highestObservedRefreshRate = 60;
 
 	observe(
 		element: Element,
@@ -137,12 +150,18 @@ class EngineSchedulerRuntime {
 	}
 
 	reportFrame(durationMs: number, targetFrameMs: number): void {
-		if (!Number.isFinite(durationMs) || durationMs < 0 || !Number.isFinite(targetFrameMs) || targetFrameMs <= 0) return;
+		if (!Number.isFinite(durationMs) || durationMs <= 0 || !Number.isFinite(targetFrameMs) || targetFrameMs <= 0) return;
 		this.frameSamples.push(durationMs / targetFrameMs);
-		if (this.frameSamples.length > 30) this.frameSamples.shift();
-		if (this.frameSamples.length < 8) return;
+		if (this.frameSamples.length > 36) this.frameSamples.shift();
+		if (this.frameSamples.length < 10) return;
+
+		const ordered = [...this.frameSamples].sort((left, right) => left - right);
 		const averageLoad = this.frameSamples.reduce((total, sample) => total + sample, 0) / this.frameSamples.length;
-		const nextPressure = this.framePressure ? averageLoad > 0.78 : averageLoad > 0.92;
+		const percentileIndex = Math.min(ordered.length - 1, Math.floor(ordered.length * 0.75));
+		const p75Load = ordered[percentileIndex];
+		const nextPressure = this.framePressure
+			? averageLoad > 1.06 || p75Load > 1.08
+			: averageLoad > 1.14 || p75Load > 1.18;
 		if (nextPressure === this.framePressure) return;
 		this.framePressure = nextPressure;
 		for (const listener of [...this.pressureListeners]) listener(nextPressure);
@@ -157,9 +176,27 @@ class EngineSchedulerRuntime {
 		return () => this.pressureListeners.delete(listener);
 	}
 
+	/**
+	 * Share one refresh-aware RAF pressure monitor across graphics runtimes.
+	 * Consumers acquire it only while they own visible-capable animated work.
+	 */
+	acquireFrameMonitor(): () => void {
+		if (typeof window === "undefined") return () => undefined;
+		this.frameMonitorUsers += 1;
+		if (this.frameMonitorUsers === 1) this.startFrameMonitor();
+		let released = false;
+		return () => {
+			if (released) return;
+			released = true;
+			this.frameMonitorUsers = Math.max(0, this.frameMonitorUsers - 1);
+			if (this.frameMonitorUsers === 0) this.stopFrameMonitor();
+		};
+	}
+
 	runWhenIdle(task: () => void, timeout = 1500): () => void {
 		if (typeof window === "undefined") return () => undefined;
 		let cancelled = false;
+		let timer: number | undefined;
 		const run = () => {
 			if (cancelled) return;
 			if (this.framePressure) {
@@ -169,7 +206,6 @@ class EngineSchedulerRuntime {
 			task();
 		};
 
-		let timer: number | undefined;
 		const browser = window as Window & {
 			requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
 			cancelIdleCallback?: (id: number) => void;
@@ -182,6 +218,50 @@ class EngineSchedulerRuntime {
 			if (timer !== undefined) window.clearTimeout(timer);
 			if (idleId !== undefined) browser.cancelIdleCallback?.(idleId);
 		};
+	}
+
+	private frameMonitorTick = (now: number): void => {
+		this.frameMonitorRaf = 0;
+		if (this.frameMonitorUsers === 0 || typeof document === "undefined" || document.hidden) return;
+		const timing = this.frameClock.step(now);
+		if (timing.delta > 0) {
+			const detectedRefreshRate = resolveAdaptiveTargetFps("display", timing.refreshRate);
+			this.highestObservedRefreshRate = Math.max(this.highestObservedRefreshRate, detectedRefreshRate);
+			this.reportFrame(timing.delta, 1000 / this.highestObservedRefreshRate);
+		}
+		this.frameMonitorRaf = window.requestAnimationFrame(this.frameMonitorTick);
+	};
+
+	private handleVisibilityChange = (): void => {
+		this.frameClock.discontinuity();
+		if (document.hidden) {
+			if (this.frameMonitorRaf !== 0) window.cancelAnimationFrame(this.frameMonitorRaf);
+			this.frameMonitorRaf = 0;
+			return;
+		}
+		if (this.frameMonitorUsers > 0 && this.frameMonitorRaf === 0) {
+			this.frameMonitorRaf = window.requestAnimationFrame(this.frameMonitorTick);
+		}
+	};
+
+	private startFrameMonitor(): void {
+		this.frameClock.discontinuity();
+		document.addEventListener("visibilitychange", this.handleVisibilityChange);
+		if (!document.hidden && this.frameMonitorRaf === 0) {
+			this.frameMonitorRaf = window.requestAnimationFrame(this.frameMonitorTick);
+		}
+	}
+
+	private stopFrameMonitor(): void {
+		document.removeEventListener("visibilitychange", this.handleVisibilityChange);
+		if (this.frameMonitorRaf !== 0) window.cancelAnimationFrame(this.frameMonitorRaf);
+		this.frameMonitorRaf = 0;
+		this.frameClock.discontinuity();
+		this.frameSamples = [];
+		this.highestObservedRefreshRate = 60;
+		if (!this.framePressure) return;
+		this.framePressure = false;
+		for (const listener of [...this.pressureListeners]) listener(false);
 	}
 }
 

@@ -97,7 +97,9 @@ export const EngineImage = memo(function EngineImage({
 		priority,
 		nearMargin: getRootMargin(width, height),
 	});
-	const shouldLoad = priority || schedule.near || schedule.visible;
+	const shouldLoad = priority
+		|| schedule.visible
+		|| (schedule.near && !schedule.underFramePressure);
 
 	useEffect(() => {
 		injectImageCSS();

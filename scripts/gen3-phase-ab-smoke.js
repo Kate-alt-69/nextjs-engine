@@ -65,21 +65,28 @@ for (const workClass of ["critical", "visible", "near", "deferred", "sleeping"])
 }
 check(scheduler.includes("reportFrame"), "scheduler accepts frame-pressure observations");
 check(scheduler.includes("runWhenIdle"), "scheduler can defer noncritical idle work");
+check(scheduler.includes("acquireFrameMonitor"), "scheduler shares a refresh-aware frame-pressure monitor");
+check(scheduler.includes("p75Load"), "frame pressure is based on missed budget rather than treating normal frame cadence as overload");
+check(scheduler.includes("viewportPools.delete"), "unused scheduler observer pools are released");
 
 const lazyMount = read("src/engine/components/LazyMount.tsx");
 check(lazyMount.includes("useEngineSchedule"), "LazyMount uses the shared scheduler");
+check(lazyMount.includes("!schedule.underFramePressure"), "LazyMount delays speculative near-viewport activation during frame pressure");
 check(!lazyMount.includes("data-engine-work"), "scheduler state is not fingerprinted into production DOM");
 
 const image = read("src/engine/components/EngineImage.tsx");
 check(image.includes("useEngineSchedule"), "EngineImage uses the shared scheduler");
 check(image.includes("shouldLoad"), "non-priority images wait for viewport scheduling");
+check(image.includes("!schedule.underFramePressure"), "near images defer network/decode work while visible frames are pressured");
 
 const video = read("src/engine/components/EngineVideo.tsx");
 check(video.includes("useEngineSchedule"), "EngineVideo uses the shared scheduler");
 check(video.includes("video.pause()"), "offscreen autoplay video pauses");
+check(video.includes("!schedule.underFramePressure"), "near video initialization waits while visible frames are pressured");
 
 const canvasFacade = read("src/engine/components/EngineCanvas.tsx");
 check(canvasFacade.includes("adaptiveProp ?? false"), "Gen 3 Canvas preserves resolution unless adaptive DPR is explicitly enabled");
+check(canvasFacade.includes("acquireFrameMonitor"), "Canvas/Shader activity feeds the shared frame-pressure monitor without changing resolution");
 
 const model = read("src/engine/core/EngineModel.ts");
 for (const api of ["get<", "set<", "update<", "computed<", "action<", "watch<", "subscribe("]) {
@@ -91,6 +98,12 @@ check(page.includes("compilePage"), "createPage produces a Generation 3 compiler
 check(page.includes("EngineServerRenderer"), "createPage can render compiler-safe pages server-first");
 check(page.includes("compileAdaptiveSchema"), "createPage compiles request-aware phone/tablet layouts");
 check(page.includes("serverFirst !== false"), "server-first rendering has an explicit migration escape hatch");
+
+const publicApi = read("src/engine/index.ts");
+check(publicApi.includes("compileAdaptiveSchema"), "Phase A/B compiler and adaptive APIs are public");
+check(publicApi.includes("EngineScheduler"), "EngineScheduler is public");
+check(publicApi.includes("EngineModel"), "EngineModel is public");
+check(publicApi.includes("EngineViewport"), "EngineViewport is public");
 
 const server = read("src/engine/core/EngineServer.ts");
 check(server.includes("EngineServerSession"), "EngineServer exposes request-scoped server state");

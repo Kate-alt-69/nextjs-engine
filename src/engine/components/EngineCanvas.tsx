@@ -6,12 +6,13 @@
 // DPR path remains available only when a developer explicitly opts into it.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { memo, type CSSProperties } from "react";
+import React, { memo, useEffect, type CSSProperties } from "react";
 import {
 	EngineCanvas as CoreEngineCanvas,
 	useEngineCanvas,
 	type EngineCanvasProps as CoreEngineCanvasProps,
 } from "../core/enginecanvas/EngineCanvas";
+import { EngineScheduler } from "../core/enginescheduler";
 import { EngineShader } from "./EngineShader";
 import type { EngineShaderInput } from "../core/engineshader/EngineShaderTypes";
 
@@ -34,6 +35,9 @@ export const EngineCanvas = memo(function EngineCanvas({
 	...props
 }: EngineCanvasProps) {
 	const adaptive = adaptiveProp ?? false;
+
+	useEffect(() => EngineScheduler.acquireFrameMonitor(), []);
+
 	if (!shader) return <CoreEngineCanvas {...props} adaptive={adaptive} />;
 
 	const {
