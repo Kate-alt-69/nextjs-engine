@@ -1,6 +1,6 @@
 "use client";
 // ─────────────────────────────────────────────────────────────────────────────
-// EngineImage — viewport-aware Next image wrapper
+// EngineImage — EngineScheduler-aware Next image wrapper
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, {
@@ -13,7 +13,7 @@ import React, {
 } from "react";
 import Image, { getImageProps } from "next/image";
 import type { ImageNodeProps } from "../schema/types";
-import { useInView } from "../hooks/useInView";
+import { useEngineSchedule } from "../hooks/useEngineScheduler";
 
 let imgCSSInjected = false;
 
@@ -93,16 +93,16 @@ export const EngineImage = memo(function EngineImage({
 }: EngineImageProps) {
 	const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
 	const loaded = loadedSrc === src;
+	const schedule = useEngineSchedule<HTMLDivElement>({
+		priority,
+		nearMargin: getRootMargin(width, height),
+	});
+	const shouldLoad = priority || schedule.near || schedule.visible;
 
 	useEffect(() => {
 		injectImageCSS();
 	}, []);
 
-	const { ref, inView } = useInView<HTMLDivElement>({
-		rootMargin: getRootMargin(width, height),
-		once: true,
-		initialInView: priority,
-	});
 	const handleLoad = useCallback(() => {
 		setLoadedSrc(src);
 		onLoad?.();
@@ -140,27 +140,10 @@ export const EngineImage = memo(function EngineImage({
 		};
 
 		return {
-			mobile: getImageProps({
-				...baseProps,
-				quality: mobileQuality,
-			}),
-			desktop: getImageProps({
-				...baseProps,
-				quality: desktopQuality,
-			}),
+			mobile: getImageProps({ ...baseProps, quality: mobileQuality }),
+			desktop: getImageProps({ ...baseProps, quality: desktopQuality }),
 		};
-	}, [
-		alt,
-		desktopQuality,
-		fill,
-		height,
-		mobileQuality,
-		priority,
-		resolvedSizes,
-		src,
-		usePerViewport,
-		width,
-	]);
+	}, [alt, desktopQuality, fill, height, mobileQuality, priority, resolvedSizes, src, usePerViewport, width]);
 
 	const wrapperStyle: CSSProperties = {
 		position: "relative",
@@ -210,51 +193,23 @@ export const EngineImage = memo(function EngineImage({
 	};
 
 	let imageNode: React.ReactNode = null;
-	if (inView) {
+	if (shouldLoad) {
 		if (responsiveProps) {
 			const generatedStyle = responsiveProps.desktop.props.style as CSSProperties | undefined;
 			imageNode = (
-				<picture
-					style={{
-						display: "block",
-						width: "100%",
-						height: fill || resolvedAspectRatio ? "100%" : "auto",
-					}}
-				>
-					<source
-						media="(max-width: 767px)"
-						srcSet={responsiveProps.mobile.props.srcSet}
-						sizes={responsiveProps.mobile.props.sizes}
-					/>
-					<source
-						media="(min-width: 768px)"
-						srcSet={responsiveProps.desktop.props.srcSet}
-						sizes={responsiveProps.desktop.props.sizes}
-					/>
-					<img
-						{...responsiveProps.desktop.props}
-						style={{ ...generatedStyle, ...imageStyle }}
-						onLoad={handleLoad}
-					/>
+				<picture style={{ display: "block", width: "100%", height: fill || resolvedAspectRatio ? "100%" : "auto" }}>
+					<source media="(max-width: 767px)" srcSet={responsiveProps.mobile.props.srcSet} sizes={responsiveProps.mobile.props.sizes} />
+					<source media="(min-width: 768px)" srcSet={responsiveProps.desktop.props.srcSet} sizes={responsiveProps.desktop.props.sizes} />
+					<img {...responsiveProps.desktop.props} style={{ ...generatedStyle, ...imageStyle }} onLoad={handleLoad} />
 				</picture>
 			);
 		} else {
-			imageNode = (
-				<Image
-					{...commonImageProps}
-					quality={resolvedQuality}
-					onLoad={handleLoad}
-				/>
-			);
+			imageNode = <Image {...commonImageProps} quality={resolvedQuality} onLoad={handleLoad} />;
 		}
 	}
 
 	const wrapper = (
-		<div
-			ref={ref}
-			style={wrapperStyle}
-			className={`e-img-wrap${className ? ` ${className}` : ""}`}
-		>
+		<div ref={schedule.ref} style={wrapperStyle} className={`e-img-wrap${className ? ` ${className}` : ""}`}>
 			{placeholder}
 			{imageNode}
 		</div>
@@ -264,14 +219,7 @@ export const EngineImage = memo(function EngineImage({
 	return (
 		<figure style={{ margin: 0, padding: 0 }}>
 			{wrapper}
-			<figcaption
-				style={{
-					textAlign: "center",
-					fontSize: "0.85rem",
-					color: "var(--e-caption-color, #64748b)",
-					marginTop: "0.5rem",
-				}}
-			>
+			<figcaption style={{ textAlign: "center", fontSize: "0.85rem", color: "var(--e-caption-color, #64748b)", marginTop: "0.5rem" }}>
 				{caption}
 			</figcaption>
 		</figure>
