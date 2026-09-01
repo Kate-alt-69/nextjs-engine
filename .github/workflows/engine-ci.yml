@@ -2,9 +2,9 @@ name: Engine runtime CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 3_gen_main]
   pull_request:
-    branches: [main]
+    branches: [main, 3_gen_main]
 
 permissions:
   contents: read
@@ -50,6 +50,9 @@ jobs:
           node scripts/primitive-style-precedence-smoke.js
       - name: Test React and Next compatibility contracts
         run: node scripts/react-runtime-compat-smoke.js
+      - name: Test Generation 3 phase A/B contracts
+        if: github.ref_name == '3_gen_main' || github.base_ref == '3_gen_main'
+        run: node scripts/gen3-phase-ab-smoke.js
       - name: Type-check engine
         run: npm run type-check
       - name: Build Next.js integration app
