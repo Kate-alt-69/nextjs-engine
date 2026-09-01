@@ -10,18 +10,31 @@ import type {
 	PageMeta,
 	MarkdownProps,
 	EngineTheme as EngineThemeConfig,
-	MobileSchemaConfig,
 } from "./schema/types";
 import { EngineCollectedStyles, EngineProvider } from "./providers/EngineProvider";
 import { EngineScrollProvider } from "./core/enginescroll";
 import { SchemaRenderer } from "./core/SchemaRenderer";
-import { applyMobilePatches } from "./core/EngineMobilePatcher";
+import {
+	compileAdaptiveSchema,
+	type EngineAdaptiveDeviceConfig,
+} from "./compiler/EngineAdaptiveCompiler";
+import { compilePage } from "./compiler/EngineCompiler";
+import type { EngineCompiledPage } from "./compiler/types";
+
+export interface EngineCompilerOptions {
+	strict?: boolean;
+	pageId?: string;
+}
 
 interface CreateOptionsBase {
 	config?: EngineConfig;
 	handlers?: Record<string, (...args: unknown[]) => void>;
 	slots?: Record<string, ReactNode>;
-	mobile?: MobileSchemaConfig;
+	/** Generation 3 phone adaptation. Existing patch arrays remain supported. */
+	mobile?: EngineAdaptiveDeviceConfig;
+	/** Generation 3 tablet adaptation. Falls back to `mobile` when omitted. */
+	tablet?: EngineAdaptiveDeviceConfig;
+	compiler?: EngineCompilerOptions;
 }
 
 export interface CreateSchemaPageOptions extends CreateOptionsBase {
@@ -53,11 +66,13 @@ export interface EngineComponentProps {
 	children?: ReactNode;
 }
 
-type EnginePageComponent = () => ReactNode | Promise<ReactNode>;
+export type EnginePageComponent = (() => ReactNode | Promise<ReactNode>) & {
+	/** Base, request-independent Generation 3 compiler plan for dev tooling. */
+	enginePlan: EngineCompiledPage;
+};
 
 interface NormalizedCreateOptions extends CreateOptionsBase {
 	schema: PageSchema;
-	mobile?: MobileSchemaConfig;
 }
 
 function isSchemaOption(options: CreatePageOptions): options is CreateSchemaPageOptions {
@@ -107,15 +122,18 @@ function createMarkdownSchema(options: CreateMarkdownPageOptions): PageSchema {
 }
 
 function normalizeCreateOptions(options: CreatePageOptions): NormalizedCreateOptions {
-	const { config, handlers, slots, mobile } = options;
-	if (isSchemaOption(options)) return { schema: options.schema, config, handlers, slots, mobile };
+	const { config, handlers, slots, mobile, tablet, compiler } = options;
+	if (isSchemaOption(options)) return { schema: options.schema, config, handlers, slots, mobile, tablet, compiler };
 	if (isDirectSchemaOption(options)) {
 		return {
 			schema: { meta: options.meta, theme: options.theme, root: options.root },
-			config, handlers, slots, mobile,
+			config, handlers, slots, mobile, tablet, compiler,
 		};
 	}
-	return { schema: createMarkdownSchema(options), config, handlers, slots, mobile };
+	return {
+		schema: createMarkdownSchema(options),
+		config, handlers, slots, mobile, tablet, compiler,
+	};
 }
 
 function nodeHasMarkdownFile(node: SchemaNode): boolean {
@@ -178,9 +196,13 @@ function EngineTheme({ schema }: { schema: PageSchema }) {
 }
 
 export function createPage(options: CreatePageOptions): EnginePageComponent {
-	const { schema, config, handlers, slots, mobile } = normalizeCreateOptions(options);
+	const { schema, config, handlers, slots, mobile, tablet, compiler } = normalizeCreateOptions(options);
 	const shouldResolveMarkdown = nodeHasMarkdownFile(schema.root);
-	const hasMobilePatches = mobile !== undefined && mobile.length > 0;
+	const usesAdaptiveLayout = mobile !== undefined || tablet !== undefined;
+	const basePlan = compilePage(schema, {
+		pageId: compiler?.pageId,
+		strict: compiler?.strict,
+	});
 
 	function renderPage(resolvedSchema: PageSchema) {
 		return (
@@ -194,25 +216,33 @@ export function createPage(options: CreatePageOptions): EnginePageComponent {
 		);
 	}
 
-	if (shouldResolveMarkdown || hasMobilePatches) {
+	if (shouldResolveMarkdown || usesAdaptiveLayout) {
 		async function EnginePage() {
 			let resolvedSchema: PageSchema = shouldResolveMarkdown ? await resolveMarkdownFiles(schema) : schema;
-			if (hasMobilePatches) {
+			if (usesAdaptiveLayout) {
 				const { getServerDevice } = await import("./core/EngineDeviceServer");
 				const device = await getServerDevice();
-				if (device.isMobile || device.isTablet) resolvedSchema = applyMobilePatches(resolvedSchema, mobile!);
+				if (device.isMobile) {
+					resolvedSchema = compileAdaptiveSchema(resolvedSchema, "phone", mobile).schema;
+				} else if (device.isTablet) {
+					resolvedSchema = compileAdaptiveSchema(resolvedSchema, "tablet", tablet ?? mobile).schema;
+				}
 			}
 			return renderPage(resolvedSchema);
 		}
 		EnginePage.displayName = `EnginePage(${schema.meta?.title ?? "unnamed"})`;
-		return EnginePage;
+		const compiledPage = EnginePage as EnginePageComponent;
+		compiledPage.enginePlan = basePlan;
+		return compiledPage;
 	}
 
 	function EnginePage() {
 		return renderPage(schema);
 	}
 	EnginePage.displayName = `EnginePage(${schema.meta?.title ?? "unnamed"})`;
-	return EnginePage;
+	const compiledPage = EnginePage as EnginePageComponent;
+	compiledPage.enginePlan = basePlan;
+	return compiledPage;
 }
 
 export function createComponent(options: CreateComponentOptions): React.FC<EngineComponentProps> {
