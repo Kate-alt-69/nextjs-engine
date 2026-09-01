@@ -188,7 +188,14 @@ export function resolveNodeRuntime(node: SchemaNode): {
 		};
 	}
 
-	if ((node.type === "link" || node.type === "EngineLink") && !hasAnimatedTransition(node)) {
+	if (node.type === "link" || node.type === "EngineLink") {
+		if (hasAnimatedTransition(node)) {
+			return {
+				runtime: "client",
+				reason: "This link requests an animated page transition and therefore needs the browser transition runtime.",
+				profile,
+			};
+		}
 		return {
 			runtime: "server",
 			reason: "This ordinary link has no animated transition or handler and can stay server-rendered.",
