@@ -53,6 +53,9 @@ jobs:
       - name: Test Generation 3 phase A/B contracts
         if: github.ref_name == '3_gen_main' || github.base_ref == '3_gen_main'
         run: node scripts/gen3-phase-ab-smoke.js
+      - name: Test Generation 3 phase C foundation
+        if: github.ref_name == '3_gen_main' || github.base_ref == '3_gen_main'
+        run: node scripts/gen3-phase-c-smoke.js
       - name: Type-check engine
         run: npm run type-check
       - name: Build Next.js integration app

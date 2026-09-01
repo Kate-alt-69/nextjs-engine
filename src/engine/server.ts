@@ -10,3 +10,13 @@ export type {
 export { getServerDevice } from "./core/EngineDeviceServer";
 export { detectDevice, DESKTOP_DEVICE } from "./core/EngineDeviceShared";
 export type { DeviceBrand, DeviceInfo, DeviceOS } from "./core/EngineDeviceShared";
+
+export { EngineCORS, EngineCORSRuleSet } from "./core/EngineCORS";
+export type { EngineCORSConfig } from "./core/EngineCORS";
+
+export {
+	executeRegisteredEngineCommand,
+	getRegisteredEngineCommand,
+	inspectEngineCommands,
+} from "./core/nenc/EngineCommand";
+export type { EngineCommandServerContext } from "./core/nenc/types";
