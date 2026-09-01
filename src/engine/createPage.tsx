@@ -19,11 +19,14 @@ import {
 	type EngineAdaptiveDeviceConfig,
 } from "./compiler/EngineAdaptiveCompiler";
 import { compilePage } from "./compiler/EngineCompiler";
+import { EngineServerRenderer } from "./compiler/EngineServerRenderer";
 import type { EngineCompiledPage } from "./compiler/types";
 
 export interface EngineCompilerOptions {
 	strict?: boolean;
 	pageId?: string;
+	/** Set false to temporarily force the v2 client renderer while migrating. */
+	serverFirst?: boolean;
 }
 
 interface CreateOptionsBase {
@@ -199,12 +202,14 @@ export function createPage(options: CreatePageOptions): EnginePageComponent {
 	const { schema, config, handlers, slots, mobile, tablet, compiler } = normalizeCreateOptions(options);
 	const shouldResolveMarkdown = nodeHasMarkdownFile(schema.root);
 	const usesAdaptiveLayout = mobile !== undefined || tablet !== undefined;
+	const hasNamedHandlers = handlers !== undefined && Object.keys(handlers).length > 0;
+	const useServerFirstRenderer = compiler?.serverFirst !== false && !hasNamedHandlers;
 	const basePlan = compilePage(schema, {
 		pageId: compiler?.pageId,
 		strict: compiler?.strict,
 	});
 
-	function renderPage(resolvedSchema: PageSchema) {
+	function renderLegacyPage(resolvedSchema: PageSchema) {
 		return (
 			<EngineScrollProvider>
 				<EngineProvider config={config} handlers={handlers} slots={slots}>
@@ -213,6 +218,22 @@ export function createPage(options: CreatePageOptions): EnginePageComponent {
 					<EngineCollectedStyles id="__engine_styles__" />
 				</EngineProvider>
 			</EngineScrollProvider>
+		);
+	}
+
+	function renderPage(resolvedSchema: PageSchema) {
+		if (!useServerFirstRenderer) return renderLegacyPage(resolvedSchema);
+		const resolvedPlan = resolvedSchema === schema
+			? basePlan
+			: compilePage(resolvedSchema, {
+				pageId: compiler?.pageId,
+				strict: compiler?.strict,
+			});
+		return (
+			<>
+				<EngineTheme schema={resolvedSchema} />
+				<EngineServerRenderer schema={resolvedSchema} plan={resolvedPlan} config={config} slots={slots} />
+			</>
 		);
 	}
 
