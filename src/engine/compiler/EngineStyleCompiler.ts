@@ -48,6 +48,16 @@ function compileAtRules(
 	}
 }
 
+export function compileStyleAtRuleClass(
+	style: CSSProperties | EngineStyleObject | undefined,
+	collector: StyleCollector,
+): string | undefined {
+	if (!style || !Object.keys(style).some((key) => key.startsWith("@"))) return undefined;
+	const className = `e-style-${stableHash(JSON.stringify(style))}`;
+	compileAtRules(style as EngineStyleObject, `.${className}`, collector);
+	return className;
+}
+
 function applySpacing(
 	style: CSSProperties,
 	collector: StyleCollector,
@@ -219,8 +229,6 @@ export function compileEngineStyles(
 			if (key.startsWith("@")) continue;
 			(inlineExtra as Record<string, unknown>)[key] = value;
 		}
-		const className = `.e-style-${stableHash(JSON.stringify(extraStyle))}`;
-		compileAtRules(extraStyle as EngineStyleObject, className, collector);
 	}
 	return { ...style, ...inlineExtra };
 }
