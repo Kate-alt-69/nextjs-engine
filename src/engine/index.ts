@@ -3,7 +3,56 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export { createPage, createComponent, defineSchema } from "./createPage";
-export type { CreateComponentOptions, CreatePageOptions, EngineComponentProps } from "./createPage";
+export type {
+	CreateComponentOptions,
+	CreatePageOptions,
+	EngineComponentProps,
+	EngineCompilerOptions,
+	EnginePageComponent,
+} from "./createPage";
+
+// Generation 3 compiler/runtime foundation. Server-only request helpers remain
+// in `nextjs-engine/server`; this barrel only exposes browser/server-safe APIs.
+export {
+	compilePage,
+	explainCompiledNode,
+	findCompiledNode,
+	getEngineRuntimeProfile,
+	registerEngineRuntimeProfile,
+	resolveNodeRuntime,
+	unregisterEngineRuntimeProfile,
+} from "./compiler";
+export type {
+	EngineAssetKind,
+	EngineCapability,
+	EngineCompileOptions,
+	EngineCompiledAsset,
+	EngineCompiledNode,
+	EngineCompiledPage,
+	EngineCompilerDiagnostic,
+	EngineCompilerSummary,
+	EngineDeviceTarget,
+	EngineRuntimeKind,
+	EngineRuntimeProfile,
+	EngineWorkClass,
+} from "./compiler";
+export { compileAdaptiveSchema } from "./compiler/EngineAdaptiveCompiler";
+export type {
+	EngineAdaptiveChange,
+	EngineAdaptiveCompileResult,
+	EngineAdaptiveDeviceConfig,
+	EngineAdaptiveDeviceOptions,
+} from "./compiler/EngineAdaptiveCompiler";
+export { EngineScheduler } from "./core/enginescheduler";
+export type { EngineScheduleListener, EngineSchedulePolicy, EngineScheduleSnapshot } from "./core/enginescheduler";
+export { useEngineSchedule, useEngineVisible } from "./hooks/useEngineScheduler";
+export type { UseEngineScheduleReturn } from "./hooks/useEngineScheduler";
+export { EngineModel } from "./core/EngineModel";
+export type { EngineModelAction, EngineModelKeyListener, EngineModelListener, EngineModelState } from "./core/EngineModel";
+export { useEngineModel, useEngineModelValue } from "./hooks/useEngineModel";
+export { EngineViewport } from "./core/EngineViewport";
+export type { EngineViewportSnapshot } from "./core/EngineViewport";
+export { useEngineViewport } from "./hooks/useEngineViewport";
 
 export { generateEngineMetadata } from "./core/engineMetadata";
 
