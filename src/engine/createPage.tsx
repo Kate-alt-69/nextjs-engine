@@ -263,13 +263,28 @@ export function createPage(options: CreatePageOptions): EnginePageComponent {
 }
 
 export function createComponent(options: CreateComponentOptions): React.FC<EngineComponentProps> {
-	const { schema, config, handlers, slots } = normalizeCreateOptions(options);
+	const { schema, config, handlers, slots, compiler } = normalizeCreateOptions(options);
+	const hasNamedHandlers = handlers !== undefined && Object.keys(handlers).length > 0;
+	const useServerFirstRenderer = compiler?.serverFirst !== false && !hasNamedHandlers;
+	const basePlan = compilePage(schema, {
+		pageId: compiler?.pageId,
+		strict: compiler?.strict,
+	});
+
 	function EngineComponent({ children, slots: runtimeSlots }: EngineComponentProps) {
 		const mergedSlots = {
 			...(slots ?? {}),
 			...(runtimeSlots ?? {}),
 			...(children !== undefined ? { children } : {}),
 		};
+		if (useServerFirstRenderer) {
+			return (
+				<>
+					<EngineTheme schema={schema} />
+					<EngineServerRenderer schema={schema} plan={basePlan} config={config} slots={mergedSlots} />
+				</>
+			);
+		}
 		return (
 			<EngineProvider config={config} handlers={handlers} slots={mergedSlots}>
 				<EngineTheme schema={schema} />
@@ -279,7 +294,7 @@ export function createComponent(options: CreateComponentOptions): React.FC<Engin
 		);
 	}
 	EngineComponent.displayName = `EngineComponent(${schema.meta?.title ?? "unnamed"})`;
-	return EngineComponent;
+	return Object.assign(EngineComponent, { enginePlan: basePlan });
 }
 
 export function defineSchema(schema: PageSchema): PageSchema {
