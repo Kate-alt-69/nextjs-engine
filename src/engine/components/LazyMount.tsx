@@ -123,12 +123,7 @@ export const LazyMount = memo(function LazyMount({
 	);
 
 	return (
-		<div
-			ref={schedule.ref}
-			className={className}
-			style={containerStyle}
-			data-engine-work={schedule.state}
-		>
+		<div ref={schedule.ref} className={className} style={containerStyle}>
 			{activated ? (
 				<Suspense fallback={fallback}>{children}</Suspense>
 			) : fallback}
