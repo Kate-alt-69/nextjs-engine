@@ -16,7 +16,17 @@ export type { EngineCORSConfig } from "./core/EngineCORS";
 
 export {
 	executeRegisteredEngineCommand,
+	getEngineCommandBuildDescriptors,
 	getRegisteredEngineCommand,
 	inspectEngineCommands,
+	validateEngineCommandInput,
 } from "./core/nenc/EngineCommand";
-export type { EngineCommandServerContext } from "./core/nenc/types";
+export type {
+	EngineCommandInputField,
+	EngineCommandInputSchema,
+	EngineCommandInputType,
+	EngineCommandServerContext,
+	NENCServerCommand,
+	NENCServerManifest,
+	NENCWireHeaders,
+} from "./core/nenc";

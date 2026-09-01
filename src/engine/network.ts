@@ -18,7 +18,9 @@ export type {
 export {
 	EngineCommand,
 	configureEngineCommandTransport,
+	createNENCTransport,
 	registerEngineCommand,
+	validateEngineCommandInput,
 } from "./core/nenc";
 export type {
 	EngineCommandAuth,
@@ -26,7 +28,15 @@ export type {
 	EngineCommandDescriptor,
 	EngineCommandExecutionContext,
 	EngineCommandHandle,
+	EngineCommandInputField,
+	EngineCommandInputSchema,
+	EngineCommandInputType,
 	EngineCommandRuntime,
 	EngineCommandServerContext,
 	EngineCommandTransport,
+	NENCClientCommand,
+	NENCClientManifest,
+	NENCServerCommand,
+	NENCServerManifest,
+	NENCWireHeaders,
 } from "./core/nenc";

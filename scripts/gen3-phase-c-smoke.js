@@ -25,6 +25,9 @@ const requiredFiles = [
 	"src/engine/core/enginecookies/EngineCookies.ts",
 	"src/engine/core/nenc/types.ts",
 	"src/engine/core/nenc/EngineCommand.ts",
+	"src/engine/core/nenc/NENCManifest.ts",
+	"src/engine/core/nenc/NENCClient.ts",
+	"src/engine/plugins/nencCompiler.js",
 	"src/engine/core/EngineCORS.ts",
 ];
 
@@ -43,9 +46,24 @@ check(!cookies.includes("payload:"), "EngineCookie index never stores credential
 check(cookies.includes("randomStorageId"), "EngineCookie aliases map to opaque storage identifiers");
 
 const command = read("src/engine/core/nenc/EngineCommand.ts");
+check(command.includes("validateEngineCommandInput"), "command input schemas are validated before execute()");
+check(command.includes("Object.create(null)"), "validated command input avoids prototype-bearing output objects");
 check(command.includes("NENC transport is not configured"), "client command calls cannot silently bypass NENC");
 check(command.includes("Command inspection is development-only"), "command introspection fails closed in production");
 check(command.includes("Invalid command request"), "unknown server commands return a generic failure");
+
+const manifest = read("src/engine/core/nenc/NENCManifest.ts");
+check(manifest.includes('endpoint: "/_static/command"'), "client/server manifests use the single NENC endpoint");
+check(manifest.includes("commandsById"), "server manifest resolves opaque command ids");
+
+const client = read("src/engine/core/nenc/NENCClient.ts");
+check(client.includes("credentials: \"same-origin\""), "NENC client transport keeps credentials same-origin by default");
+check(client.includes("randomNonce"), "NENC client sends a fresh request nonce");
+
+const compiler = read("src/engine/plugins/nencCompiler.js");
+check(compiler.includes('ENDPOINT = "/_static/command"'), "NENC compiler emits only the single command endpoint");
+check(compiler.includes('createHmac("sha256"'), "wire ids are build-derived with HMAC");
+check(!compiler.includes("/_static/command/"), "NENC compiler does not emit per-command routes");
 
 const cors = read("src/engine/core/EngineCORS.ts");
 check(cors.includes("Credentialed CORS cannot use a wildcard origin"), "credentialed CORS rejects wildcard origins");
