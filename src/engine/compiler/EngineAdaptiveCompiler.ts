@@ -9,6 +9,8 @@ import type { MobileSchemaConfig, PageSchema, SchemaNode } from "../schema/types
 import { applyMobilePatches } from "../core/EngineMobilePatcher";
 import type { EngineDeviceTarget } from "./types";
 
+export type EngineAdaptiveRole = "header" | "navigation" | "hero" | "content" | "footer" | "generic";
+
 export interface EngineAdaptiveChange {
 	path: string;
 	nodeType: string;
@@ -25,10 +27,36 @@ export interface EngineAdaptiveCompileResult {
 
 export interface EngineAdaptiveDeviceOptions {
 	mode: "auto";
+	/** Set false when only structural adaptation + explicit patches are desired. */
+	compact?: boolean;
 	patches?: MobileSchemaConfig;
 }
 
 export type EngineAdaptiveDeviceConfig = "auto" | MobileSchemaConfig | EngineAdaptiveDeviceOptions;
+
+interface AdaptiveContext {
+	target: Exclude<EngineDeviceTarget, "desktop">;
+	compact: boolean;
+}
+
+const ROLE_SPACING = {
+	phone: {
+		header: { px: "1rem", py: "0.75rem", gap: "0.75rem" },
+		navigation: { px: "1rem", py: "0.75rem", gap: "0.75rem" },
+		hero: { px: "1.25rem", py: "3.5rem", gap: "1.5rem" },
+		content: { px: "1.25rem", py: "3.5rem", gap: "1.25rem" },
+		footer: { px: "1.25rem", py: "2.5rem", gap: "1.25rem" },
+		generic: { px: "1.25rem", py: "3.5rem", gap: "1.25rem" },
+	},
+	tablet: {
+		header: { px: "1.5rem", py: "1rem", gap: "1rem" },
+		navigation: { px: "1.5rem", py: "1rem", gap: "1rem" },
+		hero: { px: "1.75rem", py: "4.5rem", gap: "2rem" },
+		content: { px: "1.75rem", py: "4.5rem", gap: "1.75rem" },
+		footer: { px: "1.75rem", py: "3.5rem", gap: "1.5rem" },
+		generic: { px: "1.75rem", py: "4.5rem", gap: "1.75rem" },
+	},
+} as const;
 
 function isPatchList(config: EngineAdaptiveDeviceConfig | undefined): config is MobileSchemaConfig {
 	return Array.isArray(config);
@@ -48,14 +76,109 @@ function withDefaults(
 	return changed ? output : props;
 }
 
+function normalizedHint(value: unknown): string {
+	return typeof value === "string"
+		? value.trim().toLowerCase().replace(/[_\s]+/g, "-")
+		: "";
+}
+
+function inferAdaptiveRole(node: SchemaNode): EngineAdaptiveRole {
+	const props = node.props ?? {};
+	const explicit = normalizedHint(props.adaptiveRole);
+	if (["header", "navigation", "hero", "content", "footer"].includes(explicit)) {
+		return explicit as EngineAdaptiveRole;
+	}
+
+	const htmlRole = normalizedHint(props.role);
+	if (htmlRole === "banner") return "header";
+	if (htmlRole === "navigation") return "navigation";
+	if (htmlRole === "main") return "content";
+	if (htmlRole === "contentinfo") return "footer";
+	if (node.type === "nav" || node.type === "EngineNav") return "navigation";
+	if (node.type === "hero") return "hero";
+
+	const name = normalizedHint(node.name);
+	if (/(^|-)header($|-)|(^|-)topbar($|-)/.test(name)) return "header";
+	if (/(^|-)nav($|-)|(^|-)navbar($|-)|(^|-)navigation($|-)/.test(name)) return "navigation";
+	if (/(^|-)footer($|-)/.test(name)) return "footer";
+	if (/(^|-)hero($|-)/.test(name)) return "hero";
+	if (/(^|-)main($|-)|(^|-)content($|-)|(^|-)body($|-)/.test(name)) return "content";
+	if (node.type === "section") return "content";
+	return "generic";
+}
+
+function isResponsiveValue(value: unknown): boolean {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+	return ["xs", "sm", "md", "lg", "xl", "2xl"].some((key) => key in value);
+}
+
+function asCssLength(value: unknown): string | undefined {
+	if (typeof value === "number" && Number.isFinite(value)) {
+		return value === 0 ? "0" : `${value / 16}rem`;
+	}
+	if (typeof value !== "string") return undefined;
+	const trimmed = value.trim();
+	if (!trimmed || trimmed === "auto" || trimmed === "none" || trimmed === "normal") return undefined;
+	if (/^-?(?:\d+|\d*\.\d+)(?:px|rem|em|%|vw|vh|svw|svh|dvw|dvh|vmin|vmax|ch|ex|cap|ic|lh|rlh)$/.test(trimmed)) return trimmed;
+	if (/^(?:var|calc|clamp|min|max)\(/.test(trimmed)) return trimmed;
+	return undefined;
+}
+
+function capSpacing(
+	props: Record<string, unknown>,
+	key: string,
+	cap: string,
+	fallbackWhenMissing = false,
+): Record<string, unknown> {
+	const current = props[key];
+	if (current === undefined) return fallbackWhenMissing ? { ...props, [key]: cap } : props;
+	if (isResponsiveValue(current)) return props;
+	const cssLength = asCssLength(current);
+	if (!cssLength || cssLength === "0") return props;
+	const next = `min(${cssLength}, ${cap})`;
+	return current === next ? props : { ...props, [key]: next };
+}
+
+function compactSemanticSpacing(
+	props: Record<string, unknown>,
+	role: EngineAdaptiveRole,
+	target: AdaptiveContext["target"],
+	nodeType: string,
+): Record<string, unknown> {
+	const limits = ROLE_SPACING[target][role];
+	let output = props;
+	const sectionLike = nodeType === "section" || nodeType === "hero";
+	output = capSpacing(output, "px", limits.px, sectionLike);
+	output = capSpacing(output, "py", limits.py, sectionLike);
+	output = capSpacing(output, "gap", limits.gap);
+	output = capSpacing(output, "rowGap", limits.gap);
+	output = capSpacing(output, "colGap", limits.gap);
+	if (role === "header" || role === "navigation" || role === "footer") {
+		output = capSpacing(output, "p", limits.px);
+		output = capSpacing(output, "mt", limits.gap);
+		output = capSpacing(output, "mb", limits.gap);
+	}
+	return output;
+}
+
 function adaptNodeProps(
 	node: SchemaNode,
-	target: Exclude<EngineDeviceTarget, "desktop">,
+	context: AdaptiveContext,
 ): { props: Record<string, unknown>; reason?: string } {
 	const original = node.props ?? {};
 	if (original.adaptive === "keep") return { props: original };
+	const { target, compact } = context;
+	const role = inferAdaptiveRole(node);
 	let props = original;
 	const reasons: string[] = [];
+
+	if (compact) {
+		const compacted = compactSemanticSpacing(props, role, target, String(node.type));
+		if (compacted !== props) {
+			props = compacted;
+			reasons.push(`The ${role} layout spacing was compacted for ${target} without changing visual resolution or content.`);
+		}
+	}
 
 	if (node.type === "grid") {
 		const columns = props.columns;
@@ -65,34 +188,19 @@ function adaptNodeProps(
 				autoFit: true,
 				minColWidth: props.minColWidth ?? (target === "phone" ? "min(100%, 220px)" : "min(100%, 250px)"),
 			};
-			reasons.push("Grid columns were converted to container-driven auto-fit so items compact only when available width requires it.");
+			reasons.push("Grid columns now use container-driven auto-fit, so cards compact only when their own available width requires it.");
 		}
 	}
 
 	if (node.type === "stack" && props.direction === "horizontal") {
 		const childCount = Array.isArray(node.children) ? node.children.length : 0;
-		if (target === "phone" && childCount >= 3) {
+		const preserveHorizontalRole = role === "header" || role === "navigation";
+		if (target === "phone" && childCount >= 3 && !preserveHorizontalRole) {
 			props = { ...props, direction: "vertical" };
-			reasons.push("A multi-item horizontal stack becomes vertical on phone-sized layouts to prevent cramped content.");
-		} else if (target === "tablet" && childCount >= 4 && props.wrap === undefined) {
+			reasons.push("A crowded horizontal stack becomes vertical on phone layouts instead of shrinking its contents.");
+		} else if (childCount >= (target === "phone" ? 3 : 4) && props.wrap === undefined) {
 			props = { ...props, wrap: true };
-			reasons.push("A wide tablet stack enables wrapping instead of shrinking its children.");
-		}
-	}
-
-	if (node.type === "section" || node.type === "hero") {
-		const next = withDefaults(props, target === "phone"
-			? {
-				px: "clamp(1rem, 4vw, 1.5rem)",
-				py: "clamp(2.5rem, 8vw, 4rem)",
-			}
-			: {
-				px: "clamp(1.25rem, 3vw, 2rem)",
-				py: "clamp(3rem, 6vw, 5rem)",
-			});
-		if (next !== props) {
-			props = next;
-			reasons.push("Section spacing was compacted with fluid values while preserving the original content and visual styling.");
+			reasons.push("The horizontal stack can wrap when its container becomes too narrow.");
 		}
 	}
 
@@ -131,17 +239,17 @@ function adaptNodeProps(
 
 function adaptTree(
 	node: SchemaNode,
-	target: Exclude<EngineDeviceTarget, "desktop">,
+	context: AdaptiveContext,
 	path: string,
 	changes: EngineAdaptiveChange[],
 ): SchemaNode {
-	const adapted = adaptNodeProps(node, target);
+	const adapted = adaptNodeProps(node, context);
 	let nextChildren = node.children;
 	let childrenChanged = false;
 
 	if (Array.isArray(node.children)) {
 		const output = node.children.map((child, index) => {
-			const nextChild = adaptTree(child, target, `${path}.${index}`, changes);
+			const nextChild = adaptTree(child, context, `${path}.${index}`, changes);
 			if (nextChild !== child) childrenChanged = true;
 			return nextChild;
 		});
@@ -181,8 +289,9 @@ export function compileAdaptiveSchema(
 		return { schema: applyMobilePatches(schema, config), target, changes: [] };
 	}
 
+	const compact = typeof config === "object" ? config.compact !== false : true;
 	const changes: EngineAdaptiveChange[] = [];
-	const root = adaptTree(schema.root, target, "root", changes);
+	const root = adaptTree(schema.root, { target, compact }, "root", changes);
 	let output = root === schema.root ? schema : { ...schema, root };
 	if (typeof config === "object" && config.patches?.length) {
 		output = applyMobilePatches(output, config.patches);
