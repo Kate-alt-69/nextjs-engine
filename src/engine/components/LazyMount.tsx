@@ -1,6 +1,8 @@
 "use client";
 // ─────────────────────────────────────────────────────────────────────────────
-//  Engine — LazyMount
+// Engine — LazyMount
+// Generation 3 routes viewport preparation through EngineScheduler so lazy
+// modules share one work policy instead of each subsystem inventing its own.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, {
@@ -9,7 +11,7 @@ import React, {
 	type CSSProperties,
 	type ReactNode,
 } from "react";
-import { useInView } from "../hooks/useInView";
+import { useEngineSchedule } from "../hooks/useEngineScheduler";
 
 export interface LazyMountProps {
 	children: ReactNode;
@@ -87,11 +89,15 @@ export const LazyMount = memo(function LazyMount({
 	className,
 	style,
 }: LazyMountProps) {
-	const { ref, inView } = useInView<HTMLDivElement>({
-		rootMargin,
-		once: true,
-		initialInView: eager,
+	const schedule = useEngineSchedule<HTMLDivElement>({
+		priority: eager,
+		nearMargin: rootMargin,
 	});
+	const [activated, setActivated] = React.useState(eager);
+
+	React.useEffect(() => {
+		if (schedule.near || schedule.visible || schedule.state === "critical") setActivated(true);
+	}, [schedule.near, schedule.state, schedule.visible]);
 
 	React.useEffect(() => {
 		injectShimmerCSS();
@@ -117,8 +123,13 @@ export const LazyMount = memo(function LazyMount({
 	);
 
 	return (
-		<div ref={ref} className={className} style={containerStyle}>
-			{inView ? (
+		<div
+			ref={schedule.ref}
+			className={className}
+			style={containerStyle}
+			data-engine-work={schedule.state}
+		>
+			{activated ? (
 				<Suspense fallback={fallback}>{children}</Suspense>
 			) : fallback}
 		</div>
