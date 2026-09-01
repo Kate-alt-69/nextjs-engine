@@ -15,6 +15,15 @@ import type {
 	EngineWorkClass,
 } from "./types";
 
+const WORK_PRIORITY: Record<EngineWorkClass, number> = {
+	critical: 0,
+	visible: 1,
+	near: 2,
+	deferred: 3,
+	idle: 4,
+	sleeping: 5,
+};
+
 function stableHash(value: string): string {
 	let hash = 2166136261;
 	for (let index = 0; index < value.length; index += 1) {
@@ -62,6 +71,28 @@ function addAsset(
 	});
 }
 
+function addVideoSources(
+	assets: EngineCompiledAsset[],
+	nodeId: string,
+	workClass: EngineWorkClass,
+	source: unknown,
+	priority: boolean,
+): void {
+	if (!Array.isArray(source)) {
+		addAsset(assets, nodeId, workClass, "video", source, priority);
+		return;
+	}
+	for (const entry of source) {
+		if (typeof entry === "string") {
+			addAsset(assets, nodeId, workClass, "video", entry, priority);
+			continue;
+		}
+		if (entry && typeof entry === "object") {
+			addAsset(assets, nodeId, workClass, "video", (entry as Record<string, unknown>).src, priority);
+		}
+	}
+}
+
 function collectNodeAssets(node: SchemaNode, nodeId: string, workClass: EngineWorkClass): EngineCompiledAsset[] {
 	const props = node.props ?? {};
 	const assets: EngineCompiledAsset[] = [];
@@ -69,15 +100,43 @@ function collectNodeAssets(node: SchemaNode, nodeId: string, workClass: EngineWo
 
 	if (node.type === "image") addAsset(assets, nodeId, workClass, "image", props.src, priority);
 	if (node.type === "video") {
-		addAsset(assets, nodeId, workClass, "video", props.src, priority);
+		addVideoSources(assets, nodeId, workClass, props.src, priority);
 		addAsset(assets, nodeId, workClass, "image", props.poster, priority);
 	}
 	if (node.type === "canvas" || node.type === "manim" || node.type === "EngineManim" || node.type === "manim3d" || node.type === "EngineManim3D") {
 		addAsset(assets, nodeId, workClass, "module", `engine:${node.type}`, priority);
 	}
 	if (typeof props.shader === "string") addAsset(assets, nodeId, workClass, "shader", props.shader, priority);
-	if (typeof props.src === "string" && node.type === "markdown") addAsset(assets, nodeId, workClass, "other", props.src, priority);
 	return assets;
+}
+
+function hasAnimatedTransition(node: SchemaNode): boolean {
+	const props = node.props ?? {};
+	const cprop = props.cprop && typeof props.cprop === "object"
+		? props.cprop as Record<string, unknown>
+		: undefined;
+	const link = cprop?.link && typeof cprop.link === "object"
+		? cprop.link as Record<string, unknown>
+		: undefined;
+	const transition = link?.transition ?? props.transition;
+	return transition !== undefined && transition !== null && transition !== "instant";
+}
+
+function collectNodeCapabilities(
+	node: SchemaNode,
+	profileCapabilities: readonly EngineCapability[] | undefined,
+): EngineCapability[] {
+	const capabilities = new Set<EngineCapability>(profileCapabilities ?? []);
+	const props = node.props ?? {};
+	if (node.type === "canvas") {
+		if (props.mode === "webgl") capabilities.add("webgl");
+		if (props.mode === "webgl2") capabilities.add("webgl2");
+		if (props.shader !== undefined) capabilities.add("webgl2");
+	}
+	if ((node.type === "link" || node.type === "EngineLink") && hasAnimatedTransition(node)) {
+		capabilities.add("view-transitions");
+	}
+	return [...capabilities];
 }
 
 interface CompileState {
@@ -88,30 +147,42 @@ interface CompileState {
 	summary: EngineCompilerSummary;
 }
 
+function recordAsset(state: CompileState, asset: EngineCompiledAsset): void {
+	const existing = state.assets.get(asset.id);
+	if (!existing) {
+		state.assets.set(asset.id, asset);
+		return;
+	}
+	const assetIsMoreUrgent = asset.priority && !existing.priority
+		|| WORK_PRIORITY[asset.workClass] < WORK_PRIORITY[existing.workClass];
+	if (assetIsMoreUrgent) state.assets.set(asset.id, asset);
+}
+
 function compileNode(
 	node: SchemaNode,
 	path: string,
 	depth: number,
-	parentRuntime: EngineCompiledNode["runtime"] | null,
 	state: CompileState,
 ): EngineCompiledNode {
 	const nodeId = `${state.pageId}-${stableHash(`${path}:${node.type}:${node.name ?? ""}`)}`;
 	const runtimeResolution = resolveNodeRuntime(node);
 	const workClass = resolveWorkClass(node, depth);
-	const capabilities = [...new Set(runtimeResolution.profile.capabilities ?? [])];
+	const capabilities = collectNodeCapabilities(node, runtimeResolution.profile.capabilities);
 	const assets = collectNodeAssets(node, nodeId, workClass);
 	const heavy = runtimeResolution.profile.heavy === true;
 	const interactive = runtimeResolution.runtime === "client";
 
 	for (const capability of capabilities) state.capabilities.add(capability);
-	for (const asset of assets) state.assets.set(asset.id, asset);
+	for (const asset of assets) recordAsset(state, asset);
 
 	state.summary.totalNodes += 1;
 	if (runtimeResolution.runtime === "static") state.summary.staticNodes += 1;
 	if (runtimeResolution.runtime === "server") state.summary.serverNodes += 1;
 	if (runtimeResolution.runtime === "client") state.summary.clientNodes += 1;
 	if (heavy) state.summary.heavyNodes += 1;
-	if (interactive && parentRuntime !== "client") {
+	if (interactive) {
+		// EngineServerRenderer passes every compiled child as server-rendered slot
+		// content, so even nested client nodes are independent client islands.
 		state.summary.clientIslands += 1;
 		state.diagnostics.push({
 			level: "info",
@@ -127,7 +198,6 @@ function compileNode(
 			child,
 			`${path}.${index}`,
 			depth + 1,
-			runtimeResolution.runtime,
 			state,
 		))
 		: [];
@@ -168,7 +238,7 @@ export function compilePage(schema: PageSchema, options: EngineCompileOptions = 
 		},
 	};
 
-	const root = compileNode(schema.root, "root", 0, null, state);
+	const root = compileNode(schema.root, "root", 0, state);
 	state.summary.assetCount = state.assets.size;
 
 	if (options.strict && state.summary.clientNodes === state.summary.totalNodes && state.summary.totalNodes > 1) {
