@@ -1,31 +1,19 @@
 # Generation 3 Phase C — Network and credential runtime
 
 > Branch: `3_gen_main`  
-> Status: wire/runtime foundation in progress
+> Status: dispatcher/auth foundation in progress
 
 Phase C owns the secure application/network layer described by the Gen 3 master plan: EngineCookies, NENC, EngineCORS, command authorization, replay protection, device binding, and the EngineAPIResolver bridge.
 
-## EngineCookies foundation
+## Completed foundation
 
-EngineCookies currently provides metadata/index and granular trust-policy primitives. The index stores logical alias, opaque storage id, ownership, purpose, expiry, binding mode, and authorized commands. Raw or sealed credential payloads do not belong in `EngineCookieIndex`.
+### EngineCookies + Trust List
 
-```ts
-const index = EngineCookies.createIndex();
+EngineCookies currently provides a metadata-only index plus granular trust-policy primitives. Raw/sealed credential payloads do not belong in `EngineCookieIndex`. CORS permission does not imply cookie or command permission, and wildcard origins may grant CORS only.
 
-index.register({
-	alias: "account-session",
-	owner: "https://api.example.com",
-	creator: "account.login",
-	binding: "device-key",
-	commands: ["account.info", "account.logout"],
-});
-```
+### EngineCommand + typed input
 
-Trust is granular. CORS permission does not imply cookie or command permission. Wildcard origins may grant CORS only; privileged access requires an exact origin.
-
-## EngineCommand + typed input
-
-Developer-facing command names stay readable:
+Developer commands use readable logical names and typed input descriptors. Schema validation executes before custom validation/command execution. Undeclared fields are discarded, dangerous prototype names are rejected, and malformed values fail generically.
 
 ```ts
 EngineCommand.create("privateSearch", {
@@ -41,56 +29,66 @@ EngineCommand.create("privateSearch", {
 });
 ```
 
-Schema validation executes before custom validation/command execution. Undeclared input fields are discarded, dangerous prototype names are rejected, and malformed values fail with a generic invalid-input error.
+### Opaque NENC wire compiler
 
-`EngineCommand.run()` never falls back to direct execution when NENC transport is unavailable.
+The build compiler maps logical commands, arguments, and protocol header names to build-specific opaque identifiers. A different build id changes the mapping. These IDs are transport obfuscation only, never authorization credentials.
 
-## NENC wire compiler
-
-The build compiler maps logical command/input names onto build-specific opaque identifiers. The endpoint remains exactly:
+The only command endpoint remains:
 
 ```text
 /_static/command
 ```
 
-Conceptually:
+Client and server manifests are split so the browser receives only what it needs to encode requests while the server retains reverse mappings and command policy metadata.
+
+### NENC browser transport
+
+`createNENCTransport()` maps logical arguments onto compiled body keys, emits the compiled selector/nonce/timestamp headers, generates a cryptographically random nonce, uses same-origin credentials by default, and POSTs only to `/_static/command`.
+
+## Single dispatcher
+
+`createNENCDispatcher()` is the server route-handler factory. Applications can bind the same handler to `POST` and `OPTIONS` at `app/_static/command/route.ts`; no per-command routes are created.
+
+The dispatcher currently enforces this order:
 
 ```text
-privateSearch
-	→ cQx9...
-
-search
-	→ aL7p...
-
-page
-	→ aN2k...
-
-selector header
-	→ x-hJ4...
+method / CORS
+↓
+opaque selector resolution
+↓
+Trust List for cross-origin commands
+↓
+timestamp + nonce replay guard
+↓
+request body size limit
+↓
+opaque argument decoding
+↓
+optional signature verification
+↓
+command authentication
+↓
+permission authorization
+↓
+EngineCommand registry
+↓
+EngineAPIResolver
+↓
+filtered Response / JSON result
 ```
 
-IDs are derived from a build seed/build id with HMAC-SHA-256 and collision checking. A different build id produces a different mapping. These identifiers are **obfuscation only**, never authorization credentials.
+Security defaults fail closed:
 
-The compiler emits separate manifests:
+- cross-origin execution requires configured CORS and Trust List authorization;
+- non-anonymous commands require an authenticator;
+- commands declaring permissions require an authorizer;
+- duplicate/stale nonce requests are rejected before execution;
+- unknown command ids and unknown argument ids fail generically;
+- the dispatcher never returns a command list/schema.
 
-- client manifest: logical command → opaque id/argument names;
-- server manifest: opaque id → logical command/runtime/auth/permissions and reverse argument mapping.
+Replay storage is replaceable through `NENCReplayStore`. The included memory store is suitable for a single process; distributed/serverless deployments should provide shared persistence when replay guarantees must span instances.
 
-There is no command-list/help/schema endpoint.
-
-## Browser transport
-
-`createNENCTransport()` accepts the compiled client manifest and:
-
-- POSTs only to `/_static/command`;
-- maps logical arguments to opaque body keys;
-- emits the compiled selector header;
-- generates a cryptographically random nonce per request;
-- emits a timestamp;
-- defaults credentials to same-origin;
-- returns generic transport errors instead of exposing command metadata.
-
-The next dispatcher/replay layer will verify nonce/timestamp/signature server-side. Merely sending these values is not security by itself.
+Signature verification is an explicit hook because Phase C still needs the final device-key/EngineCookie proof format. Enabling a verifier makes signature validation happen before authentication/execution.
 
 ## EngineCORS
 
@@ -114,11 +112,10 @@ session + EngineCookie + origin + trust + nonce + signature + rate policy
 
 ## Remaining implementation order
 
-1. single `/_static/command` dispatcher and opaque argument decoder;
-2. trust/auth/EngineCookie authorization gates;
-3. nonce/timestamp replay verification and signing policy;
-4. EngineAPIResolver/private-service bridge;
-5. sealed EngineCookie storage and device-key proof;
-6. Engine plugin integration that emits the NENC artifacts/route;
-7. real private login/search proving application;
-8. Phase D debug/security inspection surfaces consuming these artifacts.
+1. sealed EngineCookie storage and device-key proof;
+2. concrete session/auth policy helpers for account commands;
+3. signature format + command-specific replay policy;
+4. NENC plugin integration that emits manifests and the single route;
+5. ordinary/private backend proving flows through EngineAPIResolver;
+6. real private login/search proving application;
+7. Phase D debug/security inspection surfaces consuming these artifacts.

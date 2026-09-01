@@ -58,6 +58,7 @@ jobs:
         run: |
           node scripts/gen3-phase-c-smoke.js
           node scripts/gen3-nenc-wire-smoke.js
+          node scripts/gen3-nenc-dispatcher-smoke.js
       - name: Type-check engine
         run: npm run type-check
       - name: Build Next.js integration app

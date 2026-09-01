@@ -21,12 +21,25 @@ export {
 	inspectEngineCommands,
 	validateEngineCommandInput,
 } from "./core/nenc/EngineCommand";
+export { createNENCDispatcher } from "./core/nenc/NENCDispatcher";
+export { NENCReplayGuard, NENCMemoryReplayStore } from "./core/nenc/NENCReplay";
+export type {
+	NENCAuthenticationContext,
+	NENCAuthenticationResult,
+	NENCAuthorizationContext,
+	NENCDispatcherOptions,
+	NENCRequestHandler,
+	NENCSignatureContext,
+} from "./core/nenc/NENCDispatcherTypes";
+export type {
+	NENCReplayDecision,
+	NENCReplayGuardOptions,
+	NENCReplayStore,
+} from "./core/nenc/NENCReplay";
 export type {
 	EngineCommandInputField,
 	EngineCommandInputSchema,
 	EngineCommandInputType,
 	EngineCommandServerContext,
-	NENCServerCommand,
-	NENCServerManifest,
-	NENCWireHeaders,
-} from "./core/nenc";
+} from "./core/nenc/types";
+export type { NENCServerCommand, NENCServerManifest, NENCWireHeaders } from "./core/nenc/NENCManifest";
