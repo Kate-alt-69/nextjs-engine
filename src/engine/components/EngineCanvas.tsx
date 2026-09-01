@@ -1,10 +1,9 @@
 "use client";
 // ─────────────────────────────────────────────────────────────────────────────
-//	EngineCanvas compatibility + EngineShader facade
+// EngineCanvas compatibility + EngineShader facade
 //
-//	Normal callback/graphics canvases stay on the shared core EngineCanvas
-//	runtime. Supplying `shader` switches the canvas into ESH-owned GPU mode
-//	without layering a second canvas or starting another render loop.
+// Generation 3 keeps visual resolution stable by default. The legacy adaptive
+// DPR path remains available only when a developer explicitly opts into it.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { memo, type CSSProperties } from "react";
@@ -31,9 +30,11 @@ function resolveShaderMaxDpr(
 
 export const EngineCanvas = memo(function EngineCanvas({
 	shader,
+	adaptive: adaptiveProp,
 	...props
 }: EngineCanvasProps) {
-	if (!shader) return <CoreEngineCanvas {...props} />;
+	const adaptive = adaptiveProp ?? false;
+	if (!shader) return <CoreEngineCanvas {...props} adaptive={adaptive} />;
 
 	const {
 		width,
@@ -41,7 +42,6 @@ export const EngineCanvas = memo(function EngineCanvas({
 		responsive,
 		dpr = "auto",
 		maxDpr = 2,
-		adaptive = true,
 		pauseWhenOffscreen = true,
 		pauseWhenHidden = true,
 		powerPreference = "high-performance",
