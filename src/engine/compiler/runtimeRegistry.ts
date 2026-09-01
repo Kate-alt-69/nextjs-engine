@@ -27,18 +27,17 @@ for (const type of ["box", "stack", "grid", "text", "heading", "section", "card"
 
 setBuiltin("slot", {
 	runtime: "server",
-	reason: "Slots can contain arbitrary React values and are resolved by the page/component owner.",
+	reason: "Slots are resolved by the page/component owner and can remain in the server tree.",
 	defaultWorkClass: "visible",
 });
 setBuiltin("markdown", {
-	runtime: "server",
-	reason: "Markdown content can be compiled/rendered on the server unless interactive animation is requested.",
+	runtime: "client",
+	reason: "The current Markdown renderer still owns client animation/style behavior; Gen 3 can server-compile it after the parser is split from that runtime.",
 	defaultWorkClass: "near",
 });
 setBuiltin("image", {
 	runtime: "server",
 	reason: "Image markup is server-renderable while the browser owns the image resource request and decode.",
-	capabilities: ["intersection-observer"],
 	defaultWorkClass: "near",
 });
 setBuiltin("video", {
@@ -90,22 +89,29 @@ setBuiltin("button", {
 	reason: "Buttons are server-renderable when they only navigate and become client islands when handlers/model state are used.",
 	defaultWorkClass: "visible",
 });
-for (const type of ["link", "EngineLink", "nav", "EngineNav", "scroll"] as NodeType[]) {
+for (const type of ["link", "EngineLink"] as NodeType[]) {
 	setBuiltin(type, {
 		runtime: "auto",
-		reason: "Navigation can stay server-rendered for ordinary links but browser-enhanced behavior may require a client island.",
+		reason: "Ordinary links can stay server-rendered; animated transitions or handlers require a client island.",
+		defaultWorkClass: "visible",
+	});
+}
+for (const type of ["nav", "EngineNav", "scroll"] as NodeType[]) {
+	setBuiltin(type, {
+		runtime: "client",
+		reason: "The current navigation/scroll runtime owns browser route, viewport or interaction state.",
 		capabilities: ["dom"],
 		defaultWorkClass: "visible",
 	});
 }
 setBuiltin("hero", {
 	runtime: "auto",
-	reason: "Hero layout is server-renderable; parallax or interactive behavior upgrades only the hero boundary.",
+	reason: "Hero layout is server-renderable; parallax or other browser behavior upgrades only the hero boundary.",
 	defaultWorkClass: "critical",
 });
 setBuiltin("suspense", {
-	runtime: "auto",
-	reason: "Suspense follows the runtime requirements of the async content it contains.",
+	runtime: "client",
+	reason: "The current EngineSuspense preset runtime is client-owned; its static shell remains a future server split point.",
 	defaultWorkClass: "near",
 });
 
@@ -123,15 +129,30 @@ export function getEngineRuntimeProfile(type: NodeType): EngineRuntimeProfile {
 
 function hasClientBehavior(node: SchemaNode): boolean {
 	const props = node.props ?? {};
+	if (Object.values(props).some((value) => typeof value === "function")) return true;
 	if (typeof props.onClick === "string" && props.onClick.length > 0) return true;
 	if (typeof props.onChange === "string" && props.onChange.length > 0) return true;
 	if (typeof props.onSubmit === "string" && props.onSubmit.length > 0) return true;
 	if (typeof props.onSetup === "string" || typeof props.onDraw === "string" || typeof props.onResize === "string") return true;
 	if (props.model !== undefined || props.modelKey !== undefined || props.bind !== undefined) return true;
-	if (props.parallax === true) return true;
+	if (props.parallax === true || props.interactive === true) return true;
+	if (props.shader !== undefined && props.shader !== null) return true;
+	if (props.pointGroup !== undefined || props.pointAlign !== undefined || props.pointOffset !== undefined) return true;
 	if (props.textAnimation && props.textAnimation !== "none") return true;
 	if (props.blockAnimation && props.blockAnimation !== "none") return true;
 	return false;
+}
+
+function hasAnimatedTransition(node: SchemaNode): boolean {
+	const props = node.props ?? {};
+	const link = props.cprop && typeof props.cprop === "object"
+		? (props.cprop as Record<string, unknown>).link
+		: undefined;
+	const transition = link && typeof link === "object"
+		? (link as Record<string, unknown>).transition
+		: props.transition;
+	if (transition === undefined || transition === null || transition === "instant") return false;
+	return true;
 }
 
 export function resolveNodeRuntime(node: SchemaNode): {
@@ -154,7 +175,7 @@ export function resolveNodeRuntime(node: SchemaNode): {
 	if (hasClientBehavior(node)) {
 		return {
 			runtime: "client",
-			reason: "Automatic classification found browser-side handlers, animation, model state or bindings.",
+			reason: "Automatic classification found browser-side handlers, animation, model state, shader behavior or bindings.",
 			profile,
 		};
 	}
@@ -167,15 +188,20 @@ export function resolveNodeRuntime(node: SchemaNode): {
 		};
 	}
 
-	if (node.type === "link" || node.type === "EngineLink" || node.type === "nav" || node.type === "EngineNav") {
-		const transition = node.props?.transition;
-		if (transition === undefined || transition === "instant") {
-			return {
-				runtime: "server",
-				reason: "Ordinary navigation can be rendered on the server without transition runtime state.",
-				profile,
-			};
-		}
+	if ((node.type === "link" || node.type === "EngineLink") && !hasAnimatedTransition(node)) {
+		return {
+			runtime: "server",
+			reason: "This ordinary link has no animated transition or handler and can stay server-rendered.",
+			profile,
+		};
+	}
+
+	if (node.type === "hero") {
+		return {
+			runtime: "server",
+			reason: "This hero has no browser-only behavior and can render on the server.",
+			profile,
+		};
 	}
 
 	return {
