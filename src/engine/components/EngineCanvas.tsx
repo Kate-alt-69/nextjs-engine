@@ -6,10 +6,10 @@
 // DPR path remains available only when a developer explicitly opts into it.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { memo, useEffect, type CSSProperties } from "react";
+import React, { memo, useCallback, useEffect, type CSSProperties } from "react";
 import {
 	EngineCanvas as CoreEngineCanvas,
-	useEngineCanvas,
+	useEngineCanvas as useCoreEngineCanvas,
 	type EngineCanvasProps as CoreEngineCanvasProps,
 } from "../core/enginecanvas/EngineCanvas";
 import { EngineScheduler } from "../core/enginescheduler";
@@ -77,5 +77,33 @@ export const EngineCanvas = memo(function EngineCanvas({
 	);
 });
 
-export { useEngineCanvas };
+/**
+ * Generation 3 low-level Canvas hook.
+ *
+ * The v2 core hook keeps its historical adaptive-DPR default for compatibility.
+ * The public Gen 3 facade changes only the default: resolution stays stable unless
+ * the caller explicitly passes `adaptive: true` to setup().
+ */
+export function useEngineCanvas(
+	options: Parameters<typeof useCoreEngineCanvas>[0] = {},
+) {
+	const runtime = useCoreEngineCanvas(options);
+	const setup = useCallback((handlers: Parameters<typeof runtime.setup>[0]) => {
+		const releaseFrameMonitor = EngineScheduler.acquireFrameMonitor();
+		const cleanup = runtime.setup({
+			...handlers,
+			adaptive: handlers.adaptive ?? false,
+		});
+		return () => {
+			cleanup();
+			releaseFrameMonitor();
+		};
+	}, [runtime.setup]);
+
+	return {
+		canvasRef: runtime.canvasRef,
+		setup,
+	};
+}
+
 export type { EngineCanvasFrameInfo } from "../core/enginecanvas/EngineCanvas";
