@@ -57,6 +57,12 @@ check(island.includes("SERVER_CHILDREN_SLOT"), "client islands can receive serve
 const adaptive = read("src/engine/compiler/EngineAdaptiveCompiler.ts");
 check(adaptive.includes("compileAdaptiveSchema"), "automatic tablet/phone compiler exists");
 check(adaptive.includes('adaptive === "keep"'), "automatic device adaptation has an explicit keep override");
+check(adaptive.includes("inferAdaptiveRole"), "adaptive compiler understands semantic header/footer/content roles");
+check(adaptive.includes("contentinfo"), "semantic footer roles are recognized without special node types");
+check(adaptive.includes("ROLE_SPACING"), "phone and tablet spacing policies are distinct");
+check(adaptive.includes("compact !== false"), "semantic compaction can be explicitly disabled");
+check(adaptive.includes("isResponsiveValue"), "developer-authored responsive spacing remains authoritative");
+check(adaptive.includes("container-driven auto-fit"), "grid adaptation is container-driven instead of a fixed phone column count");
 check(!/\b(?:quality|dpr|maxDpr)\s*:/.test(adaptive), "adaptive layout compiler never rewrites image/Canvas resolution controls");
 
 const scheduler = read("src/engine/core/enginescheduler/EngineScheduler.ts");
@@ -86,6 +92,8 @@ check(video.includes("!schedule.underFramePressure"), "near video initialization
 
 const canvasFacade = read("src/engine/components/EngineCanvas.tsx");
 check(canvasFacade.includes("adaptiveProp ?? false"), "Gen 3 Canvas preserves resolution unless adaptive DPR is explicitly enabled");
+check(canvasFacade.includes("handlers.adaptive ?? false"), "Gen 3 low-level Canvas hook also preserves resolution by default");
+check(canvasFacade.includes("useCoreEngineCanvas"), "Gen 3 low-level hook wraps the compatible v2 core instead of changing patch behavior");
 check(canvasFacade.includes("acquireFrameMonitor"), "Canvas/Shader activity feeds the shared frame-pressure monitor without changing resolution");
 
 const model = read("src/engine/core/EngineModel.ts");
