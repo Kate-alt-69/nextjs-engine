@@ -54,6 +54,7 @@ jobs:
         if: github.ref_name == '3_gen_main' || github.base_ref == '3_gen_main'
         run: |
           node scripts/gen3-phase-ab-smoke.js
+          node scripts/gen3-compiler-runtime-smoke.js
           node scripts/gen3-adaptive-runtime-smoke.js
       - name: Test Generation 3 phase C contracts
         if: github.ref_name == '3_gen_main' || github.base_ref == '3_gen_main'
