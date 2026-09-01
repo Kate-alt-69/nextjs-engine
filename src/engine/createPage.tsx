@@ -252,18 +252,14 @@ export function createPage(options: CreatePageOptions): EnginePageComponent {
 			return renderPage(resolvedSchema);
 		}
 		EnginePage.displayName = `EnginePage(${schema.meta?.title ?? "unnamed"})`;
-		const compiledPage = EnginePage as EnginePageComponent;
-		compiledPage.enginePlan = basePlan;
-		return compiledPage;
+		return Object.assign(EnginePage, { enginePlan: basePlan });
 	}
 
 	function EnginePage() {
 		return renderPage(schema);
 	}
 	EnginePage.displayName = `EnginePage(${schema.meta?.title ?? "unnamed"})`;
-	const compiledPage = EnginePage as EnginePageComponent;
-	compiledPage.enginePlan = basePlan;
-	return compiledPage;
+	return Object.assign(EnginePage, { enginePlan: basePlan });
 }
 
 export function createComponent(options: CreateComponentOptions): React.FC<EngineComponentProps> {
