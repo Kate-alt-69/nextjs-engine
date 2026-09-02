@@ -25,6 +25,9 @@ function cloneEntry(entry: EngineCookieIndexEntry): EngineCookieIndexEntry {
 	return Object.freeze({
 		...entry,
 		commands: Object.freeze([...entry.commands]),
+		device: entry.device
+			? Object.freeze({ ...entry.device, publicKey: Object.freeze({ ...entry.device.publicKey }) })
+			: undefined,
 	});
 }
 
@@ -54,6 +57,8 @@ export class EngineCookieIndex {
 			expiresAt: input.expiresAt,
 			binding: input.binding ?? "none",
 			commands: input.commands ?? [],
+			device: input.device,
+			environmentHash: input.environmentHash,
 		});
 		this.byAlias.set(alias, entry);
 		this.byStorageId.set(storageId, alias);

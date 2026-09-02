@@ -4,6 +4,17 @@
 
 import type { EngineCommandTransport } from "./types";
 import type { NENCClientManifest } from "./NENCManifest";
+import {
+	encodeEngineDeviceProof,
+	hashEngineDeviceValue,
+	type EngineDeviceKey,
+} from "../enginecookies";
+
+export interface NENCTransportOptions {
+	fetcher?: typeof fetch;
+	deviceKey?: EngineDeviceKey;
+	destinationOrigin?: string;
+}
 
 function randomNonce(): string {
 	if (typeof crypto === "undefined" || typeof crypto.getRandomValues !== "function") {
@@ -39,21 +50,40 @@ async function decodeResponse(response: Response): Promise<unknown> {
 
 export function createNENCTransport(
 	manifest: NENCClientManifest,
-	fetcher: typeof fetch = fetch,
+	fetcherOrOptions: typeof fetch | NENCTransportOptions = fetch,
 ): EngineCommandTransport {
+	const options: NENCTransportOptions = typeof fetcherOrOptions === "function"
+		? { fetcher: fetcherOrOptions }
+		: fetcherOrOptions;
+	const fetcher = options.fetcher ?? fetch;
 	return async (name: string, input: unknown): Promise<unknown> => {
 		const command = manifest.commands[name];
 		if (!command) throw new Error("[NENC] Invalid command request.");
 
+		const nonce = randomNonce();
+		const timestamp = Date.now();
+		const body = JSON.stringify(encodeInput(command.args, input));
 		const headers = new Headers({ "Content-Type": "application/json" });
 		headers.set(manifest.headers.selector, command.id);
-		headers.set(manifest.headers.nonce, randomNonce());
-		headers.set(manifest.headers.timestamp, String(Date.now()));
+		headers.set(manifest.headers.nonce, nonce);
+		headers.set(manifest.headers.timestamp, String(timestamp));
+		if (options.deviceKey) {
+			const defaultOrigin = typeof location !== "undefined" ? location.origin : undefined;
+			const proof = await options.deviceKey.createProof({
+				method: "POST",
+				target: manifest.endpoint,
+				origin: options.destinationOrigin ?? defaultOrigin,
+				bodyHash: await hashEngineDeviceValue(body),
+				timestamp,
+				nonce,
+			});
+			headers.set(manifest.headers.signature, encodeEngineDeviceProof(proof));
+		}
 
 		const response = await fetcher(manifest.endpoint, {
 			method: "POST",
 			headers,
-			body: JSON.stringify(encodeInput(command.args, input)),
+			body,
 			credentials: "same-origin",
 		});
 		if (!response.ok) throw new Error(`[NENC] Command request failed (${response.status}).`);
