@@ -1,7 +1,7 @@
 {
 	"name": "nextjs-engine",
-	"version": "2.5.0",
-	"description": "A schema-driven rendering layer for Next.js and React with responsive UI primitives, EngineCanvas graphics, APIStatic endpoints, and Manim animation support.",
+	"version": "3.0.0-alpha.0",
+	"description": "Next.js Engine Generation 3 prerelease package with compiler-first, server-first, and adaptive runtime architecture.",
 	"private": false,
 	"sideEffects": false,
 	"files": [
