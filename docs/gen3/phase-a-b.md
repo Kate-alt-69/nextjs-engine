@@ -1,6 +1,6 @@
 # Next.js Engine 3 — Phase A + Phase B
 
-> Development branch: `3_gen_main`
+> Development branch: `main-3`
 >
 > This document describes the Generation 3 compiler/runtime foundation that is
 > implemented on this branch. It is not part of the v2.6.2 runtime contract.
@@ -321,7 +321,7 @@ mobile-aware component owning its own resize listener.
 ## Compatibility while Gen 3 is under development
 
 - v2.6.2 remains isolated on `main`.
-- Generation 3 work stays on `3_gen_main`.
+- Generation 3 work stays on `main-3`.
 - Existing explicit mobile patch arrays remain valid.
 - The v2 Canvas core still exists internally; the Gen 3 public facade changes
   the default without deleting the compatibility behavior.
@@ -330,7 +330,7 @@ mobile-aware component owning its own resize listener.
 
 ## Regression coverage
 
-`3_gen_main` CI runs:
+`main-3` CI runs:
 
 - Phase A/B architecture contract smoke;
 - compiler graph runtime smoke;
