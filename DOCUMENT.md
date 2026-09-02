@@ -2,6 +2,7 @@
 
 > **Last updated:** 2026-09-02
 > **Changes in this update:**
+> - **Generation 3 account-session policy** — Added `createNENCAccountPolicy()` as a server-only adapter for existing application session services. It validates session metadata, expiry/not-before/origin bindings, performs all-of permission checks with opt-in namespace wildcards, and passes a branded frozen principal into command execution.
 > - **Generation 3 EngineCookie vault** — Added metadata-authenticated AES-256-GCM credential sealing with opaque storage ids, controlled callback-only plaintext use, Trust List checks, command restrictions, and tamper detection.
 > - **Generation 3 device proof** — Added non-exportable Web Crypto ECDSA P-256 device keys and proofs covering method, target, destination origin, body hash, timestamp, nonce, and optional environment identity.
 > - **NENC device binding** — `createNENCTransport()` can send the compiled proof header, while `createNENCDeviceSignatureVerifier()` verifies it against a server-resolved public identity before command authentication and execution.
@@ -62,6 +63,8 @@ Generation 3 routes browser commands through one opaque `/_static/command` endpo
 Sensitive sessions can be stored in `EngineCookieVault`. The index contains metadata only, while credential bytes are sealed separately with AES-256-GCM and metadata-bound additional data. A vault releases plaintext only inside a caller-supplied operation after origin, command, Trust List, expiry, and configured device-binding checks pass. Keep vault capabilities out of ordinary components.
 
 `EngineDeviceKey` creates a non-exportable P-256 signing key. Its proof binds a NENC request to the exact method, target, destination origin, body hash, timestamp, nonce, and optional environment hash. The dispatcher combines proof verification with its timestamp window and nonce replay guard, then continues through the existing authentication, authorization, and `EngineAPIResolver` path. Native cookies remain compatible; EngineCookies is an additional controlled credential mechanism.
+
+`createNENCAccountPolicy()` connects the dispatcher to an application's existing session resolver. Account sessions must contain non-secret internal session/account ids and an expiry; optional not-before, issued-at, origin, device-key id, permissions, and sanitized attributes become a branded, frozen server-only principal available to `EngineCommand.execute()`. A session declaring `deviceKeyId` is accepted only when the same request passed the configured NENC device verifier with that exact key. Permission checks require every declared command permission. Matching is exact by default, while namespace wildcards are opt-in. Raw cookies, bearer values, and EngineCookie plaintext must never be returned as session ids or attributes.
 
 See `docs/gen3/phase-c-network.md` for the current security invariants and remaining Phase C work.
 

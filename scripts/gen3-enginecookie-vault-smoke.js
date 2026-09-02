@@ -175,7 +175,9 @@ async function run() {
 		nonce,
 	};
 	assert.equal(await verifier(signatureContext), true, "NENC verifier must accept the exact signed request context");
+	assert.equal(verifier.getVerifiedKeyId(signatureContext.request), deviceKey.identity.keyId, "verified device identity remains request-scoped for account binding");
 	assert.equal(await verifier({ ...signatureContext, rawBody: "modified" }), false, "NENC verifier must reject a modified body");
+	assert.equal(verifier.getVerifiedKeyId(signatureContext.request), undefined, "failed verification clears request-scoped device identity");
 
 	let capturedRequest;
 	const manifest = {

@@ -22,10 +22,21 @@ export {
 	validateEngineCommandInput,
 } from "./core/nenc/EngineCommand";
 export { createNENCDispatcher } from "./core/nenc/NENCDispatcher";
+export { createNENCAccountPolicy, isNENCAccountPrincipal } from "./core/nenc/NENCAccountPolicy";
+export type {
+	NENCAccountPermissionWildcards,
+	NENCAccountPolicy,
+	NENCAccountPolicyOptions,
+	NENCAccountPrincipal,
+	NENCAccountSession,
+	NENCAccountSessionRejection,
+} from "./core/nenc/NENCAccountPolicy";
 export { createNENCDeviceSignatureVerifier } from "./core/nenc/NENCDeviceProof";
 export type {
 	NENCDeviceIdentityContext,
+	NENCDeviceSignatureVerifier,
 	NENCDeviceSignatureVerifierOptions,
+	NENCVerifiedDeviceKeySource,
 } from "./core/nenc/NENCDeviceProof";
 export { NENCReplayGuard, NENCMemoryReplayStore } from "./core/nenc/NENCReplay";
 export type {

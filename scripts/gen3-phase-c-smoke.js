@@ -29,6 +29,7 @@ const requiredFiles = [
 	"src/engine/core/nenc/EngineCommand.ts",
 	"src/engine/core/nenc/NENCManifest.ts",
 	"src/engine/core/nenc/NENCClient.ts",
+	"src/engine/core/nenc/NENCAccountPolicy.ts",
 	"src/engine/core/nenc/NENCDeviceProof.ts",
 	"src/engine/plugins/nencCompiler.js",
 	"src/engine/core/EngineCORS.ts",
@@ -72,6 +73,13 @@ const client = read("src/engine/core/nenc/NENCClient.ts");
 check(client.includes("credentials: \"same-origin\""), "NENC client transport keeps credentials same-origin by default");
 check(client.includes("randomNonce"), "NENC client sends a fresh request nonce");
 check(client.includes("encodeEngineDeviceProof"), "NENC client can attach a compiled device-proof header");
+
+const accountPolicy = read("src/engine/core/nenc/NENCAccountPolicy.ts");
+check(accountPolicy.includes('auth !== "account"'), "account policy delegates or rejects non-account authentication modes");
+check(accountPolicy.includes("session.expiresAt"), "account policy validates session expiry");
+check(accountPolicy.includes("origin !== context.origin"), "origin-bound sessions fail closed on a different origin");
+check(accountPolicy.includes("getVerifiedKeyId(context.request)"), "device-bound sessions require the verified request key");
+check(accountPolicy.includes('permissionWildcards ?? "none"'), "permission wildcard grants are opt-in");
 
 const compiler = read("src/engine/plugins/nencCompiler.js");
 check(compiler.includes('ENDPOINT = "/_static/command"'), "NENC compiler emits only the single command endpoint");

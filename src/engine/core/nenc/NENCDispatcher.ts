@@ -94,6 +94,7 @@ async function executeCommand(
 
 	const result = await executeRegisteredEngineCommand(command.name, input, {
 		api: resolveAPI(options),
+		principal,
 		request,
 		origin,
 		signal: request.signal,

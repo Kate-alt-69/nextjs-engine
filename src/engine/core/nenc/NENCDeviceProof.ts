@@ -21,17 +21,27 @@ export interface NENCDeviceSignatureVerifierOptions {
 	): EngineDevicePublicIdentity | null | undefined | Promise<EngineDevicePublicIdentity | null | undefined>;
 }
 
+export interface NENCVerifiedDeviceKeySource {
+	getVerifiedKeyId(request: Request): string | undefined;
+}
+
+export interface NENCDeviceSignatureVerifier extends NENCVerifiedDeviceKeySource {
+	(context: NENCSignatureContext): Promise<boolean>;
+}
+
 export function createNENCDeviceSignatureVerifier(
 	options: NENCDeviceSignatureVerifierOptions,
-): (context: NENCSignatureContext) => Promise<boolean> {
-	return async (context: NENCSignatureContext): Promise<boolean> => {
+): NENCDeviceSignatureVerifier {
+	const verifiedKeys = new WeakMap<Request, string>();
+	const verify = async (context: NENCSignatureContext): Promise<boolean> => {
+		verifiedKeys.delete(context.request);
 		if (!context.signature) return false;
 		const proof = decodeEngineDeviceProof(context.signature);
 		if (!proof || proof.timestamp !== Number(context.timestamp) || proof.nonce !== context.nonce) return false;
 		const identity = await options.resolveIdentity(proof.keyId, { ...context, proof });
 		if (!identity) return false;
 		const requestURL = new URL(context.request.url);
-		return verifyEngineDeviceProof(identity, proof, {
+		const valid = await verifyEngineDeviceProof(identity, proof, {
 			method: context.request.method,
 			target: `${requestURL.pathname}${requestURL.search}`,
 			origin: requestURL.origin,
@@ -39,5 +49,12 @@ export function createNENCDeviceSignatureVerifier(
 			timestamp: Number(context.timestamp),
 			nonce: context.nonce,
 		});
+		if (valid) verifiedKeys.set(context.request, proof.keyId);
+		return valid;
 	};
+	return Object.assign(verify, {
+		getVerifiedKeyId(request: Request): string | undefined {
+			return verifiedKeys.get(request);
+		},
+	});
 }

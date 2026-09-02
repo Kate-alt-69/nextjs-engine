@@ -33,6 +33,7 @@ check(dispatcher.includes("command.permissions.length > 0"), "permission-bearing
 check(dispatcher.includes("verifySignature"), "dispatcher exposes signature verification before execution");
 check(dispatcher.includes("executeRegisteredEngineCommand"), "dispatcher executes through the EngineCommand registry");
 check(dispatcher.includes("resolveAPI(options)"), "dispatcher supplies EngineAPIResolver to command execution");
+check(dispatcher.includes("principal,"), "dispatcher supplies the authenticated principal to command execution");
 check(!dispatcher.includes("Available commands"), "dispatcher never returns a command list");
 
 check(replay.includes("NENCReplayStore"), "replay protection supports a replaceable persistence store");
@@ -41,6 +42,7 @@ check(replay.includes("maxClockSkewMs"), "timestamp freshness is bounded");
 check(replay.includes("NONCE_PATTERN"), "malformed nonces are rejected before storage");
 
 check(server.includes("createNENCDispatcher"), "server package exports the single NENC dispatcher factory");
+check(server.includes("createNENCAccountPolicy"), "server package exports the account-session policy adapter");
 check(server.includes("NENCReplayGuard"), "server package exports replay protection");
 
 if (failures > 0) {
