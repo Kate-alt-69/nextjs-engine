@@ -1,4 +1,4 @@
-name: Sync main-empty package branch
+name: Sync Gen 2 package branch
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
       - "src/engine/**"
       - "docs/**"
       - "DOCUMENT.md"
+      - "package.json"
       - ".github/workflows/sync-main-empty.yml"
   workflow_dispatch:
 
@@ -15,7 +16,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: sync-main-empty
+  group: sync-main-2-package
   cancel-in-progress: true
 
 jobs:
@@ -32,7 +33,7 @@ jobs:
       - name: Checkout package branch
         uses: actions/checkout@v4
         with:
-          ref: main-empty
+          ref: main-2-package
           path: package
           fetch-depth: 1
 
@@ -58,6 +59,8 @@ jobs:
           const fs = require("fs");
           const packagePath = "./package/package.json";
           const packageJson = require(packagePath);
+          const sourcePackageJson = require("./source/package.json");
+          packageJson.version = sourcePackageJson.version;
           if (packageJson.name !== "nextjs-engine") {
             throw new Error(`Refusing to sync unexpected package: ${packageJson.name}`);
           }
@@ -127,9 +130,9 @@ jobs:
           git add -A -- engine docs DOCUMENT.md package.json
 
           if git diff --cached --quiet; then
-            echo "main-empty is already synchronized"
+            echo "main-2-package is already synchronized"
             exit 0
           fi
 
-          git commit -m "Sync package sources from main ${GITHUB_SHA::7}"
-          git push origin HEAD:main-empty
+          git commit -m "Sync Gen 2 package sources from main ${GITHUB_SHA::7}"
+          git push origin HEAD:main-2-package
