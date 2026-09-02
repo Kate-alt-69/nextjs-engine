@@ -4,6 +4,7 @@
 
 export type EngineCookieAction = "read" | "write" | "use" | "delete";
 export type EngineCookieBindingMode = "none" | "device-key" | "device-key+environment" | "strict";
+export type EngineDeviceKeyAlgorithm = "ECDSA-P256-SHA256";
 
 export interface NativeCookieOptions {
 	httpOnly?: boolean;
@@ -54,6 +55,80 @@ export interface EngineCookieRegistration {
 	binding?: EngineCookieBindingMode;
 	commands?: readonly string[];
 	storageId?: string;
+	device?: EngineDevicePublicIdentity;
+	environmentHash?: string;
+}
+
+export interface EngineDevicePublicIdentity {
+	version: 1;
+	keyId: string;
+	algorithm: EngineDeviceKeyAlgorithm;
+	publicKey: JsonWebKey;
+	environmentHash?: string;
+}
+
+export interface EngineDeviceProofChallenge {
+	method: string;
+	target: string;
+	origin?: string;
+	bodyHash: string;
+	timestamp?: number;
+	nonce?: string;
+}
+
+export interface EngineDeviceProofExpectation {
+	method: string;
+	target: string;
+	origin?: string;
+	bodyHash: string;
+	timestamp: number;
+	nonce: string;
+}
+
+export interface EngineDeviceProof {
+	version: 1;
+	keyId: string;
+	algorithm: EngineDeviceKeyAlgorithm;
+	method: string;
+	target: string;
+	origin: string;
+	bodyHash: string;
+	timestamp: number;
+	nonce: string;
+	environmentHash?: string;
+	signature: string;
+}
+
+export interface EngineCookieDeviceProofRequest {
+	proof: EngineDeviceProof;
+	expected: EngineDeviceProofExpectation;
+}
+
+export interface EngineCookieUseRequest {
+	origin: string;
+	command?: string;
+	deviceProof?: EngineCookieDeviceProofRequest;
+}
+
+export interface EngineCookieSealedRecord {
+	version: 1;
+	storageId: string;
+	algorithm: "AES-256-GCM";
+	iv: string;
+	ciphertext: string;
+}
+
+export interface EngineCookieRecordStore {
+	get(storageId: string): EngineCookieSealedRecord | undefined | Promise<EngineCookieSealedRecord | undefined>;
+	set(record: EngineCookieSealedRecord): void | Promise<void>;
+	delete(storageId: string): boolean | void | Promise<boolean | void>;
+}
+
+export interface EngineCookieVaultOptions {
+	index?: import("./EngineCookies").EngineCookieIndex;
+	store?: EngineCookieRecordStore;
+	trust?: import("./EngineTrustList").EngineTrustList;
+	sealingKey?: CryptoKey;
 }
 
 /** Metadata only. Raw or sealed credential payloads never belong in this index. */
@@ -67,4 +142,6 @@ export interface EngineCookieIndexEntry {
 	expiresAt?: number;
 	binding: EngineCookieBindingMode;
 	commands: readonly string[];
+	device?: EngineDevicePublicIdentity;
+	environmentHash?: string;
 }

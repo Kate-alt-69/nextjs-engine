@@ -25,3 +25,4 @@ export type {
 	NENCWireHeaders,
 } from "./NENCManifest";
 export { createNENCTransport } from "./NENCClient";
+export type { NENCTransportOptions } from "./NENCClient";

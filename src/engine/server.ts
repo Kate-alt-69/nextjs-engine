@@ -22,6 +22,11 @@ export {
 	validateEngineCommandInput,
 } from "./core/nenc/EngineCommand";
 export { createNENCDispatcher } from "./core/nenc/NENCDispatcher";
+export { createNENCDeviceSignatureVerifier } from "./core/nenc/NENCDeviceProof";
+export type {
+	NENCDeviceIdentityContext,
+	NENCDeviceSignatureVerifierOptions,
+} from "./core/nenc/NENCDeviceProof";
 export { NENCReplayGuard, NENCMemoryReplayStore } from "./core/nenc/NENCReplay";
 export type {
 	NENCAuthenticationContext,

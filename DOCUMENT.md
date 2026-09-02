@@ -1,7 +1,10 @@
 # Next.js Engine — Technical Documentation
 
-> **Last updated:** 2026-06-29
+> **Last updated:** 2026-09-02
 > **Changes in this update:**
+> - **Generation 3 EngineCookie vault** — Added metadata-authenticated AES-256-GCM credential sealing with opaque storage ids, controlled callback-only plaintext use, Trust List checks, command restrictions, and tamper detection.
+> - **Generation 3 device proof** — Added non-exportable Web Crypto ECDSA P-256 device keys and proofs covering method, target, destination origin, body hash, timestamp, nonce, and optional environment identity.
+> - **NENC device binding** — `createNENCTransport()` can send the compiled proof header, while `createNENCDeviceSignatureVerifier()` verifies it against a server-resolved public identity before command authentication and execution.
 > - **`EngineScrollProvider`** — New `src/engine/core/enginescroll/EngineScrollProvider.tsx`. React context wrapping the EngineScroll runtime. Exports `useEngineScroll()` hook returning `{ move }`. `createPage` now auto-wraps every page in `<EngineScrollProvider>` so scroll is available on all pages without manual setup.
 > - **`EngineScrollURL`** — New `src/engine/core/enginescroll/EngineScrollURL.ts`. Parses and executes the `#-es?` URL protocol. Supports `move`, `offset`, `duration` params. Cleans URL with `history.replaceState()` after execution. `listen()` subscribes to future `hashchange` events.
 > - **`EngineScrollNavigator` updated** — Now checks `EngineScrollPointManager` for registered named points before falling back to `document.querySelector`. `move("#hero")` resolves registered schema `point` props first, then DOM ids.
@@ -49,6 +52,18 @@ You never touch a `<div>` again. The engine handles everything.
 ## Core Principle
 
 Raw React and Next.js are fast when optimised correctly, but they give you nothing for free. Every optimization — `React.memo`, `next/image`, `IntersectionObserver`, `content-visibility`, responsive CSS — has to be applied manually. The engine applies all of them automatically, every time, for every element.
+
+---
+
+## Generation 3 Secure Command Layer
+
+Generation 3 routes browser commands through one opaque `/_static/command` endpoint. Logical command and argument names are compiled into build-specific wire ids; those ids conceal the public protocol surface but are not authorization credentials.
+
+Sensitive sessions can be stored in `EngineCookieVault`. The index contains metadata only, while credential bytes are sealed separately with AES-256-GCM and metadata-bound additional data. A vault releases plaintext only inside a caller-supplied operation after origin, command, Trust List, expiry, and configured device-binding checks pass. Keep vault capabilities out of ordinary components.
+
+`EngineDeviceKey` creates a non-exportable P-256 signing key. Its proof binds a NENC request to the exact method, target, destination origin, body hash, timestamp, nonce, and optional environment hash. The dispatcher combines proof verification with its timestamp window and nonce replay guard, then continues through the existing authentication, authorization, and `EngineAPIResolver` path. Native cookies remain compatible; EngineCookies is an additional controlled credential mechanism.
+
+See `docs/gen3/phase-c-network.md` for the current security invariants and remaining Phase C work.
 
 ---
 

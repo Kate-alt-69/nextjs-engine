@@ -1,15 +1,38 @@
 // Next.js Engine Generation 3 — client-safe network surface.
 // Server dispatch/CORS helpers live in `nextjs-engine/server`.
 
-export { EngineCookies, EngineCookieIndex, EngineTrustList } from "./core/enginecookies";
+export {
+	EngineCookies,
+	EngineCookieIndex,
+	EngineCookieMemoryStore,
+	EngineCookieVault,
+	EngineDeviceKey,
+	EngineTrustList,
+	decodeEngineDeviceProof,
+	encodeEngineDeviceProof,
+	hashEngineDeviceValue,
+	isEngineDevicePublicIdentity,
+	verifyEngineDeviceProof,
+} from "./core/enginecookies";
 export type {
 	EngineCookieAccessDecision,
 	EngineCookieAccessRequest,
 	EngineCookieAction,
 	EngineCookieBindingMode,
+	EngineCookieDeviceProofRequest,
 	EngineCookieGrant,
 	EngineCookieIndexEntry,
+	EngineCookiePayload,
+	EngineCookieRecordStore,
 	EngineCookieRegistration,
+	EngineCookieSealedRecord,
+	EngineCookieUseRequest,
+	EngineCookieVaultOptions,
+	EngineDeviceKeyAlgorithm,
+	EngineDeviceProof,
+	EngineDeviceProofChallenge,
+	EngineDeviceProofExpectation,
+	EngineDevicePublicIdentity,
 	EngineTrustListConfig,
 	EngineTrustRule,
 	NativeCookieOptions,
@@ -38,5 +61,6 @@ export type {
 	NENCClientManifest,
 	NENCServerCommand,
 	NENCServerManifest,
+	NENCTransportOptions,
 	NENCWireHeaders,
 } from "./core/nenc";

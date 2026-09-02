@@ -1,7 +1,7 @@
 # Generation 3 Phase C — Network and credential runtime
 
 > Branch: `3_gen_main`  
-> Status: dispatcher/auth foundation in progress
+> Status: dispatcher, sealed credential, and device-proof foundation in progress
 
 Phase C owns the secure application/network layer described by the Gen 3 master plan: EngineCookies, NENC, EngineCORS, command authorization, replay protection, device binding, and the EngineAPIResolver bridge.
 
@@ -9,7 +9,24 @@ Phase C owns the secure application/network layer described by the Gen 3 master 
 
 ### EngineCookies + Trust List
 
-EngineCookies currently provides a metadata-only index plus granular trust-policy primitives. Raw/sealed credential payloads do not belong in `EngineCookieIndex`. CORS permission does not imply cookie or command permission, and wildcard origins may grant CORS only.
+EngineCookies provides a metadata-only index, an AES-256-GCM sealed vault, and granular trust-policy primitives. Raw and sealed credential payloads do not belong in `EngineCookieIndex`; the encrypted record store is separate and keyed by an opaque storage id. Credential metadata is authenticated as AES-GCM additional data, so changing the owner, alias, binding, command list, or device identity invalidates the record.
+
+`EngineCookieVault.use()` releases plaintext only to its supplied operation callback after origin, command, expiry, Trust List, and device-binding checks pass. Keep the vault instance in a controlled runtime capability; ordinary components should receive command handles, not the vault. Native browser cookies remain supported and EngineCookies is an additional controlled store, not a mandatory replacement.
+
+CORS permission does not imply cookie or command permission, and wildcard origins may grant CORS only.
+
+### Device-key binding
+
+`EngineDeviceKey` creates a non-exportable ECDSA P-256 private key through Web Crypto and exposes only its public JWK identity. Device proofs sign the request method, target, destination origin, body hash, timestamp, nonce, and optional environment hash. A copied sealed credential therefore cannot be used with a different private key.
+
+`createNENCTransport()` can attach the proof through the build-specific signature header. `createNENCDeviceSignatureVerifier()` resolves the registered public identity and verifies the exact raw request context before authentication and command execution. Timestamp-window and nonce replay enforcement remain the dispatcher's responsibility, so captured signed requests are rejected by `NENCReplayGuard` before the verifier runs.
+
+Binding modes are:
+
+- `none`: no device proof;
+- `device-key`: registered signing key required;
+- `device-key+environment`: signing key plus matching environment hash;
+- `strict`: reserved strongest binding, currently enforcing the same cryptographic requirements as `device-key+environment`.
 
 ### EngineCommand + typed input
 
@@ -88,7 +105,7 @@ Security defaults fail closed:
 
 Replay storage is replaceable through `NENCReplayStore`. The included memory store is suitable for a single process; distributed/serverless deployments should provide shared persistence when replay guarantees must span instances.
 
-Signature verification is an explicit hook because Phase C still needs the final device-key/EngineCookie proof format. Enabling a verifier makes signature validation happen before authentication/execution.
+Signature verification remains an explicit hook. The included device-proof verifier provides the standard EngineCookie/NENC format, while applications resolve public identities from their own account/session store. Enabling a verifier makes signature validation happen before authentication/execution.
 
 ## EngineCORS
 
@@ -112,10 +129,9 @@ session + EngineCookie + origin + trust + nonce + signature + rate policy
 
 ## Remaining implementation order
 
-1. sealed EngineCookie storage and device-key proof;
-2. concrete session/auth policy helpers for account commands;
-3. signature format + command-specific replay policy;
-4. NENC plugin integration that emits manifests and the single route;
-5. ordinary/private backend proving flows through EngineAPIResolver;
-6. real private login/search proving application;
-7. Phase D debug/security inspection surfaces consuming these artifacts.
+1. concrete session/auth policy helpers for account commands;
+2. command-specific replay and rate policy;
+3. NENC plugin integration that emits manifests and the single route;
+4. ordinary/private backend proving flows through EngineAPIResolver;
+5. real private login/search proving application;
+6. Phase D debug/security inspection surfaces consuming these artifacts.
