@@ -2,9 +2,9 @@ name: Engine browser compatibility
 
 on:
   push:
-    branches: [main]
+    branches: [3_gen_main]
   pull_request:
-    branches: [main]
+    branches: [3_gen_main]
 
 permissions:
   contents: read
