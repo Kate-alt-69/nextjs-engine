@@ -141,64 +141,23 @@ Full breakdown: [`docs/release/NE-v2-6-1.md`](./docs/release/NE-v2-6-1.md).
 
 ## Repository layout — read this first
 
-This repository intentionally has **two branches with different jobs**.
+This repository uses **four permanent branches across two release streams**.
 
-### `main` — workspace / source of truth
+### `main-2` and `main-3` — workspace / source branches
 
-`main` is where NE is developed and tested.
-
-```text
-nextjs-engine/
-├── app/                         Next.js integration/demo app
-├── src/
-│   └── engine/                  ← ENGINE SOURCE OF TRUTH
-│       ├── components/
-│       │   ├── EngineOverlay/
-│       │   └── EngineManim/
-│       ├── core/
-│       │   ├── enginecanvas/
-│       │   ├── enginescroll/
-│       │   ├── engineshader/
-│       │   ├── enginetransitions/
-│       │   └── engineoverlay/
-│       ├── hooks/
-│       ├── plugins/
-│       ├── providers/
-│       ├── schema/
-│       ├── createPage.tsx
-│       ├── server.ts
-│       └── index.ts
-├── data/
-│   ├── endpoint/                APIStatic `.route` sources
-│   └── shader/public/           EngineShader `.shed` sources
-├── docs/
-│   ├── engine-components/
-│   ├── release/
-│   ├── styling.md
-│   ├── runtime-performance.md
-│   └── schema-diagnostics.md
-├── scripts/                     CI smoke/regression tests
-├── .github/workflows/
-├── DOCUMENT.md                  Large technical/history reference
-└── README.md
-```
-
-### `main-empty` — distributable package branch
-
-`main-empty` is the package-shaped branch. It does **not** mirror the entire development workspace.
+`main-2` owns the stable NE 2.6.x source and integration workspace. `main-3` owns the Generation 3 compiler/runtime source and integration workspace.
 
 ```text
-main                         main-empty
-──────────────               ─────────────────
-src/engine/       ───────▶   engine/
-docs/             ───────▶   docs/
-DOCUMENT.md       ───────▶   DOCUMENT.md
-                             package.json
-                             index.ts
-                             README.md
+main-2                         main-2-package
+main-3                         main-3-package
+source/src/engine/  ───────▶   package/engine/
+source/docs/        ───────▶   package/docs/
+source/DOCUMENT.md  ───────▶   package/DOCUMENT.md
 ```
 
-Package-only metadata remains owned by `main-empty`.
+### `main-2-package` and `main-3-package` — distributable package branches
+
+Each source branch has an isolated package-sync workflow. Package branches contain the publishable Engine layout rather than the full Next.js development workspace. Package-only metadata remains owned by its matching package branch.
 
 ---
 
