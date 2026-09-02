@@ -1,6 +1,6 @@
 # Generation 3 Phase C — Network and credential runtime
 
-> Branch: `3_gen_main`  
+> Branch: `main-3`  
 > Status: dispatcher, sealed credential, and device-proof foundation in progress
 
 Phase C owns the secure application/network layer described by the Gen 3 master plan: EngineCookies, NENC, EngineCORS, command authorization, replay protection, device binding, and the EngineAPIResolver bridge.

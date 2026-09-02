@@ -2,9 +2,9 @@ name: Engine runtime CI
 
 on:
   push:
-    branches: [main, 3_gen_main]
+    branches: [main-2, main-3]
   pull_request:
-    branches: [main, 3_gen_main]
+    branches: [main-2, main-3]
 
 permissions:
   contents: read
@@ -51,13 +51,13 @@ jobs:
       - name: Test React and Next compatibility contracts
         run: node scripts/react-runtime-compat-smoke.js
       - name: Test Generation 3 phase A/B contracts
-        if: github.ref_name == '3_gen_main' || github.base_ref == '3_gen_main'
+        if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
         run: |
           node scripts/gen3-phase-ab-smoke.js
           node scripts/gen3-compiler-runtime-smoke.js
           node scripts/gen3-adaptive-runtime-smoke.js
       - name: Test Generation 3 phase C contracts
-        if: github.ref_name == '3_gen_main' || github.base_ref == '3_gen_main'
+        if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
         run: |
           node scripts/gen3-phase-c-smoke.js
           node scripts/gen3-nenc-wire-smoke.js

@@ -3,13 +3,13 @@ name: Sync Gen 3 package branch
 on:
   push:
     branches:
-      - 3_gen_main
+      - main-3
     paths:
       - "src/engine/**"
       - "docs/**"
       - "DOCUMENT.md"
       - "package.json"
-      - ".github/workflows/sync-main-empty.yml"
+      - ".github/workflows/sync-package-branch.yml"
   workflow_dispatch:
 
 permissions:
@@ -142,5 +142,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Sync Gen 3 package sources from 3_gen_main ${GITHUB_SHA::7}"
+          git commit -m "Sync Gen 3 package sources from main-3 ${GITHUB_SHA::7}"
           git push origin HEAD:main-3-package
