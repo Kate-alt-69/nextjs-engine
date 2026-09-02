@@ -72,6 +72,9 @@ jobs:
           if (!fs.existsSync("./package/engine/server.ts")) {
             throw new Error("Package server export points to a missing engine/server.ts");
           }
+          if (!fs.existsSync("./package/engine/network.ts")) {
+            throw new Error("Package network export points to a missing engine/network.ts");
+          }
           for (const requiredFile of [
             "./package/engine/plugins/enginePlugin.js",
             "./package/engine/plugins/engineApiPlugin.js",
@@ -85,6 +88,11 @@ jobs:
           }
 
           packageJson.exports = packageJson.exports || {};
+          packageJson.exports["./network"] = {
+            types: "./engine/network.ts",
+            import: "./engine/network.ts",
+            default: "./engine/network.ts"
+          };
           packageJson.exports["./plugin"] = {
             require: "./engine/plugins/enginePlugin.js",
             default: "./engine/plugins/enginePlugin.js"
