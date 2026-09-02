@@ -1,18 +1,18 @@
 "use client";
 // ─────────────────────────────────────────────────────────────────────────────
-//	EngineCanvas compatibility + EngineShader facade
+// EngineCanvas compatibility + EngineShader facade
 //
-//	Normal callback/graphics canvases stay on the shared core EngineCanvas
-//	runtime. Supplying `shader` switches the canvas into ESH-owned GPU mode
-//	without layering a second canvas or starting another render loop.
+// Generation 3 keeps visual resolution stable by default. The legacy adaptive
+// DPR path remains available only when a developer explicitly opts into it.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { memo, type CSSProperties } from "react";
+import React, { memo, useCallback, useEffect, type CSSProperties } from "react";
 import {
 	EngineCanvas as CoreEngineCanvas,
-	useEngineCanvas,
+	useEngineCanvas as useCoreEngineCanvas,
 	type EngineCanvasProps as CoreEngineCanvasProps,
 } from "../core/enginecanvas/EngineCanvas";
+import { EngineScheduler } from "../core/enginescheduler";
 import { EngineShader } from "./EngineShader";
 import type { EngineShaderInput } from "../core/engineshader/EngineShaderTypes";
 
@@ -31,9 +31,14 @@ function resolveShaderMaxDpr(
 
 export const EngineCanvas = memo(function EngineCanvas({
 	shader,
+	adaptive: adaptiveProp,
 	...props
 }: EngineCanvasProps) {
-	if (!shader) return <CoreEngineCanvas {...props} />;
+	const adaptive = adaptiveProp ?? false;
+
+	useEffect(() => EngineScheduler.acquireFrameMonitor(), []);
+
+	if (!shader) return <CoreEngineCanvas {...props} adaptive={adaptive} />;
 
 	const {
 		width,
@@ -41,7 +46,6 @@ export const EngineCanvas = memo(function EngineCanvas({
 		responsive,
 		dpr = "auto",
 		maxDpr = 2,
-		adaptive = true,
 		pauseWhenOffscreen = true,
 		pauseWhenHidden = true,
 		powerPreference = "high-performance",
@@ -73,5 +77,33 @@ export const EngineCanvas = memo(function EngineCanvas({
 	);
 });
 
-export { useEngineCanvas };
+/**
+ * Generation 3 low-level Canvas hook.
+ *
+ * The v2 core hook keeps its historical adaptive-DPR default for compatibility.
+ * The public Gen 3 facade changes only the default: resolution stays stable unless
+ * the caller explicitly passes `adaptive: true` to setup().
+ */
+export function useEngineCanvas(
+	options: Parameters<typeof useCoreEngineCanvas>[0] = {},
+) {
+	const runtime = useCoreEngineCanvas(options);
+	const setup = useCallback((handlers: Parameters<typeof runtime.setup>[0]) => {
+		const releaseFrameMonitor = EngineScheduler.acquireFrameMonitor();
+		const cleanup = runtime.setup({
+			...handlers,
+			adaptive: handlers.adaptive ?? false,
+		});
+		return () => {
+			cleanup();
+			releaseFrameMonitor();
+		};
+	}, [runtime.setup]);
+
+	return {
+		canvasRef: runtime.canvasRef,
+		setup,
+	};
+}
+
 export type { EngineCanvasFrameInfo } from "../core/enginecanvas/EngineCanvas";

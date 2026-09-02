@@ -1,6 +1,6 @@
 "use client";
 // ─────────────────────────────────────────────────────────────────────────────
-// EngineVideo — viewport-aware video loading
+// EngineVideo — EngineScheduler-aware video loading
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, {
@@ -12,7 +12,7 @@ import React, {
 	useState,
 	type CSSProperties,
 } from "react";
-import { useInView } from "../hooks/useInView";
+import { useEngineSchedule } from "../hooks/useEngineScheduler";
 
 export interface VideoSource {
 	src: string;
@@ -52,27 +52,9 @@ function VideoSpinner() {
 				pointerEvents: "none",
 			}}
 		>
-			<svg
-				width="48"
-				height="48"
-				viewBox="0 0 48 48"
-				fill="none"
-				style={{ animation: "e-spin 0.8s linear infinite" }}
-			>
-				<circle
-					cx="24"
-					cy="24"
-					r="20"
-					stroke="white"
-					strokeWidth="4"
-					strokeOpacity="0.3"
-				/>
-				<path
-					d="M24 4 A20 20 0 0 1 44 24"
-					stroke="white"
-					strokeWidth="4"
-					strokeLinecap="round"
-				/>
+			<svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ animation: "e-spin 0.8s linear infinite" }}>
+				<circle cx="24" cy="24" r="20" stroke="white" strokeWidth="4" strokeOpacity="0.3" />
+				<path d="M24 4 A20 20 0 0 1 44 24" stroke="white" strokeWidth="4" strokeLinecap="round" />
 			</svg>
 		</div>
 	);
@@ -114,20 +96,26 @@ export const EngineVideo = memo(function EngineVideo({
 	const [videoReady, setVideoReady] = useState(false);
 	const [buffering, setBuffering] = useState(false);
 	const videoRef = useRef<HTMLVideoElement>(null);
+	const schedule = useEngineSchedule<HTMLDivElement>({
+		priority: eager,
+		nearMargin: rootMargin,
+		releaseWhenFar: true,
+	});
+	const inView = eager || schedule.visible;
 
 	useEffect(() => {
 		injectSpinCSS();
 	}, []);
 
-	const { ref: wrapperRef, inView } = useInView<HTMLDivElement>({
-		rootMargin,
-		once: false,
-		initialInView: eager,
-	});
-
 	useEffect(() => {
-		if (inView) setActivated(true);
-	}, [inView]);
+		if (
+			schedule.state === "critical"
+			|| schedule.visible
+			|| (schedule.near && !schedule.underFramePressure)
+		) {
+			setActivated(true);
+		}
+	}, [schedule.near, schedule.state, schedule.underFramePressure, schedule.visible]);
 
 	const resolvedPreload = preload ?? (autoPlay ? "auto" : "metadata");
 	const sources = useMemo<VideoSource[]>(() => Array.isArray(src)
@@ -137,8 +125,6 @@ export const EngineVideo = memo(function EngineVideo({
 		.map((source, index) => `${index}\u001f${source.src}\u001f${source.type ?? ""}`)
 		.join("\u001e"), [sources]);
 
-	// A <video> element does not reliably reselect changed <source> children.
-	// sourceKey remounts the media element, while this resets wrapper readiness.
 	useEffect(() => {
 		setVideoReady(false);
 		setBuffering(false);
@@ -186,24 +172,16 @@ export const EngineVideo = memo(function EngineVideo({
 	const showExternalPoster = Boolean(poster && !videoReady && (!activated || autoPlay));
 
 	return (
-		<div ref={wrapperRef} className={className} style={wrapperStyle}>
+		<div ref={schedule.ref} className={className} style={wrapperStyle}>
 			{showExternalPoster && (
 				// eslint-disable-next-line @next/next/no-img-element
 				<img
 					src={poster}
 					alt="Video thumbnail"
-					style={{
-						position: "absolute",
-						inset: 0,
-						width: "100%",
-						height: "100%",
-						objectFit: "cover",
-					}}
+					style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
 				/>
 			)}
-
 			{buffering && !videoReady && <VideoSpinner />}
-
 			{activated && (
 				<video
 					ref={videoRef}

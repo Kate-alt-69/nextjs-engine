@@ -33,6 +33,11 @@
 		"./shader-plugin": {
 			"require": "./engine/plugins/engineShaderPlugin.js",
 			"default": "./engine/plugins/engineShaderPlugin.js"
+		},
+		"./network": {
+			"types": "./engine/network.ts",
+			"import": "./engine/network.ts",
+			"default": "./engine/network.ts"
 		}
 	},
 	"types": "./index.ts",
