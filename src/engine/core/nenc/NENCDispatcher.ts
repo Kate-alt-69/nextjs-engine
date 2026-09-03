@@ -77,23 +77,36 @@ async function executeCommand(
 	command: NENCServerCommand,
 	input: unknown,
 	options: NENCDispatcherOptions,
+	security: {
+		signature: string | null;
+		signatureVerified: boolean;
+		timestamp: string;
+		nonce: string;
+	},
 ): Promise<Response> {
 	let principal: unknown;
 	if (command.auth !== "anonymous") {
 		if (!options.authenticate) return generic(401);
-		const auth = await options.authenticate(command.auth, { request, origin, command, input });
+		const auth = await options.authenticate(command.auth, {
+			request, origin, command, input, ...security,
+		});
 		if (!auth.authenticated) return generic(401);
 		principal = auth.principal;
 	}
 
 	if (command.permissions.length > 0) {
 		if (!options.authorize) return generic(403);
-		const allowed = await options.authorize({ request, origin, command, input, principal, permissions: command.permissions });
+		const authenticatedPrincipal = principal;
+		const allowed = await options.authorize({
+			request, origin, command, input, principal: authenticatedPrincipal,
+			permissions: command.permissions, ...security,
+		});
 		if (!allowed) return generic(403);
 	}
 
 	const result = await executeRegisteredEngineCommand(command.name, input, {
 		api: resolveAPI(options),
+		principal,
 		request,
 		origin,
 		signal: request.signal,
@@ -134,14 +147,19 @@ export function createNENCDispatcher(options: NENCDispatcherOptions): NENCReques
 		try {
 			const body = await readBody(request, maxBodyBytes);
 			const input = decodeInput(command, body.value);
+			const signature = request.headers.get(options.manifest.headers.signature);
+			let signatureVerified = false;
 			if (options.verifySignature) {
 				const valid = await options.verifySignature({
 					request, origin, command, input, rawBody: body.raw,
-					signature: request.headers.get(options.manifest.headers.signature), timestamp, nonce,
+					signature, timestamp, nonce,
 				});
 				if (!valid) return finalize(generic(401));
+				signatureVerified = true;
 			}
-			return finalize(await executeCommand(request, origin, command, input, options));
+			return finalize(await executeCommand(request, origin, command, input, options, {
+				signature, signatureVerified, timestamp, nonce,
+			}));
 		} catch {
 			return finalize(generic(400));
 		}

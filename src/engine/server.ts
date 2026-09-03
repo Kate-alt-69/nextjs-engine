@@ -23,6 +23,15 @@ export {
 } from "./core/nenc/EngineCommand";
 export { createNENCDispatcher } from "./core/nenc/NENCDispatcher";
 export { createNENCDeviceSignatureVerifier } from "./core/nenc/NENCDeviceProof";
+export { createNENCAccountSessionPolicy, hashNENCSessionToken } from "./core/nenc/NENCSessionAuth";
+export type {
+	NENCAccountPrincipal,
+	NENCAccountSession,
+	NENCAccountSessionLookupContext,
+	NENCAccountSessionPolicy,
+	NENCAccountSessionPolicyOptions,
+	NENCAccountSessionResolver,
+} from "./core/nenc/NENCSessionAuth";
 export type {
 	NENCDeviceIdentityContext,
 	NENCDeviceSignatureVerifierOptions,
@@ -33,6 +42,7 @@ export type {
 	NENCAuthenticationResult,
 	NENCAuthorizationContext,
 	NENCDispatcherOptions,
+	NENCRequestContext,
 	NENCRequestHandler,
 	NENCSignatureContext,
 } from "./core/nenc/NENCDispatcherTypes";
