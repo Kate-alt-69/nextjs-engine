@@ -9,11 +9,18 @@ import type { EngineCommandAuth } from "./types";
 import type { NENCServerCommand, NENCServerManifest } from "./NENCManifest";
 import type { NENCReplayGuard } from "./NENCReplay";
 
-export interface NENCAuthenticationContext {
+export interface NENCRequestContext {
 	request: Request;
 	origin: string;
 	command: NENCServerCommand;
 	input: unknown;
+}
+
+export interface NENCAuthenticationContext extends NENCRequestContext {
+	signature: string | null;
+	signatureVerified: boolean;
+	timestamp: string;
+	nonce: string;
 }
 
 export interface NENCAuthenticationResult {
@@ -26,7 +33,7 @@ export interface NENCAuthorizationContext extends NENCAuthenticationContext {
 	permissions: readonly string[];
 }
 
-export interface NENCSignatureContext extends NENCAuthenticationContext {
+export interface NENCSignatureContext extends NENCRequestContext {
 	rawBody: string;
 	signature: string | null;
 	timestamp: string;

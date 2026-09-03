@@ -26,3 +26,12 @@ export type {
 } from "./NENCManifest";
 export { createNENCTransport } from "./NENCClient";
 export type { NENCTransportOptions } from "./NENCClient";
+export { createNENCAccountSessionPolicy, hashNENCSessionToken } from "./NENCSessionAuth";
+export type {
+	NENCAccountPrincipal,
+	NENCAccountSession,
+	NENCAccountSessionLookupContext,
+	NENCAccountSessionPolicy,
+	NENCAccountSessionPolicyOptions,
+	NENCAccountSessionResolver,
+} from "./NENCSessionAuth";

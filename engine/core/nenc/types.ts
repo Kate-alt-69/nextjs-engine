@@ -23,6 +23,7 @@ export interface EngineCommandExecutionContext<Input = unknown> {
 	name: string;
 	input: Input;
 	api: EngineAPIResolver;
+	principal?: unknown;
 	request?: Request;
 	origin?: string;
 	signal?: AbortSignal;
@@ -54,6 +55,7 @@ export type EngineCommandTransport = (name: string, input: unknown) => Promise<u
 
 export interface EngineCommandServerContext {
 	api: EngineAPIResolver;
+	principal?: unknown;
 	request?: Request;
 	origin?: string;
 	signal?: AbortSignal;

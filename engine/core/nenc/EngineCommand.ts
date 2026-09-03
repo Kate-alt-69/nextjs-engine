@@ -138,6 +138,7 @@ export async function executeRegisteredEngineCommand(
 		name,
 		input: validatedInput,
 		api: context.api,
+		principal: context.principal,
 		request: context.request,
 		origin: context.origin,
 		signal: context.signal,
