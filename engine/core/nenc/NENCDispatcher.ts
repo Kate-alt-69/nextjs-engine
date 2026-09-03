@@ -14,6 +14,12 @@ function generic(status: number): Response {
 	return Response.json({ error: "invalid_request" }, { status });
 }
 
+function rateLimited(retryAfterMs: number): Response {
+	const headers = new Headers();
+	headers.set("Retry-After", String(Math.max(1, Math.ceil(retryAfterMs / 1_000))));
+	return Response.json({ error: "invalid_request" }, { status: 429, headers });
+}
+
 function requestOrigin(request: Request): string {
 	const headerOrigin = request.headers.get("Origin");
 	if (headerOrigin) {
@@ -93,14 +99,16 @@ async function executeCommand(
 		if (!auth.authenticated) return generic(401);
 		principal = auth.principal;
 	}
+	const authorizationContext = {
+		request, origin, command, input, principal,
+		permissions: command.permissions, ...security,
+	};
+	const rateDecision = await options.commandSecurity?.verifyRate(authorizationContext);
+	if (rateDecision && !rateDecision.allowed) return rateLimited(rateDecision.retryAfterMs);
 
 	if (command.permissions.length > 0) {
 		if (!options.authorize) return generic(403);
-		const authenticatedPrincipal = principal;
-		const allowed = await options.authorize({
-			request, origin, command, input, principal: authenticatedPrincipal,
-			permissions: command.permissions, ...security,
-		});
+		const allowed = await options.authorize(authorizationContext);
 		if (!allowed) return generic(403);
 	}
 
@@ -141,7 +149,13 @@ export function createNENCDispatcher(options: NENCDispatcherOptions): NENCReques
 
 		const timestamp = request.headers.get(options.manifest.headers.timestamp);
 		const nonce = request.headers.get(options.manifest.headers.nonce);
-		const replayDecision = await replay.verify(timestamp, nonce);
+		const commandReplay = options.commandSecurity?.replayFor(command.name);
+		const replayDecision = await (commandReplay ?? replay).verify(
+			timestamp,
+			nonce,
+			Date.now(),
+			commandReplay ? command.name : "",
+		);
 		if (!replayDecision.allowed || !timestamp || !nonce) return finalize(generic(409));
 
 		try {

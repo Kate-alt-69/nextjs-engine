@@ -135,6 +135,37 @@ The default cookie name is `__Host-engine-session`. Issue it as a host-only `Sec
 
 Session records require an id, account subject, and expiry. They can additionally restrict permissions, commands, origins, activation time, revocation state, and a device key id. Device-bound records authenticate only when the dispatcher has already verified the attached proof and its decoded key id matches the session. Successful command execution receives a frozen `NENCAccountPrincipal` through `execute({ principal })`; raw credentials are never added to that principal.
 
+## Command replay and rate policy
+
+`NENCCommandSecurityPolicy` attaches stronger replay windows and fixed-window rate budgets to selected logical commands. Authentication runs before rate-key resolution, allowing account/session identity to key the budget without trusting a client-supplied identifier:
+
+```ts
+const privateSearchRate = new NENCRateLimiter({
+	limit: 30,
+	windowMs: 60_000,
+	store: sharedAtomicRateStore,
+});
+
+const commandSecurity = new NENCCommandSecurityPolicy({
+	rules: {
+		privateSearch: {
+			replay: new NENCReplayGuard({
+				maxClockSkewMs: 15_000,
+				store: sharedReplayStore,
+			}),
+			rate: {
+				limiter: privateSearchRate,
+				key: ({ principal }) => (principal as NENCAccountPrincipal).sessionId,
+			},
+		},
+	},
+});
+
+createNENCDispatcher({ manifest, api, commandSecurity });
+```
+
+A rule's replay guard replaces the default guard for that command and namespaces nonce claims by logical command. A configured rate rule fails closed when its key is missing/invalid or its store fails. Rejections use the generic response body with status `429` and `Retry-After`; replay failures remain generic `409` responses. The included memory stores are single-process implementations. Distributed and serverless deployments should supply atomic shared stores—`NENCRateLimitStore.consume()` must increment and return the count as one operation.
+
 ## EngineCORS
 
 The server-only CORS helper provides exact-origin handling, preflight responses, `Vary: Origin`, allowed method/header configuration, and rejects credentialed wildcard CORS.
@@ -157,8 +188,7 @@ session + EngineCookie + origin + trust + nonce + signature + rate policy
 
 ## Remaining implementation order
 
-1. command-specific replay and rate policy;
-2. NENC plugin integration that emits manifests and the single route;
-3. ordinary/private backend proving flows through EngineAPIResolver;
-4. real private login/search proving application;
-5. Phase D debug/security inspection surfaces consuming these artifacts.
+1. NENC plugin integration that emits manifests and the single route;
+2. ordinary/private backend proving flows through EngineAPIResolver;
+3. real private login/search proving application;
+4. Phase D debug/security inspection surfaces consuming these artifacts.

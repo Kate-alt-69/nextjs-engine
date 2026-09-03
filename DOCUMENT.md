@@ -2,6 +2,7 @@
 
 > **Last updated:** 2026-09-03
 > **Changes in this update:**
+> - **Generation 3 command security** — Added per-command replay guards and fixed-window rate policies with principal-aware keys, replaceable atomic stores, generic failures, and `Retry-After` responses.
 > - **Generation 3 account sessions** — Added a fail-closed NENC account-session policy with duplicate-cookie rejection, SHA-256 token-hash lookup, expiry/origin/command restrictions, permission authorization, and optional verified device-key binding.
 > - **Generation 3 EngineCookie vault** — Added metadata-authenticated AES-256-GCM credential sealing with opaque storage ids, controlled callback-only plaintext use, Trust List checks, command restrictions, and tamper detection.
 > - **Generation 3 device proof** — Added non-exportable Web Crypto ECDSA P-256 device keys and proofs covering method, target, destination origin, body hash, timestamp, nonce, and optional environment identity.
@@ -65,6 +66,8 @@ Sensitive sessions can be stored in `EngineCookieVault`. The index contains meta
 `EngineDeviceKey` creates a non-exportable P-256 signing key. Its proof binds a NENC request to the exact method, target, destination origin, body hash, timestamp, nonce, and optional environment hash. The dispatcher combines proof verification with its timestamp window and nonce replay guard, then continues through the existing authentication, authorization, and `EngineAPIResolver` path. Native cookies remain compatible; EngineCookies is an additional controlled credential mechanism.
 
 `createNENCAccountSessionPolicy()` provides the standard server-side policy for `auth: "account"` commands. It rejects missing or duplicate session cookies, hashes the opaque token before application lookup, validates session expiry and optional origin/command/device restrictions, and authorizes every declared command permission. The resolver receives only the token hash plus sanitized command metadata, while command execution receives a credential-free account principal.
+
+`NENCCommandSecurityPolicy` can assign stricter replay windows and fixed-window rate limits to individual logical commands, with an optional explicit `"*"` fallback. Replay claims are command-namespaced. Rate keys are application-defined after authentication, so account commands can isolate budgets by the authenticated subject or session without trusting client-supplied identifiers. Production multi-instance deployments should provide shared atomic replay and rate stores.
 
 See `docs/gen3/phase-c-network.md` for the current security invariants and remaining Phase C work.
 

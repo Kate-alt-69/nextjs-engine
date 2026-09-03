@@ -41,7 +41,12 @@ export class NENCReplayGuard {
 		this.store = options.store ?? new NENCMemoryReplayStore();
 	}
 
-	async verify(timestampValue: string | null, nonce: string | null, now = Date.now()): Promise<NENCReplayDecision> {
+	async verify(
+		timestampValue: string | null,
+		nonce: string | null,
+		now = Date.now(),
+		namespace = "",
+	): Promise<NENCReplayDecision> {
 		if (!timestampValue || !/^\d{10,16}$/.test(timestampValue)) {
 			return { allowed: false, reason: "invalid-timestamp" };
 		}
@@ -53,7 +58,8 @@ export class NENCReplayGuard {
 		if (!nonce || !NONCE_PATTERN.test(nonce)) return { allowed: false, reason: "invalid-nonce" };
 
 		const expiry = Math.max(now + 1_000, timestamp + this.maxClockSkewMs);
-		const claimed = await this.store.claim(`${timestamp}:${nonce}`, expiry);
+		const key = namespace ? `${namespace}:${nonce}` : nonce;
+		const claimed = await this.store.claim(key, expiry);
 		return claimed
 			? { allowed: true, reason: "ok" }
 			: { allowed: false, reason: "replayed-nonce" };
