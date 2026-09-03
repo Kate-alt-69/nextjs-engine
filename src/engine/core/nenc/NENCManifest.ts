@@ -2,7 +2,12 @@
 // Next.js Engine Generation 3 — compiled NENC wire manifest types
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { EngineCommandAuth, EngineCommandRuntime } from "./types";
+import type {
+	EngineCommandAuth,
+	EngineCommandRateLimit,
+	EngineCommandReplayPolicy,
+	EngineCommandRuntime,
+} from "./types";
 
 export interface NENCWireHeaders {
 	selector: string;
@@ -30,6 +35,8 @@ export interface NENCServerCommand {
 	run: EngineCommandRuntime;
 	auth: EngineCommandAuth;
 	permissions: readonly string[];
+	replay?: EngineCommandReplayPolicy;
+	rateLimit?: EngineCommandRateLimit;
 	argsByName: Readonly<Record<string, string>>;
 	argsById: Readonly<Record<string, string>>;
 }

@@ -9,6 +9,8 @@ import type {
 	EngineCommandInputField,
 	EngineCommandInputSchema,
 	EngineCommandInputType,
+	EngineCommandRateLimit,
+	EngineCommandReplayPolicy,
 	EngineCommandServerContext,
 	EngineCommandTransport,
 } from "./types";
@@ -34,12 +36,41 @@ function cloneInputSchema(schema: EngineCommandInputSchema | undefined): EngineC
 	));
 }
 
+function normalizeReplayPolicy(policy: EngineCommandReplayPolicy | undefined): EngineCommandReplayPolicy | undefined {
+	if (!policy) return undefined;
+	const maxAgeMs = policy.maxAgeMs;
+	const maxFutureSkewMs = policy.maxFutureSkewMs;
+	if (maxAgeMs !== undefined && (!Number.isSafeInteger(maxAgeMs) || maxAgeMs < 1_000)) {
+		throw new Error("[EngineCommand] replay.maxAgeMs must be an integer of at least 1000ms.");
+	}
+	if (maxFutureSkewMs !== undefined && (!Number.isSafeInteger(maxFutureSkewMs) || maxFutureSkewMs < 0)) {
+		throw new Error("[EngineCommand] replay.maxFutureSkewMs must be a non-negative integer.");
+	}
+	return Object.freeze({
+		...(maxAgeMs === undefined ? {} : { maxAgeMs }),
+		...(maxFutureSkewMs === undefined ? {} : { maxFutureSkewMs }),
+	});
+}
+
+function normalizeRateLimit(policy: EngineCommandRateLimit | undefined): EngineCommandRateLimit | undefined {
+	if (!policy) return undefined;
+	if (!Number.isSafeInteger(policy.limit) || policy.limit < 1) {
+		throw new Error("[EngineCommand] rateLimit.limit must be a positive integer.");
+	}
+	if (!Number.isSafeInteger(policy.windowMs) || policy.windowMs < 1_000) {
+		throw new Error("[EngineCommand] rateLimit.windowMs must be an integer of at least 1000ms.");
+	}
+	return Object.freeze({ limit: policy.limit, windowMs: policy.windowMs });
+}
+
 function descriptor(name: string, definition: EngineCommandDefinition<any, any>): EngineCommandDescriptor {
 	return Object.freeze({
 		name,
 		run: definition.run ?? "auto",
 		auth: definition.auth ?? "anonymous",
 		permissions: Object.freeze([...(definition.permissions ?? [])]),
+		replay: normalizeReplayPolicy(definition.replay),
+		rateLimit: normalizeRateLimit(definition.rateLimit),
 		input: cloneInputSchema(definition.input),
 	});
 }

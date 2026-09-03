@@ -17,6 +17,8 @@ const commands = [{
 	run: "server",
 	auth: "account",
 	permissions: ["catalog.read"],
+	replay: { maxAgeMs: 10_000, maxFutureSkewMs: 1_000 },
+	rateLimit: { limit: 20, windowMs: 60_000 },
 	input: {
 		search: { type: "string", maxLength: 120 },
 		page: { type: "number", optional: true, min: 1, max: 50 },
@@ -41,6 +43,9 @@ check(serverCommand.name === "privateSearch", "server manifest maps opaque id ba
 check(clientCommand.args.search !== "search", "search argument is opaque on the wire");
 check(clientCommand.args.page !== "page", "page argument is opaque on the wire");
 check(serverCommand.argsById[clientCommand.args.search] === "search", "server reverses opaque argument ids");
+check(serverCommand.replay.maxAgeMs === 10_000, "server manifest carries command replay policy");
+check(serverCommand.rateLimit.limit === 20, "server manifest carries command rate policy");
+check(clientCommand.replay === undefined && clientCommand.rateLimit === undefined, "client manifest does not expose traffic policy");
 
 const headerValues = Object.values(first.client.headers);
 check(new Set(headerValues).size === headerValues.length, "compiled NENC headers are unique");
@@ -54,6 +59,14 @@ try {
 	duplicateRejected = true;
 }
 check(duplicateRejected, "duplicate logical commands fail compilation");
+
+let invalidRateRejected = false;
+try {
+	compileNENCManifest([{ ...commands[0], rateLimit: { limit: 0, windowMs: 60_000 } }], { seed: "wire-test" });
+} catch {
+	invalidRateRejected = true;
+}
+check(invalidRateRejected, "invalid command rate policy fails compilation");
 
 if (failures > 0) {
 	console.error(`\nGeneration 3 NENC wire smoke failed with ${failures} issue(s).`);

@@ -1,7 +1,7 @@
 # Generation 3 Phase C — Network and credential runtime
 
 > Branch: `main-3`  
-> Status: dispatcher, sealed credential, device-proof, and account-session policy foundation in progress
+> Status: dispatcher, credential/device/session security, and per-command traffic policy foundation in progress
 
 Phase C owns the secure application/network layer described by the Gen 3 master plan: EngineCookies, NENC, EngineCORS, command authorization, replay protection, device binding, and the EngineAPIResolver bridge.
 
@@ -36,6 +36,9 @@ Developer commands use readable logical names and typed input descriptors. Schem
 EngineCommand.create("privateSearch", {
 	run: "server",
 	auth: "account",
+	permissions: ["search.private.read"],
+	replay: { maxAgeMs: 10_000, maxFutureSkewMs: 1_000 },
+	rateLimit: { limit: 20, windowMs: 60_000 },
 	input: {
 		search: { type: "string", maxLength: 120 },
 		page: { type: "number", optional: true, min: 1, max: 50 },
@@ -109,6 +112,34 @@ Sessions fail closed when identifiers or timestamps are malformed, when they are
 
 The returned principal is server-only, branded by the policy helper, and frozen before it reaches `execute()`. `sessionId` must be a non-secret internal identifier—not the cookie, bearer value, EngineCookie plaintext, or another reusable credential. Optional `attributes` must likewise be sanitized for command use. Custom authentication modes can be composed through `authenticateOther` and `authorizeOther` instead of being silently treated as account sessions.
 
+### Per-command replay and rate policy
+
+Commands may narrow the dispatcher's replay window and declare a fixed-window request budget:
+
+```ts
+import { NENCRateLimiter } from "nextjs-engine/server";
+
+const rateLimit = new NENCRateLimiter({
+	store: distributedRateStore,
+	resolveKey({ principal, request }) {
+		if (isNENCAccountPrincipal(principal)) return `account:${principal.accountId}`;
+		return trustedClientAddress(request);
+	},
+});
+
+const handler = createNENCDispatcher({
+	manifest,
+	api,
+	rateLimit,
+});
+```
+
+`replay.maxAgeMs` and `replay.maxFutureSkewMs` are server-manifest-only policy. They can make a sensitive command stricter but cannot widen the `NENCReplayGuard` ceilings. Timestamp and nonce replay checks remain mandatory for every command.
+
+`rateLimit.limit` and `rateLimit.windowMs` are also server-manifest-only. A declared rate limit fails closed when the dispatcher has no limiter, the trusted key resolver cannot identify the caller, or the backing store fails. Rejections use a generic `429` body and a standard `Retry-After` header without revealing command metadata. The included `NENCMemoryRateLimitStore` is for one process; distributed deployments should provide an atomic shared `NENCRateLimitStore` implementation.
+
+Rate keys come exclusively from server code. Do not trust a caller-supplied account id, forwarded address, or arbitrary header. If deployment infrastructure supplies a client address, accept it only through that infrastructure's trusted proxy boundary. Buckets are automatically separated by the compiled command id.
+
 ## Single dispatcher
 
 `createNENCDispatcher()` is the server route-handler factory. Applications can bind the same handler to `POST` and `OPTIONS` at `app/_static/command/route.ts`; no per-command routes are created.
@@ -122,7 +153,7 @@ opaque selector resolution
 ↓
 Trust List for cross-origin commands
 ↓
-timestamp + nonce replay guard
+command replay window + nonce guard
 ↓
 request body size limit
 ↓
@@ -133,6 +164,8 @@ optional signature verification
 account/custom command authentication
 ↓
 permission authorization
+↓
+command rate limit
 ↓
 EngineCommand registry + server-only principal
 ↓
@@ -148,6 +181,8 @@ Security defaults fail closed:
 - commands declaring permissions require an authorizer;
 - account sessions require valid identifiers and timestamps, and may be bound to an exact origin;
 - all command permissions must be granted; wildcard grants are disabled by default;
+- command replay settings may tighten but never widen the server replay ceiling;
+- declared rate limits require a trusted server key resolver and fail closed;
 - duplicate/stale nonce requests are rejected before execution;
 - unknown command ids and unknown argument ids fail generically;
 - the dispatcher never returns a command list/schema.
@@ -178,8 +213,7 @@ session + EngineCookie + origin + trust + nonce + signature + rate policy
 
 ## Remaining implementation order
 
-1. command-specific replay and rate policy;
-2. NENC plugin integration that emits manifests and the single route;
-3. ordinary/private backend proving flows through EngineAPIResolver;
-4. real private login/search proving application;
-5. Phase D debug/security inspection surfaces consuming these artifacts.
+1. NENC plugin integration that emits manifests and the single route;
+2. ordinary/private backend proving flows through EngineAPIResolver;
+3. real private login/search proving application;
+4. Phase D debug/security inspection surfaces consuming these artifacts.

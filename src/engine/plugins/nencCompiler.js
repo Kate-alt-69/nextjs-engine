@@ -37,6 +37,39 @@ function uniqueId(used, seed, buildId, scope, value, prefix) {
 	throw new Error(`[NENC compiler] Could not allocate a collision-free id for ${scope}.`);
 }
 
+function normalizeReplayPolicy(commandName, policy) {
+	if (policy === undefined) return undefined;
+	if (!policy || typeof policy !== "object" || Array.isArray(policy)) {
+		throw new Error(`[NENC compiler] replay on ${commandName} must be an object.`);
+	}
+	const maxAgeMs = policy.maxAgeMs;
+	const maxFutureSkewMs = policy.maxFutureSkewMs;
+	if (maxAgeMs !== undefined && (!Number.isSafeInteger(maxAgeMs) || maxAgeMs < 1_000)) {
+		throw new Error(`[NENC compiler] replay.maxAgeMs on ${commandName} must be an integer of at least 1000ms.`);
+	}
+	if (maxFutureSkewMs !== undefined && (!Number.isSafeInteger(maxFutureSkewMs) || maxFutureSkewMs < 0)) {
+		throw new Error(`[NENC compiler] replay.maxFutureSkewMs on ${commandName} must be a non-negative integer.`);
+	}
+	return {
+		...(maxAgeMs === undefined ? {} : { maxAgeMs }),
+		...(maxFutureSkewMs === undefined ? {} : { maxFutureSkewMs }),
+	};
+}
+
+function normalizeRateLimit(commandName, policy) {
+	if (policy === undefined) return undefined;
+	if (!policy || typeof policy !== "object" || Array.isArray(policy)) {
+		throw new Error(`[NENC compiler] rateLimit on ${commandName} must be an object.`);
+	}
+	if (!Number.isSafeInteger(policy.limit) || policy.limit < 1) {
+		throw new Error(`[NENC compiler] rateLimit.limit on ${commandName} must be a positive integer.`);
+	}
+	if (!Number.isSafeInteger(policy.windowMs) || policy.windowMs < 1_000) {
+		throw new Error(`[NENC compiler] rateLimit.windowMs on ${commandName} must be an integer of at least 1000ms.`);
+	}
+	return { limit: policy.limit, windowMs: policy.windowMs };
+}
+
 function normalizeCommand(command) {
 	if (!command || typeof command !== "object" || !NAME_PATTERN.test(String(command.name || ""))) {
 		throw new Error("[NENC compiler] Every command requires a valid logical name.");
@@ -50,6 +83,8 @@ function normalizeCommand(command) {
 		run: command.run || "auto",
 		auth: command.auth || "anonymous",
 		permissions: Array.isArray(command.permissions) ? [...command.permissions] : [],
+		replay: normalizeReplayPolicy(command.name, command.replay),
+		rateLimit: normalizeRateLimit(command.name, command.rateLimit),
 		input,
 	};
 }
@@ -94,6 +129,8 @@ function compileNENCManifest(rawCommands, options = {}) {
 			run: command.run,
 			auth: command.auth,
 			permissions: command.permissions,
+			...(command.replay === undefined ? {} : { replay: command.replay }),
+			...(command.rateLimit === undefined ? {} : { rateLimit: command.rateLimit }),
 			argsByName,
 			argsById,
 		};

@@ -10,8 +10,8 @@ import type { NENCDispatcherOptions, NENCRequestHandler } from "./NENCDispatcher
 
 const DEFAULT_MAX_BODY = 64 * 1024;
 
-function generic(status: number): Response {
-	return Response.json({ error: "invalid_request" }, { status });
+function generic(status: number, headers?: HeadersInit): Response {
+	return Response.json({ error: "invalid_request" }, { status, headers });
 }
 
 function requestOrigin(request: Request): string {
@@ -92,6 +92,16 @@ async function executeCommand(
 		if (!allowed) return generic(403);
 	}
 
+	if (command.rateLimit) {
+		if (!options.rateLimit) return generic(429, { "Retry-After": "1" });
+		const rate = await options.rateLimit.check(command.rateLimit, {
+			request, origin, command, input, principal,
+		});
+		if (!rate.allowed) {
+			return generic(429, { "Retry-After": String(Math.max(1, Math.ceil(rate.retryAfterMs / 1_000))) });
+		}
+	}
+
 	const result = await executeRegisteredEngineCommand(command.name, input, {
 		api: resolveAPI(options),
 		principal,
@@ -129,7 +139,7 @@ export function createNENCDispatcher(options: NENCDispatcherOptions): NENCReques
 
 		const timestamp = request.headers.get(options.manifest.headers.timestamp);
 		const nonce = request.headers.get(options.manifest.headers.nonce);
-		const replayDecision = await replay.verify(timestamp, nonce);
+		const replayDecision = await replay.verify(timestamp, nonce, Date.now(), command.replay);
 		if (!replayDecision.allowed || !timestamp || !nonce) return finalize(generic(409));
 
 		try {

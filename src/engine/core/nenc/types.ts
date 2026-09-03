@@ -19,6 +19,18 @@ export interface EngineCommandInputField {
 
 export type EngineCommandInputSchema = Record<string, EngineCommandInputType | EngineCommandInputField>;
 
+export interface EngineCommandReplayPolicy {
+	/** Maximum accepted age of a request timestamp, in milliseconds. */
+	maxAgeMs?: number;
+	/** Maximum accepted amount that a request timestamp may be ahead of the server clock. */
+	maxFutureSkewMs?: number;
+}
+
+export interface EngineCommandRateLimit {
+	limit: number;
+	windowMs: number;
+}
+
 export interface EngineCommandExecutionContext<Input = unknown> {
 	name: string;
 	input: Input;
@@ -33,6 +45,8 @@ export interface EngineCommandDefinition<Input = unknown, Output = unknown> {
 	run?: EngineCommandRuntime;
 	auth?: EngineCommandAuth;
 	permissions?: readonly string[];
+	replay?: EngineCommandReplayPolicy;
+	rateLimit?: EngineCommandRateLimit;
 	input?: EngineCommandInputSchema;
 	validate?: (input: unknown) => Input;
 	execute(context: EngineCommandExecutionContext<Input>): Output | Promise<Output>;
@@ -43,6 +57,8 @@ export interface EngineCommandDescriptor {
 	run: EngineCommandRuntime;
 	auth: EngineCommandAuth;
 	permissions: readonly string[];
+	replay?: EngineCommandReplayPolicy;
+	rateLimit?: EngineCommandRateLimit;
 	input: EngineCommandInputSchema;
 }
 

@@ -31,6 +31,7 @@ const requiredFiles = [
 	"src/engine/core/nenc/NENCClient.ts",
 	"src/engine/core/nenc/NENCAccountPolicy.ts",
 	"src/engine/core/nenc/NENCDeviceProof.ts",
+	"src/engine/core/nenc/NENCRateLimit.ts",
 	"src/engine/plugins/nencCompiler.js",
 	"src/engine/core/EngineCORS.ts",
 ];
@@ -80,6 +81,11 @@ check(accountPolicy.includes("session.expiresAt"), "account policy validates ses
 check(accountPolicy.includes("origin !== context.origin"), "origin-bound sessions fail closed on a different origin");
 check(accountPolicy.includes("getVerifiedKeyId(context.request)"), "device-bound sessions require the verified request key");
 check(accountPolicy.includes('permissionWildcards ?? "none"'), "permission wildcard grants are opt-in");
+
+const rateLimit = read("src/engine/core/nenc/NENCRateLimit.ts");
+check(rateLimit.includes("NENCRateLimitStore"), "rate limiting supports a replaceable atomic store");
+check(rateLimit.includes("resolveKey(context)"), "rate identities are resolved by trusted server code");
+check(rateLimit.includes("context.command.id"), "rate buckets are isolated per opaque command id");
 
 const compiler = read("src/engine/plugins/nencCompiler.js");
 check(compiler.includes('ENDPOINT = "/_static/command"'), "NENC compiler emits only the single command endpoint");

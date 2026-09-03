@@ -8,6 +8,7 @@ import type { EngineTrustList } from "../enginecookies";
 import type { EngineCommandAuth } from "./types";
 import type { NENCServerCommand, NENCServerManifest } from "./NENCManifest";
 import type { NENCReplayGuard } from "./NENCReplay";
+import type { NENCRateLimiter } from "./NENCRateLimit";
 
 export interface NENCAuthenticationContext {
 	request: Request;
@@ -39,6 +40,7 @@ export interface NENCDispatcherOptions {
 	trust?: EngineTrustList;
 	cors?: EngineCORSRuleSet;
 	replay?: NENCReplayGuard;
+	rateLimit?: NENCRateLimiter;
 	maxBodyBytes?: number;
 	authenticate?: (
 		auth: EngineCommandAuth,

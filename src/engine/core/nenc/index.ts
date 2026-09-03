@@ -13,6 +13,8 @@ export type {
 	EngineCommandInputField,
 	EngineCommandInputSchema,
 	EngineCommandInputType,
+	EngineCommandRateLimit,
+	EngineCommandReplayPolicy,
 	EngineCommandRuntime,
 	EngineCommandServerContext,
 	EngineCommandTransport,

@@ -39,6 +39,16 @@ export type {
 	NENCVerifiedDeviceKeySource,
 } from "./core/nenc/NENCDeviceProof";
 export { NENCReplayGuard, NENCMemoryReplayStore } from "./core/nenc/NENCReplay";
+export { NENCRateLimiter, NENCMemoryRateLimitStore } from "./core/nenc/NENCRateLimit";
+export type {
+	NENCRateLimitClaim,
+	NENCRateLimitContext,
+	NENCRateLimitDecision,
+	NENCRateLimiterOptions,
+	NENCRateLimitReason,
+	NENCRateLimitStore,
+	NENCRateLimitStoreDecision,
+} from "./core/nenc/NENCRateLimit";
 export type {
 	NENCAuthenticationContext,
 	NENCAuthenticationResult,
@@ -56,6 +66,8 @@ export type {
 	EngineCommandInputField,
 	EngineCommandInputSchema,
 	EngineCommandInputType,
+	EngineCommandRateLimit,
+	EngineCommandReplayPolicy,
 	EngineCommandServerContext,
 } from "./core/nenc/types";
 export type { NENCServerCommand, NENCServerManifest, NENCWireHeaders } from "./core/nenc/NENCManifest";

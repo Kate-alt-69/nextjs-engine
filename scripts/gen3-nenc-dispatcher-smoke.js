@@ -30,6 +30,8 @@ check(dispatcher.includes("argsById[wireName]"), "dispatcher reverses compiled o
 check(dispatcher.includes("authorizeCommand(origin, command.name)"), "cross-origin command execution passes through Trust List authorization");
 check(dispatcher.includes('command.auth !== "anonymous"'), "non-anonymous commands require authentication");
 check(dispatcher.includes("command.permissions.length > 0"), "permission-bearing commands require authorization");
+check(dispatcher.includes("command.rateLimit"), "command-specific rate policy is enforced before execution");
+check(dispatcher.includes('"Retry-After"'), "rate rejection includes a standard retry delay");
 check(dispatcher.includes("verifySignature"), "dispatcher exposes signature verification before execution");
 check(dispatcher.includes("executeRegisteredEngineCommand"), "dispatcher executes through the EngineCommand registry");
 check(dispatcher.includes("resolveAPI(options)"), "dispatcher supplies EngineAPIResolver to command execution");
@@ -39,10 +41,12 @@ check(!dispatcher.includes("Available commands"), "dispatcher never returns a co
 check(replay.includes("NENCReplayStore"), "replay protection supports a replaceable persistence store");
 check(replay.includes("replayed-nonce"), "duplicate nonce claims are rejected");
 check(replay.includes("maxClockSkewMs"), "timestamp freshness is bounded");
+check(replay.includes("policy.maxAgeMs"), "commands can narrow the accepted replay age");
 check(replay.includes("NONCE_PATTERN"), "malformed nonces are rejected before storage");
 
 check(server.includes("createNENCDispatcher"), "server package exports the single NENC dispatcher factory");
 check(server.includes("createNENCAccountPolicy"), "server package exports the account-session policy adapter");
+check(server.includes("NENCRateLimiter"), "server package exports command rate limiting");
 check(server.includes("NENCReplayGuard"), "server package exports replay protection");
 
 if (failures > 0) {
