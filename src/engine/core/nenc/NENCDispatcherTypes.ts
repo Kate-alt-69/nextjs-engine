@@ -8,6 +8,7 @@ import type { EngineTrustList } from "../enginecookies";
 import type { EngineCommandAuth } from "./types";
 import type { NENCServerCommand, NENCServerManifest } from "./NENCManifest";
 import type { NENCReplayGuard } from "./NENCReplay";
+import type { NENCCommandSecurityPolicy } from "./NENCCommandSecurity";
 
 export interface NENCRequestContext {
 	request: Request;
@@ -46,6 +47,7 @@ export interface NENCDispatcherOptions {
 	trust?: EngineTrustList;
 	cors?: EngineCORSRuleSet;
 	replay?: NENCReplayGuard;
+	commandSecurity?: NENCCommandSecurityPolicy;
 	maxBodyBytes?: number;
 	authenticate?: (
 		auth: EngineCommandAuth,

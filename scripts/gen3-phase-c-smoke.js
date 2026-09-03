@@ -31,6 +31,7 @@ const requiredFiles = [
 	"src/engine/core/nenc/NENCClient.ts",
 	"src/engine/core/nenc/NENCDeviceProof.ts",
 	"src/engine/core/nenc/NENCSessionAuth.ts",
+	"src/engine/core/nenc/NENCCommandSecurity.ts",
 	"src/engine/plugins/nencCompiler.js",
 	"src/engine/core/EngineCORS.ts",
 ];
@@ -62,6 +63,11 @@ const sessionAuth = read("src/engine/core/nenc/NENCSessionAuth.ts");
 check(sessionAuth.includes("hashNENCSessionToken(token)"), "account sessions are resolved through a one-way token hash");
 check(sessionAuth.includes("signatureVerified"), "device-bound sessions require dispatcher-verified signatures");
 check(sessionAuth.includes("if (value !== null) return null"), "duplicate session cookies fail closed");
+
+const commandSecurity = read("src/engine/core/nenc/NENCCommandSecurity.ts");
+check(commandSecurity.includes("NENCRateLimitStore"), "command rate limiting supports a replaceable persistence store");
+check(commandSecurity.includes("store-failure"), "rate-limit storage failures fail closed");
+check(commandSecurity.includes('this.rules["*"]'), "command security supports an explicit wildcard fallback policy");
 
 const command = read("src/engine/core/nenc/EngineCommand.ts");
 check(command.includes("validateEngineCommandInput"), "command input schemas are validated before execute()");

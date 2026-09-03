@@ -24,6 +24,19 @@ export {
 export { createNENCDispatcher } from "./core/nenc/NENCDispatcher";
 export { createNENCDeviceSignatureVerifier } from "./core/nenc/NENCDeviceProof";
 export { createNENCAccountSessionPolicy, hashNENCSessionToken } from "./core/nenc/NENCSessionAuth";
+export {
+	NENCCommandSecurityPolicy,
+	NENCMemoryRateLimitStore,
+	NENCRateLimiter,
+} from "./core/nenc/NENCCommandSecurity";
+export type {
+	NENCCommandRateRule,
+	NENCCommandSecurityPolicyOptions,
+	NENCCommandSecurityRule,
+	NENCRateLimitDecision,
+	NENCRateLimiterOptions,
+	NENCRateLimitStore,
+} from "./core/nenc/NENCCommandSecurity";
 export type {
 	NENCAccountPrincipal,
 	NENCAccountSession,
