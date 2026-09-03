@@ -199,6 +199,18 @@ Specialized plugin entrypoints remain available for advanced setups:
 ```js
 const withEngineAPI = require("nextjs-engine/api-plugin")
 const withEngineShader = require("nextjs-engine/shader-plugin")
+const withEngineNENC = require("nextjs-engine/nenc-plugin")
+```
+
+Generation 3 NENC is enabled explicitly through the combined plugin:
+
+```js
+module.exports = withEngine({}, {
+	nenc: {
+		commandFiles: ["src/commands.ts"],
+		handlerModule: "src/nenc.server.ts",
+	},
+})
 ```
 
 ---

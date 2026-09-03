@@ -33,6 +33,7 @@ const requiredFiles = [
 	"src/engine/core/nenc/NENCSessionAuth.ts",
 	"src/engine/core/nenc/NENCCommandSecurity.ts",
 	"src/engine/plugins/nencCompiler.js",
+	"src/engine/plugins/nencPlugin.js",
 	"src/engine/core/EngineCORS.ts",
 ];
 
@@ -89,6 +90,11 @@ const compiler = read("src/engine/plugins/nencCompiler.js");
 check(compiler.includes('ENDPOINT = "/_static/command"'), "NENC compiler emits only the single command endpoint");
 check(compiler.includes('createHmac("sha256"'), "wire ids are build-derived with HMAC");
 check(!compiler.includes("/_static/command/"), "NENC compiler does not emit per-command routes");
+
+const nencPlugin = read("src/engine/plugins/nencPlugin.js");
+check(nencPlugin.includes('"_static", "command", "route.ts"'), "NENC plugin owns exactly one App Router command route");
+check(nencPlugin.includes("Refusing to overwrite the existing route"), "NENC plugin preserves hand-written routes");
+check(nencPlugin.includes("outputDir cannot be inside public/"), "server manifest cannot be emitted into public assets");
 
 const cors = read("src/engine/core/EngineCORS.ts");
 check(cors.includes("Credentialed CORS cannot use a wildcard origin"), "credentialed CORS rejects wildcard origins");

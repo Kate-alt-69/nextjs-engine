@@ -80,7 +80,9 @@ jobs:
             "./package/engine/plugins/engineApiPlugin.js",
             "./package/engine/plugins/apiStaticCompiler.js",
             "./package/engine/plugins/engineShaderPlugin.js",
-            "./package/engine/plugins/engineShaderCompiler.js"
+            "./package/engine/plugins/engineShaderCompiler.js",
+            "./package/engine/plugins/nencCompiler.js",
+            "./package/engine/plugins/nencPlugin.js"
           ]) {
             if (!fs.existsSync(requiredFile)) {
               throw new Error(`Package is missing ${requiredFile}`);
@@ -104,6 +106,10 @@ jobs:
           packageJson.exports["./shader-plugin"] = {
             require: "./engine/plugins/engineShaderPlugin.js",
             default: "./engine/plugins/engineShaderPlugin.js"
+          };
+          packageJson.exports["./nenc-plugin"] = {
+            require: "./engine/plugins/nencPlugin.js",
+            default: "./engine/plugins/nencPlugin.js"
           };
 
           const typescriptVersion = packageJson.dependencies?.typescript

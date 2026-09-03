@@ -55,6 +55,18 @@ try {
 }
 check(duplicateRejected, "duplicate logical commands fail compilation");
 
+let invalidSecurityMetadataRejected = false;
+try {
+	compileNENCManifest([{
+		...commands[0],
+		run: "somewhere",
+		permissions: ["catalog.*"],
+	}], { seed: "wire-test" });
+} catch {
+	invalidSecurityMetadataRejected = true;
+}
+check(invalidSecurityMetadataRejected, "invalid runtime or permission metadata fails compilation");
+
 if (failures > 0) {
 	console.error(`\nGeneration 3 NENC wire smoke failed with ${failures} issue(s).`);
 	process.exit(1);

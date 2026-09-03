@@ -2,6 +2,7 @@
 
 > **Last updated:** 2026-09-03
 > **Changes in this update:**
+> - **Generation 3 NENC build plugin** — Added opt-in static command discovery, split frozen client/server manifests, protected generation of the single `app/_static/command/route.ts` endpoint, safe artifact replacement, and debounced development recompilation.
 > - **Generation 3 command security** — Added per-command replay guards and fixed-window rate policies with principal-aware keys, replaceable atomic stores, generic failures, and `Retry-After` responses.
 > - **Generation 3 account sessions** — Added a fail-closed NENC account-session policy with duplicate-cookie rejection, SHA-256 token-hash lookup, expiry/origin/command restrictions, permission authorization, and optional verified device-key binding.
 > - **Generation 3 EngineCookie vault** — Added metadata-authenticated AES-256-GCM credential sealing with opaque storage ids, controlled callback-only plaintext use, Trust List checks, command restrictions, and tamper detection.
@@ -69,6 +70,8 @@ Sensitive sessions can be stored in `EngineCookieVault`. The index contains meta
 
 `NENCCommandSecurityPolicy` can assign stricter replay windows and fixed-window rate limits to individual logical commands, with an optional explicit `"*"` fallback. Replay claims are command-namespaced. Rate keys are application-defined after authentication, so account commands can isolate budgets by the authenticated subject or session without trusting client-supplied identifiers. Production multi-instance deployments should provide shared atomic replay and rate stores.
 
+The opt-in NENC build plugin statically discovers inline command declarations, emits separate frozen browser/server manifests, and creates exactly `app/_static/command/route.ts`. It refuses dynamic security metadata, public server-manifest output, and overwriting hand-written routes. Replay and rate rules remain server-only runtime policy rather than generated command metadata.
+
 See `docs/gen3/phase-c-network.md` for the current security invariants and remaining Phase C work.
 
 ---
@@ -121,7 +124,9 @@ src/engine/
 │   └── LazyMount.tsx         Generic lazy mount wrapper + LazySection variant
 │
 ├── plugins/
-│   └── engineApiPlugin.js    Next.js webpack plugin — compiles .EngineAPIConfig at build time
+│   ├── engineApiPlugin.js    Next.js webpack plugin — compiles .EngineAPIConfig at build time
+│   ├── nencCompiler.js       Static command discovery + split opaque manifest compiler
+│   └── nencPlugin.js         Emits NENC artifacts and the single protected command route
 ├── createPage.tsx            Top-level page factory
 └── index.ts                  Public API exports
 ```

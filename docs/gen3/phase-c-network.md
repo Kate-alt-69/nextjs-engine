@@ -1,7 +1,7 @@
 # Generation 3 Phase C — Network and credential runtime
 
 > Branch: `main-3`  
-> Status: dispatcher, sealed credential, and device-proof foundation in progress
+> Status: secure dispatcher and NENC build integration complete; proving flows in progress
 
 Phase C owns the secure application/network layer described by the Gen 3 master plan: EngineCookies, NENC, EngineCORS, command authorization, replay protection, device binding, and the EngineAPIResolver bridge.
 
@@ -57,6 +57,42 @@ The only command endpoint remains:
 ```
 
 Client and server manifests are split so the browser receives only what it needs to encode requests while the server retains reverse mappings and command policy metadata.
+
+### NENC build plugin
+
+NENC integration is explicit. The combined Next.js plugin discovers inline `EngineCommand.create()` and `registerEngineCommand()` declarations with the TypeScript AST, emits separate frozen client/server manifest modules, and generates exactly one App Router route:
+
+```js
+const withEngine = require("nextjs-engine/plugin");
+
+module.exports = withEngine({}, {
+	nenc: {
+		commandFiles: ["src/commands.ts"],
+		handlerModule: "src/nenc.server.ts",
+		seed: process.env.ENGINE_NENC_SEED,
+		buildId: process.env.VERCEL_GIT_COMMIT_SHA,
+	},
+});
+```
+
+The generated artifacts are `.nextjs-engine/nenc/client.ts`, `.nextjs-engine/nenc/server.ts`, a non-public `manifest.json`, and `app/_static/command/route.ts`. The handler module default export receives the frozen server manifest and returns the dispatcher route handler:
+
+```ts
+export default function createHandler(manifest: NENCServerManifest) {
+	return createNENCDispatcher({
+		manifest,
+		api,
+		authenticate: accountSessions.authenticate,
+		authorize: accountSessions.authorize,
+		commandSecurity,
+		verifySignature,
+	});
+}
+```
+
+Command name, `run`, `auth`, permissions, and input field names must be static literals; the command definition must be inline and contain `execute`. Object spreads and dynamic security metadata fail the build. The compiler reads metadata only and never evaluates command code. Existing hand-written routes are never overwritten, and server artifacts cannot be written under `public/`.
+
+Replay windows and rate limits deliberately stay out of generated declarations and manifests. Configure them as server-only `NENCCommandSecurityPolicy` rules so storage and principal-aware rate keys remain runtime capabilities rather than browser-visible build metadata.
 
 ### NENC browser transport
 
@@ -188,7 +224,6 @@ session + EngineCookie + origin + trust + nonce + signature + rate policy
 
 ## Remaining implementation order
 
-1. NENC plugin integration that emits manifests and the single route;
-2. ordinary/private backend proving flows through EngineAPIResolver;
-3. real private login/search proving application;
-4. Phase D debug/security inspection surfaces consuming these artifacts.
+1. ordinary/private backend proving flows through EngineAPIResolver;
+2. real private login/search proving application;
+3. Phase D debug/security inspection surfaces consuming these artifacts.
