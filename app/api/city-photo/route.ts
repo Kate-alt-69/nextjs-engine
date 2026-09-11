@@ -155,7 +155,9 @@ async function articleMedia(page: ArticlePage, city: string, width: number): Pro
 }
 
 async function resolveFromArticle(page: ArticlePage, city: string, width: number, slot: number): Promise<string | null> {
-  const pageImageSafe = page.pageimage ? !REJECT_MEDIA_TITLE.test(page.pageimage) : false;
+  const pageImageSafe = page.pageimage
+    ? !REJECT_MEDIA_TITLE.test(page.pageimage) && !/\.svg(?:\?|$)/i.test(page.pageimage)
+    : false;
   const thumbnailSafe = Boolean(
     pageImageSafe &&
     page.thumbnail?.source &&
