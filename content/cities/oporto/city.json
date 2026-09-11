@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "oporto",
+  "name": "Oporto",
+  "country": "Portugal",
+  "continent": "Europa",
+  "summary": "Oporto combina un centro histórico declarado Patrimonio de la Humanidad con un coste de vida notablemente más bajo que Lisboa, sin perder buena conexión digital ni cercanía al mar. Ofrece un ambiente más tranquilo y auténtico que la capital portuguesa, con una comunidad de nómadas digitales en crecimiento y el mismo acceso al visado D8 portugués.",
+  "strengths": [
+    "Coste de vida bajoEUR 721/mes — 16% por debajo de la media de las 90 ciudades",
+    "Internet rápido237 Mbps — 34% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 6.6/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida8.9/10, por encima de la media (6.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/oporto",
+  "sourceTitle": "Oporto, Portugal para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 721/mo",
+    "quality": 8.9,
+    "safety": 6.6,
+    "internet": 237,
+    "beach": true
+  }
+}
