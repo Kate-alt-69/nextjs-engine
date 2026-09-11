@@ -39,10 +39,10 @@ type ResolvedCandidate = {
   article: string;
 };
 
-function clampWidth(raw: string | null): number {
-  const parsed = Number(raw ?? 960);
-  if (!Number.isFinite(parsed)) return 960;
-  return Math.max(48, Math.min(1600, Math.round(parsed)));
+function clampDimension(raw: string | null, fallback: number, max: number): number {
+  const parsed = Number(raw ?? fallback);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(48, Math.min(max, Math.round(parsed)));
 }
 
 function normalizedSlot(raw: string | null): number {
@@ -104,7 +104,7 @@ async function exactArticle(language: "es" | "en", city: string, width: number):
   return data.query?.pages?.find((candidate) => !candidate.missing && candidate.ns === 0) ?? null;
 }
 
-async function imageInfo(titles: string[], width: number): Promise<Map<string, CommonsImageInfo>> {
+async function imageInfo(titles: string[], width: number, height: number): Promise<Map<string, CommonsImageInfo>> {
   const result = new Map<string, CommonsImageInfo>();
   if (!titles.length) return result;
   for (let start = 0; start < titles.length; start += 40) {
@@ -115,6 +115,7 @@ async function imageInfo(titles: string[], width: number): Promise<Map<string, C
       prop: "imageinfo",
       iiprop: "url|mime|size",
       iiurlwidth: String(width),
+      iiurlheight: String(height),
       format: "json",
       formatversion: "2",
       origin: "*",
@@ -133,13 +134,13 @@ async function imageInfo(titles: string[], width: number): Promise<Map<string, C
   return result;
 }
 
-async function articleMedia(page: ArticlePage, city: string, width: number): Promise<RankedMedia[]> {
+async function articleMedia(page: ArticlePage, city: string, width: number, height: number): Promise<RankedMedia[]> {
   const scored = (page.images ?? [])
     .map((image) => ({ title: image.title, score: mediaTitleScore(image.title, city) }))
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, 30);
-  const infos = await imageInfo(scored.map((item) => item.title), width);
+  const infos = await imageInfo(scored.map((item) => item.title), width, height);
   const media: RankedMedia[] = [];
   for (const item of scored) {
     const info = infos.get(item.title);
@@ -153,11 +154,9 @@ async function articleMedia(page: ArticlePage, city: string, width: number): Pro
   return media;
 }
 
-async function resolveImage(city: string, width: number, slot: number): Promise<ResolvedCandidate | null> {
+async function resolveImage(city: string, width: number, height: number, slot: number): Promise<ResolvedCandidate | null> {
   const pages: Array<{ language: "es" | "en"; page: ArticlePage }> = [];
 
-  // Normal cards stop as soon as an exact city article exposes a safe landscape
-  // lead photo. This is both more relevant and much cheaper than global search.
   for (const language of ["es", "en"] as const) {
     try {
       const page = await exactArticle(language, city, width);
@@ -174,7 +173,7 @@ async function resolveImage(city: string, width: number, slot: number): Promise<
     let best: { source: string; score: number; article: string } | null = null;
     for (const { language, page } of pages) {
       try {
-        for (const item of await articleMedia(page, city, width)) {
+        for (const item of await articleMedia(page, city, width, height)) {
           if (!best || item.score > best.score) best = { source: item.source, score: item.score, article: `${language}:${page.title ?? city}` };
         }
       } catch {
@@ -184,15 +183,13 @@ async function resolveImage(city: string, width: number, slot: number): Promise<
     return best ? { source: best.source, article: best.article } : null;
   }
 
-  // Backgrounds may spend a little more work to find a distinct second photo,
-  // because this path is only used on a single city dossier at a time.
   let secondary: { source: string; score: number; article: string } | null = null;
   let fallbackLead: ResolvedCandidate | null = null;
   for (const { language, page } of pages) {
     const lead = safeLead(page);
     if (!fallbackLead && lead) fallbackLead = { source: lead, article: `${language}:${page.title ?? city}` };
     try {
-      for (const item of await articleMedia(page, city, width)) {
+      for (const item of await articleMedia(page, city, width, height)) {
         if (item.source === lead) continue;
         if (!secondary || item.score > secondary.score) secondary = { source: item.source, score: item.score, article: `${language}:${page.title ?? city}` };
       }
@@ -207,9 +204,10 @@ export async function GET(request: NextRequest) {
   const city = request.nextUrl.searchParams.get("city")?.trim();
   if (!city) return new Response("Missing city", { status: 400 });
 
-  const width = clampWidth(request.nextUrl.searchParams.get("width"));
+  const width = clampDimension(request.nextUrl.searchParams.get("width"), 960, 1600);
+  const height = clampDimension(request.nextUrl.searchParams.get("height"), Math.round(width * 9 / 16), 1200);
   const slot = normalizedSlot(request.nextUrl.searchParams.get("slot"));
-  const resolved = await resolveImage(city, width, slot);
+  const resolved = await resolveImage(city, width, height, slot);
   if (!resolved) {
     return new Response(null, {
       status: 404,
@@ -238,6 +236,7 @@ export async function GET(request: NextRequest) {
         "CDN-Cache-Control": `public, max-age=${CACHE_SECONDS}`,
         "X-Roavio-Image-Source": "Wikipedia exact city article",
         "X-Roavio-Image-Article": resolved.article,
+        "X-Roavio-Image-Target": `${width}x${height}`,
       },
     });
   } catch {
