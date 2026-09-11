@@ -1,0 +1,26 @@
+name: Roavio mobile nav CI
+
+on:
+  push:
+    branches: [proposal/roavio-ne]
+    paths:
+      - "app/**"
+      - "src/engine/**"
+      - ".github/workflows/roavio-mobile-nav-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: proposal/roavio-ne
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npm run type-check
+      - run: npx next build
