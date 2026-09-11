@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-const CITY_PHOTO_VERSION = "3";
+const CITY_PHOTO_VERSION = "4";
 
 function cityPhotoUrl(city: string, country: string, slot: number): string {
   const params = new URLSearchParams({
