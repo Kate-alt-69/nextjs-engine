@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "slug": "city-slug",
+  "name": "City name",
+  "country": "Country",
+  "continent": "Region",
+  "summary": "",
+  "strengths": [],
+  "considerations": [],
+  "sourceUrl": null,
+  "sourceTitle": null,
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "quality": null,
+    "safety": null,
+    "internet": null,
+    "beach": null
+  }
+}
