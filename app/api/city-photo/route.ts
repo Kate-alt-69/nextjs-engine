@@ -4,9 +4,6 @@ const CACHE_SECONDS = 60 * 60 * 24 * 30;
 const BROWSER_CACHE_SECONDS = 60 * 60 * 24 * 7;
 const MAX_SOURCE_BYTES = 8 * 1024 * 1024;
 
-// Arbitrary Commons search turned out to be much too loose for a destination
-// product: a city name can appear on portraits, sporting events, maps, etc.
-// Only media attached to the city's own Wikipedia article is considered now.
 const REJECT_MEDIA_TITLE = /\b(flag|map|locator|location|seal|coat[ _-]?of[ _-]?arms|logo|icon|diagram|route|metro|subway|districts?|boroughs?|portrait|player|athlete|politician|mayor|president|football|rugby|cricket|marathon|runner|race|team|jersey|medal|election|signature)\b/i;
 const CITY_MEDIA_HINT = /\b(skyline|cityscape|panorama|panoramic|aerial|downtown|waterfront|harbou?r|corniche|street|avenue|boulevard|old[ _-]?town|centre|center|architecture|tower|towers|landmark|mosque|cathedral|temple|palace|square|plaza|bay|beach|marina|river|bridge|night|city|urban)\b/i;
 
@@ -35,12 +32,10 @@ type CommonsImagePage = {
 };
 type RankedMedia = {
   source: string;
-  title: string;
   score: number;
 };
 type ResolvedCandidate = {
   source: string;
-  score: number;
   article: string;
 };
 
@@ -80,6 +75,13 @@ function isUsefulAspect(width?: number, height?: number): boolean {
   return ratio >= 1.08 && ratio <= 3.25;
 }
 
+function safeLead(page: ArticlePage): string | null {
+  if (!page.pageimage || !page.thumbnail?.source) return null;
+  if (REJECT_MEDIA_TITLE.test(page.pageimage) || /\.svg(?:\?|$)/i.test(page.pageimage)) return null;
+  if (!isUsefulAspect(page.thumbnail.width, page.thumbnail.height)) return null;
+  return page.thumbnail.source;
+}
+
 async function exactArticle(language: "es" | "en", city: string, width: number): Promise<ArticlePage | null> {
   const params = new URLSearchParams({
     action: "query",
@@ -93,16 +95,11 @@ async function exactArticle(language: "es" | "en", city: string, width: number):
     formatversion: "2",
     origin: "*",
   });
-
   const response = await fetch(`https://${language}.wikipedia.org/w/api.php?${params.toString()}`, {
     next: { revalidate: CACHE_SECONDS },
-    headers: {
-      Accept: "application/json",
-      "User-Agent": "RoavioProposal/1.0 (exact city article photo resolver)",
-    },
+    headers: { Accept: "application/json", "User-Agent": "RoavioProposal/1.0 (exact city article photo resolver)" },
   });
   if (!response.ok) return null;
-
   const data = await response.json() as { query?: { pages?: ArticlePage[] } };
   return data.query?.pages?.find((candidate) => !candidate.missing && candidate.ns === 0) ?? null;
 }
@@ -110,7 +107,6 @@ async function exactArticle(language: "es" | "en", city: string, width: number):
 async function imageInfo(titles: string[], width: number): Promise<Map<string, CommonsImageInfo>> {
   const result = new Map<string, CommonsImageInfo>();
   if (!titles.length) return result;
-
   for (let start = 0; start < titles.length; start += 40) {
     const batch = titles.slice(start, start + 40);
     const params = new URLSearchParams({
@@ -125,10 +121,7 @@ async function imageInfo(titles: string[], width: number): Promise<Map<string, C
     });
     const response = await fetch(`https://commons.wikimedia.org/w/api.php?${params.toString()}`, {
       next: { revalidate: CACHE_SECONDS },
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "RoavioProposal/1.0 (city article media resolver)",
-      },
+      headers: { Accept: "application/json", "User-Agent": "RoavioProposal/1.0 (city article media resolver)" },
     });
     if (!response.ok) continue;
     const data = await response.json() as { query?: { pages?: CommonsImagePage[] } };
@@ -145,8 +138,7 @@ async function articleMedia(page: ArticlePage, city: string, width: number): Pro
     .map((image) => ({ title: image.title, score: mediaTitleScore(image.title, city) }))
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 36);
-
+    .slice(0, 30);
   const infos = await imageInfo(scored.map((item) => item.title), width);
   const media: RankedMedia[] = [];
   for (const item of scored) {
@@ -156,67 +148,59 @@ async function articleMedia(page: ArticlePage, city: string, width: number): Pro
     if (!isUsefulAspect(info.thumbwidth ?? info.width, info.thumbheight ?? info.height)) continue;
     const source = info.thumburl ?? info.url;
     if (!source || media.some((entry) => entry.source === source)) continue;
-    media.push({ source, title: item.title, score: item.score });
+    media.push({ source, score: item.score });
   }
   return media;
 }
 
-async function candidatesFromArticle(
-  language: "es" | "en",
-  page: ArticlePage,
-  city: string,
-  width: number,
-  slot: number,
-): Promise<ResolvedCandidate[]> {
-  const article = `${language}:${page.title ?? city}`;
-  const pageImageSafe = page.pageimage
-    ? !REJECT_MEDIA_TITLE.test(page.pageimage) && !/\.svg(?:\?|$)/i.test(page.pageimage)
-    : false;
-  const leadSafe = Boolean(
-    pageImageSafe &&
-    page.thumbnail?.source &&
-    isUsefulAspect(page.thumbnail.width, page.thumbnail.height),
-  );
-  const lead = leadSafe ? page.thumbnail!.source! : null;
-  const media = await articleMedia(page, city, width);
-  const candidates: ResolvedCandidate[] = [];
-
-  if (slot === 0) {
-    // A landscape lead image from the exact city article is the strongest signal.
-    if (lead) candidates.push({ source: lead, score: 100, article });
-    for (const item of media) {
-      candidates.push({ source: item.source, score: 55 + item.score, article });
-    }
-  } else {
-    // For the blurred page background prefer a distinct cityscape/landmark from
-    // the same article. Reusing the verified lead is the safe final fallback.
-    for (const item of media) {
-      if (item.source !== lead) candidates.push({ source: item.source, score: 70 + item.score, article });
-    }
-    if (lead) candidates.push({ source: lead, score: 25, article });
-  }
-
-  return candidates;
-}
-
 async function resolveImage(city: string, width: number, slot: number): Promise<ResolvedCandidate | null> {
-  const candidates: ResolvedCandidate[] = [];
+  const pages: Array<{ language: "es" | "en"; page: ArticlePage }> = [];
 
-  // Compare the Spanish and English exact-title articles instead of accepting
-  // the first vaguely useful hit. This handles translated city names such as
-  // Abu Dabi/Copenhagen while keeping all media anchored to the real city page.
+  // Normal cards stop as soon as an exact city article exposes a safe landscape
+  // lead photo. This is both more relevant and much cheaper than global search.
   for (const language of ["es", "en"] as const) {
     try {
       const page = await exactArticle(language, city, width);
       if (!page) continue;
-      candidates.push(...await candidatesFromArticle(language, page, city, width, slot));
+      pages.push({ language, page });
+      const lead = safeLead(page);
+      if (slot === 0 && lead) return { source: lead, article: `${language}:${page.title ?? city}` };
     } catch {
-      // A failed language source does not make arbitrary global search safe.
+      // Try the next exact-language article only.
     }
   }
 
-  candidates.sort((a, b) => b.score - a.score);
-  return candidates[0] ?? null;
+  if (slot === 0) {
+    let best: { source: string; score: number; article: string } | null = null;
+    for (const { language, page } of pages) {
+      try {
+        for (const item of await articleMedia(page, city, width)) {
+          if (!best || item.score > best.score) best = { source: item.source, score: item.score, article: `${language}:${page.title ?? city}` };
+        }
+      } catch {
+        // Keep looking in the other exact article.
+      }
+    }
+    return best ? { source: best.source, article: best.article } : null;
+  }
+
+  // Backgrounds may spend a little more work to find a distinct second photo,
+  // because this path is only used on a single city dossier at a time.
+  let secondary: { source: string; score: number; article: string } | null = null;
+  let fallbackLead: ResolvedCandidate | null = null;
+  for (const { language, page } of pages) {
+    const lead = safeLead(page);
+    if (!fallbackLead && lead) fallbackLead = { source: lead, article: `${language}:${page.title ?? city}` };
+    try {
+      for (const item of await articleMedia(page, city, width)) {
+        if (item.source === lead) continue;
+        if (!secondary || item.score > secondary.score) secondary = { source: item.source, score: item.score, article: `${language}:${page.title ?? city}` };
+      }
+    } catch {
+      // The safe lead below remains available as fallback.
+    }
+  }
+  return secondary ? { source: secondary.source, article: secondary.article } : fallbackLead;
 }
 
 export async function GET(request: NextRequest) {
@@ -236,18 +220,13 @@ export async function GET(request: NextRequest) {
   try {
     const upstream = await fetch(resolved.source, {
       next: { revalidate: CACHE_SECONDS },
-      headers: {
-        Accept: "image/avif,image/webp,image/*,*/*;q=0.7",
-        "User-Agent": "RoavioProposal/1.0 (cached verified city photo proxy)",
-      },
+      headers: { Accept: "image/avif,image/webp,image/*,*/*;q=0.7", "User-Agent": "RoavioProposal/1.0 (cached verified city photo proxy)" },
     });
     if (!upstream.ok) return new Response(null, { status: 404 });
-
     const length = Number(upstream.headers.get("content-length") ?? 0);
     if (length > MAX_SOURCE_BYTES) return new Response(null, { status: 413 });
     const type = upstream.headers.get("content-type") ?? "image/jpeg";
     if (!type.startsWith("image/")) return new Response(null, { status: 415 });
-
     const bytes = await upstream.arrayBuffer();
     if (bytes.byteLength > MAX_SOURCE_BYTES) return new Response(null, { status: 413 });
 
@@ -262,9 +241,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch {
-    return new Response(null, {
-      status: 502,
-      headers: { "Cache-Control": "public, max-age=300, s-maxage=1800" },
-    });
+    return new Response(null, { status: 502, headers: { "Cache-Control": "public, max-age=300, s-maxage=1800" } });
   }
 }
