@@ -34,6 +34,8 @@ export interface NENCAuthorizationContext extends NENCAuthenticationContext {
 	permissions: readonly string[];
 }
 
+export type NENCAPIResolverFactory = (context: NENCAuthorizationContext) => EngineAPIResolver;
+
 export interface NENCSignatureContext extends NENCRequestContext {
 	rawBody: string;
 	signature: string | null;
@@ -43,7 +45,7 @@ export interface NENCSignatureContext extends NENCRequestContext {
 
 export interface NENCDispatcherOptions {
 	manifest: NENCServerManifest;
-	api: EngineAPIResolver | (() => EngineAPIResolver);
+	api: EngineAPIResolver | NENCAPIResolverFactory;
 	trust?: EngineTrustList;
 	cors?: EngineCORSRuleSet;
 	replay?: NENCReplayGuard;
