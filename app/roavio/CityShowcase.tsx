@@ -40,8 +40,8 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
                 srcSet={`${cityImageAt(image, 384, 64)} 384w, ${cityImageAt(image, 640, 70)} 640w, ${cityImageAt(image, 828, 72)} 828w`}
                 sizes="(max-width: 700px) calc(100vw - 2rem), (max-width: 1100px) calc(50vw - 2rem), 390px"
                 alt=""
-                loading={index < 2 ? "eager" : "lazy"}
-                fetchPriority={index < 2 ? "high" : "low"}
+                loading="lazy"
+                fetchPriority="low"
                 decoding="async"
                 draggable={false}
               />
