@@ -17,8 +17,6 @@ if (!fs.existsSync(appNotFound)) {
 }
 
 // ── Turbopack Client Mock Guard ───────────────────────────────────────────────
-// Turbopack rejects `false` booleans. We write a clean, universal stub file
-// to securely intercept server-exclusive imports executing on client pipelines.
 const turbopackStub = path.join(__dirname, "app", "__turbopack_stub__.ts");
 if (!fs.existsSync(turbopackStub)) {
 	fs.writeFileSync(turbopackStub, "export default {};\n");
@@ -28,10 +26,14 @@ if (!fs.existsSync(turbopackStub)) {
 const nextConfig = {
 	reactStrictMode: true,
 	distDir: "dist",
+	images: {
+		formats: ["image/avif", "image/webp"],
+		remotePatterns: [
+			{ protocol: "https", hostname: "images.unsplash.com" },
+		],
+	},
 
 	// ── Turbopack Compiler Configuration (Next.js 16 Stable) ──────────────────
-	// Instructs the underlying Rust bundler to map server modules specifically
-	// for client/browser target environments to our clean, empty file stub.
 	turbopack: {
 		resolveAlias: {
 			fs: { browser: "./app/__turbopack_stub__.ts" },
@@ -42,8 +44,6 @@ const nextConfig = {
 		},
 	},
 
-	// ── Webpack Legacy Compiler Hook ──────────────────────────────────────────
-	// Kept for seamless alignment when running legacy production hooks or checks.
 	webpack(config, { isServer }) {
 		if (!isServer) {
 			config.resolve.fallback = {
