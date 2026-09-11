@@ -28,9 +28,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find content/cities -mindepth 1 -maxdepth 1 -type d ! -name '.*' ! -name '_*' | wc -l)" -eq 90
-          test "$(find content/cities -mindepth 2 -maxdepth 2 -name city.json | wc -l)" -eq 90
-          test "$(find content/cities -mindepth 2 -maxdepth 2 -name guide.md | wc -l)" -eq 90
+          CITY_DIRS=$(find content/cities -mindepth 1 -maxdepth 1 -type d ! -name '.*' ! -name '_*' | wc -l)
+          CITY_JSON=$(find content/cities -mindepth 2 -maxdepth 2 -type f -name city.json ! -path '*/_*/*' ! -path '*/.*/*' | wc -l)
+          GUIDES=$(find content/cities -mindepth 2 -maxdepth 2 -type f -name guide.md ! -path '*/_*/*' ! -path '*/.*/*' | wc -l)
+          echo "city dirs=$CITY_DIRS city.json=$CITY_JSON guide.md=$GUIDES"
+          test "$CITY_DIRS" -eq 90
+          test "$CITY_JSON" -eq 90
+          test "$GUIDES" -eq 90
       - name: Install project dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Type check
