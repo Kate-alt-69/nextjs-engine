@@ -1,0 +1,40 @@
+/* The second city photo is a deliberately soft landmark inset. */
+.rv-dossier-media__secondary{
+  pointer-events:none;
+  isolation:isolate;
+  background:color-mix(in srgb,#10231f 68%,transparent);
+}
+.rv-dossier-media__secondary::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:5;
+  border-radius:inherit;
+  pointer-events:none;
+  background:linear-gradient(145deg,rgba(255,255,255,.08),rgba(3,16,12,.18));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+}
+.rv-dossier-media__secondary .rv-city-thumb,
+.rv-dossier-media__secondary .rv-city-thumb__engine,
+.rv-dossier-media__secondary .rv-city-thumb__engine.e-img-wrap{
+  width:100%!important;
+  height:100%!important;
+}
+.rv-dossier-media__secondary .rv-city-thumb__engine img{
+  filter:blur(3px) saturate(.9) contrast(1.04)!important;
+  transform:scale(1.055)!important;
+  transition:none!important;
+  user-select:none!important;
+  -webkit-user-drag:none!important;
+}
+
+@media(max-width:700px){
+  .rv-dossier-media__secondary .rv-city-thumb__engine img{
+    filter:blur(2.2px) saturate(.92) contrast(1.03)!important;
+    transform:scale(1.045)!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .rv-dossier-media__secondary .rv-city-thumb__engine img{transition:none!important}
+}
