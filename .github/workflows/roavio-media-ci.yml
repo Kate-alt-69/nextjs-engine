@@ -1,0 +1,76 @@
+name: Roavio media CI
+
+on:
+  push:
+    branches: [proposal/roavio-ne]
+    paths:
+      - "app/**"
+      - "next.config.js"
+      - ".github/workflows/roavio-media-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: proposal/roavio-ne
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Type check
+        run: npm run type-check
+      - name: Production build
+        run: npx next build
+      - name: Audit city photo search coverage
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const root = path.join(process.cwd(), 'content', 'cities');
+          const entries = fs.readdirSync(root, { withFileTypes: true })
+            .filter((entry) => entry.isDirectory() && !entry.name.startsWith('_') && !entry.name.startsWith('.'))
+            .map((entry) => JSON.parse(fs.readFileSync(path.join(root, entry.name, 'city.json'), 'utf8')));
+          const reject = /\b(flag|map|locator|location|seal|coat of arms|logo|icon|diagram|route|metro|subway|districts?|boroughs?)\b/i;
+          async function search(city, country, phrase) {
+            const p = new URLSearchParams({ action:'query', generator:'search', gsrsearch:`${city} ${country} ${phrase}`, gsrnamespace:'6', gsrlimit:'12', prop:'imageinfo', iiprop:'url|mime', iiurlwidth:'320', format:'json', formatversion:'2', origin:'*' });
+            const r = await fetch(`https://commons.wikimedia.org/w/api.php?${p}`, { headers: { 'User-Agent':'RoavioProposal/1.0 coverage audit' } });
+            if (!r.ok) return [];
+            const data = await r.json();
+            return (data.query?.pages ?? [])
+              .filter((page) => !reject.test(page.title ?? ''))
+              .map((page) => page.imageinfo?.[0])
+              .filter((info) => info && (!info.mime || /^image\/(jpeg|png|webp|avif)$/i.test(info.mime)))
+              .map((info) => info.thumburl ?? info.url)
+              .filter(Boolean);
+          }
+          const results = [];
+          let cursor = 0;
+          async function worker() {
+            while (cursor < entries.length) {
+              const item = entries[cursor++];
+              try {
+                const skyline = await search(item.name, item.country, 'city skyline architecture');
+                const street = skyline.length > 1 ? [] : await search(item.name, item.country, 'street landmark architecture');
+                const second = [...skyline.slice(1), ...street].find((url) => url !== skyline[0]);
+                results.push({ city:item.name, primary:Boolean(skyline[0]), secondary:Boolean(second) });
+              } catch {
+                results.push({ city:item.name, primary:false, secondary:false });
+              }
+            }
+          }
+          await Promise.all(Array.from({ length: 5 }, () => worker()));
+          const primary = results.filter((r) => r.primary).length;
+          const secondary = results.filter((r) => r.secondary).length;
+          console.log(`PHOTO_COVERAGE primary=${primary}/${entries.length} secondary=${secondary}/${entries.length}`);
+          const missing = results.filter((r) => !r.primary).map((r) => r.city);
+          const oneOnly = results.filter((r) => r.primary && !r.secondary).map((r) => r.city);
+          console.log('PHOTO_MISSING_PRIMARY', missing.join(' | ') || 'none');
+          console.log('PHOTO_MISSING_SECONDARY', oneOnly.join(' | ') || 'none');
+          NODE
