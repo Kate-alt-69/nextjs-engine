@@ -4,6 +4,18 @@ const CACHE_SECONDS = 60 * 60 * 24 * 30;
 const BROWSER_CACHE_SECONDS = 60 * 60 * 24 * 7;
 const MAX_SOURCE_BYTES = 8 * 1024 * 1024;
 
+// Transparent 1x1 PNG. Returning an actual image instead of a 404 lets the
+// existing card/dossier gradient remain visible without triggering broken image
+// retries or Next Image runtime failures. The response header tells us which
+// destinations still need a curated photo later.
+const TRANSPARENT_PNG = Uint8Array.from([
+  137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82,
+  0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196, 137,
+  0, 0, 0, 13, 73, 68, 65, 84, 8, 29, 99, 248, 207, 192, 0, 0,
+  3, 1, 1, 0, 24, 221, 141, 184, 0, 0, 0, 0, 73, 69, 78, 68,
+  174, 66, 96, 130,
+]);
+
 const REJECT_MEDIA_TITLE = /\b(flag|map|locator|location|seal|coat[ _-]?of[ _-]?arms|logo|icon|diagram|route|metro|subway|districts?|boroughs?|portrait|player|athlete|politician|mayor|president|football|rugby|cricket|marathon|runner|race|team|jersey|medal|election|signature)\b/i;
 const CITY_MEDIA_HINT = /\b(skyline|cityscape|panorama|panoramic|aerial|downtown|waterfront|harbou?r|corniche|street|avenue|boulevard|old[ _-]?town|centre|center|architecture|tower|towers|landmark|mosque|cathedral|temple|palace|square|plaza|bay|beach|marina|river|bridge|night|city|urban)\b/i;
 const LANDMARK_MEDIA_HINT = /\b(landmark|monument|tower|towers|mosque|cathedral|church|temple|palace|castle|fort|museum|square|plaza|bridge|gate|old[ _-]?town|historic|heritage|waterfront|marina|corniche|avenue|boulevard|promenade|market|bazaar|garden|park)\b/i;
@@ -67,9 +79,6 @@ function mediaTitleScore(title: string, city: string, slot: number): number {
   if (normalized.includes(normalizedCity)) score += 12;
 
   if (slot === 1) {
-    // The secondary hero image is intentionally not "another skyline". Prefer a
-    // representative landmark/place attached to the exact city article so the
-    // inset reads like a best-known local highlight.
     if (LANDMARK_MEDIA_HINT.test(normalized)) score += 30;
     if (/\b(street|architecture|old town|waterfront|marina|bridge|market|garden|park)\b/i.test(normalized)) score += 10;
     if (/\b(skyline|cityscape|panorama|aerial|downtown)\b/i.test(normalized)) score += 3;
@@ -225,6 +234,20 @@ function responseHeaders(type: string, length: number | null, article: string, w
   return headers;
 }
 
+function fallbackImage(reason: string, width: number, height: number): Response {
+  return new Response(TRANSPARENT_PNG, {
+    status: 200,
+    headers: {
+      "Content-Type": "image/png",
+      "Content-Length": String(TRANSPARENT_PNG.byteLength),
+      "Cache-Control": "public, max-age=3600, s-maxage=21600, stale-while-revalidate=86400",
+      "X-Roavio-Image-Source": "fallback",
+      "X-Roavio-Image-Fallback": reason,
+      "X-Roavio-Image-Target": `${width}x${height}`,
+    },
+  });
+}
+
 export async function GET(request: NextRequest) {
   const city = request.nextUrl.searchParams.get("city")?.trim();
   if (!city) return new Response("Missing city", { status: 400 });
@@ -233,28 +256,23 @@ export async function GET(request: NextRequest) {
   const height = clampDimension(request.nextUrl.searchParams.get("height"), Math.round(width * 9 / 16), 1200);
   const slot = normalizedSlot(request.nextUrl.searchParams.get("slot"));
   const resolved = await resolveImage(city, width, height, slot);
-  if (!resolved) {
-    return new Response(null, {
-      status: 404,
-      headers: { "Cache-Control": "public, max-age=900, s-maxage=3600, stale-while-revalidate=86400" },
-    });
-  }
+  if (!resolved) return fallbackImage("unresolved-city", width, height);
 
   try {
     const upstream = await fetch(resolved.source, {
       next: { revalidate: CACHE_SECONDS },
       headers: { Accept: "image/avif,image/webp,image/*,*/*;q=0.7", "User-Agent": "RoavioProposal/1.0 (cached verified city photo proxy)" },
     });
-    if (!upstream.ok) return new Response(null, { status: 404 });
+    if (!upstream.ok) return fallbackImage(`upstream-${upstream.status}`, width, height);
 
     const rawLength = upstream.headers.get("content-length");
     const length = rawLength ? Number(rawLength) : null;
     if (length !== null && Number.isFinite(length) && length > MAX_SOURCE_BYTES) {
-      return new Response(null, { status: 413 });
+      return fallbackImage("source-too-large", width, height);
     }
 
     const type = upstream.headers.get("content-type") ?? "image/jpeg";
-    if (!type.startsWith("image/")) return new Response(null, { status: 415 });
+    if (!type.startsWith("image/")) return fallbackImage("invalid-content-type", width, height);
 
     if (upstream.body && length !== null && Number.isFinite(length)) {
       return new Response(upstream.body, {
@@ -263,11 +281,11 @@ export async function GET(request: NextRequest) {
     }
 
     const bytes = await upstream.arrayBuffer();
-    if (bytes.byteLength > MAX_SOURCE_BYTES) return new Response(null, { status: 413 });
+    if (bytes.byteLength > MAX_SOURCE_BYTES) return fallbackImage("source-too-large", width, height);
     return new Response(bytes, {
       headers: responseHeaders(type, bytes.byteLength, resolved.article, width, height),
     });
   } catch {
-    return new Response(null, { status: 502, headers: { "Cache-Control": "public, max-age=300, s-maxage=1800" } });
+    return fallbackImage("upstream-error", width, height);
   }
 }
