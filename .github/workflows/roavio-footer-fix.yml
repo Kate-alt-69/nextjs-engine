@@ -1,0 +1,53 @@
+name: Roavio footer fix
+
+on:
+  push:
+    branches: [proposal/roavio-ne]
+    paths:
+      - ".github/workflows/roavio-footer-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: proposal/roavio-ne
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Compact footer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/roavio/theme.ts')
+          s = p.read_text()
+          old = 'props: { contentMaxWidth: "1240px", px: "1rem", py: "2.2rem", borderTop: "1px solid var(--rv-line)" }'
+          new = 'props: { contentMaxWidth: "1240px", px: "1rem", py: { xs: ".9rem", md: "1.1rem" }, borderTop: "1px solid var(--rv-line)" }'
+          if old not in s:
+              raise SystemExit('footer padding signature not found')
+          s = s.replace(old, new, 1)
+          s = s.replace('justify: "space-between", gap: "1rem"', 'justify: "space-between", gap: ".55rem"', 1)
+          s = s.replace('weight: 700 } },\n        { type: "text", props: { content: copyFor(locale).footer, color: "var(--rv-muted)", size: ".82rem" } },', 'weight: 700, size: ".84rem" } },\n        { type: "text", props: { content: copyFor(locale).footer, color: "var(--rv-muted)", size: ".76rem" } },', 1)
+          p.write_text(s)
+          PY
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Type check
+        run: npm run type-check
+      - name: Production build
+        run: npx next build
+      - name: Commit footer fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add app/roavio/theme.ts
+          git config user.name "Kate"
+          git config user.email "dhwanksh2000@gmail.com"
+          git commit -m "fix: compact Roavio footer"
+          git push origin HEAD:proposal/roavio-ne
