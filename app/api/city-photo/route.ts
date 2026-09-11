@@ -3,16 +3,35 @@ import { NextRequest } from "next/server";
 const CACHE_SECONDS = 60 * 60 * 24 * 30;
 const BROWSER_CACHE_SECONDS = 60 * 60 * 24 * 7;
 const MAX_SOURCE_BYTES = 8 * 1024 * 1024;
-const REJECT_TITLE = /\b(flag|map|locator|location|seal|coat of arms|logo|icon|diagram|route|metro|subway|districts?|boroughs?)\b/i;
 
-type CommonsPage = {
+// Arbitrary Commons search turned out to be much too loose for a destination
+// product: a city name can appear on portraits, sporting events, maps, etc.
+// Only media attached to the city's own Wikipedia article is considered now.
+const REJECT_MEDIA_TITLE = /\b(flag|map|locator|location|seal|coat[ _-]?of[ _-]?arms|logo|icon|diagram|route|metro|subway|districts?|boroughs?|portrait|player|athlete|politician|mayor|president|football|rugby|cricket|marathon|runner|race|team|jersey|medal|election|signature)\b/i;
+const CITY_MEDIA_HINT = /\b(skyline|cityscape|panorama|panoramic|aerial|downtown|waterfront|harbou?r|corniche|street|avenue|boulevard|old[ _-]?town|centre|center|architecture|tower|towers|landmark|mosque|cathedral|temple|palace|square|plaza|bay|beach|marina|river|bridge|night|city|urban)\b/i;
+
+type ArticleImage = { title: string };
+type ArticlePage = {
+  pageid?: number;
+  ns?: number;
   title?: string;
-  imageinfo?: Array<{ thumburl?: string; url?: string; mime?: string; thumbwidth?: number; thumbheight?: number }>;
+  missing?: boolean;
+  pageimage?: string;
+  thumbnail?: { source?: string; width?: number; height?: number };
+  images?: ArticleImage[];
 };
-
-type WikipediaPage = {
+type CommonsImageInfo = {
+  url?: string;
+  thumburl?: string;
+  mime?: string;
+  width?: number;
+  height?: number;
+  thumbwidth?: number;
+  thumbheight?: number;
+};
+type CommonsImagePage = {
   title?: string;
-  thumbnail?: { source?: string };
+  imageinfo?: CommonsImageInfo[];
 };
 
 function clampWidth(raw: string | null): number {
@@ -26,114 +45,158 @@ function normalizedSlot(raw: string | null): number {
   return Number.isFinite(parsed) && parsed > 0 ? 1 : 0;
 }
 
-async function commonsImages(city: string, country: string, width: number, searchKind: "skyline" | "street" = "skyline"): Promise<string[]> {
-  const search = searchKind === "street"
-    ? `${city} ${country} street landmark architecture`
-    : `${city} ${country} city skyline architecture`;
+function folded(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[_-]+/g, " ")
+    .toLowerCase();
+}
+
+function mediaTitleScore(title: string, city: string): number {
+  if (REJECT_MEDIA_TITLE.test(title)) return -1000;
+  const normalized = folded(title);
+  const normalizedCity = folded(city);
+  let score = CITY_MEDIA_HINT.test(normalized) ? 8 : 0;
+  if (normalized.includes(normalizedCity)) score += 12;
+  if (/\b(skyline|cityscape|panorama|aerial|downtown|waterfront|harbou?r|corniche)\b/i.test(normalized)) score += 8;
+  if (/\b(street|architecture|landmark|square|plaza|marina|bridge|old town)\b/i.test(normalized)) score += 4;
+  return score;
+}
+
+function isUsefulAspect(width?: number, height?: number): boolean {
+  if (!width || !height) return true;
+  const ratio = width / height;
+  // Destination cards are landscape. Reject obvious portraits and very wide
+  // diagrams/banners even when their filename looks innocent.
+  return ratio >= 1.08 && ratio <= 3.25;
+}
+
+async function exactArticle(language: "es" | "en", city: string, width: number): Promise<ArticlePage | null> {
   const params = new URLSearchParams({
     action: "query",
-    generator: "search",
-    gsrsearch: search,
-    gsrnamespace: "6",
-    gsrlimit: "12",
-    prop: "imageinfo",
-    iiprop: "url|mime",
-    iiurlwidth: String(width),
+    titles: city,
+    redirects: "1",
+    prop: "pageimages|images",
+    piprop: "thumbnail|name",
+    pithumbsize: String(width),
+    imlimit: "100",
     format: "json",
     formatversion: "2",
     origin: "*",
   });
 
-  const response = await fetch(`https://commons.wikimedia.org/w/api.php?${params.toString()}`, {
+  const response = await fetch(`https://${language}.wikipedia.org/w/api.php?${params.toString()}`, {
     next: { revalidate: CACHE_SECONDS },
     headers: {
       Accept: "application/json",
-      "User-Agent": "RoavioProposal/1.0 (city photo resolver)",
+      "User-Agent": "RoavioProposal/1.0 (exact city article photo resolver)",
     },
   });
-  if (!response.ok) return [];
+  if (!response.ok) return null;
 
-  const data = await response.json() as { query?: { pages?: CommonsPage[] } };
-  const pages = data.query?.pages ?? [];
-  return pages
-    .filter((page) => !REJECT_TITLE.test(page.title ?? ""))
-    .map((page) => page.imageinfo?.[0])
-    .filter((info): info is NonNullable<CommonsPage["imageinfo"]>[number] => Boolean(info))
-    .filter((info) => !info.mime || /^image\/(?:jpeg|png|webp|avif)$/i.test(info.mime))
-    .map((info) => info.thumburl ?? info.url ?? "")
-    .filter(Boolean);
+  const data = await response.json() as { query?: { pages?: ArticlePage[] } };
+  const page = data.query?.pages?.find((candidate) => !candidate.missing && candidate.ns === 0);
+  return page ?? null;
 }
 
-async function wikipediaImages(city: string, country: string, width: number, slot: number): Promise<string[]> {
-  const query = slot === 0
-    ? `${city} ${country}`
-    : `${city} ${country} landmark tourism architecture`;
-  const params = new URLSearchParams({
-    action: "query",
-    generator: "search",
-    gsrsearch: query,
-    gsrnamespace: "0",
-    gsrlimit: slot === 0 ? "5" : "10",
-    prop: "pageimages",
-    piprop: "thumbnail",
-    pithumbsize: String(width),
-    format: "json",
-    formatversion: "2",
-    origin: "*",
-  });
+async function imageInfo(titles: string[], width: number): Promise<Map<string, CommonsImageInfo>> {
+  const result = new Map<string, CommonsImageInfo>();
+  if (!titles.length) return result;
 
-  const found: string[] = [];
-  for (const language of ["en", "es"] as const) {
-    const response = await fetch(`https://${language}.wikipedia.org/w/api.php?${params.toString()}`, {
+  // MediaWiki's titles parameter is intentionally chunked below its API limit.
+  for (let start = 0; start < titles.length; start += 40) {
+    const batch = titles.slice(start, start + 40);
+    const params = new URLSearchParams({
+      action: "query",
+      titles: batch.join("|"),
+      prop: "imageinfo",
+      iiprop: "url|mime|size",
+      iiurlwidth: String(width),
+      format: "json",
+      formatversion: "2",
+      origin: "*",
+    });
+    const response = await fetch(`https://commons.wikimedia.org/w/api.php?${params.toString()}`, {
       next: { revalidate: CACHE_SECONDS },
       headers: {
         Accept: "application/json",
-        "User-Agent": "RoavioProposal/1.0 (city photo resolver)",
+        "User-Agent": "RoavioProposal/1.0 (city article media resolver)",
       },
     });
     if (!response.ok) continue;
-    const data = await response.json() as { query?: { pages?: WikipediaPage[] } };
+    const data = await response.json() as { query?: { pages?: CommonsImagePage[] } };
     for (const page of data.query?.pages ?? []) {
-      if (!page.thumbnail?.source || REJECT_TITLE.test(page.title ?? "")) continue;
-      if (!found.includes(page.thumbnail.source)) found.push(page.thumbnail.source);
+      const info = page.imageinfo?.[0];
+      if (page.title && info) result.set(page.title, info);
     }
   }
-  return found;
+  return result;
 }
 
-async function resolveImage(city: string, country: string, width: number, slot: number): Promise<string | null> {
-  try {
-    const skyline = await commonsImages(city, country, width, "skyline");
-    if (slot === 0 && skyline[0]) return skyline[0];
-    if (slot === 1) {
-      const street = await commonsImages(city, country, width, "street");
-      const alternatives = [...skyline.slice(1), ...street].filter((url, index, list) => url !== skyline[0] && list.indexOf(url) === index);
-      if (alternatives[0]) return alternatives[0];
-    }
-  } catch {
-    // Wikipedia below is deliberately independent of Commons availability.
-  }
+async function articleMedia(page: ArticlePage, city: string, width: number): Promise<string[]> {
+  const scored = (page.images ?? [])
+    .map((image) => ({ title: image.title, score: mediaTitleScore(image.title, city) }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 30);
 
-  try {
-    const wikipedia = await wikipediaImages(city, country, width, slot);
-    if (slot === 0) return wikipedia[0] ?? null;
-    // Secondary searches intentionally skip the most city-like first hit when
-    // there is another result so the dossier gets visual variety.
-    return wikipedia[1] ?? wikipedia[0] ?? null;
-  } catch {
-    return null;
+  const infos = await imageInfo(scored.map((item) => item.title), width);
+  const urls: string[] = [];
+  for (const item of scored) {
+    const info = infos.get(item.title);
+    if (!info) continue;
+    if (info.mime && !/^image\/(?:jpeg|png|webp|avif)$/i.test(info.mime)) continue;
+    if (!isUsefulAspect(info.thumbwidth ?? info.width, info.thumbheight ?? info.height)) continue;
+    const url = info.thumburl ?? info.url;
+    if (url && !urls.includes(url)) urls.push(url);
   }
+  return urls;
+}
+
+async function resolveFromArticle(page: ArticlePage, city: string, width: number, slot: number): Promise<string | null> {
+  const pageImageSafe = page.pageimage ? !REJECT_MEDIA_TITLE.test(page.pageimage) : false;
+  const thumbnailSafe = Boolean(
+    pageImageSafe &&
+    page.thumbnail?.source &&
+    isUsefulAspect(page.thumbnail.width, page.thumbnail.height),
+  );
+  const lead = thumbnailSafe ? page.thumbnail!.source! : null;
+  const media = await articleMedia(page, city, width);
+
+  if (slot === 0) return lead ?? media[0] ?? null;
+
+  // A second city image is only used when it comes from the same city article.
+  // If no trustworthy second image exists, reusing the verified lead image is
+  // intentionally better than displaying unrelated search-result media.
+  const secondary = media.find((url) => url !== lead);
+  return secondary ?? lead ?? media[0] ?? null;
+}
+
+async function resolveImage(city: string, width: number, slot: number): Promise<{ source: string; article: string } | null> {
+  // The catalog uses Spanish-facing city names, so Spanish Wikipedia is the
+  // most reliable exact-title source. English is a safe exact-title fallback.
+  for (const language of ["es", "en"] as const) {
+    try {
+      const page = await exactArticle(language, city, width);
+      if (!page) continue;
+      const source = await resolveFromArticle(page, city, width, slot);
+      if (source) return { source, article: `${language}:${page.title ?? city}` };
+    } catch {
+      // Try the next exact-language article; never fall back to arbitrary search.
+    }
+  }
+  return null;
 }
 
 export async function GET(request: NextRequest) {
   const city = request.nextUrl.searchParams.get("city")?.trim();
-  const country = request.nextUrl.searchParams.get("country")?.trim() ?? "";
   if (!city) return new Response("Missing city", { status: 400 });
 
   const width = clampWidth(request.nextUrl.searchParams.get("width"));
   const slot = normalizedSlot(request.nextUrl.searchParams.get("slot"));
-  const source = await resolveImage(city, country, width, slot);
-  if (!source) {
+  const resolved = await resolveImage(city, width, slot);
+  if (!resolved) {
     return new Response(null, {
       status: 404,
       headers: { "Cache-Control": "public, max-age=900, s-maxage=3600, stale-while-revalidate=86400" },
@@ -141,11 +204,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const upstream = await fetch(source, {
+    const upstream = await fetch(resolved.source, {
       next: { revalidate: CACHE_SECONDS },
       headers: {
         Accept: "image/avif,image/webp,image/*,*/*;q=0.7",
-        "User-Agent": "RoavioProposal/1.0 (cached city photo proxy)",
+        "User-Agent": "RoavioProposal/1.0 (cached verified city photo proxy)",
       },
     });
     if (!upstream.ok) return new Response(null, { status: 404 });
@@ -164,7 +227,8 @@ export async function GET(request: NextRequest) {
         "Content-Length": String(bytes.byteLength),
         "Cache-Control": `public, max-age=${BROWSER_CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=${CACHE_SECONDS * 3}`,
         "CDN-Cache-Control": `public, max-age=${CACHE_SECONDS}`,
-        "X-Roavio-Image-Source": "Wikimedia",
+        "X-Roavio-Image-Source": "Wikipedia exact city article",
+        "X-Roavio-Image-Article": resolved.article,
       },
     });
   } catch {
