@@ -2,6 +2,7 @@
 
 > **Last updated:** 2026-09-11
 > **Changes in this update:**
+> - **Generation 3 private login/search proof** — Added a complete browser-to-private-backend example using device-signed NENC commands, hashed device-bound sessions, server-only credentials, permission-authorized search, strict result sanitization, and CI coverage for replay, copied-cookie, origin-binding, and credential-leak failures. Phase C is complete.
 > - **Generation 3 backend proving flows** — NENC now selects credential-scoped `EngineAPIResolver` instances from a frozen, sanitized command context, forwards command `input` to ordinary HTTP request bodies, and proves that unauthorized calls cannot reach private backends or obtain their credentials.
 > - **Generation 3 NENC build plugin** — Added opt-in static command discovery, split frozen client/server manifests, protected generation of the single `app/_static/command/route.ts` endpoint, safe artifact replacement, and debounced development recompilation.
 > - **Generation 3 command security** — Added per-command replay guards and fixed-window rate policies with principal-aware keys, replaceable atomic stores, generic failures, and `Retry-After` responses.
@@ -75,7 +76,9 @@ The opt-in NENC build plugin statically discovers inline command declarations, e
 
 The NENC dispatcher can select an `EngineAPIResolver` from a frozen, sanitized command context containing only command metadata, principal, origin, and signal. The resolver factory receives no raw request, cookie, proof fields, or unvalidated input. This keeps private provider credentials in the server handler, prevents unauthenticated or unauthorized commands from obtaining a backend capability, and lets ordinary non-NENC REST services receive command input as a normal JSON request body. Commands explicitly sanitize private responses before returning browser-visible data.
 
-See `docs/gen3/phase-c-network.md` for the current security invariants and remaining Phase C work.
+The `examples/gen3-private-search` proof connects a browser login and private search to an ordinary backend without exposing its credentials or response internals. Its session store retains only token hashes and binds each account session to the login device key. The CI proof rejects replayed signed requests, copied cookies used with another key, and proofs signed for another origin before private backend access.
+
+See `docs/gen3/phase-c-network.md` for the completed Phase C security model and invariants.
 
 ---
 

@@ -1,7 +1,7 @@
 # Generation 3 Phase C — Network and credential runtime
 
 > Branch: `main-3`  
-> Status: secure dispatcher, NENC build integration, and backend proving flows complete
+> Status: complete — secure dispatcher, NENC build integration, and private application proof
 
 Phase C owns the secure application/network layer described by the Gen 3 master plan: EngineCookies, NENC, EngineCORS, command authorization, replay protection, device binding, and the EngineAPIResolver bridge.
 
@@ -266,6 +266,24 @@ For ordinary HTTP requests, explicit `input` is serialized as the request body a
 
 Commands are responsible for returning an intentional public result. Returning a backend `Response` directly preserves its response semantics, while parsing it and returning a selected object—as above—prevents private fields, diagnostic headers, or credential echoes from reaching the browser. Command files must remain server-only and must not import private credentials into Client Components.
 
+## Private login/search proving application
+
+[`examples/gen3-private-search`](../../examples/gen3-private-search) closes Phase C with a runnable application path rather than an isolated dispatcher fixture. Its browser client creates a non-exportable device key, signs `account.login` through `EngineCommand.run()`, receives a host-only session cookie, and then executes the permission-protected `catalog.privateSearch` command through the same opaque endpoint.
+
+The server handler owns the private backend URL and bearer token. Login credentials reach the ordinary HTTP backend only through a server-scoped resolver. The application retains only the SHA-256 hash of the random session token and binds that session to the submitted public device identity. Private search adds the authenticated account id server-side and whitelists only result `id` and `title` fields before responding.
+
+The end-to-end CI proof verifies:
+
+- invalid credentials issue no session;
+- the session token appears only in a `Secure`, `HttpOnly`, `SameSite=Strict` cookie;
+- replaying an identical signed request returns `409` before backend access;
+- copying the cookie to another device key returns `401` before backend access, even when it reuses the legitimate key id;
+- signing for a different destination origin returns `401` before backend access;
+- the browser calls only `/_static/command` and never the private backend directly;
+- backend tokens, internal hostnames, ranking fields, and credential echoes do not enter the browser result.
+
+The included store and rate limiters are intentionally in-memory for a focused proof. Production multi-instance deployments must replace them with shared persistent and atomic stores. The sample keeps its non-exportable `CryptoKey` for the page lifetime; production clients should persist it through a browser store supporting structured cloning or require a new login after reload.
+
 ## EngineCORS
 
 The server-only CORS helper provides exact-origin handling, preflight responses, `Vary: Origin`, allowed method/header configuration, and rejects credentialed wildcard CORS.
@@ -286,7 +304,6 @@ Authorization still comes from:
 session + EngineCookie + origin + trust + nonce + signature + rate policy
 ```
 
-## Remaining implementation order
+## Next implementation phase
 
-1. real private login/search proving application;
-2. Phase D debug/security inspection surfaces consuming these artifacts.
+Phase C is complete. Phase D adds debug and security inspection surfaces that consume these artifacts without weakening the production protocol.
