@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "suva",
+  "name": "Suva",
+  "country": "Fiyi",
+  "continent": "Oceanía",
+  "summary": "Suva, la capital de Fiyi, es la puerta de entrada más asequible al Pacífico Sur: coste de vida bajo, inglés como idioma oficial y playas como la de Nasese a poca distancia del centro. Es más una capital administrativa y portuaria que un destino de postal —para eso están Nadi o las islas exteriores—, pero ya cuenta con un coworking real (Greenhouse Coworking). El internet queda muy por detrás de otros hubs nómadas y la seguridad baja notablemente por la noche, algo a tener en cuenta al elegir alojamiento.",
+  "strengths": [
+    "Coste de vida bajoFJD 522/mes — 39% por debajo de la media de las 90 ciudades",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Internet por debajo de la media13 Mbps frente a una media de 176 Mbps",
+    "Seguridad por debajo de la mediaÍndice de seguridad 4.6/10 frente a una media de 5.9/10",
+    "Calidad de vida por debajo de la media5.2/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/suva",
+  "sourceTitle": "Suva, Fiyi para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "FJD 522/mo",
+    "internet": 13,
+    "safety": 4.6,
+    "quality": 5.2,
+    "beach": true
+  }
+}

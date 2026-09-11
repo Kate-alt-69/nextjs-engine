@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "cusco",
+  "name": "Cusco",
+  "country": "Perú",
+  "continent": "América",
+  "summary": "Cusco, antigua capital del Imperio Inca a 3.400 metros de altitud, ofrece un centro histórico espectacular, una escena cultural intensa y una de las mejores puertas de entrada a Machu Picchu. El coste de vida es muy bajo y el clima es suave y estable casi todo el año, con una temporada seca de mayo a septiembre ideal para trabajar y explorar. El gran condicionante es la altitud: los primeros días suelen traer mal de altura y bajan el rendimiento, y la sanidad y el internet fuera de los coworkings principales son más limitados que en otras ciudades sudamericanas.",
+  "strengths": [
+    "Coste de vida bajoPEN 463/mes — 46% por debajo de la media de las 90 ciudades",
+    "Internet rápido252 Mbps — 43% por encima de la media (176 Mbps)"
+  ],
+  "considerations": [
+    "Calidad de vida por debajo de la media4.6/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/cusco",
+  "sourceTitle": "Cusco, Perú para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "PEN 463/mo",
+    "internet": 252,
+    "safety": null,
+    "quality": 4.6,
+    "beach": null
+  }
+}

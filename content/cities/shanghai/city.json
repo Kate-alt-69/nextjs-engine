@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "shanghai",
+  "name": "Shanghái",
+  "country": "China",
+  "continent": "Asia",
+  "summary": "Shanghái es la mayor metrópolis de China continental, un centro financiero y tecnológico de rascacielos futuristas junto al río Huangpu, con un transporte público excelente y un coste de vida notablemente más bajo que el de otras megaciudades globales comparables. El gran obstáculo para el nómada digital es el Gran Cortafuegos: Google, WhatsApp, Instagram, Gmail y la mayoría de herramientas occidentales están bloqueadas y requieren una VPN fiable instalada antes de llegar al país, ya que las tiendas de aplicaciones y webs de VPN quedan inaccesibles una vez dentro. China no ofrece visado de nómada digital, por lo que trabajar de forma remota se hace habitualmente bajo un visado de turista, una zona legal ambigua sin cobertura laboral. A cambio, Shanghái ofrece una vida urbana ultramoderna, gastronomía de primer nivel y un metro rápido y barato que conecta toda la ciudad.",
+  "strengths": [
+    "Internet rápido223 Mbps — 26% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 7.4/10, por encima de la media (5.9/10)"
+  ],
+  "considerations": [
+    "Coste de vida altoCNY 4183/mes — 386% por encima de la media"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/shanghai",
+  "sourceTitle": "Shanghái, China para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "CNY 4183/mo",
+    "internet": 223,
+    "safety": 7.4,
+    "quality": null,
+    "beach": null
+  }
+}

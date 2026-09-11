@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "taipei",
+  "name": "Taipéi",
+  "country": "Taiwán",
+  "continent": "Asia",
+  "summary": "Taipéi combina rascacielos futuristas como el Taipei 101 con templos centenarios y mercados nocturnos donde se come de maravilla por muy poco dinero. El metro (MRT) es limpio, puntual y cubre casi toda la ciudad, la seguridad es de las más altas de Asia y el aire se respira mucho mejor que en las grandes ciudades de China continental. Además, es una base perfecta para saltar a Japón, Corea del Sur o el sudeste asiático en pocas horas de vuelo.",
+  "strengths": [
+    "Internet rápido259.9 Mbps — 47% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 8.4/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida7.9/10, por encima de la media (6.9/10)"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/taipei",
+  "sourceTitle": "Taipéi, Taiwán para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 259.9,
+    "safety": 8.4,
+    "quality": 7.9,
+    "beach": null
+  }
+}

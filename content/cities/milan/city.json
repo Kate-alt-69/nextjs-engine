@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "milan",
+  "name": "Milán",
+  "country": "Italia",
+  "continent": "Europa",
+  "summary": "Milán es la capital indiscutible de la moda, el diseño y los negocios en Italia, sede de la Semana de la Moda y de un ecosistema empresarial que rivaliza con las grandes capitales europeas. El coste de vida es notablemente más asequible que en Londres, París o Ámsterdam, aunque superior a la media italiana, especialmente en alquiler. La ciudad cuenta con una escena tech y de startups en expansión, concentrada en distritos como Porta Nuova y Bicocca, con eventos frecuentes de networking e innovación. Un rasgo distintivo es su perfecta conexión con los Alpes y los lagos del norte de Italia, lo que permite escapadas de fin de semana en menos de dos horas.",
+  "strengths": [],
+  "considerations": [
+    "Coste de vida altoEUR 1115/mes — 30% por encima de la media",
+    "Internet por debajo de la media110 Mbps frente a una media de 176 Mbps",
+    "Seguridad por debajo de la mediaÍndice de seguridad 4.6/10 frente a una media de 5.9/10",
+    "Calidad de vida por debajo de la media6/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/milan",
+  "sourceTitle": "Milán, Italia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 1115/mo",
+    "internet": 110,
+    "safety": 4.6,
+    "quality": 6,
+    "beach": null
+  }
+}

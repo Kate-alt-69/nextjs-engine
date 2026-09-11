@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "budapest",
+  "name": "Budapest",
+  "country": "Hungría",
+  "continent": "Europa",
+  "summary": "Budapest es la joya escondida de Europa para nómadas. Una de las ciudades más bellas del continente con un coste de vida notablemente inferior a Europa Occidental, excelente internet, rica vida cultural y una escena nómada en plena ebullición.",
+  "strengths": [
+    "Internet rápido237 Mbps — 34% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 6.6/10, por encima de la media (5.9/10)"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/budapest",
+  "sourceTitle": "Budapest, Hungría para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 237,
+    "safety": 6.6,
+    "quality": null,
+    "beach": null
+  }
+}

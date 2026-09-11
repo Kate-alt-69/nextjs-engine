@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "miami",
+  "name": "Miami",
+  "country": "Estados Unidos",
+  "continent": "Norteamérica",
+  "summary": "Miami combina un ambiente de playa, una vibrante cultura latina e internacional y uno de los hubs financieros y tecnológicos en mayor crecimiento de Estados Unidos. Su huso horario coincide con gran parte de Latinoamérica, lo que facilita el trabajo remoto con esa región, aunque el coste de vida es elevado para el estándar estadounidense y conviene tener en cuenta la temporada de huracanes.",
+  "strengths": [
+    "Internet rápido303 Mbps — 72% por encima de la media (176 Mbps)",
+    "Alta calidad de vida7.9/10, por encima de la media (6.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Coste de vida altoUSD 1222/mes — 42% por encima de la media",
+    "Seguridad por debajo de la mediaÍndice de seguridad 4.7/10 frente a una media de 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/miami",
+  "sourceTitle": "Miami, Estados Unidos para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "USD 1222/mo",
+    "internet": 303,
+    "safety": 4.7,
+    "quality": 7.9,
+    "beach": true
+  }
+}

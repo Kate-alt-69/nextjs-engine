@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "zanzibar",
+  "name": "Zanzíbar",
+  "country": "Tanzania",
+  "continent": "África",
+  "summary": "Zanzíbar combina playas de arena blanca de postal con el patrimonio histórico de Stone Town, declarado Patrimonio de la Humanidad por la UNESCO. Hubs de nómadas como Paje o Nungwi ofrecen coworkings frente al mar y una comunidad internacional creciente, con políticas de visado flexibles para estancias largas. El principal reto es la infraestructura: los cortes de luz e internet son frecuentes fuera de los coworkings principales, y casi todo se importa, lo que encarece el día a día frente a otros destinos económicos.",
+  "strengths": [
+    "Coste de vida bajoTZS 377/mes — 56% por debajo de la media de las 90 ciudades",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Internet por debajo de la media21 Mbps frente a una media de 176 Mbps",
+    "Seguridad por debajo de la mediaÍndice de seguridad 4.7/10 frente a una media de 5.9/10",
+    "Calidad de vida por debajo de la media5.1/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/zanzibar",
+  "sourceTitle": "Zanzíbar, Tanzania para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "TZS 377/mo",
+    "internet": 21,
+    "safety": 4.7,
+    "quality": 5.1,
+    "beach": true
+  }
+}

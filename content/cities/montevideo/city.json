@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "montevideo",
+  "name": "Montevideo",
+  "country": "Uruguay",
+  "continent": "América",
+  "summary": "Montevideo combina playas urbanas sobre el Río de la Plata, una rambla de 30 km y la estabilidad institucional más alta de Sudamérica, aunque con un coste de vida superior al de otras capitales de la región y una comunidad nómada digital aún reducida.",
+  "strengths": [
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Seguridad por debajo de la mediaÍndice de seguridad 4.3/10 frente a una media de 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/montevideo",
+  "sourceTitle": "Montevideo, Uruguay para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": null,
+    "safety": 4.3,
+    "quality": null,
+    "beach": true
+  }
+}

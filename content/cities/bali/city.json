@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "bali",
+  "name": "Bali",
+  "country": "Indonesia",
+  "continent": "Asia",
+  "summary": "Bali es el paraíso clásico del nómada digital. Ubud y Canggu concentran co-workings world-class, cafeterías con fibra óptica y una comunidad internacional masiva. El coste de vida es muy bajo y la calidad de vida, difícil de superar.",
+  "strengths": [
+    "Coste de vida bajoEUR 358/mes — 58% por debajo de la media de las 90 ciudades",
+    "Alta seguridadÍndice de seguridad 7.3/10, por encima de la media (5.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Internet por debajo de la media43 Mbps frente a una media de 176 Mbps",
+    "Calidad de vida por debajo de la media6.2/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/bali",
+  "sourceTitle": "Bali, Indonesia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 358/mo",
+    "internet": 43,
+    "safety": 7.3,
+    "quality": 6.2,
+    "beach": true
+  }
+}

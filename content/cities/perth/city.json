@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "perth",
+  "name": "Perth",
+  "country": "Australia",
+  "continent": "Oceanía",
+  "summary": "Perth, en la costa oeste de Australia, ofrece un ritmo de vida relajado, playas urbanas como Cottesloe y una de las mejores calidades de vida del catálogo de Roavio. El clima mediterráneo, con veranos secos y calurosos e inviernos suaves, y una comunidad de coworkings activa (FLUX, Riff, WeWork) la hacen atractiva para quien busca playa sin la intensidad de Sídney o Melbourne. Su gran inconveniente es el aislamiento geográfico extremo —la siguiente gran ciudad, Adelaida, está a más de 2.600 km— y unas opciones de visado limitadas para estancias largas.",
+  "strengths": [
+    "Alta calidad de vida9.4/10, por encima de la media (6.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Coste de vida altoAUD 1033/mes — 20% por encima de la media"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/perth",
+  "sourceTitle": "Perth, Australia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "AUD 1033/mo",
+    "internet": null,
+    "safety": null,
+    "quality": 9.4,
+    "beach": true
+  }
+}

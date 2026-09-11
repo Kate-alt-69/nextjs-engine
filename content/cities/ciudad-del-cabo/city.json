@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "ciudad-del-cabo",
+  "name": "Ciudad del Cabo",
+  "country": "Sudáfrica",
+  "continent": "África",
+  "summary": "Ciudad del Cabo combina la Table Mountain, playas urbanas como Camps Bay y una de las escenas tecnológicas más consolidadas de África, conocida como 'Silicon Cape', con un coste de vida muy inferior al de las grandes capitales europeas. Su franja horaria (UTC+2) apenas difiere una hora de la española, lo que facilita coordinarse con clientes o equipos en Europa, aunque conviene tener presente que los índices de inseguridad ciudadana son considerablemente más altos que en la mayoría de destinos nómadas.",
+  "strengths": [
+    "Coste de vida bajoEUR 606/mes — 30% por debajo de la media de las 90 ciudades",
+    "Alta calidad de vida7.8/10, por encima de la media (6.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Internet por debajo de la media48.3 Mbps frente a una media de 176 Mbps",
+    "Seguridad por debajo de la mediaÍndice de seguridad 2.6/10 frente a una media de 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/ciudad-del-cabo",
+  "sourceTitle": "Ciudad del Cabo, Sudáfrica para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 606/mo",
+    "internet": 48.3,
+    "safety": 2.6,
+    "quality": 7.8,
+    "beach": true
+  }
+}

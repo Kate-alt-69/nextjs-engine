@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "tokio",
+  "name": "Tokio",
+  "country": "Japón",
+  "continent": "Asia",
+  "summary": "Tokio es la ciudad más eficiente del mundo. Seguridad absoluta, transporte impecable, internet rapidísimo y una cultura fascinante hacen de Tokio una experiencia única. El coste de vida es alto pero la calidad de lo que obtienes es insuperable.",
+  "strengths": [
+    "Internet rápido230 Mbps — 30% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 7.6/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida8.7/10, por encima de la media (6.9/10)"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/tokio",
+  "sourceTitle": "Tokio, Japón para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 230,
+    "safety": 7.6,
+    "quality": 8.7,
+    "beach": null
+  }
+}

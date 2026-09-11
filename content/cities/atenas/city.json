@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "atenas",
+  "name": "Atenas",
+  "country": "Grecia",
+  "continent": "Europa",
+  "summary": "Cuna de la civilización occidental y hoy una de las capitales más asequibles de Europa, Atenas combina ruinas milenarias con una escena de cafés, azoteas y coworkings en plena expansión. Grecia ofrece un visado específico para nómadas digitales, y el clima mediterráneo, el mar Egeo a un paso y un coste de vida notablemente bajo la convierten en una base atractiva para quienes buscan historia, sol y buena conexión sin gastar de más.",
+  "strengths": [
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Internet por debajo de la media87 Mbps frente a una media de 176 Mbps",
+    "Seguridad por debajo de la mediaÍndice de seguridad 4.5/10 frente a una media de 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/atenas",
+  "sourceTitle": "Atenas, Grecia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 87,
+    "safety": 4.5,
+    "quality": null,
+    "beach": true
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "riga",
+  "name": "Riga",
+  "country": "Letonia",
+  "continent": "Europa",
+  "summary": "Riga, la mayor capital báltica, combina un centro histórico Patrimonio de la Humanidad con una escena tecnológica en auge y un coste de vida bajo para los estándares de la UE. El internet es rápido y fiable, y al formar parte de la Unión Europea y la zona euro, instalarse no requiere trámites especiales para nómadas de la UE. La ciudad en sí no tiene playa (las de la costa báltica están en Jūrmala, a 20-25 minutos), y los inviernos son largos, oscuros y fríos, un cambio notable para quien viene de climas más cálidos.",
+  "strengths": [
+    "Alta calidad de vida8/10, por encima de la media (6.9/10)"
+  ],
+  "considerations": [
+    "Internet por debajo de la media124 Mbps frente a una media de 176 Mbps"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/riga",
+  "sourceTitle": "Riga, Letonia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 124,
+    "safety": null,
+    "quality": 8,
+    "beach": null
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "el-cairo",
+  "name": "El Cairo",
+  "country": "Egipto",
+  "continent": "África",
+  "summary": "El Cairo combina milenios de historia —con las pirámides de Guiza a las puertas de la ciudad— con uno de los costes de vida más bajos entre las grandes capitales del mundo, y un ecosistema tecnológico regional en expansión. A cambio, el nómada digital debe lidiar con un tráfico caótico, niveles altos de contaminación y una seguridad ciudadana que conviene vigilar.",
+  "strengths": [
+    "Coste de vida bajoEGP 355/mes — 59% por debajo de la media de las 90 ciudades"
+  ],
+  "considerations": [
+    "Internet por debajo de la media92 Mbps frente a una media de 176 Mbps",
+    "Seguridad por debajo de la mediaÍndice de seguridad 5/10 frente a una media de 5.9/10",
+    "Calidad de vida por debajo de la media4.1/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/el-cairo",
+  "sourceTitle": "El Cairo, Egipto para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EGP 355/mo",
+    "internet": 92,
+    "safety": 5,
+    "quality": 4.1,
+    "beach": null
+  }
+}

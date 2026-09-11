@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "doha",
+  "name": "Doha",
+  "country": "Catar",
+  "continent": "Asia",
+  "summary": "Doha combina rascacielos futuristas, una costa en el golfo Pérsico y una de las tasas de criminalidad más bajas del mundo, con cero impuesto sobre la renta y una infraestructura digital de primer nivel. A cambio, el nómada digital encuentra un coste de vida elevado para los estándares regionales, un calor extremo entre mayo y septiembre, y una comunidad de nómadas todavía pequeña y poco desarrollada.",
+  "strengths": [
+    "Alta seguridadÍndice de seguridad 8.5/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida8.7/10, por encima de la media (6.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/doha",
+  "sourceTitle": "Doha, Catar para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": null,
+    "safety": 8.5,
+    "quality": 8.7,
+    "beach": true
+  }
+}

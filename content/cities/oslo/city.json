@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "oslo",
+  "name": "Oslo",
+  "country": "Noruega",
+  "continent": "Europa",
+  "summary": "Oslo es una de las capitales más caras de Europa, pero también una de las más seguras y con mejor calidad de vida del mundo. Rodeada de fiordos y bosques, combina una escena cultural vibrante con una comunidad nómada digital pequeña pero bien conectada, gracias a un internet ultrarrápido y espacios de coworking de calidad nórdica.",
+  "strengths": [
+    "Alta seguridadÍndice de seguridad 6.6/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida9.4/10, por encima de la media (6.9/10)"
+  ],
+  "considerations": [
+    "Coste de vida altoEUR 1371/mes — 59% por encima de la media"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/oslo",
+  "sourceTitle": "Oslo, Noruega para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EUR 1371/mo",
+    "internet": null,
+    "safety": 6.6,
+    "quality": 9.4,
+    "beach": null
+  }
+}

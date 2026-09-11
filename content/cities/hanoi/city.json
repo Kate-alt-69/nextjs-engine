@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "hanoi",
+  "name": "Hanói",
+  "country": "Vietnam",
+  "continent": "Asia",
+  "summary": "Hanói combina templos milenarios, lagos urbanos y un caótico Barrio Antiguo con una escena gastronómica callejera de nivel mundial, todo a un coste de vida muy bajo. La ciudad tiene una comunidad nómada digital creciente pero aún discreta, con cafés-oficina por todas partes y una cultura de trabajo relajada frente al bullicio de Bangkok o Bali.",
+  "strengths": [
+    "Coste de vida bajoEUR 408/mes — 53% por debajo de la media de las 90 ciudades",
+    "Internet rápido274 Mbps — 55% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 6.6/10, por encima de la media (5.9/10)"
+  ],
+  "considerations": [
+    "Calidad de vida por debajo de la media4.5/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/hanoi",
+  "sourceTitle": "Hanói, Vietnam para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EUR 408/mo",
+    "internet": 274,
+    "safety": 6.6,
+    "quality": 4.5,
+    "beach": null
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "lagos",
+  "name": "Lagos",
+  "country": "Nigeria",
+  "continent": "África",
+  "summary": "Lagos es el motor económico y tecnológico de África Occidental, con un coste de vida notablemente bajo y un ecosistema fintech pujante centrado en Yaba, apodado 'Silicon Lagoon'. La vida cultural es vibrante y playas como Lekki ofrecen escapadas de fin de semana, aunque el tráfico es extremo, los cortes de electricidad son frecuentes y conviene elegir con cuidado el barrio (Lekki, Victoria Island, Ikoyi). El internet de fibra ha mejorado mucho recientemente, aunque la velocidad media nacional sigue siendo moderada.",
+  "strengths": [
+    "Coste de vida bajoNGN 386/mes — 55% por debajo de la media de las 90 ciudades",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Internet por debajo de la media31 Mbps frente a una media de 176 Mbps",
+    "Seguridad por debajo de la mediaÍndice de seguridad 3.1/10 frente a una media de 5.9/10",
+    "Calidad de vida por debajo de la media1.2/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/lagos",
+  "sourceTitle": "Lagos, Nigeria para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "NGN 386/mo",
+    "internet": 31,
+    "safety": 3.1,
+    "quality": 1.2,
+    "beach": true
+  }
+}

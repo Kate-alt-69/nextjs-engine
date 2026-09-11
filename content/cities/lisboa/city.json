@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "lisboa",
+  "name": "Lisboa",
+  "country": "Portugal",
+  "continent": "Europa",
+  "summary": "Lisboa se ha convertido en la capital europea de los nómadas digitales. Clima suave, cultura rica, burocracia relativamente sencilla para residencia y una vibrante escena startup hacen de Lisboa una de las ciudades más deseadas del mundo.",
+  "strengths": [
+    "Internet rápido237 Mbps — 34% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 6.7/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida7.8/10, por encima de la media (6.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/lisboa",
+  "sourceTitle": "Lisboa, Portugal para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 237,
+    "safety": 6.7,
+    "quality": 7.8,
+    "beach": true
+  }
+}

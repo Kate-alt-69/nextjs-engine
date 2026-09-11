@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "san-francisco",
+  "name": "San Francisco",
+  "country": "Estados Unidos",
+  "continent": "Norteamérica",
+  "summary": "San Francisco es la capital mundial de la tecnología: sede de gigantes como Salesforce y epicentro de la revolución de la inteligencia artificial, con el puente Golden Gate como símbolo. Los salarios y el ecosistema de startups no tienen comparación, pero también es una de las ciudades más caras del planeta. Para un nómada español, la barrera principal no es económica sino legal: Estados Unidos no tiene visado de nómada digital, y trabajar en remoto con ESTA o visado de turista no está autorizado, aunque sea una práctica habitual.",
+  "strengths": [
+    "Internet rápido303 Mbps — 72% por encima de la media (176 Mbps)",
+    "Alta calidad de vida8.3/10, por encima de la media (6.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Coste de vida altoUSD 1579/mes — 84% por encima de la media",
+    "Seguridad por debajo de la mediaÍndice de seguridad 4/10 frente a una media de 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/san-francisco",
+  "sourceTitle": "San Francisco, Estados Unidos para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "USD 1579/mo",
+    "internet": 303,
+    "safety": 4,
+    "quality": 8.3,
+    "beach": true
+  }
+}

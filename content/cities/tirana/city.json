@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "tirana",
+  "name": "Tirana",
+  "country": "Albania",
+  "continent": "Europa",
+  "summary": "Tirana es una de las capitales más baratas de Europa, con veranos mediterráneos soleados y una escena de cafés y coworkings en auge alrededor del barrio de Blloku. Los nómadas de países de la UE pueden entrar sin visado hasta 90 días, y el coste de vida es una fracción del de Europa Occidental. Como contrapartida, la ciudad no tiene playa propia (la costa más cercana, Durrës, está a 40 minutos en coche) y la calidad de las infraestructuras urbanas todavía va por detrás de otras capitales europeas.",
+  "strengths": [
+    "Coste de vida bajoALL 678/mes — 21% por debajo de la media de las 90 ciudades"
+  ],
+  "considerations": [
+    "Internet por debajo de la media90 Mbps frente a una media de 176 Mbps",
+    "Calidad de vida por debajo de la media4.9/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/tirana",
+  "sourceTitle": "Tirana, Albania para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "ALL 678/mo",
+    "internet": 90,
+    "safety": null,
+    "quality": 4.9,
+    "beach": null
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "chiang-mai",
+  "name": "Chiang Mai",
+  "country": "Tailandia",
+  "continent": "Asia",
+  "summary": "Chiang Mai fue la primera ciudad nómada del mundo y sigue siendo la favorita de muchos. Coste de vida bajísimo, naturaleza en la puerta, cientos de co-workings y cafeterías, y una comunidad nómada madura y establecida.",
+  "strengths": [
+    "Coste de vida bajoEUR 472/mes — 45% por debajo de la media de las 90 ciudades",
+    "Internet rápido275 Mbps — 56% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 7.8/10, por encima de la media (5.9/10)"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/chiang-mai",
+  "sourceTitle": "Chiang Mai, Tailandia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 472/mo",
+    "internet": 275,
+    "safety": 7.8,
+    "quality": null,
+    "beach": null
+  }
+}

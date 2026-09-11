@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "ciudad-de-mexico",
+  "name": "Ciudad de México",
+  "country": "México",
+  "continent": "América",
+  "summary": "CDMX es una de las grandes capitales del mundo y una ciudad nómada de primera categoría. Cultura desbordante, gastronomía de nivel mundial, barrios como Roma y Condesa llenos de cafeterías con WiFi y una escena creativa y emprendedora vibrante.",
+  "strengths": [
+    "Coste de vida bajoEUR 729/mes — 15% por debajo de la media de las 90 ciudades"
+  ],
+  "considerations": [
+    "Internet por debajo de la media92 Mbps frente a una media de 176 Mbps",
+    "Seguridad por debajo de la mediaÍndice de seguridad 3.4/10 frente a una media de 5.9/10",
+    "Calidad de vida por debajo de la media4.8/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/ciudad-de-mexico",
+  "sourceTitle": "Ciudad de México, México para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 729/mo",
+    "internet": 92,
+    "safety": 3.4,
+    "quality": 4.8,
+    "beach": null
+  }
+}

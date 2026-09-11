@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "seattle",
+  "name": "Seattle",
+  "country": "Estados Unidos",
+  "continent": "Norteamérica",
+  "summary": "Seattle es la sede de gigantes tecnológicos como Amazon y Microsoft, lo que la convierte en un polo de innovación con salarios altos pero también con uno de los costes de vida más elevados de Estados Unidos. Para un nómada digital español o europeo la mayor barrera no es económica sino legal: Estados Unidos no tiene visado de nómada digital y trabajar remotamente para un empleador extranjero mientras se está con ESTA o visado de turista no está autorizado, aunque sea una práctica habitual y difícil de detectar. El clima es oceánico y muy lluvioso gran parte del año, compensado por veranos secos y luminosos entre julio y septiembre. A cambio, la ciudad ofrece acceso rápido a montañas, lagos y bosques, una escena de cafeterías y coworkings muy desarrollada y buena conectividad a internet.",
+  "strengths": [
+    "Internet rápido303 Mbps — 72% por encima de la media (176 Mbps)",
+    "Alta calidad de vida9.2/10, por encima de la media (6.9/10)"
+  ],
+  "considerations": [
+    "Coste de vida altoUSD 1571/mes — 83% por encima de la media",
+    "Seguridad por debajo de la mediaÍndice de seguridad 4.5/10 frente a una media de 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/seattle",
+  "sourceTitle": "Seattle, Estados Unidos para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "USD 1571/mo",
+    "internet": 303,
+    "safety": 4.5,
+    "quality": 9.2,
+    "beach": null
+  }
+}

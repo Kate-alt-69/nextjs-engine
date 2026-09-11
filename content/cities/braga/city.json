@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "braga",
+  "name": "Braga",
+  "country": "Portugal",
+  "continent": "Europa",
+  "summary": "Braga es una de las ciudades más antiguas de Portugal (de origen romano, la antigua Bracara Augusta) y hoy combina un centro histórico monumental —con el santuario de Bom Jesus do Monte como gran icono— con un coste de vida claramente más bajo que Lisboa y Oporto. Es sede de la Universidad do Minho, lo que le da una población joven y una vida cultural muy activa, y en los últimos años ha desarrollado un ecosistema tecnológico creciente que convive con su carácter tradicional. Está a menos de una hora en tren de Oporto, lo que facilita el acceso a un aeropuerto internacional sin vivir en una gran ciudad.",
+  "strengths": [
+    "Coste de vida bajoEUR 676/mes — 21% por debajo de la media de las 90 ciudades",
+    "Internet rápido237 Mbps — 34% por encima de la media (176 Mbps)",
+    "Alta calidad de vida9.2/10, por encima de la media (6.9/10)"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/braga",
+  "sourceTitle": "Braga, Portugal para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 676/mo",
+    "internet": 237,
+    "safety": null,
+    "quality": 9.2,
+    "beach": null
+  }
+}

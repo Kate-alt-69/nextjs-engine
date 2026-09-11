@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "medellin",
+  "name": "Medellín",
+  "country": "Colombia",
+  "continent": "América",
+  "summary": "Medellín ha protagonizado una de las transformaciones urbanas más asombrosas del mundo. La 'Ciudad de la Eterna Primavera' ofrece un clima perfecto todo el año, infraestructura moderna, zonas nómadas como El Poblado y Laureles, y un coste de vida muy competitivo.",
+  "strengths": [
+    "Coste de vida bajoEUR 682/mes — 21% por debajo de la media de las 90 ciudades",
+    "Internet rápido207 Mbps — 17% por encima de la media (176 Mbps)"
+  ],
+  "considerations": [
+    "Seguridad por debajo de la mediaÍndice de seguridad 4.6/10 frente a una media de 5.9/10",
+    "Calidad de vida por debajo de la media5.8/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/medellin",
+  "sourceTitle": "Medellín, Colombia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 682/mo",
+    "internet": 207,
+    "safety": 4.6,
+    "quality": 5.8,
+    "beach": null
+  }
+}

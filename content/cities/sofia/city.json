@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "sofia",
+  "name": "Sofía",
+  "country": "Bulgaria",
+  "continent": "Europa",
+  "summary": "Sofía es una de las capitales más económicas de la Unión Europea, con un coste de vida notablemente bajo incluso para los estándares de Europa del Este. Bulgaria es miembro de pleno derecho del espacio Schengen desde enero de 2025 (también en sus fronteras terrestres), lo que facilita la libre circulación para los ciudadanos españoles. La ciudad se asienta a los pies del monte Vitosha, que ofrece senderismo y esquí a menos de 30 minutos del centro, y cuenta con un sector de IT y startups en expansión que atrae a nómadas digitales.",
+  "strengths": [
+    "Coste de vida bajoEUR 722/mes — 16% por debajo de la media de las 90 ciudades"
+  ],
+  "considerations": [
+    "Internet por debajo de la media89 Mbps frente a una media de 176 Mbps"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/sofia",
+  "sourceTitle": "Sofía, Bulgaria para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 722/mo",
+    "internet": 89,
+    "safety": null,
+    "quality": null,
+    "beach": null
+  }
+}

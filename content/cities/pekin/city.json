@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "pekin",
+  "name": "Pekín",
+  "country": "China",
+  "continent": "Asia",
+  "summary": "Pekín es el corazón político e histórico de China: la Ciudad Prohibida, la Gran Muralla a las puertas de la ciudad y un metro ultramoderno que conecta una metrópolis de más de 20 millones de personas. El coste de vida es notablemente bajo para el tamaño de la ciudad, pero el Gran Cortafuegos bloquea Google, WhatsApp, Instagram y Gmail, por lo que hace falta una VPN fiable instalada antes de llegar. China no ofrece visado de nómada digital, así que trabajar en remoto se hace habitualmente bajo visado de turista, en una zona legal ambigua.",
+  "strengths": [
+    "Internet rápido223 Mbps — 26% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 7.4/10, por encima de la media (5.9/10)"
+  ],
+  "considerations": [
+    "Coste de vida altoCNY 3940/mes — 358% por encima de la media",
+    "Calidad de vida por debajo de la media5.8/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/pekin",
+  "sourceTitle": "Pekín, China para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "CNY 3940/mo",
+    "internet": 223,
+    "safety": 7.4,
+    "quality": 5.8,
+    "beach": null
+  }
+}

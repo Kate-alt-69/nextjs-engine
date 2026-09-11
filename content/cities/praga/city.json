@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "praga",
+  "name": "Praga",
+  "country": "República Checa",
+  "continent": "Europa",
+  "summary": "Praga es una de las ciudades más fotogénicas de Europa con un coste de vida razonable, excelente infraestructura digital y una ubicación central perfecta para explorar Europa. La calidad de vida es muy alta y la comunidad expat e internacional es numerosa.",
+  "strengths": [
+    "Alta seguridadÍndice de seguridad 7.5/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida8.8/10, por encima de la media (6.9/10)"
+  ],
+  "considerations": [
+    "Internet por debajo de la media89 Mbps frente a una media de 176 Mbps"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/praga",
+  "sourceTitle": "Praga, República Checa para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 89,
+    "safety": 7.5,
+    "quality": 8.8,
+    "beach": null
+  }
+}

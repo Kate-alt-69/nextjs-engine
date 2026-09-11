@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "addis-abeba",
+  "name": "Adís Abeba",
+  "country": "Etiopía",
+  "continent": "África",
+  "summary": "Adís Abeba, capital de Etiopía y sede de la Unión Africana, se asienta a más de 2.350 metros de altitud, lo que le da un clima suave y estable durante todo el año pese a su latitud tropical. El coste de vida es bajo y cuenta con una escena de coworkings incipiente (iceaddis, blueSpace, ShegerHive) ligada a un ecosistema de startups en crecimiento. El internet queda muy por detrás de otros hubs nómadas, y las restricciones cambiarias y la fricción bancaria para pagos internacionales son un obstáculo real a tener en cuenta.",
+  "strengths": [
+    "Coste de vida bajoETB 661/mes — 23% por debajo de la media de las 90 ciudades"
+  ],
+  "considerations": [
+    "Internet por debajo de la media9.4 Mbps frente a una media de 176 Mbps",
+    "Seguridad por debajo de la mediaÍndice de seguridad 5/10 frente a una media de 5.9/10",
+    "Calidad de vida por debajo de la media2.8/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/addis-abeba",
+  "sourceTitle": "Adís Abeba, Etiopía para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "ETB 661/mo",
+    "internet": 9.4,
+    "safety": 5,
+    "quality": 2.8,
+    "beach": null
+  }
+}

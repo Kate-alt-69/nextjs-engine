@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "sidney",
+  "name": "Sídney",
+  "country": "Australia",
+  "continent": "Oceanía",
+  "summary": "Sídney combina naturaleza espectacular —playas urbanas, el puerto y parques nacionales cercanos— con una economía digital madura y buena calidad de vida, pero es una de las ciudades más caras del hemisferio sur para vivir. El alojamiento se lleva gran parte del presupuesto, aunque a cambio el nómada digital encuentra infraestructura de primer nivel, seguridad alta y una comunidad internacional muy activa en coworkings del CBD.",
+  "strengths": [
+    "Alta seguridadÍndice de seguridad 6.6/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida9.1/10, por encima de la media (6.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Coste de vida altoAUD 1137/mes — 32% por encima de la media"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/sidney",
+  "sourceTitle": "Sídney, Australia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "AUD 1137/mo",
+    "internet": null,
+    "safety": 6.6,
+    "quality": 9.1,
+    "beach": true
+  }
+}

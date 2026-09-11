@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "osaka",
+  "name": "Osaka",
+  "country": "Japón",
+  "continent": "Asia",
+  "summary": "Osaka combina una de las escenas gastronómicas más célebres de Japón con un coste de vida notablemente más bajo que Tokio y una infraestructura urbana de primer nivel, incluyendo internet ultrarrápido y un transporte público excepcional. Es una de las ciudades más seguras del mundo para vivir y trabajar, aunque la barrera del idioma y la burocracia del visado siguen siendo retos reales para el nómada digital.",
+  "strengths": [
+    "Coste de vida bajoJPY 625/mes — 27% por debajo de la media de las 90 ciudades",
+    "Internet rápido230 Mbps — 30% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 6.7/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida9/10, por encima de la media (6.9/10)"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/osaka",
+  "sourceTitle": "Osaka, Japón para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "JPY 625/mo",
+    "internet": 230,
+    "safety": 6.7,
+    "quality": 9,
+    "beach": null
+  }
+}

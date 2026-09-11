@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "buenos-aires",
+  "name": "Buenos Aires",
+  "country": "Argentina",
+  "continent": "América",
+  "summary": "Buenos Aires es el París de Sudamérica. Una ciudad europea en América con una cultura extraordinaria, gastronomía de primer nivel, vida nocturna legendaria y, gracias a la situación económica argentina, uno de los costes de vida más bajos del mundo para quienes cobran en dólares o euros.",
+  "strengths": [],
+  "considerations": [
+    "Internet por debajo de la media110 Mbps frente a una media de 176 Mbps",
+    "Seguridad por debajo de la mediaÍndice de seguridad 3.7/10 frente a una media de 5.9/10",
+    "Calidad de vida por debajo de la media5.9/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/buenos-aires",
+  "sourceTitle": "Buenos Aires, Argentina para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 110,
+    "safety": 3.7,
+    "quality": 5.9,
+    "beach": null
+  }
+}

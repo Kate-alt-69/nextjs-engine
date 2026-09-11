@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "aman",
+  "name": "Amán",
+  "country": "Jordania",
+  "continent": "Asia",
+  "summary": "Amán combina estabilidad relativa en la región, hospitalidad jordana y un patrimonio cercano excepcional —desde Petra hasta el Mar Muerto— con un coste de vida moderado y un ecosistema tech en crecimiento. La comunidad de nómadas digitales es aún pequeña y la burocracia y la barrera del idioma pueden suponer un reto inicial.",
+  "strengths": [
+    "Coste de vida bajoJOD 664/mes — 23% por debajo de la media de las 90 ciudades"
+  ],
+  "considerations": [
+    "Calidad de vida por debajo de la media6.1/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/aman",
+  "sourceTitle": "Amán, Jordania para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "JOD 664/mo",
+    "internet": null,
+    "safety": null,
+    "quality": 6.1,
+    "beach": null
+  }
+}

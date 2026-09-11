@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "nairobi",
+  "name": "Nairobi",
+  "country": "Kenia",
+  "continent": "África",
+  "summary": "Nairobi es el corazón tecnológico de África Oriental, apodada 'Silicon Savannah' por su ecosistema de startups y su papel pionero en fintech. Su altitud de casi 1.800 metros regala un clima templado todo el año, sin el calor sofocante típico de otras capitales africanas, y un coste de vida muy bajo comparado con Europa. A cambio, el nómada digital debe asumir contrapartidas reales: una seguridad ciudadana limitada y un tráfico notoriamente denso.",
+  "strengths": [
+    "Coste de vida bajoKES 459/mes — 47% por debajo de la media de las 90 ciudades"
+  ],
+  "considerations": [
+    "Internet por debajo de la media16 Mbps frente a una media de 176 Mbps",
+    "Seguridad por debajo de la mediaÍndice de seguridad 4.1/10 frente a una media de 5.9/10",
+    "Calidad de vida por debajo de la media5/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/nairobi",
+  "sourceTitle": "Nairobi, Kenia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "KES 459/mo",
+    "internet": 16,
+    "safety": 4.1,
+    "quality": 5,
+    "beach": null
+  }
+}

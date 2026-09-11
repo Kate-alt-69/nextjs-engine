@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "abu-dabi",
+  "name": "Abu Dabi",
+  "country": "Emiratos Árabes Unidos",
+  "continent": "Asia",
+  "summary": "Capital de los Emiratos Árabes Unidos, Abu Dabi ofrece una vida más tranquila y formal que Dubái, con rascacielos junto al mar, la imponente Mezquita Sheikh Zayed y playas reales en la Corniche y Saadiyat Island. Es una de las ciudades más seguras del mundo según varios rankings, tiene impuesto sobre la renta cero y cuenta con un programa de visado de trabajo remoto pensado para nómadas digitales. A cambio de esa seguridad y calidad de vida, el coste de vida es alto y el ambiente es más conservador que el de su vecina Dubái.",
+  "strengths": [
+    "Internet rápido356 Mbps — 102% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 8.9/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida9.3/10, por encima de la media (6.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/abu-dabi",
+  "sourceTitle": "Abu Dabi, Emiratos Árabes Unidos para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 356,
+    "safety": 8.9,
+    "quality": 9.3,
+    "beach": true
+  }
+}

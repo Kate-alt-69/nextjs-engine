@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "vancouver",
+  "name": "Vancouver",
+  "country": "Canadá",
+  "continent": "Norteamérica",
+  "summary": "Vancouver combina montañas nevadas, mar y bosque a las puertas de la ciudad con un ecosistema tecnológico en plena expansión y una calidad de vida excepcional. Sin embargo, es una de las ciudades más caras de Norteamérica para vivir —especialmente en vivienda— y sus inviernos, largos y muy lluviosos, no son para todo el mundo.",
+  "strengths": [
+    "Internet rápido256 Mbps — 45% por encima de la media (176 Mbps)",
+    "Alta calidad de vida9.3/10, por encima de la media (6.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/vancouver",
+  "sourceTitle": "Vancouver, Canadá para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 256,
+    "safety": null,
+    "quality": 9.3,
+    "beach": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "colombo",
+  "name": "Colombo",
+  "country": "Sri Lanka",
+  "continent": "Asia",
+  "summary": "Colombo es la puerta de entrada a Sri Lanka y una capital costera donde el coste de vida está entre los más bajos de todo el circuito nómada asiático, con un ecosistema de coworkings todavía incipiente pero en expansión en barrios como Havelock Town y Cinnamon Gardens. El país lanzó en 2026 un visado específico para nómadas digitales que permite residir de forma legal durante un año renovable, una alternativa mucho más estable que ir encadenando visados de turista. El clima es tropical húmedo durante todo el año, con una temporada seca clara entre diciembre y marzo que coincide con la mejor época para trabajar y viajar por el país. La conexión a internet es funcional pero notablemente más lenta que en los hubs nómadas de referencia, por lo que conviene comprobar la cobertura de fibra antes de comprometerse con un alojamiento a largo plazo.",
+  "strengths": [
+    "Coste de vida bajoUSD 506/mes — 41% por debajo de la media de las 90 ciudades",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Internet por debajo de la media33 Mbps frente a una media de 176 Mbps",
+    "Calidad de vida por debajo de la media3/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/colombo",
+  "sourceTitle": "Colombo, Sri Lanka para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "USD 506/mo",
+    "internet": 33,
+    "safety": null,
+    "quality": 3,
+    "beach": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "estambul",
+  "name": "Estambul",
+  "country": "Turquía",
+  "continent": "Europa",
+  "summary": "Estambul es la única ciudad del mundo en dos continentes. Una metrópolis de 15 millones con una energía única, historia milenaria, gastronomía extraordinaria y, gracias a la inflación turca, un coste de vida muy competitivo para quienes cobran en moneda fuerte.",
+  "strengths": [
+    "Coste de vida bajoEUR 679/mes — 21% por debajo de la media de las 90 ciudades",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Internet por debajo de la media69 Mbps frente a una media de 176 Mbps",
+    "Seguridad por debajo de la mediaÍndice de seguridad 5.2/10 frente a una media de 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/estambul",
+  "sourceTitle": "Estambul, Turquía para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 679/mo",
+    "internet": 69,
+    "safety": 5.2,
+    "quality": null,
+    "beach": true
+  }
+}

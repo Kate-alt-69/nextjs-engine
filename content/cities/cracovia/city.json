@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "cracovia",
+  "name": "Cracovia",
+  "country": "Polonia",
+  "continent": "Europa",
+  "summary": "Cracovia combina una de las plazas medievales mejor conservadas de Europa con un coste de vida notablemente bajo y una comunidad nómada en rápido crecimiento. Su casco histórico, declarado Patrimonio de la Humanidad, convive con un ecosistema cada vez mayor de cafeterías de especialidad y espacios de coworking, especialmente en los barrios de Kazimierz y Stare Miasto.",
+  "strengths": [
+    "Coste de vida bajoEUR 729/mes — 15% por debajo de la media de las 90 ciudades",
+    "Internet rápido213 Mbps — 21% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 7.5/10, por encima de la media (5.9/10)"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/cracovia",
+  "sourceTitle": "Cracovia, Polonia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EUR 729/mo",
+    "internet": 213,
+    "safety": 7.5,
+    "quality": null,
+    "beach": null
+  }
+}

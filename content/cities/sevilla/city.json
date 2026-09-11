@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "sevilla",
+  "name": "Sevilla",
+  "country": "España",
+  "continent": "Europa",
+  "summary": "Sevilla es la capital de Andalucía y una de las ciudades con más patrimonio histórico de España, con la Giralda, la Catedral y el Real Alcázar declarados Patrimonio de la Humanidad. El coste de vida es notablemente más bajo que en Madrid o Barcelona, mientras que la calidad de vida y la seguridad se mantienen altas. La ciudad cuenta con una comunidad tech y de coworkings en expansión, impulsada en parte por el turismo y por profesionales remotos atraídos por su clima y su coste asequible. Eso sí, sus veranos son extremadamente calurosos —con máximas que superan con frecuencia los 40°C entre junio y agosto—, por lo que primavera y otoño son las estaciones más recomendables para instalarse.",
+  "strengths": [
+    "Coste de vida bajoEUR 698/mes — 19% por debajo de la media de las 90 ciudades",
+    "Internet rápido263 Mbps — 49% por encima de la media (176 Mbps)",
+    "Alta calidad de vida8.8/10, por encima de la media (6.9/10)"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/sevilla",
+  "sourceTitle": "Sevilla, España para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 698/mo",
+    "internet": 263,
+    "safety": null,
+    "quality": 8.8,
+    "beach": null
+  }
+}

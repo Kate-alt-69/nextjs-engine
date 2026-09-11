@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "belgrado",
+  "name": "Belgrado",
+  "country": "Serbia",
+  "continent": "Europa",
+  "summary": "Belgrado, situada en la confluencia de los ríos Sava y Danubio, se ha convertido en uno de los destinos favoritos de los nómadas digitales en los Balcanes gracias a su bajísimo coste de vida y a una comunidad de expatriados en rápido crecimiento. La ciudad es famosa por su intensa vida nocturna, encabezada por los 'splavovi' (clubes flotantes sobre el río), y por espacios de ocio como la isla-balneario de Ada Ciganlija. Al no pertenecer a la Unión Europea ni al espacio Schengen, Serbia impone sus propias reglas de entrada y residencia, algo que conviene planificar con cuidado antes de una estancia larga.",
+  "strengths": [],
+  "considerations": [
+    "Internet por debajo de la media103.8 Mbps frente a una media de 176 Mbps",
+    "Calidad de vida por debajo de la media6.1/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/belgrado",
+  "sourceTitle": "Belgrado, Serbia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 103.8,
+    "safety": null,
+    "quality": 6.1,
+    "beach": null
+  }
+}

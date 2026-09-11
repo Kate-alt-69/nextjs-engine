@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "panama",
+  "name": "Ciudad de Panamá",
+  "country": "Panamá",
+  "continent": "América",
+  "summary": "Ciudad de Panamá combina un rascacielos financiero junto al Canal con una economía dolarizada que elimina el riesgo de cambio de divisa. El sistema fiscal territorial no grava los ingresos de fuente extranjera, y el país cuenta con un visado nómada digital real (ingreso mínimo de 3.000 $/mes, vigencia inicial de unos 9 meses renovable). El frente marítimo de la propia ciudad no es de playa apta para el baño —las playas reales quedan a 15-20 minutos en Playa Kobbe o el Amador—, y la seguridad es solo moderada en algunas zonas.",
+  "strengths": [
+    "Coste de vida bajoUSD 729/mes — 15% por debajo de la media de las 90 ciudades"
+  ],
+  "considerations": [
+    "Calidad de vida por debajo de la media5.9/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/panama",
+  "sourceTitle": "Ciudad de Panamá, Panamá para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "USD 729/mo",
+    "internet": null,
+    "safety": null,
+    "quality": 5.9,
+    "beach": null
+  }
+}

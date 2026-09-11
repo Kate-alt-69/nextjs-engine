@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "mascate",
+  "name": "Mascate",
+  "country": "Omán",
+  "continent": "Asia",
+  "summary": "Mascate combina un litoral espectacular entre montañas áridas y el golfo de Omán con uno de los entornos más seguros y estables del Golfo Pérsico. La ciudad ofrece calidad de vida muy alta y baja criminalidad, aunque el coste de vida es medio-alto para la región y los veranos resultan extremadamente calurosos. La comunidad de nómadas digitales es todavía muy reducida, por lo que es un destino más adecuado para quienes buscan tranquilidad que vida social intensa.",
+  "strengths": [
+    "Coste de vida bajoOMR 636/mes — 26% por debajo de la media de las 90 ciudades",
+    "Alta seguridadÍndice de seguridad 8.1/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida9.2/10, por encima de la media (6.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Internet por debajo de la media94 Mbps frente a una media de 176 Mbps"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/mascate",
+  "sourceTitle": "Mascate, Omán para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "OMR 636/mo",
+    "internet": 94,
+    "safety": 8.1,
+    "quality": 9.2,
+    "beach": true
+  }
+}

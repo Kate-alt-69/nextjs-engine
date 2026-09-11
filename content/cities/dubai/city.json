@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "dubai",
+  "name": "Dubái",
+  "country": "Emiratos Árabes Unidos",
+  "continent": "Asia",
+  "summary": "Dubái es la ciudad del futuro. Infraestructura de primer nivel mundial, internet ultrarrápido, seguridad excepcional y un visado nómada digital bien establecido. Ideal para nómadas con presupuesto alto que buscan lujo, eficiencia y 0% de impuestos.",
+  "strengths": [
+    "Internet rápido356 Mbps — 102% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 8.4/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida8.4/10, por encima de la media (6.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/dubai",
+  "sourceTitle": "Dubái, Emiratos Árabes Unidos para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 356,
+    "safety": 8.4,
+    "quality": 8.4,
+    "beach": true
+  }
+}

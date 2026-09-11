@@ -18,9 +18,9 @@
   "hasDeepGuide": true,
   "scrapedMetrics": {
     "cost": "EUR 721/mo",
-    "quality": 8.9,
-    "safety": 6.6,
     "internet": 237,
+    "safety": 6.6,
+    "quality": 8.9,
     "beach": true
   }
 }

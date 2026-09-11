@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "dublin",
+  "name": "Dublín",
+  "country": "Irlanda",
+  "continent": "Europa",
+  "summary": "Dublín se ha convertido en el hub tecnológico de Europa, con sedes europeas de Google, Meta, LinkedIn, Stripe y Airbnb, lo que genera una comunidad nómada digital y de expatriados muy activa. Es una de las ciudades más caras de Europa: el alquiler es extremadamente elevado y la escasez de vivienda es un problema real para quienes llegan sin contrato previo. El clima oceánico es suave pero muy lluvioso e impredecible, aunque el internet es rápido y fiable y la cultura irlandesa hace que la vida social sea muy fácil.",
+  "strengths": [
+    "Alta calidad de vida7.7/10, por encima de la media (6.9/10)"
+  ],
+  "considerations": [
+    "Coste de vida altoEUR 1133/mes — 32% por encima de la media",
+    "Seguridad por debajo de la mediaÍndice de seguridad 4.6/10 frente a una media de 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/dublin",
+  "sourceTitle": "Dublín, Irlanda para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EUR 1133/mo",
+    "internet": null,
+    "safety": 4.6,
+    "quality": 7.7,
+    "beach": null
+  }
+}

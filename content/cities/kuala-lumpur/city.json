@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "kuala-lumpur",
+  "name": "Kuala Lumpur",
+  "country": "Malasia",
+  "continent": "Asia",
+  "summary": "Kuala Lumpur es el hub silencioso del Sudeste Asiático. Internet ultrarrápido, coste de vida moderado, infraestructura moderna, excelente transporte y una posición geográfica perfecta como base para explorar toda la región. El inglés es oficial y se habla en todas partes.",
+  "strengths": [
+    "Coste de vida bajoEUR 559/mes — 35% por debajo de la media de las 90 ciudades"
+  ],
+  "considerations": [
+    "Seguridad por debajo de la mediaÍndice de seguridad 4.1/10 frente a una media de 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/kuala-lumpur",
+  "sourceTitle": "Kuala Lumpur, Malasia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 559/mo",
+    "internet": null,
+    "safety": 4.1,
+    "quality": null,
+    "beach": null
+  }
+}

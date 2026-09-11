@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "londres",
+  "name": "Londres",
+  "country": "Reino Unido",
+  "continent": "Europa",
+  "summary": "Londres es la capital financiera y tecnológica de Europa, con una escena de startups, fintech y medios que atrae a profesionales remotos de todo el mundo, aunque su coste de vida es de los más altos del continente. El Brexit eliminó la libre circulación para los ciudadanos españoles, por lo que trabajar allí de forma remota y prolongada exige encajar en visados de visitante con límites estrictos, ya que el Reino Unido no ofrece un visado específico de nómada digital. Su red de transporte público, con el metro y el Overground, es extensísima y fiable, y la ciudad ofrece una oferta cultural, gastronómica y de coworkings prácticamente inagotable. El clima oceánico, con lluvias frecuentes y pocas horas de sol en invierno, es uno de los mayores contrapesos frente a ciudades del sur de Europa.",
+  "strengths": [],
+  "considerations": [
+    "Coste de vida altoGBP 1070/mes — 24% por encima de la media",
+    "Seguridad por debajo de la mediaÍndice de seguridad 4.5/10 frente a una media de 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/londres",
+  "sourceTitle": "Londres, Reino Unido para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "GBP 1070/mo",
+    "internet": null,
+    "safety": 4.5,
+    "quality": null,
+    "beach": null
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "seul",
+  "name": "Seúl",
+  "country": "Corea del Sur",
+  "continent": "Asia",
+  "summary": "Seúl es una de las ciudades más avanzadas tecnológicamente del mundo. Internet más rápido del planeta, cultura K-pop y moderna fascinante, gastronomía increíble y una infraestructura digital impecable. La ciudad perfecta para nómadas tech.",
+  "strengths": [
+    "Internet rápido233 Mbps — 32% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 7.5/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida7.9/10, por encima de la media (6.9/10)"
+  ],
+  "considerations": [
+    "Coste de vida altoEUR 1015/mes — 18% por encima de la media"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/seul",
+  "sourceTitle": "Seúl, Corea del Sur para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 1015/mo",
+    "internet": 233,
+    "safety": 7.5,
+    "quality": 7.9,
+    "beach": null
+  }
+}

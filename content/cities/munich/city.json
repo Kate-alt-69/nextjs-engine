@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "munich",
+  "name": "Múnich",
+  "country": "Alemania",
+  "continent": "Europa",
+  "summary": "Múnich es la capital de Baviera y una de las ciudades más prósperas de Alemania, conocida por combinar arquitectura histórica —como Marienplatz y la Frauenkirche— con una economía puntera en tecnología, ingeniería y ciencia. El coste de vida es más alto que la media alemana, pero se compensa con salarios elevados, seguridad excepcional y una calidad de vida entre las mejores de Europa. Alberga sedes de gigantes como BMW, Siemens y Google, además de una comunidad tech y de startups en expansión con numerosos coworkings y eventos. Su cercanía a los Alpes, el Englischer Garten en pleno centro y una conectividad a internet entre las más rápidas de Europa la convierten en un destino atractivo para nómadas digitales que buscan estabilidad y naturaleza sin salir de la ciudad.",
+  "strengths": [
+    "Alta seguridadÍndice de seguridad 7.8/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida9.9/10, por encima de la media (6.9/10)"
+  ],
+  "considerations": [
+    "Coste de vida altoEUR 1111/mes — 29% por encima de la media",
+    "Internet por debajo de la media102 Mbps frente a una media de 176 Mbps"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/munich",
+  "sourceTitle": "Múnich, Alemania para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 1111/mo",
+    "internet": 102,
+    "safety": 7.8,
+    "quality": 9.9,
+    "beach": null
+  }
+}

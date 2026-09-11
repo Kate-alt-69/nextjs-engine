@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "yakarta",
+  "name": "Yakarta",
+  "country": "Indonesia",
+  "continent": "Asia",
+  "summary": "Yakarta es una megaciudad vibrante y asequible, con un coste de vida notablemente bajo para el sudeste asiático, ideal para nómadas con presupuesto ajustado. El tráfico es legendariamente caótico y la contaminación del aire puede ser un problema serio durante buena parte del año, pero la escena tecnológica local está en auge, con startups como Gojek y Tokopedia impulsando un ecosistema digital cada vez más maduro. El internet fijo es razonable en zonas centrales, aunque varía mucho según el barrio.",
+  "strengths": [
+    "Coste de vida bajoIDR 432/mes — 50% por debajo de la media de las 90 ciudades"
+  ],
+  "considerations": [
+    "Internet por debajo de la media43 Mbps frente a una media de 176 Mbps",
+    "Seguridad por debajo de la mediaÍndice de seguridad 4.7/10 frente a una media de 5.9/10",
+    "Calidad de vida por debajo de la media3.7/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/yakarta",
+  "sourceTitle": "Yakarta, Indonesia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "IDR 432/mo",
+    "internet": 43,
+    "safety": 4.7,
+    "quality": 3.7,
+    "beach": null
+  }
+}

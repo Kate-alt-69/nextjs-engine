@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "amsterdam",
+  "name": "Ámsterdam",
+  "country": "Países Bajos",
+  "continent": "Europa",
+  "summary": "Ámsterdam combina canales históricos, una de las mejores infraestructuras ciclistas del mundo y una escena tech y startup de primer nivel en el corazón de Europa. Como ciudadano de la UE, instalarte y trabajar allí es tan sencillo como cambiar de ciudad dentro de España: sin visados ni papeleo especial. El inglés se habla prácticamente en todas partes, lo que facilita la vida diaria y el trabajo con clientes internacionales.",
+  "strengths": [
+    "Internet rápido224 Mbps — 27% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 7/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida9.9/10, por encima de la media (6.9/10)"
+  ],
+  "considerations": [
+    "Coste de vida altoEUR 1131/mes — 31% por encima de la media"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/amsterdam",
+  "sourceTitle": "Ámsterdam, Países Bajos para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EUR 1131/mo",
+    "internet": 224,
+    "safety": 7,
+    "quality": 9.9,
+    "beach": null
+  }
+}

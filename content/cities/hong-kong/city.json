@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "hong-kong",
+  "name": "Hong Kong",
+  "country": "Hong Kong",
+  "continent": "Asia",
+  "summary": "Hong Kong es uno de los grandes hubs financieros y tecnológicos de Asia: internet entre los más rápidos del mundo, transporte público excelente (MTR) y conexiones aéreas directas con toda la región. La seguridad es alta y el inglés se habla con normalidad en el entorno profesional. El gran freno es el coste de vida, de los más altos del catálogo de Roavio, con viviendas pequeñas y caras, además de no existir un visado nómada específico: la mayoría se apoya en estancias turísticas cortas.",
+  "strengths": [
+    "Internet rápido345 Mbps — 96% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 7.8/10, por encima de la media (5.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Calidad de vida por debajo de la media6/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/hong-kong",
+  "sourceTitle": "Hong Kong, Hong Kong para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 345,
+    "safety": 7.8,
+    "quality": 6,
+    "beach": true
+  }
+}

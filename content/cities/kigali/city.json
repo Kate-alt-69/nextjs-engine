@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "kigali",
+  "name": "Kigali",
+  "country": "Ruanda",
+  "continent": "África",
+  "summary": "Kigali es, con datos que lo confirman, una de las capitales más seguras de África: calles limpias, cultura estricta contra el vertido de basura y un centro urbano bien organizado. Su clima de altitud (unos 1.450 m) es suave y estable durante todo el año, sin el calor extremo típico de otras ciudades tropicales, y cuenta ya con coworkings reales como Norrsken House o Impact Hub. El principal freno es la infraestructura digital: la velocidad media de internet queda por detrás de otros hubs nómadas, y al ser un país sin salida al mar, no hay opción de playa ni escapadas costeras de fin de semana.",
+  "strengths": [
+    "Coste de vida bajoRWF 374/mes — 57% por debajo de la media de las 90 ciudades",
+    "Alta seguridadÍndice de seguridad 7.5/10, por encima de la media (5.9/10)"
+  ],
+  "considerations": [
+    "Internet por debajo de la media41 Mbps frente a una media de 176 Mbps",
+    "Calidad de vida por debajo de la media5.6/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/kigali",
+  "sourceTitle": "Kigali, Ruanda para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "RWF 374/mo",
+    "internet": 41,
+    "safety": 7.5,
+    "quality": 5.6,
+    "beach": null
+  }
+}

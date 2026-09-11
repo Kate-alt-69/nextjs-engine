@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "copenhague",
+  "name": "Copenhague",
+  "country": "Dinamarca",
+  "continent": "Europa",
+  "summary": "Copenhague es una de las ciudades más habitables del mundo: diseño escandinavo, seguridad altísima, gastronomía de primer nivel y una infraestructura ciclista envidiable. Al formar parte de la UE, los nómadas españoles pueden instalarse sin trámites de visado. Eso sí, es una de las capitales más caras de Europa, algo que compensa con una calidad de vida difícil de igualar.",
+  "strengths": [
+    "Internet rápido266 Mbps — 51% por encima de la media (176 Mbps)",
+    "Alta seguridadÍndice de seguridad 7.4/10, por encima de la media (5.9/10)",
+    "Alta calidad de vida9.9/10, por encima de la media (6.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Coste de vida altoEUR 1217/mes — 41% por encima de la media"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/copenhague",
+  "sourceTitle": "Copenhague, Dinamarca para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EUR 1217/mo",
+    "internet": 266,
+    "safety": 7.4,
+    "quality": 9.9,
+    "beach": true
+  }
+}

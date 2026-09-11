@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "florencia",
+  "name": "Florencia",
+  "country": "Italia",
+  "continent": "Europa",
+  "summary": "Florencia es la cuna del Renacimiento, con una densidad de patrimonio artístico difícil de igualar y una escala humana que permite recorrerla a pie en pocos minutos. Combina vida cultural intensa con un coste de vida más bajo que Roma o Milán y una excelente conexión ferroviaria con el resto de Europa. Su tamaño compacto y carácter universitario la hacen atractiva para estancias de varios meses.",
+  "strengths": [],
+  "considerations": [
+    "Coste de vida altoEUR 1005/mes — 17% por encima de la media",
+    "Internet por debajo de la media110 Mbps frente a una media de 176 Mbps"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/florencia",
+  "sourceTitle": "Florencia, Italia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 1005/mo",
+    "internet": 110,
+    "safety": null,
+    "quality": null,
+    "beach": null
+  }
+}

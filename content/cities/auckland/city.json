@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "auckland",
+  "name": "Auckland",
+  "country": "Nueva Zelanda",
+  "continent": "Oceanía",
+  "summary": "Auckland combina naturaleza exuberante, playas urbanas y una calidad de vida entre las más altas del mundo, con seguridad, aire limpio y una infraestructura excelente para el teletrabajo. Sin embargo, es una de las ciudades más caras de Oceanía y su aislamiento geográfico —vuelos largos y caros hacia el resto del mundo— la convierte en un destino más adecuado para estancias largas que para nómadas que buscan bajo coste o gran conectividad con otros hubs.",
+  "strengths": [
+    "Internet rápido216 Mbps — 22% por encima de la media (176 Mbps)",
+    "Alta calidad de vida8.9/10, por encima de la media (6.9/10)",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Seguridad por debajo de la mediaÍndice de seguridad 4.9/10 frente a una media de 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/auckland",
+  "sourceTitle": "Auckland, Nueva Zelanda para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 216,
+    "safety": 4.9,
+    "quality": 8.9,
+    "beach": true
+  }
+}

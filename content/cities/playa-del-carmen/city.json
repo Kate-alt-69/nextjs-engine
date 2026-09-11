@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "playa-del-carmen",
+  "name": "Playa del Carmen",
+  "country": "México",
+  "continent": "América",
+  "summary": "Playa del Carmen, en la Riviera Maya, es uno de los destinos nómadas favoritos de Latinoamérica: playa caribeña, la Quinta Avenida peatonal llena de cafés y coworkings, y fibra óptica rápida en la mayoría de edificios. La comunidad internacional es enorme y el aeropuerto de Cancún queda a solo una hora. El coste de vida ha subido con el turismo masivo, y conviene tener en cuenta la temporada de huracanes (junio-noviembre) y el aumento reciente de la inseguridad percibida en algunas zonas.",
+  "strengths": [
+    "Coste de vida bajoMXN 727/mes — 15% por debajo de la media de las 90 ciudades",
+    "Acceso a playaLa ciudad cuenta con playa"
+  ],
+  "considerations": [
+    "Internet por debajo de la media92 Mbps frente a una media de 176 Mbps",
+    "Calidad de vida por debajo de la media6.2/10 frente a una media de 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/playa-del-carmen",
+  "sourceTitle": "Playa del Carmen, México para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "MXN 727/mo",
+    "internet": 92,
+    "safety": null,
+    "quality": 6.2,
+    "beach": true
+  }
+}
