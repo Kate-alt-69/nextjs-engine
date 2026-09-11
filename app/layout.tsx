@@ -3,6 +3,7 @@ import React from "react";
 import { PreferencesShell } from "./roavio/PreferencesShell";
 import { getRoavioPreferences } from "./roavio/locale.server";
 import "./roavio/polish.css";
+import "./roavio/brand.css";
 
 export const metadata: Metadata = {
   title: {
