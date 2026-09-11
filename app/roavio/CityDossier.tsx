@@ -1,6 +1,5 @@
 import { createComponent, defineSchema, type SchemaNode } from "@/engine";
 import type { CityContent } from "./cityContent.server";
-import { CityDossierBackdrop } from "./CityDossierBackdrop";
 import { CityDossierMedia } from "./CityDossierMedia";
 import { copyFor, type RoavioLocale } from "./i18n";
 import { createFooterNode, createRoavioNav, roavioTheme } from "./theme";
@@ -107,9 +106,8 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
     theme: roavioTheme,
     root: {
       type: "box",
-      props: { className: "rv-dossier-page", bg: "transparent", color: "var(--rv-ink)", minH: "100svh" },
+      props: { className: "rv-dossier-page", bg: "var(--rv-paper)", color: "var(--rv-ink)", minH: "100svh" },
       children: [
-        { type: "slot", props: { name: "city-backdrop" } },
         createRoavioNav(locale),
         {
           type: "section",
@@ -248,7 +246,6 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
   return createComponent({
     schema,
     slots: {
-      "city-backdrop": <CityDossierBackdrop city={city.name} country={city.country} />,
       "city-media": <CityDossierMedia slug={city.slug} city={city.name} country={city.country} />,
     },
     compiler: { pageId: `roavio-city-${city.slug}`, serverFirst: true },
