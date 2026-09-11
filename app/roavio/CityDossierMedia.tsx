@@ -8,6 +8,9 @@ export function CityDossierMedia({ slug, city, country }: { slug: string; city: 
       <div className="rv-dossier-media__primary">
         <CityThumb slug={slug} city={city} country={country} slot={0} eager />
       </div>
+      <div className="rv-dossier-media__secondary">
+        <CityThumb slug={slug} city={city} country={country} slot={1} compact eager />
+      </div>
     </div>
   );
 }
