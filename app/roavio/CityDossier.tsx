@@ -1,8 +1,8 @@
 import { createComponent, defineSchema, type SchemaNode } from "@/engine";
 import type { CityContent } from "./cityContent.server";
+import { CityDossierMedia } from "./CityDossierMedia";
 import { copyFor, type RoavioLocale } from "./i18n";
 import { createFooterNode, createRoavioNav, roavioTheme } from "./theme";
-import { cityImage } from "./visuals";
 
 function metricValue(value: string | number | boolean | null, locale: RoavioLocale, suffix = ""): string {
   if (value === null) return locale === "es" ? "Sin dato" : "Not captured";
@@ -17,13 +17,36 @@ function fitScore(city: CityContent): number | null {
   return Math.round((quality * 0.45 + safety * 0.3 + internetScore * 0.25) * 10) / 10;
 }
 
+function cleanInsight(value: string): string {
+  return value
+    .replace(/([\p{Ll}])([\p{Lu}])/gu, "$1 · $2")
+    .replace(/([\p{L}])(?=\d)/gu, "$1 · ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function continentLabel(value: string, locale: RoavioLocale): string {
+  const normalized = value.toLocaleLowerCase("es");
+  const labels: Record<string, [string, string]> = {
+    europe: ["Europa", "Europe"], europa: ["Europa", "Europe"],
+    asia: ["Asia", "Asia"],
+    africa: ["África", "Africa"], "áfrica": ["África", "Africa"],
+    americas: ["América", "Americas"], america: ["América", "Americas"], "américa": ["América", "Americas"],
+    "north america": ["Norteamérica", "North America"], "norteamérica": ["Norteamérica", "North America"], norteamerica: ["Norteamérica", "North America"],
+    oceania: ["Oceanía", "Oceania"], "oceanía": ["Oceanía", "Oceania"],
+    "middle east": ["Oriente Medio", "Middle East"], "oriente medio": ["Oriente Medio", "Middle East"],
+  };
+  const match = labels[normalized];
+  return match ? match[locale === "es" ? 0 : 1] : value;
+}
+
 function insightColumn(title: string, tone: string, items: string[], fallback: string): SchemaNode {
   return {
     type: "box",
     props: { className: "rv-dossier-insight" },
     children: [
       { type: "text", props: { content: title, variant: "overline", color: tone, weight: 800 } },
-      ...(items.length ? items : [fallback]).map((item) => ({
+      ...(items.length ? items.map(cleanInsight) : [fallback]).map((item) => ({
         type: "text",
         key: item,
         props: { content: `• ${item}`, size: ".8rem", lineHeight: 1.5, mt: ".42rem" },
@@ -36,7 +59,6 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
   const es = locale === "es";
   const sourceCopy = copyFor(locale).sourceLanguage;
   const score = fitScore(city);
-  const image = cityImage(city.slug);
   const labels = {
     monthlyCost: es ? "Coste mensual" : "Monthly cost",
     internet: "Internet",
@@ -65,7 +87,7 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
     [labels.safety, metricValue(city.metrics.safety, locale, "/10")],
     [labels.quality, metricValue(city.metrics.quality, locale, "/10")],
     [labels.beach, metricValue(city.metrics.beach, locale)],
-    [labels.region, city.continent],
+    [labels.region, continentLabel(city.continent, locale)],
   ];
 
   const summaryRows = [
@@ -93,18 +115,16 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
           children: [
             {
               type: "box",
-              props: {
-                className: "rv-dossier-hero",
-                background: image ? `url(${image}) center/cover` : "linear-gradient(135deg,#173d31,#4b816a)",
-              },
+              props: { className: "rv-dossier-hero" },
               children: [
+                { type: "slot", props: { name: "city-media" } },
                 {
                   type: "box",
                   props: { className: "rv-dossier-hero__copy" },
                   children: [
-                    { type: "text", props: { content: `${city.country} · ${city.continent}`, variant: "overline", color: "var(--rv-lime)", weight: 800 } },
+                    { type: "text", props: { content: `${city.country} · ${continentLabel(city.continent, locale)}`, variant: "overline", color: "var(--rv-lime)", weight: 800 } },
                     { type: "heading", props: { level: 1, content: city.name, size: { xs: "2.65rem", md: "4rem" }, color: "#fff", lineHeight: .96, style: { margin: ".3rem 0 .55rem" } } },
-                    ...(city.summary ? [{ type: "text", props: { content: city.summary, size: ".92rem", lineHeight: 1.6, maxW: "690px" } } as SchemaNode] : []),
+                    ...(city.summary ? [{ type: "text", props: { content: city.summary, size: ".92rem", lineHeight: 1.6, maxW: "650px", color: "rgba(255,255,255,.92)" } } as SchemaNode] : []),
                   ],
                 },
               ],
@@ -223,5 +243,9 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
     },
   });
 
-  return createComponent({ schema, compiler: { pageId: `roavio-city-${city.slug}`, serverFirst: true } });
+  return createComponent({
+    schema,
+    slots: { "city-media": <CityDossierMedia slug={city.slug} city={city.name} country={city.country} /> },
+    compiler: { pageId: `roavio-city-${city.slug}`, serverFirst: true },
+  });
 }

@@ -1,0 +1,154 @@
+:root,
+html[data-rv-theme='dark']{
+  --e-text-color:var(--rv-ink);
+  --e-heading-color:var(--rv-ink);
+  --e-caption-color:var(--rv-muted);
+  --e-muted:var(--rv-muted);
+  --e-divider:var(--rv-line);
+  --e-card-bg:var(--rv-card);
+  --e-surface:var(--rv-card);
+  --e-accent:var(--rv-green);
+  --e-accent-soft:color-mix(in srgb,var(--rv-green) 16%,transparent);
+}
+
+/* Keep Engine primitives from leaking their default dark text into Roavio dark mode. */
+.rv-result-card,.rv-result-card h3,.rv-result-card strong,
+.rv-compare-stage,.rv-compare-stage strong,.rv-compare-stage button,
+.rv-dossier-section,.rv-dossier-insight,.rv-dossier-summary,.rv-dossier-metric,
+.rv-city-combobox,.rv-city-combobox button,.rv-city-combobox input{
+  color:var(--rv-ink);
+}
+html[data-rv-theme='dark'] .rv-result-card,
+html[data-rv-theme='dark'] .rv-compare-stage,
+html[data-rv-theme='dark'] .rv-dossier-section,
+html[data-rv-theme='dark'] .rv-dossier-insight,
+html[data-rv-theme='dark'] .rv-dossier-summary,
+html[data-rv-theme='dark'] .rv-dossier-metric{
+  color:var(--rv-ink)!important;
+}
+
+/* Directory cards: skip offscreen paint work and avoid expensive persistent blur filters. */
+.rv-result-card{
+  content-visibility:auto;
+  contain-intrinsic-size:440px;
+  transform:translateZ(0);
+  transition:transform .36s cubic-bezier(.2,.8,.2,1),border-color .28s ease,box-shadow .36s cubic-bezier(.2,.8,.2,1)!important;
+}
+.rv-result-card__visual{display:block;text-decoration:none;border-radius:17px;overflow:hidden}
+@media(hover:hover) and (pointer:fine){
+  .rv-result-card:hover{transform:translateY(-6px) scale(1.006);box-shadow:0 24px 58px var(--rv-shadow)}
+  .rv-result-card:hover .rv-city-thumb__engine img,
+  .rv-result-card:focus-within .rv-city-thumb__engine img,
+  .rv-compare-city-card:hover .rv-city-thumb__engine img{
+    transform:scale(1.055)!important;
+  }
+}
+.rv-city-thumb{isolation:isolate;transform:translateZ(0)}
+.rv-city-thumb::before{display:none!important}
+.rv-city-thumb__fallback{z-index:0}
+.rv-city-thumb__blur{
+  position:absolute;
+  inset:-7%;
+  z-index:1;
+  width:114%;
+  height:114%;
+  object-fit:cover;
+  filter:blur(14px) saturate(.78);
+  transform:scale(1.04);
+  opacity:.9;
+  transition:opacity .32s ease;
+  pointer-events:none;
+}
+.rv-city-thumb__engine{position:relative;z-index:2}
+.rv-city-thumb__engine img{
+  filter:none!important;
+  transform:scale(1)!important;
+  transition:transform .48s cubic-bezier(.2,.8,.2,1),opacity .24s ease!important;
+  user-select:none!important;
+  -webkit-user-drag:none!important;
+}
+.rv-city-thumb--loaded .rv-city-thumb__blur{opacity:0}
+.rv-city-thumb img,.rv-dossier-media img{user-select:none;-webkit-user-drag:none}
+
+/* Searchable comparison picker: replaces the native 90-row wall. */
+.rv-compare-select-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;position:relative;z-index:8}
+.rv-city-combobox{position:relative;min-width:0}
+.rv-city-combobox__trigger{
+  width:100%;min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:.7rem;
+  padding:.7rem .85rem;border:1px solid var(--rv-line);border-radius:13px;background:var(--rv-card);color:var(--rv-ink);
+  text-align:left;cursor:pointer;font-weight:700;box-shadow:0 1px 0 color-mix(in srgb,var(--rv-ink) 5%,transparent);
+}
+.rv-city-combobox__trigger:hover{border-color:color-mix(in srgb,var(--rv-green) 48%,var(--rv-line))}
+.rv-city-combobox__chevron{font-size:1.05rem;color:var(--rv-muted);transition:transform .18s ease}
+.rv-city-combobox__trigger[aria-expanded='true'] .rv-city-combobox__chevron{transform:rotate(180deg)}
+.rv-city-combobox__menu{
+  position:absolute;z-index:30;top:calc(100% + .45rem);left:0;right:0;overflow:hidden;
+  border:1px solid var(--rv-line);border-radius:16px;background:var(--rv-card);box-shadow:0 24px 70px var(--rv-shadow);
+  animation:rv-picker-in .18s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes rv-picker-in{from{opacity:0;transform:translateY(-5px) scale(.985)}to{opacity:1;transform:none}}
+.rv-city-combobox__search-wrap{display:flex;align-items:center;gap:.55rem;padding:.65rem;border-bottom:1px solid var(--rv-line);color:var(--rv-muted)}
+.rv-city-combobox__search-wrap input{width:100%;border:0;outline:0;background:var(--rv-card-soft);color:var(--rv-ink);border-radius:10px;padding:.62rem .7rem}
+.rv-city-combobox__options{max-height:310px;overflow:auto;padding:.35rem;scrollbar-width:thin}
+.rv-city-combobox__option{width:100%;display:flex;flex-direction:column;gap:.08rem;padding:.62rem .7rem;border:0;border-radius:10px;background:transparent;text-align:left;cursor:pointer}
+.rv-city-combobox__option:hover,.rv-city-combobox__option[data-active='true']{background:color-mix(in srgb,var(--rv-green) 12%,var(--rv-card))}
+.rv-city-combobox__option span{font-weight:800}.rv-city-combobox__option small{color:var(--rv-muted);font-size:.7rem}
+.rv-city-combobox__empty{padding:1rem;color:var(--rv-muted);text-align:center;font-size:.8rem}
+
+/* Compare cards get a tactile lift while the loaded image remains sharp. */
+.rv-compare-city-card{display:block;text-decoration:none;color:var(--rv-ink);transition:transform .34s cubic-bezier(.2,.8,.2,1),box-shadow .34s ease,border-color .25s ease}
+@media(hover:hover) and (pointer:fine){.rv-compare-city-card:hover{transform:translateY(-5px) scale(1.008);box-shadow:0 18px 40px var(--rv-shadow);border-color:color-mix(in srgb,var(--rv-green) 42%,var(--rv-line))}}
+
+/* Light mode needs more hierarchy than the initial cream-on-cream pass. Dark mode is intentionally untouched. */
+html:not([data-rv-theme='dark']) .rv-compare-stage{
+  background:linear-gradient(145deg,#d8dfd5 0%,#e6eae2 46%,#cfd8cf 100%);
+  border-color:rgba(16,35,31,.22);
+  box-shadow:0 26px 70px rgba(16,35,31,.15);
+}
+html:not([data-rv-theme='dark']) .rv-compare-city-card{background:rgba(255,253,248,.9);border-color:rgba(16,35,31,.17)}
+html:not([data-rv-theme='dark']) .rv-compare-grid{background:#fffdf8;border-color:rgba(16,35,31,.18)}
+html:not([data-rv-theme='dark']) .rv-compare-label{background:#edf0e9}
+html:not([data-rv-theme='dark']) .rv-best{background:#e8f8bd!important;color:#10231f!important}
+
+/* A compact integrated intro replaces the awkward floating box above Compare. */
+.rv-compare-intro{
+  padding:1.2rem 1.25rem;border:1px solid var(--rv-line);border-radius:24px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--rv-card) 88%,var(--rv-green) 12%),var(--rv-card));
+  box-shadow:0 16px 46px var(--rv-shadow);
+}
+.rv-compare-intro__aside{height:100%;display:flex;flex-direction:column;justify-content:center;padding:.9rem 1rem;border-left:1px solid var(--rv-line)}
+html[data-rv-theme='dark'] .rv-compare-intro{background:linear-gradient(135deg,#0c1d17,#10261f)}
+
+/* Two-photo city hero. Primary photo fills the stage; secondary photo adds depth without another heavy gallery. */
+.rv-dossier-hero{background:#173d31!important;min-height:300px}
+.rv-dossier-media{position:absolute;inset:0;z-index:0;overflow:hidden;border-radius:inherit}
+.rv-dossier-media__primary{position:absolute;inset:0}
+.rv-dossier-media__secondary{
+  position:absolute;right:1rem;bottom:1rem;width:min(31%,330px);height:45%;z-index:4;
+  border:1px solid rgba(255,255,255,.5);border-radius:18px;overflow:hidden;box-shadow:0 18px 44px rgba(0,0,0,.24);
+  transform:rotate(1.2deg);
+}
+.rv-dossier-media .rv-city-thumb{width:100%;height:100%;aspect-ratio:auto!important;border-radius:0}
+.rv-dossier-media__secondary .rv-city-thumb{border-radius:17px}
+.rv-dossier-media .rv-city-thumb__engine,.rv-dossier-media .rv-city-thumb__engine.e-img-wrap{width:100%!important;height:100%!important;aspect-ratio:auto!important}
+.rv-dossier-media .rv-city-thumb__engine picture,.rv-dossier-media .rv-city-thumb__engine img{width:100%!important;height:100%!important}
+.rv-dossier-hero::after{z-index:1!important;background:linear-gradient(90deg,rgba(3,16,12,.86) 0%,rgba(3,16,12,.62) 45%,rgba(3,16,12,.22) 72%,rgba(3,16,12,.08) 100%)!important}
+.rv-dossier-hero__copy{z-index:3!important;max-width:68%;padding:1.5rem 1.6rem!important;text-shadow:0 1px 14px rgba(0,0,0,.22)}
+
+@media(max-width:900px){
+  .rv-compare-select-grid{grid-template-columns:1fr}
+  .rv-city-combobox__menu{position:relative;top:.3rem;margin-bottom:.35rem}
+  .rv-dossier-hero__copy{max-width:72%}
+  .rv-dossier-media__secondary{width:34%;height:38%}
+}
+@media(max-width:700px){
+  .rv-result-card{contain-intrinsic-size:390px}
+  .rv-dossier-hero{min-height:320px}
+  .rv-dossier-hero__copy{max-width:100%;padding:1.1rem!important;padding-right:1.1rem!important}
+  .rv-dossier-media__secondary{width:42%;height:31%;right:.65rem;bottom:.65rem;opacity:.93}
+  .rv-dossier-hero::after{background:linear-gradient(180deg,rgba(3,16,12,.78),rgba(3,16,12,.35) 62%,rgba(3,16,12,.58))!important}
+  .rv-compare-intro__aside{border-left:0;border-top:1px solid var(--rv-line);padding:.8rem 0 0;margin-top:.2rem}
+}
+@media(prefers-reduced-motion:reduce){
+  .rv-result-card,.rv-compare-city-card,.rv-city-thumb__engine img,.rv-city-thumb__blur{transition:none!important;animation:none!important}
+}

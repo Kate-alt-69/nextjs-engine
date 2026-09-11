@@ -12,17 +12,19 @@ function createCompareSchema(locale: RoavioLocale) {
     theme: roavioTheme,
     root: { type: "box", props: { bg: "var(--rv-paper)", minH: "100svh" }, children: [
       createRoavioNav(locale),
-      { type: "section", props: { contentMaxWidth: "1240px", px: "1rem", py: { xs: "2.4rem", md: "3.5rem" } }, children: [
-        { type: "grid", props: { columns: { xs: 1, md: "1.15fr .85fr" }, gap: "1.5rem", align: "end", mb: "1.5rem" }, children: [
-          { type: "stack", props: { direction: "vertical", gap: ".7rem" }, children: [
-            { type: "text", props: { content: copy.eyebrow, variant: "overline", color: "var(--rv-green)", weight: 800 } },
-            { type: "heading", props: { level: 1, content: copy.title, size: { xs: "2.7rem", md: "4.5rem" }, lineHeight: .96, style: { margin: 0, maxWidth: "840px" } } },
-            { type: "text", props: { content: copy.subtitle, color: "var(--rv-muted)", lineHeight: 1.65, maxW: "760px" } },
-          ] },
-          { type: "box", props: { className: "rv-soft", p: "1.15rem" }, children: [
-            { type: "text", props: { content: copy.visualEyebrow, variant: "overline", color: "var(--rv-green)", weight: 800 } },
-            { type: "heading", props: { level: 2, content: copy.visualTitle, className: "rv-display-serif", size: { xs: "1.8rem", md: "2.35rem" }, style: { margin: ".45rem 0 .35rem" } } },
-            { type: "text", props: { content: copy.visualBody, color: "var(--rv-muted)", size: ".84rem", lineHeight: 1.55 } },
+      { type: "section", props: { contentMaxWidth: "1240px", px: "1rem", py: { xs: "1.5rem", md: "2.2rem" } }, children: [
+        { type: "box", props: { className: "rv-compare-intro", mb: "1rem" }, children: [
+          { type: "grid", props: { columns: { xs: 1, md: "1.35fr .65fr" }, gap: "1.2rem", align: "center" }, children: [
+            { type: "stack", props: { direction: "vertical", gap: ".5rem" }, children: [
+              { type: "text", props: { content: copy.eyebrow, variant: "overline", color: "var(--rv-green)", weight: 800 } },
+              { type: "heading", props: { level: 1, content: copy.title, size: { xs: "2.35rem", md: "3.55rem" }, lineHeight: .98, style: { margin: 0, maxWidth: "760px" } } },
+              { type: "text", props: { content: copy.subtitle, color: "var(--rv-muted)", lineHeight: 1.55, maxW: "760px", size: ".9rem" } },
+            ] },
+            { type: "box", props: { className: "rv-compare-intro__aside" }, children: [
+              { type: "text", props: { content: copy.visualEyebrow, variant: "overline", color: "var(--rv-green)", weight: 800 } },
+              { type: "heading", props: { level: 2, content: copy.visualTitle, className: "rv-display-serif", size: { xs: "1.55rem", md: "1.95rem" }, style: { margin: ".35rem 0 .25rem" } } },
+              { type: "text", props: { content: copy.visualBody, color: "var(--rv-muted)", size: ".78rem", lineHeight: 1.5 } },
+            ] },
           ] },
         ] },
         { type: "slot", props: { name: "compare-board" } },

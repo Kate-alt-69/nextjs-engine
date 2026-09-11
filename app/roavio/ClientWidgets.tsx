@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import { EngineTransitionLink, useEngineTransitions } from "@/engine";
 import { useMemo, useState, useEffect, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { catalogFitScore, catalogMetric, type CityCatalogEntry } from "./catalog";
 import { CityThumb } from "./CityThumb";
 import { CompareAtmosphere } from "./CompareAtmosphere";
 import { copyFor, type RoavioLocale } from "./i18n";
+import { SearchableCitySelect } from "./SearchableCitySelect";
 
 const FAVORITES_KEY = "roavio-proposal-favorites";
 
@@ -60,13 +60,14 @@ function continentLabel(value: string, locale: RoavioLocale): string {
 }
 
 export function HeroSearch({ locale }: { locale: RoavioLocale }) {
-  const router = useRouter();
+  const transitions = useEngineTransitions();
   const copy = copyFor(locale).home;
   const [query, setQuery] = useState("");
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const value = query.trim();
-    router.push(value ? `/cities?search=${encodeURIComponent(value)}` : "/cities");
+    const href = value ? `/cities?search=${encodeURIComponent(value)}` : "/cities";
+    void transitions.push(href, { type: "reveal", duration: 460, origin: "pointer" });
   };
 
   return (
@@ -86,16 +87,19 @@ function CityResultCard({ city, locale, favorite, compared, onFavorite, onCompar
   onCompare: () => void;
 }) {
   const copy = copyFor(locale).cities;
+  const cityHref = `/cities/${city.slug}`;
   return (
     <article className="rv-result-card">
-      <CityThumb slug={city.slug} city={city.city} country={city.country} />
+      <EngineTransitionLink href={cityHref} transition="portal" className="rv-result-card__visual" aria-label={`${copy.open} ${city.city}`}>
+        <CityThumb slug={city.slug} city={city.city} country={city.country} />
+      </EngineTransitionLink>
       <div className="rv-result-card__body">
         <div className="rv-result-head">
           <div>
-            <h3><Link href={`/cities/${city.slug}`} style={{ textDecoration: "none" }}>{city.city}</Link></h3>
-            <p>{city.country} · {continentLabel(city.continent, locale)} {city.beach === true ? "· beach" : ""}</p>
+            <h3><EngineTransitionLink href={cityHref} transition="portal" style={{ textDecoration: "none" }}>{city.city}</EngineTransitionLink></h3>
+            <p>{city.country} · {continentLabel(city.continent, locale)} {city.beach === true ? `· ${locale === "es" ? "playa" : "beach"}` : ""}</p>
           </div>
-          <div className="rv-result-score" title="Composite proposal score">{scoreLabel(city)}</div>
+          <div className="rv-result-score" title={locale === "es" ? "Puntuación compuesta de la propuesta" : "Composite proposal score"}>{scoreLabel(city)}</div>
         </div>
         <div className="rv-result-metrics">
           <div><strong>{city.cost ? city.cost.replace("/mo", "") : "—"}</strong><span>{copy.monthlyCost}</span></div>
@@ -105,7 +109,7 @@ function CityResultCard({ city, locale, favorite, compared, onFavorite, onCompar
         <div className="rv-card-actions">
           <button className="rv-icon-btn" type="button" data-active={favorite} onClick={onFavorite} aria-label={favorite ? copy.saved : copy.save}>{favorite ? `♥ ${copy.saved}` : `♡ ${copy.save}`}</button>
           <button className="rv-icon-btn" type="button" data-active={compared} onClick={onCompare}>{compared ? `✓ ${copy.compare}` : `+ ${copy.compare}`}</button>
-          <Link className="rv-icon-btn" href={`/cities/${city.slug}`} style={{ marginLeft: "auto", textDecoration: "none" }}>{copy.open} ↗</Link>
+          <EngineTransitionLink className="rv-icon-btn" href={cityHref} transition="portal" style={{ marginLeft: "auto", textDecoration: "none" }}>{copy.open} ↗</EngineTransitionLink>
         </div>
       </div>
     </article>
@@ -183,7 +187,7 @@ export function Explorer({ catalog, locale, initialSearch = "" }: { catalog: Cit
       {compare.length > 0 ? (
         <div className="rv-compare-tray">
           <div><strong>{copy.compareTray}</strong><div className="rv-compare-chips">{compare.map((slug) => <span className="rv-compare-chip" key={slug}>{catalog.find((city) => city.slug === slug)?.city ?? slug}</span>)}</div></div>
-          <Link className="rv-primary" href={`/compare?cities=${compare.join(",")}`}>{copy.compare} {compare.length} →</Link>
+          <EngineTransitionLink className="rv-primary" href={`/compare?cities=${compare.join(",")}`} transition="depth">{copy.compare} {compare.length} →</EngineTransitionLink>
         </div>
       ) : null}
     </div>
@@ -233,20 +237,25 @@ export function CompareBoard({ catalog, locale, initialSlugs = ["valencia", "lis
     <div className="rv-compare-stage">
       <CompareAtmosphere />
       <div className="rv-compare-stage__content">
-        <div className="rv-toolbar" style={{ gridTemplateColumns: "repeat(3,minmax(0,1fr))" }}>
+        <div className="rv-compare-select-grid">
           {selected.map((value, slot) => (
-            <select key={slot} className="rv-select" value={value} onChange={(event) => update(slot, Number(event.target.value))}>
-              {catalog.map((city, index) => <option key={city.slug} value={index}>{city.city} · {city.country}</option>)}
-            </select>
+            <SearchableCitySelect
+              key={slot}
+              catalog={catalog}
+              value={value}
+              locale={locale}
+              ariaLabel={locale === "es" ? `Ciudad ${slot + 1} de la comparación` : `Comparison city ${slot + 1}`}
+              onChange={(cityIndex) => update(slot, cityIndex)}
+            />
           ))}
         </div>
 
         <div className="rv-compare-city-strip">
           {chosen.map((city) => (
-            <div className="rv-compare-city-card" key={`visual-${city.slug}`}>
+            <EngineTransitionLink href={`/cities/${city.slug}`} transition="portal" className="rv-compare-city-card" key={`visual-${city.slug}`}>
               <CityThumb slug={city.slug} city={city.city} country={city.country} compact />
-              <div className="rv-compare-city-card__meta"><strong>{city.city}</strong><span>{scoreLabel(city) === "—" ? "partial" : `${scoreLabel(city)}/10`}</span></div>
-            </div>
+              <div className="rv-compare-city-card__meta"><strong>{city.city}</strong><span>{scoreLabel(city) === "—" ? (locale === "es" ? "parcial" : "partial") : `${scoreLabel(city)}/10`}</span></div>
+            </EngineTransitionLink>
           ))}
         </div>
 
@@ -285,7 +294,7 @@ export function FavoritesBoard({ catalog, locale }: { catalog: CityCatalogEntry[
   const saved = catalog.filter((city) => favorites.includes(city.slug));
 
   if (saved.length === 0) {
-    return <div className="rv-panel" style={{ padding: "2rem", textAlign: "center" }}><h3 style={{ marginTop: 0 }}>{copy.favorites.emptyTitle}</h3><p style={{ color: "var(--rv-muted)" }}>{copy.favorites.emptyBody}</p><Link className="rv-primary" href="/cities">{copy.favorites.find} →</Link></div>;
+    return <div className="rv-panel" style={{ padding: "2rem", textAlign: "center" }}><h3 style={{ marginTop: 0 }}>{copy.favorites.emptyTitle}</h3><p style={{ color: "var(--rv-muted)" }}>{copy.favorites.emptyBody}</p><EngineTransitionLink className="rv-primary" href="/cities" transition="reveal">{copy.favorites.find} →</EngineTransitionLink></div>;
   }
 
   return <div className="rv-result-grid">{saved.map((city) => <CityResultCard key={city.slug} city={city} locale={locale} favorite compared={false} onFavorite={() => toggle(city.slug)} onCompare={() => undefined} />)}</div>;
