@@ -26,11 +26,14 @@ function normalizedSlot(raw: string | null): number {
   return Number.isFinite(parsed) && parsed > 0 ? 1 : 0;
 }
 
-async function commonsImages(city: string, country: string, width: number): Promise<string[]> {
+async function commonsImages(city: string, country: string, width: number, searchKind: "skyline" | "street" = "skyline"): Promise<string[]> {
+  const search = searchKind === "street"
+    ? `${city} ${country} street landmark architecture`
+    : `${city} ${country} city skyline architecture`;
   const params = new URLSearchParams({
     action: "query",
     generator: "search",
-    gsrsearch: `${city} ${country} city skyline architecture`,
+    gsrsearch: search,
     gsrnamespace: "6",
     gsrlimit: "12",
     prop: "imageinfo",
@@ -94,9 +97,14 @@ async function wikipediaImage(city: string, country: string, width: number): Pro
 
 async function resolveImage(city: string, country: string, width: number, slot: number): Promise<string | null> {
   try {
-    const candidates = await commonsImages(city, country, width);
-    if (candidates.length > slot) return candidates[slot] ?? null;
-    if (candidates.length > 0) return candidates[0] ?? null;
+    const skyline = await commonsImages(city, country, width, "skyline");
+    if (slot === 0 && skyline[0]) return skyline[0];
+    if (slot === 1) {
+      const street = await commonsImages(city, country, width, "street");
+      const alternatives = [...skyline.slice(1), ...street].filter((url, index, list) => url !== skyline[0] && list.indexOf(url) === index);
+      if (alternatives[0]) return alternatives[0];
+    }
+    if (skyline[0]) return skyline[0];
   } catch {
     // Wikipedia remains a deliberately conservative fallback.
   }
