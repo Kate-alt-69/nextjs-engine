@@ -1,0 +1,53 @@
+name: Roavio photo CI
+
+on:
+  push:
+    branches: [proposal/roavio-ne]
+    paths:
+      - "app/api/city-photo/**"
+      - "app/roavio/CityThumb.tsx"
+      - "app/roavio/CityDossierBackdrop.tsx"
+      - ".github/workflows/roavio-photo-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: proposal/roavio-ne
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Type check
+        run: npm run type-check
+      - name: Production build
+        run: npx next build
+      - name: Probe exact Wikipedia city articles
+        shell: bash
+        run: |
+          node --input-type=commonjs <<'NODE'
+          const cities = ['Abu Dabi', 'Doha', 'Wellington', 'Copenhague'];
+          (async () => {
+            for (const city of cities) {
+              const params = new URLSearchParams({
+                action:'query', titles:city, redirects:'1', prop:'pageimages',
+                piprop:'thumbnail|name', pithumbsize:'960', format:'json',
+                formatversion:'2', origin:'*'
+              });
+              const r = await fetch(`https://es.wikipedia.org/w/api.php?${params}`,
+                { headers:{'User-Agent':'RoavioProposal/1.0 exact-city CI'} });
+              if (!r.ok) throw new Error(`${city}: HTTP ${r.status}`);
+              const data = await r.json();
+              const page = data.query?.pages?.find((p) => !p.missing && p.ns === 0);
+              if (!page) throw new Error(`${city}: no exact city article`);
+              if (!page.thumbnail?.source) throw new Error(`${city}: exact article has no lead image`);
+              console.log(`${city} -> ${page.title} -> ${page.pageimage || page.thumbnail.source}`);
+            }
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
