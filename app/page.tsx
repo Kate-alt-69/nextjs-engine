@@ -118,6 +118,7 @@ function createHomeSchema(locale: RoavioLocale) {
                   { type: "text", props: { content: body, size: ".82rem", color: "var(--rv-muted)", lineHeight: 1.6, mt: ".4rem" } },
                 ],
               })),
+              },
             ] },
           }],
         },
