@@ -34,6 +34,7 @@
     position:static!important;inset:auto!important;width:100%!important;min-width:0!important;
     margin:.2rem 0 .35rem!important;box-shadow:none!important;background:var(--rv-card-soft)!important;
   }
+  nav[aria-label='Main navigation']+section>div:first-child{padding:.95rem .85rem 1.45rem!important;min-width:0}
 
   /* Make every primary tap target phone-friendly. */
   .rv-primary,.rv-secondary,.rv-icon-btn,.rv-pill,.rv-city-combobox__trigger{min-height:44px}
