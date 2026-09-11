@@ -32,6 +32,20 @@ function writeCookie(name: string, value: string, maxAge = ONE_YEAR) {
   document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
 }
 
+function readCookie(name: string): string | null {
+  const prefix = `${name}=`;
+  for (const part of document.cookie.split(";")) {
+    const item = part.trim();
+    if (item.startsWith(prefix)) return decodeURIComponent(item.slice(prefix.length));
+  }
+  return null;
+}
+
+function applyTheme(mode: RoavioThemeMode) {
+  document.documentElement.dataset.rvTheme = mode;
+  document.documentElement.style.colorScheme = mode;
+}
+
 function fallbackMoon(): MoonPhaseData {
   const knownNewMoon = Date.UTC(2000, 0, 6, 18, 14, 0);
   const days = (Date.now() - knownNewMoon) / 86_400_000;
@@ -173,7 +187,28 @@ export function PreferencesShell({
   const spanish = locale === "es";
 
   useEffect(() => setLocale(initialLocale), [initialLocale]);
-  useEffect(() => setTheme(initialTheme), [initialTheme]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const explicit = readCookie("rv_theme");
+    const datasetTheme = document.documentElement.dataset.rvTheme;
+    const resolved: RoavioThemeMode = explicit === "dark" || explicit === "light"
+      ? explicit
+      : datasetTheme === "dark" || datasetTheme === "light"
+        ? datasetTheme
+        : media.matches ? "dark" : "light";
+    setTheme(resolved);
+    applyTheme(resolved);
+
+    const followSystem = (event: MediaQueryListEvent) => {
+      if (readCookie("rv_theme")) return;
+      const next: RoavioThemeMode = event.matches ? "dark" : "light";
+      setTheme(next);
+      applyTheme(next);
+    };
+    media.addEventListener?.("change", followSystem);
+    return () => media.removeEventListener?.("change", followSystem);
+  }, [initialTheme]);
 
   useEffect(() => {
     fetch("/api/moon-phase", { headers: { Accept: "application/json" } })
@@ -224,8 +259,7 @@ export function PreferencesShell({
     const next = theme === "light" ? "dark" : "light";
     const apply = () => {
       setTheme(next);
-      document.documentElement.dataset.rvTheme = next;
-      document.documentElement.style.colorScheme = next;
+      applyTheme(next);
       writeCookie("rv_theme", next);
     };
     const doc = document as ViewTransitionDocument;
