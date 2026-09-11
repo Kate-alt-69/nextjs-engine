@@ -1,10 +1,16 @@
 "use client";
 
 import { EngineImage } from "@/engine";
+import type { ImageLoader } from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cityImage, cityInitials } from "./visuals";
 
-const CITY_PHOTO_VERSION = "4";
+const CITY_PHOTO_VERSION = "5";
+const CARD_ASPECT = 16 / 9;
+
+function targetHeight(width: number): number {
+  return Math.max(1, Math.round(width / CARD_ASPECT));
+}
 
 function cityProxySource(city: string, country: string, slot: number, width: number): string {
   const params = new URLSearchParams({
@@ -12,19 +18,51 @@ function cityProxySource(city: string, country: string, slot: number, width: num
     country,
     slot: String(slot),
     width: String(width),
+    height: String(targetHeight(width)),
     v: CITY_PHOTO_VERSION,
   });
   return `/api/city-photo?${params.toString()}`;
 }
 
+const responsiveCityLoader: ImageLoader = ({ src, width, quality }) => {
+  const height = targetHeight(width);
+
+  if (src.startsWith("/api/city-photo?")) {
+    const url = new URL(src, "http://roavio.local");
+    url.searchParams.set("width", String(width));
+    url.searchParams.set("height", String(height));
+    url.searchParams.set("v", CITY_PHOTO_VERSION);
+    return `${url.pathname}?${url.searchParams.toString()}`;
+  }
+
+  if (src.includes("images.unsplash.com")) {
+    try {
+      const url = new URL(src);
+      url.searchParams.set("w", String(width));
+      url.searchParams.set("h", String(height));
+      url.searchParams.set("q", String(quality ?? 76));
+      url.searchParams.set("auto", "format");
+      url.searchParams.set("fit", "crop");
+      url.searchParams.set("crop", "entropy");
+      return url.toString();
+    } catch {
+      return src;
+    }
+  }
+
+  return src;
+};
+
 function lowResSource(source: string, city: string, country: string, slot: number): string {
   if (source.includes("images.unsplash.com")) {
     try {
       const url = new URL(source);
-      url.searchParams.set("w", "64");
+      url.searchParams.set("w", "72");
+      url.searchParams.set("h", "41");
       url.searchParams.set("q", "24");
       url.searchParams.set("auto", "format");
       url.searchParams.set("fit", "crop");
+      url.searchParams.set("crop", "entropy");
       return url.toString();
     } catch {
       return source;
@@ -53,7 +91,7 @@ export function CityThumb({
   const [active, setActive] = useState(eager);
   const [loaded, setLoaded] = useState(false);
   const source = useMemo(
-    () => staticSource ?? cityProxySource(city, country, slot, 1080),
+    () => staticSource ?? cityProxySource(city, country, slot, 640),
     [city, country, slot, staticSource],
   );
   const preview = useMemo(
@@ -113,12 +151,15 @@ export function CityThumb({
             width={720}
             height={405}
             aspectRatio="16 / 9"
-            sizes={compact ? "(max-width: 700px) 45vw, 260px" : "(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 33vw"}
+            sizes={compact
+              ? "(max-width: 700px) 44vw, 260px"
+              : "(max-width: 700px) calc(100vw - 2rem), (max-width: 1100px) calc(50vw - 2rem), 400px"}
             qualityPreset="balanced"
-            qualityMobile={58}
-            qualityDesktop={76}
+            qualityMobile={64}
+            qualityDesktop={78}
             objectFit="cover"
             priority={eager}
+            loader={responsiveCityLoader}
             className="rv-city-thumb__engine"
             onLoad={() => setLoaded(true)}
           />
