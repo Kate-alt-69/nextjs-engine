@@ -5,7 +5,7 @@ import type { ImageLoader } from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cityImage, cityInitials } from "./visuals";
 
-const CITY_PHOTO_VERSION = "5";
+const CITY_PHOTO_VERSION = "6";
 const CARD_ASPECT = 16 / 9;
 
 function targetHeight(width: number): number {
@@ -113,9 +113,6 @@ export function CityThumb({
         observer.disconnect();
       }
     }, {
-      // Keep the directory responsive by activating almost exactly when needed.
-      // The previous 240px desktop margin could start several expensive remote
-      // city resolutions while the user was still scrolling toward them.
       rootMargin: mobile ? "0px" : "64px 0px",
       threshold: mobile ? 0.03 : 0.01,
     });
