@@ -42,6 +42,8 @@ interface ScrapedProfile {
 }
 
 const contentRoot = path.join(process.cwd(), "content", "cities");
+const metricBySlug = new Map(cities.map((city) => [citySlug(city.city), city] as const));
+let catalogPromise: Promise<CityCatalogEntry[]> | null = null;
 
 async function readableDirectories(): Promise<string[]> {
   try {
@@ -74,27 +76,56 @@ async function readProfile(slug: string): Promise<ScrapedProfile | null> {
   }
 }
 
-export async function getCitySlugs(): Promise<string[]> {
-  const contentSlugs = await readableDirectories();
-  const metricSlugs = cities.map((city) => citySlug(city.city));
-  return Array.from(new Set([...contentSlugs, ...metricSlugs])).sort();
-}
-
-export async function loadCityContent(slug: string): Promise<CityContent | null> {
-  const profile = await readProfile(slug);
-  const metricCity = cities.find((city) => citySlug(city.city) === slug);
-  if (!profile && !metricCity) return null;
-
-  const guide = (await readText(path.join(contentRoot, slug, "guide.md")))?.trim() ?? "";
+function mergeMetrics(profile: ScrapedProfile | null, slug: string): CityMetrics {
+  const metricCity = metricBySlug.get(slug);
   const scraped = profile?.scrapedMetrics ?? {};
-
-  const metrics: CityMetrics = {
+  return {
     cost: scraped.cost ?? metricCity?.cost ?? null,
     quality: scraped.quality ?? metricCity?.quality ?? null,
     safety: scraped.safety ?? metricCity?.safety ?? null,
     internet: scraped.internet ?? metricCity?.internet ?? null,
     beach: scraped.beach ?? metricCity?.beach ?? null,
   };
+}
+
+function catalogEntry(slug: string, profile: ScrapedProfile | null): CityCatalogEntry | null {
+  const metricCity = metricBySlug.get(slug);
+  if (!profile && !metricCity) return null;
+  const metrics = mergeMetrics(profile, slug);
+  return {
+    slug,
+    city: profile?.name ?? metricCity!.city,
+    country: profile?.country ?? metricCity!.country,
+    continent: profile?.continent ?? metricCity!.continent,
+    cost: metrics.cost,
+    quality: metrics.quality,
+    safety: metrics.safety,
+    internet: metrics.internet,
+    beach: metrics.beach,
+    hasDeepGuide: profile?.hasDeepGuide === true,
+  };
+}
+
+async function loadCatalogEntries(slugs: readonly string[]): Promise<CityCatalogEntry[]> {
+  const profiles = await Promise.all(slugs.map((slug) => readProfile(slug)));
+  return slugs
+    .map((slug, index) => catalogEntry(slug, profiles[index] ?? null))
+    .filter((city): city is CityCatalogEntry => city !== null)
+    .sort((a, b) => a.city.localeCompare(b.city, "es"));
+}
+
+export async function getCitySlugs(): Promise<string[]> {
+  const contentSlugs = await readableDirectories();
+  return Array.from(new Set([...contentSlugs, ...metricBySlug.keys()])).sort();
+}
+
+export async function loadCityContent(slug: string): Promise<CityContent | null> {
+  const profile = await readProfile(slug);
+  const metricCity = metricBySlug.get(slug);
+  if (!profile && !metricCity) return null;
+
+  const guide = (await readText(path.join(contentRoot, slug, "guide.md")))?.trim() ?? "";
+  const metrics = mergeMetrics(profile, slug);
 
   return {
     slug,
@@ -113,23 +144,13 @@ export async function loadCityContent(slug: string): Promise<CityContent | null>
   };
 }
 
-export async function loadCityCatalog(): Promise<CityCatalogEntry[]> {
-  const slugs = await getCitySlugs();
-  const loaded = await Promise.all(slugs.map((slug) => loadCityContent(slug)));
+export async function loadCityCatalogForSlugs(slugs: readonly string[]): Promise<CityCatalogEntry[]> {
+  return loadCatalogEntries(Array.from(new Set(slugs)));
+}
 
-  return loaded
-    .filter((city): city is CityContent => city !== null)
-    .map((city) => ({
-      slug: city.slug,
-      city: city.name,
-      country: city.country,
-      continent: city.continent,
-      cost: city.metrics.cost,
-      quality: city.metrics.quality,
-      safety: city.metrics.safety,
-      internet: city.metrics.internet,
-      beach: city.metrics.beach,
-      hasDeepGuide: city.hasDeepGuide,
-    }))
-    .sort((a, b) => a.city.localeCompare(b.city, "es"));
+export async function loadCityCatalog(): Promise<CityCatalogEntry[]> {
+  if (!catalogPromise) {
+    catalogPromise = getCitySlugs().then((slugs) => loadCatalogEntries(slugs));
+  }
+  return catalogPromise;
 }
