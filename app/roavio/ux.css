@@ -152,3 +152,31 @@ html[data-rv-theme='dark'] .rv-compare-intro{background:linear-gradient(135deg,#
 @media(prefers-reduced-motion:reduce){
   .rv-result-card,.rv-compare-city-card,.rv-city-thumb__engine img,.rv-city-thumb__blur{transition:none!important;animation:none!important}
 }
+
+
+/* Homepage performance: avoid persistent compositor-heavy glass blur on six cards. */
+.rv-city-card .rv-score,
+.rv-city-card .rv-mini-metric{
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  background:rgba(7,30,23,.72)!important;
+}
+.rv-floating-card{
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  background:rgba(255,255,255,.96)!important;
+}
+
+/* Theme control is a normal hydrated sibling after page content, visually docked with the footer. */
+.rv-footer-theme-dock{
+  max-width:1240px;
+  width:100%;
+  margin:-.35rem auto 0;
+  padding:0 1rem .85rem;
+  display:flex;
+  justify-content:flex-end;
+  background:var(--rv-paper);
+}
+@media(max-width:819px){
+  .rv-footer-theme-dock{justify-content:flex-start;padding-bottom:calc(.85rem + env(safe-area-inset-bottom))}
+}

@@ -13,6 +13,15 @@ const gradients = [
   "linear-gradient(145deg,#345f55,#c7c16c)",
 ];
 
+function cityImageAt(src: string, width: number, quality = 72): string {
+  const url = new URL(src);
+  url.searchParams.set("w", String(width));
+  url.searchParams.set("q", String(quality));
+  url.searchParams.set("auto", "format");
+  url.searchParams.set("fit", "crop");
+  return url.toString();
+}
+
 export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[]; locale: RoavioLocale }) {
   const featured = FEATURED.map((slug) => catalog.find((city) => city.slug === slug)).filter((city): city is CityCatalogEntry => Boolean(city));
   const es = locale === "es";
@@ -24,7 +33,19 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
         const score = catalogFitScore(city);
         return (
           <EngineTransitionLink key={city.slug} className="rv-city-card" href={`/cities/${city.slug}`} transition="portal" style={{ background: gradients[index % gradients.length] }}>
-            {image ? <img className="rv-city-card__photo" src={image} alt="" loading={index < 2 ? "eager" : "lazy"} decoding="async" draggable={false} /> : null}
+            {image ? (
+              <img
+                className="rv-city-card__photo"
+                src={cityImageAt(image, 720, 72)}
+                srcSet={`${cityImageAt(image, 384, 64)} 384w, ${cityImageAt(image, 640, 70)} 640w, ${cityImageAt(image, 828, 72)} 828w`}
+                sizes="(max-width: 700px) calc(100vw - 2rem), (max-width: 1100px) calc(50vw - 2rem), 390px"
+                alt=""
+                loading={index < 2 ? "eager" : "lazy"}
+                fetchPriority={index < 2 ? "high" : "low"}
+                decoding="async"
+                draggable={false}
+              />
+            ) : null}
             <div className="rv-card-top">
               <span className="rv-score">Roavio fit {score === null ? "—" : score.toFixed(1)}</span>
               <span className="rv-score">{city.beach ? (es ? "Playa ✓" : "Beach ✓") : city.continent}</span>

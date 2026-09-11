@@ -1,6 +1,5 @@
 import { createComponent, defineSchema, type SchemaNode } from "@/engine";
 import type { CityContent } from "./cityContent.server";
-import { CityDossierMedia } from "./CityDossierMedia";
 import { copyFor, type RoavioLocale } from "./i18n";
 import { createFooterNode, createRoavioNav, roavioTheme } from "./theme";
 
@@ -59,6 +58,7 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
   const es = locale === "es";
   const sourceCopy = copyFor(locale).sourceLanguage;
   const score = fitScore(city);
+  const cityBackdrop = `/api/city-photo?city=${encodeURIComponent(city.name)}&country=${encodeURIComponent(city.country)}&slot=0&width=960&height=540&v=7`;
   const labels = {
     monthlyCost: es ? "Coste mensual" : "Monthly cost",
     internet: "Internet",
@@ -111,13 +111,23 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
         createRoavioNav(locale),
         {
           type: "section",
-          props: { contentMaxWidth: "1240px", px: "1rem", py: { xs: "1.2rem", md: "1.8rem" } },
+          props: {
+            className: "rv-dossier-intro",
+            contentMaxWidth: "1240px",
+            px: "1rem",
+            py: { xs: "1.2rem", md: "1.8rem" },
+            style: {
+              backgroundImage: `linear-gradient(90deg, rgba(7,17,14,.78), rgba(7,17,14,.48)), url("${cityBackdrop}")`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            },
+          },
           children: [
             {
               type: "box",
               props: { className: "rv-dossier-hero" },
               children: [
-                { type: "slot", props: { name: "city-media" } },
                 {
                   type: "box",
                   props: { className: "rv-dossier-hero__copy" },
@@ -245,9 +255,6 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
 
   return createComponent({
     schema,
-    slots: {
-      "city-media": <CityDossierMedia slug={city.slug} city={city.name} country={city.country} />,
-    },
     compiler: { pageId: `roavio-city-${city.slug}`, serverFirst: true },
   });
 }

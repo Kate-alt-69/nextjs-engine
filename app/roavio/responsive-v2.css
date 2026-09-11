@@ -175,3 +175,12 @@
 @media (prefers-reduced-motion:reduce){
   .rv-cities-page-tab,.rv-cities-page-nav{transition:none!important}
 }
+
+
+/* v3 dossier composition: media is the outer section background; no duplicate inset image. */
+.rv-dossier-media,.rv-dossier-media__secondary{display:none!important}
+.rv-dossier-intro .rv-dossier-hero__copy{max-width:760px!important}
+@media(max-width:819px){
+  .rv-dossier-intro .rv-dossier-hero__copy{max-width:100%!important}
+  .rv-dossier-intro .rv-dossier-hero__copy p{max-width:100%!important}
+}

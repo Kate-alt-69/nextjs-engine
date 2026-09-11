@@ -111,7 +111,6 @@ export function createFooterNode(locale: RoavioLocale): SchemaNode {
       { type: "stack", props: { direction: { xs: "vertical", md: "horizontal" }, justify: "space-between", gap: ".55rem" }, children: [
         { type: "text", props: { content: locale === "es" ? "roavio · decide dónde vivir y trabajar mejor" : "roavio · decide where to live and work better", weight: 700, size: ".84rem" } },
         { type: "text", props: { content: copyFor(locale).footer, color: "var(--rv-muted)", size: ".76rem" } },
-        { type: "box", props: { id: "rv-footer-theme-slot", className: "rv-footer-theme-slot" } },
       ] },
     ],
   };

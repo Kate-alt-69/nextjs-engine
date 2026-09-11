@@ -2,8 +2,7 @@
 
 import { EngineCanvas } from "@/engine";
 import { EngineCookies } from "@/src/engine/core/enginecookies/EngineCookies";
-import { usePathname, useRouter } from "next/navigation";
-import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RoavioLocale } from "./i18n";
 import type { RoavioThemeMode } from "./locale.server";
@@ -177,7 +176,6 @@ export function PreferencesShell({
   initialHasConsent: boolean;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
   const [theme, setTheme] = useState<RoavioThemeMode>(initialTheme);
   const [locale, setLocale] = useState<RoavioLocale>(initialLocale);
   const [moon, setMoon] = useState<MoonPhaseData>(() => fallbackMoon());
@@ -185,18 +183,10 @@ export function PreferencesShell({
   const [customOpen, setCustomOpen] = useState(false);
   const [analytics, setAnalytics] = useState(false);
   const [personalization, setPersonalization] = useState(true);
-  const [footerThemeSlot, setFooterThemeSlot] = useState<HTMLElement | null>(null);
   const cookieIndex = useRef<ReturnType<typeof EngineCookies.createIndex> | null>(null);
   const spanish = locale === "es";
 
   useEffect(() => setLocale(initialLocale), [initialLocale]);
-
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      setFooterThemeSlot(document.getElementById("rv-footer-theme-slot"));
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [pathname]);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -304,7 +294,7 @@ export function PreferencesShell({
 
   return (
     <>
-      {footerThemeSlot ? createPortal(themeControl, footerThemeSlot) : null}
+      <div className="rv-footer-theme-dock">{themeControl}</div>
 
       {showConsent ? (
         <aside className="rv-cookie" aria-label={spanish ? "Preferencias de cookies" : "Cookie preferences"}>

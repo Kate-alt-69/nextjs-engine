@@ -1,10 +1,12 @@
 import { createPage, defineSchema, type SchemaNode } from "@/engine";
 import { CityShowcase } from "./roavio/CityShowcase";
 import { HeroSearch } from "./roavio/ClientWidgets";
-import { loadCityCatalog } from "./roavio/cityContent.server";
+import { loadCityCatalogForSlugs } from "./roavio/cityContent.server";
 import { copyFor, type RoavioLocale } from "./roavio/i18n";
 import { getRoavioLocale } from "./roavio/locale.server";
 import { createFooterNode, createRoavioNav, roavioTheme } from "./roavio/theme";
+
+const HOME_FEATURED_SLUGS = ["valencia", "lisboa", "bali", "bangkok", "dubai", "chiang-mai"] as const;
 
 function statCards(locale: RoavioLocale): SchemaNode[] {
   const es = locale === "es";
@@ -155,7 +157,7 @@ function createHomeSchema(locale: RoavioLocale) {
 }
 
 export default async function HomePage() {
-  const [catalog, locale] = await Promise.all([loadCityCatalog(), getRoavioLocale()]);
+  const [catalog, locale] = await Promise.all([loadCityCatalogForSlugs(HOME_FEATURED_SLUGS), getRoavioLocale()]);
   const Page = createPage({
     schema: createHomeSchema(locale),
     slots: {
