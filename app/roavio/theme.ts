@@ -106,11 +106,11 @@ export function createRoavioNav(locale: RoavioLocale): SchemaNode {
 export function createFooterNode(locale: RoavioLocale): SchemaNode {
   return {
     type: "section",
-    props: { contentMaxWidth: "1240px", px: "1rem", py: "2.2rem", borderTop: "1px solid var(--rv-line)" },
+    props: { contentMaxWidth: "1240px", px: "1rem", py: { xs: ".9rem", md: "1.1rem" }, borderTop: "1px solid var(--rv-line)" },
     children: [
-      { type: "stack", props: { direction: { xs: "vertical", md: "horizontal" }, justify: "space-between", gap: "1rem" }, children: [
-        { type: "text", props: { content: locale === "es" ? "roavio · decide dónde vivir y trabajar mejor" : "roavio · decide where to live and work better", weight: 700 } },
-        { type: "text", props: { content: copyFor(locale).footer, color: "var(--rv-muted)", size: ".82rem" } },
+      { type: "stack", props: { direction: { xs: "vertical", md: "horizontal" }, justify: "space-between", gap: ".55rem" }, children: [
+        { type: "text", props: { content: locale === "es" ? "roavio · decide dónde vivir y trabajar mejor" : "roavio · decide where to live and work better", weight: 700, size: ".84rem" } },
+        { type: "text", props: { content: copyFor(locale).footer, color: "var(--rv-muted)", size: ".76rem" } },
       ] },
     ],
   };
