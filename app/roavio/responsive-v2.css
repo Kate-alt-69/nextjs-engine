@@ -1,42 +1,10 @@
-/* Roavio proposal — final responsive corrections + per-city photographic backdrop. */
+/* Roavio proposal — responsive corrections + paged city directory. */
 
 .rv-dossier-page{
   position:relative;
   isolation:isolate;
-  background:transparent!important;
+  background:var(--rv-paper)!important;
   min-height:100svh;
-}
-.rv-dossier-backdrop{
-  position:fixed;
-  inset:-18px;
-  z-index:0;
-  overflow:hidden;
-  pointer-events:none;
-  contain:paint;
-  background:radial-gradient(circle at 70% 18%,color-mix(in srgb,var(--rv-green) 24%,transparent),transparent 36%),var(--rv-paper);
-}
-.rv-dossier-backdrop__image{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  transform:scale(1.035) translateZ(0);
-  filter:none;
-  opacity:.26;
-  image-rendering:auto;
-  user-select:none;
-  -webkit-user-drag:none;
-}
-.rv-dossier-backdrop__veil{
-  position:absolute;
-  inset:0;
-  background:linear-gradient(180deg,color-mix(in srgb,var(--rv-paper) 72%,transparent),color-mix(in srgb,var(--rv-paper) 86%,transparent) 45%,color-mix(in srgb,var(--rv-paper) 93%,transparent));
-}
-html[data-rv-theme='dark'] .rv-dossier-backdrop__image{
-  opacity:.22;
-  filter:none;
-}
-html[data-rv-theme='dark'] .rv-dossier-backdrop__veil{
-  background:linear-gradient(180deg,rgba(7,17,14,.61),rgba(7,17,14,.79) 45%,rgba(7,17,14,.91));
 }
 .rv-dossier-page>nav,
 .rv-dossier-page>section{
@@ -47,13 +15,12 @@ html[data-rv-theme='dark'] .rv-dossier-backdrop__veil{
 .rv-dossier-page .rv-dossier-section,
 .rv-dossier-page .rv-dossier-insight,
 .rv-dossier-page .rv-dossier-summary{
-  background:color-mix(in srgb,var(--rv-card) 93%,transparent);
+  background:color-mix(in srgb,var(--rv-card) 96%,transparent);
 }
 
-.rv-dossier-media__secondary{display:none!important}
+/* Photo #2 belongs to the dedicated hero inset, not behind the whole page. */
+.rv-dossier-media__secondary{display:block!important}
 .rv-dossier-hero__copy{max-width:72%!important}
-
-
 
 /* Paged destination directory: only the current sheet is mounted. */
 .rv-cities-folder{position:relative;margin-top:.25rem;padding:.8rem;border:1px solid var(--rv-line);border-radius:0 24px 24px 24px;background:color-mix(in srgb,var(--rv-card) 82%,transparent);box-shadow:0 18px 50px color-mix(in srgb,var(--rv-shadow) 70%,transparent)}
@@ -143,13 +110,6 @@ html[data-rv-theme='dark'] .rv-dossier-backdrop__veil{
   .rv-explore-catalog-note{display:none!important}
   .rv-toolbar{grid-template-columns:1fr!important;gap:.5rem!important;margin:.75rem 0 .85rem!important}
 
-  .rv-dossier-backdrop{inset:-12px}
-  .rv-dossier-backdrop__image{
-    transform:scale(1.04) translateZ(0);
-    filter:none;
-    opacity:.22;
-  }
-  html[data-rv-theme='dark'] .rv-dossier-backdrop__image{filter:none;opacity:.21}
   .rv-dossier-page>section{background:transparent!important}
   .rv-dossier-hero{
     min-height:286px!important;
@@ -158,6 +118,7 @@ html[data-rv-theme='dark'] .rv-dossier-backdrop__veil{
   .rv-dossier-hero__copy{
     max-width:100%!important;
     padding:.95rem 1rem 1.05rem!important;
+    padding-right:1rem!important;
     justify-content:flex-end!important;
   }
   .rv-dossier-hero__copy h1{
@@ -165,6 +126,7 @@ html[data-rv-theme='dark'] .rv-dossier-backdrop__veil{
     line-height:.94!important;
   }
   .rv-dossier-hero__copy p{
+    max-width:78%!important;
     font-size:.86rem!important;
     line-height:1.48!important;
     display:-webkit-box;
@@ -172,8 +134,17 @@ html[data-rv-theme='dark'] .rv-dossier-backdrop__veil{
     -webkit-box-orient:vertical;
     overflow:hidden;
   }
+  .rv-dossier-media__secondary{
+    display:block!important;
+    top:.72rem!important;
+    right:.72rem!important;
+    bottom:auto!important;
+    width:38%!important;
+    height:29%!important;
+    transform:rotate(1deg)!important;
+  }
   .rv-dossier-hero::after{
-    background:linear-gradient(180deg,rgba(3,16,12,.34),rgba(3,16,12,.5) 46%,rgba(3,16,12,.9))!important;
+    background:linear-gradient(180deg,rgba(3,16,12,.38),rgba(3,16,12,.42) 42%,rgba(3,16,12,.9))!important;
   }
   .rv-dossier-metrics{
     grid-template-columns:repeat(2,minmax(0,1fr))!important;
@@ -192,15 +163,15 @@ html[data-rv-theme='dark'] .rv-dossier-backdrop__veil{
   .rv-dossier-section,.rv-dossier-insight{padding:.82rem!important;border-radius:16px!important}
   .rv-dossier-insights{gap:.5rem!important}
   .rv-prose{font-size:.9rem!important;line-height:1.62!important}
-  .rv-dossier-backdrop,.rv-dossier-backdrop__image{will-change:auto!important}
 }
 
 @media (max-width:430px){
   .rv-explore-hero-copy h1{font-size:clamp(2.05rem,10.5vw,2.7rem)!important}
   .rv-dossier-hero{min-height:270px!important}
   .rv-dossier-metric{min-height:68px!important}
+  .rv-dossier-media__secondary{width:36%!important;height:27%!important}
 }
 
 @media (prefers-reduced-motion:reduce){
-  .rv-dossier-backdrop__image{filter:none}
+  .rv-cities-page-tab,.rv-cities-page-nav{transition:none!important}
 }
