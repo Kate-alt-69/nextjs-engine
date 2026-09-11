@@ -1,12 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import React from "react";
 import { PreferencesShell } from "./roavio/PreferencesShell";
+import { RoavioMobileNav } from "./roavio/RoavioMobileNav";
 import { getRoavioPreferences } from "./roavio/locale.server";
 import "./roavio/polish.css";
 import "./roavio/brand.css";
 import "./roavio/ux.css";
 import "./roavio/mobile.css";
 import "./roavio/responsive-v2.css";
+import "./roavio/mobile-nav.css";
 
 export const metadata: Metadata = {
   title: {
@@ -64,6 +66,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         {children}
+        <RoavioMobileNav locale={preferences.locale} />
         <PreferencesShell
           initialTheme={preferences.theme}
           initialLocale={preferences.locale}
