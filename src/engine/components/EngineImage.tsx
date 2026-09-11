@@ -8,6 +8,7 @@ import React, {
 	useCallback,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 	type CSSProperties,
 } from "react";
@@ -94,6 +95,7 @@ export const EngineImage = memo(function EngineImage({
 	className,
 }: EngineImageProps) {
 	const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+	const imageRef = useRef<HTMLImageElement | null>(null);
 	const loaded = loadedSrc === src;
 	const schedule = useEngineSchedule<HTMLDivElement>({
 		priority,
@@ -149,6 +151,16 @@ export const EngineImage = memo(function EngineImage({
 			desktop: getImageProps({ ...baseProps, quality: desktopQuality }),
 		};
 	}, [alt, desktopQuality, fill, height, loader, mobileQuality, priority, resolvedSizes, src, usePerViewport, width]);
+
+	// Cached images can already be complete by the time React commits the node,
+	// especially when a route is hard-refreshed or restored from the back/forward
+	// cache. Do not leave those images permanently transparent waiting for an
+	// onLoad event that has effectively already happened.
+	useEffect(() => {
+		if (!shouldLoad || loaded) return;
+		const image = imageRef.current;
+		if (image?.complete && image.naturalWidth > 0) handleLoad();
+	}, [handleLoad, loaded, responsiveProps, shouldLoad, src]);
 
 	const wrapperStyle: CSSProperties = {
 		position: "relative",
@@ -206,11 +218,11 @@ export const EngineImage = memo(function EngineImage({
 				<picture style={{ display: "block", width: "100%", height: fill || resolvedAspectRatio ? "100%" : "auto" }}>
 					<source media="(max-width: 767px)" srcSet={responsiveProps.mobile.props.srcSet} sizes={responsiveProps.mobile.props.sizes} />
 					<source media="(min-width: 768px)" srcSet={responsiveProps.desktop.props.srcSet} sizes={responsiveProps.desktop.props.sizes} />
-					<img {...responsiveProps.desktop.props} style={{ ...generatedStyle, ...imageStyle }} onLoad={handleLoad} />
+					<img ref={imageRef} {...responsiveProps.desktop.props} style={{ ...generatedStyle, ...imageStyle }} onLoad={handleLoad} />
 				</picture>
 			);
 		} else {
-			imageNode = <Image {...commonImageProps} quality={resolvedQuality} onLoad={handleLoad} />;
+			imageNode = <Image ref={imageRef} {...commonImageProps} quality={resolvedQuality} onLoad={handleLoad} />;
 		}
 	}
 
