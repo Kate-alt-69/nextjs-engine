@@ -20,8 +20,8 @@ function cityPhotoUrl(city: string, country: string, slot: number, width: number
 export function CityDossierBackdrop({ city, country }: { city: string; country: string }) {
   const [slot, setSlot] = useState(1);
   const [failed, setFailed] = useState(false);
-  const src = useMemo(() => cityPhotoUrl(city, country, slot, 720), [city, country, slot]);
-  const srcSet = useMemo(() => [480, 720, 960]
+  const src = useMemo(() => cityPhotoUrl(city, country, slot, 360), [city, country, slot]);
+  const srcSet = useMemo(() => [240, 360, 480]
     .map((width) => `${cityPhotoUrl(city, country, slot, width)} ${width}w`)
     .join(", "), [city, country, slot]);
 
@@ -35,8 +35,8 @@ export function CityDossierBackdrop({ city, country }: { city: string; country: 
           srcSet={srcSet}
           sizes="100vw"
           alt=""
-          width={720}
-          height={450}
+          width={360}
+          height={225}
           loading="lazy"
           decoding="async"
           fetchPriority="low"
