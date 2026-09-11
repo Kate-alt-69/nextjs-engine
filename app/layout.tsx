@@ -26,13 +26,35 @@ export const viewport: Viewport = {
 
 const THEME_BOOT = `(() => {
   try {
-    const found = document.cookie.match(/(?:^|;\\s*)rv_theme=([^;]+)/);
-    const saved = found ? decodeURIComponent(found[1]) : null;
+    const get = (name) => {
+      const match = document.cookie.match(new RegExp('(?:^|;\\\\s*)' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[1]) : null;
+    };
+    const marker = get('rv_theme_pref');
+    let saved = get('rv_theme');
     const system = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+    // Builds before the system-theme pass wrote rv_theme without a marker.
+    // Ignore that legacy value once so an existing localhost session really
+    // returns to automatic device preference after updating.
+    if (marker !== 'manual') {
+      saved = null;
+      document.cookie = 'rv_theme=; Path=/; Max-Age=0; SameSite=Lax';
+    }
+
     const mode = saved === 'dark' || saved === 'light' ? saved : system;
     document.documentElement.dataset.rvTheme = mode;
     document.documentElement.dataset.rvThemeSource = saved === 'dark' || saved === 'light' ? 'user' : 'system';
     document.documentElement.style.colorScheme = mode;
+
+    // Mark subsequent clicks as intentional user overrides. PreferencesShell
+    // writes rv_theme during the same click, so the next load can distinguish
+    // an explicit choice from the legacy cookie above.
+    document.addEventListener('click', (event) => {
+      const target = event.target && event.target.closest ? event.target.closest('.rv-theme-toggle') : null;
+      if (!target) return;
+      document.cookie = 'rv_theme_pref=manual; Path=/; Max-Age=31536000; SameSite=Lax';
+    }, true);
   } catch (_) {}
 })();`;
 
