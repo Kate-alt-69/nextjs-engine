@@ -64,13 +64,16 @@ async function commonsImages(city: string, country: string, width: number, searc
     .filter(Boolean);
 }
 
-async function wikipediaImage(city: string, country: string, width: number): Promise<string | null> {
+async function wikipediaImages(city: string, country: string, width: number, slot: number): Promise<string[]> {
+  const query = slot === 0
+    ? `${city} ${country}`
+    : `${city} ${country} landmark tourism architecture`;
   const params = new URLSearchParams({
     action: "query",
     generator: "search",
-    gsrsearch: `${city} ${country}`,
+    gsrsearch: query,
     gsrnamespace: "0",
-    gsrlimit: "3",
+    gsrlimit: slot === 0 ? "5" : "10",
     prop: "pageimages",
     piprop: "thumbnail",
     pithumbsize: String(width),
@@ -79,6 +82,7 @@ async function wikipediaImage(city: string, country: string, width: number): Pro
     origin: "*",
   });
 
+  const found: string[] = [];
   for (const language of ["en", "es"] as const) {
     const response = await fetch(`https://${language}.wikipedia.org/w/api.php?${params.toString()}`, {
       next: { revalidate: CACHE_SECONDS },
@@ -89,10 +93,12 @@ async function wikipediaImage(city: string, country: string, width: number): Pro
     });
     if (!response.ok) continue;
     const data = await response.json() as { query?: { pages?: WikipediaPage[] } };
-    const page = (data.query?.pages ?? []).find((candidate) => candidate.thumbnail?.source && !REJECT_TITLE.test(candidate.title ?? ""));
-    if (page?.thumbnail?.source) return page.thumbnail.source;
+    for (const page of data.query?.pages ?? []) {
+      if (!page.thumbnail?.source || REJECT_TITLE.test(page.title ?? "")) continue;
+      if (!found.includes(page.thumbnail.source)) found.push(page.thumbnail.source);
+    }
   }
-  return null;
+  return found;
 }
 
 async function resolveImage(city: string, country: string, width: number, slot: number): Promise<string | null> {
@@ -104,12 +110,16 @@ async function resolveImage(city: string, country: string, width: number, slot: 
       const alternatives = [...skyline.slice(1), ...street].filter((url, index, list) => url !== skyline[0] && list.indexOf(url) === index);
       if (alternatives[0]) return alternatives[0];
     }
-    if (skyline[0]) return skyline[0];
   } catch {
-    // Wikipedia remains a deliberately conservative fallback.
+    // Wikipedia below is deliberately independent of Commons availability.
   }
+
   try {
-    return await wikipediaImage(city, country, width);
+    const wikipedia = await wikipediaImages(city, country, width, slot);
+    if (slot === 0) return wikipedia[0] ?? null;
+    // Secondary searches intentionally skip the most city-like first hit when
+    // there is another result so the dossier gets visual variety.
+    return wikipedia[1] ?? wikipedia[0] ?? null;
   } catch {
     return null;
   }
