@@ -4,8 +4,16 @@ import { EngineImage } from "@/engine";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cityImage, cityInitials } from "./visuals";
 
+const CITY_PHOTO_VERSION = "3";
+
 function cityProxySource(city: string, country: string, slot: number, width: number): string {
-  const params = new URLSearchParams({ city, country, slot: String(slot), width: String(width) });
+  const params = new URLSearchParams({
+    city,
+    country,
+    slot: String(slot),
+    width: String(width),
+    v: CITY_PHOTO_VERSION,
+  });
   return `/api/city-photo?${params.toString()}`;
 }
 
