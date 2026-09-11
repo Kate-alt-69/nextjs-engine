@@ -26,6 +26,12 @@ if (!fs.existsSync(turbopackStub)) {
 const nextConfig = {
 	reactStrictMode: true,
 	distDir: "dist",
+
+	// Allow phones/tablets on the local LAN to use the Next dev client, HMR,
+	// RSC requests, and client-side navigation without cross-origin dev blocking.
+	// This only affects development; production origin policy is unchanged.
+	allowedDevOrigins: ["192.168.31.144"],
+
 	images: {
 		formats: ["image/avif", "image/webp"],
 		minimumCacheTTL: 60 * 60 * 24 * 30,
