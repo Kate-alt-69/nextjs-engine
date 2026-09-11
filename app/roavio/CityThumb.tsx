@@ -40,7 +40,7 @@ const responsiveCityLoader: ImageLoader = ({ src, width, quality }) => {
       const url = new URL(src);
       url.searchParams.set("w", String(width));
       url.searchParams.set("h", String(height));
-      url.searchParams.set("q", String(quality ?? 76));
+      url.searchParams.set("q", String(quality ?? 72));
       url.searchParams.set("auto", "format");
       url.searchParams.set("fit", "crop");
       url.searchParams.set("crop", "entropy");
@@ -57,9 +57,9 @@ function lowResSource(source: string, city: string, country: string, slot: numbe
   if (source.includes("images.unsplash.com")) {
     try {
       const url = new URL(source);
-      url.searchParams.set("w", "72");
-      url.searchParams.set("h", "41");
-      url.searchParams.set("q", "24");
+      url.searchParams.set("w", "64");
+      url.searchParams.set("h", "36");
+      url.searchParams.set("q", "20");
       url.searchParams.set("auto", "format");
       url.searchParams.set("fit", "crop");
       url.searchParams.set("crop", "entropy");
@@ -68,7 +68,7 @@ function lowResSource(source: string, city: string, country: string, slot: numbe
       return source;
     }
   }
-  return cityProxySource(city, country, slot, 72);
+  return cityProxySource(city, country, slot, 64);
 }
 
 export function CityThumb({
@@ -89,7 +89,6 @@ export function CityThumb({
   const staticSource = slot === 0 ? cityImage(slug) : null;
   const hostRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(eager);
-  const [loaded, setLoaded] = useState(false);
   const source = useMemo(
     () => staticSource ?? cityProxySource(city, country, slot, 640),
     [city, country, slot, staticSource],
@@ -100,16 +99,13 @@ export function CityThumb({
   );
 
   useEffect(() => {
-    setLoaded(false);
-  }, [source]);
-
-  useEffect(() => {
     if (active) return;
     const host = hostRef.current;
     if (!host || typeof IntersectionObserver === "undefined") {
       setActive(true);
       return;
     }
+
     const mobile = window.matchMedia("(max-width: 700px)").matches;
     const observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) {
@@ -117,9 +113,13 @@ export function CityThumb({
         observer.disconnect();
       }
     }, {
-      rootMargin: mobile ? "0px" : "240px 0px",
+      // Keep the directory responsive by activating almost exactly when needed.
+      // The previous 240px desktop margin could start several expensive remote
+      // city resolutions while the user was still scrolling toward them.
+      rootMargin: mobile ? "0px" : "64px 0px",
       threshold: mobile ? 0.03 : 0.01,
     });
+
     observer.observe(host);
     return () => observer.disconnect();
   }, [active]);
@@ -127,7 +127,7 @@ export function CityThumb({
   return (
     <div
       ref={hostRef}
-      className={`rv-city-thumb${compact ? " rv-city-thumb--compact" : ""}${loaded ? " rv-city-thumb--loaded" : ""}`}
+      className={`rv-city-thumb${compact ? " rv-city-thumb--compact" : ""}`}
       aria-hidden
       onDragStart={(event) => event.preventDefault()}
     >
@@ -136,34 +136,24 @@ export function CityThumb({
         <small>{country}</small>
       </div>
       {active ? (
-        <>
-          <img
-            className="rv-city-thumb__blur"
-            src={preview}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            draggable={false}
-          />
-          <EngineImage
-            src={source}
-            alt=""
-            width={720}
-            height={405}
-            aspectRatio="16 / 9"
-            sizes={compact
-              ? "(max-width: 700px) 44vw, 260px"
-              : "(max-width: 700px) calc(100vw - 2rem), (max-width: 1100px) calc(50vw - 2rem), 400px"}
-            qualityPreset="balanced"
-            qualityMobile={64}
-            qualityDesktop={78}
-            objectFit="cover"
-            priority={eager}
-            loader={responsiveCityLoader}
-            className="rv-city-thumb__engine"
-            onLoad={() => setLoaded(true)}
-          />
-        </>
+        <EngineImage
+          src={source}
+          alt=""
+          width={720}
+          height={405}
+          aspectRatio="16 / 9"
+          sizes={compact
+            ? "(max-width: 700px) 44vw, 260px"
+            : "(max-width: 700px) calc(100vw - 2rem), (max-width: 1100px) calc(50vw - 2rem), 400px"}
+          qualityPreset="balanced"
+          qualityMobile={58}
+          qualityDesktop={72}
+          objectFit="cover"
+          priority={eager}
+          loader={responsiveCityLoader}
+          blurDataURL={preview}
+          className="rv-city-thumb__engine"
+        />
       ) : null}
     </div>
   );
