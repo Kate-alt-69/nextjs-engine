@@ -11,7 +11,7 @@ import React, {
 	useState,
 	type CSSProperties,
 } from "react";
-import Image, { getImageProps } from "next/image";
+import Image, { getImageProps, type ImageLoader } from "next/image";
 import type { ImageNodeProps } from "../schema/types";
 import { useEngineSchedule } from "../hooks/useEngineScheduler";
 
@@ -67,6 +67,7 @@ export interface EngineImageProps extends Omit<ImageNodeProps, "type" | "objectF
 	qualityPreset?: "performance" | "balanced" | "sharp";
 	qualityMobile?: number;
 	qualityDesktop?: number;
+	loader?: ImageLoader;
 	onLoad?: () => void;
 }
 
@@ -87,6 +88,7 @@ export const EngineImage = memo(function EngineImage({
 	rounded,
 	caption,
 	blurDataURL,
+	loader,
 	onLoad,
 	style,
 	className,
@@ -138,6 +140,7 @@ export const EngineImage = memo(function EngineImage({
 			alt,
 			sizes: resolvedSizes,
 			priority,
+			loader,
 			...sizing,
 		};
 
@@ -145,7 +148,7 @@ export const EngineImage = memo(function EngineImage({
 			mobile: getImageProps({ ...baseProps, quality: mobileQuality }),
 			desktop: getImageProps({ ...baseProps, quality: desktopQuality }),
 		};
-	}, [alt, desktopQuality, fill, height, mobileQuality, priority, resolvedSizes, src, usePerViewport, width]);
+	}, [alt, desktopQuality, fill, height, loader, mobileQuality, priority, resolvedSizes, src, usePerViewport, width]);
 
 	const wrapperStyle: CSSProperties = {
 		position: "relative",
@@ -190,6 +193,7 @@ export const EngineImage = memo(function EngineImage({
 		alt,
 		sizes: resolvedSizes,
 		priority,
+		loader,
 		style: imageStyle,
 		...(fill ? { fill: true } : { width: width ?? 800, height: height ?? 600 }),
 	};
