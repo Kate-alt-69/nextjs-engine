@@ -1,0 +1,122 @@
+/* Roavio proposal — dedicated touch/mobile behavior. Keep this loaded after theme + UX CSS. */
+@media (max-width: 819px){
+  html,body{max-width:100%;overflow-x:hidden}
+  body{min-width:0}
+  :root{--engine-nav-height:3.85rem;--engine-nav-px:.7rem}
+
+  /* EngineNav's mobile menu is a sibling of the header row. Force the horizontal
+     nav to wrap so that sibling becomes a real full-width drawer. */
+  nav[aria-label='Main navigation']{
+    flex-wrap:wrap!important;
+    align-items:stretch!important;
+    padding-inline:max(.7rem,env(safe-area-inset-left)) max(.7rem,env(safe-area-inset-right))!important;
+  }
+  nav[aria-label='Main navigation']>div:first-child{flex:1 1 100%;min-width:0}
+  nav[aria-label='Main navigation'] img[src='/roavio-wordmark.svg']{width:104px!important;height:auto!important;padding:3px 6px!important}
+  #engine-nav-mobile{
+    flex:1 0 calc(100% + 1.4rem)!important;
+    width:calc(100% + 1.4rem)!important;
+    margin:0 -.7rem!important;
+    padding:.55rem .7rem .7rem!important;
+    background:var(--engine-nav-dropdown-bg,var(--rv-card))!important;
+    border-top:1px solid var(--rv-line)!important;
+    border-bottom:1px solid var(--rv-line)!important;
+    box-shadow:0 18px 40px var(--rv-shadow);
+    max-height:calc(100svh - var(--engine-nav-height));
+    overflow:auto;
+  }
+  #engine-nav-mobile>div{width:100%!important;display:flex!important;flex-direction:column!important;align-items:stretch!important}
+  #engine-nav-mobile a,#engine-nav-mobile button{
+    width:100%!important;min-height:44px!important;justify-content:space-between!important;
+    padding:.72rem .82rem!important;border-radius:12px!important;text-align:left!important;
+  }
+  #engine-nav-mobile [role='menu']{
+    position:static!important;inset:auto!important;width:100%!important;min-width:0!important;
+    margin:.2rem 0 .35rem!important;box-shadow:none!important;background:var(--rv-card-soft)!important;
+  }
+
+  /* Make every primary tap target phone-friendly. */
+  .rv-primary,.rv-secondary,.rv-icon-btn,.rv-pill,.rv-city-combobox__trigger{min-height:44px}
+  .rv-card-actions{gap:.4rem;flex-wrap:wrap}
+  .rv-card-actions .rv-icon-btn{flex:1 1 auto}
+  .rv-card-actions .rv-icon-btn:last-child{margin-left:0!important}
+
+  /* Hero: preserve hierarchy without consuming almost the entire first screen. */
+  h1{font-size:clamp(2.25rem,11.5vw,3.15rem)!important;line-height:.96!important;overflow-wrap:anywhere}
+  .rv-kicker{font-size:.7rem;padding:.36rem .58rem;max-width:100%;white-space:normal}
+  .rv-search{width:100%;border-radius:15px;padding:.4rem}
+  .rv-search input{min-height:45px;padding:.62rem .65rem}
+  .rv-search .rv-primary{width:100%}
+  .rv-hero-art{min-height:290px!important;border-radius:22px!important;box-shadow:0 18px 44px var(--rv-shadow)!important}
+  .rv-floating-card{padding:.7rem!important;border-radius:14px!important;font-size:.78rem!important;max-width:58%!important}
+  .rv-floating-card p{font-size:.7rem!important}
+  .rv-float-a{top:10%!important;left:7%!important}
+  .rv-float-b{right:6%!important;top:39%!important}
+  .rv-float-c{left:17%!important;bottom:8%!important}
+
+  /* Directory cards: one efficient paint column, tighter metrics, no hover-only work. */
+  .rv-result-grid{grid-template-columns:1fr!important;gap:.72rem!important}
+  .rv-result-card{border-radius:18px!important;contain-intrinsic-size:370px!important}
+  .rv-result-card__body{gap:.65rem!important;padding:.3rem .35rem .4rem!important}
+  .rv-result-metrics{gap:.35rem!important}
+  .rv-result-metrics div{padding:.52rem .5rem!important}
+  .rv-city-thumb{border-radius:14px!important}
+  .rv-city-thumb__engine img{filter:none!important}
+
+  /* Compare becomes a touch-first horizontal decision surface. */
+  .rv-compare-intro{padding:.95rem!important;border-radius:19px!important}
+  .rv-compare-stage{padding:.62rem!important;border-radius:20px!important;overflow:hidden!important;box-shadow:0 16px 42px var(--rv-shadow)!important}
+  .rv-compare-atmosphere{display:none!important}
+  .rv-compare-select-grid{grid-template-columns:1fr!important;gap:.45rem!important}
+  .rv-city-combobox__menu{position:relative!important;top:.2rem!important;margin-bottom:.25rem!important;max-height:350px}
+  .rv-compare-city-strip{
+    grid-template-columns:repeat(3,minmax(238px,82vw))!important;
+    gap:.55rem!important;overflow-x:auto!important;overflow-y:hidden!important;
+    scroll-snap-type:x mandatory;scroll-padding:.15rem;padding:.1rem .05rem .55rem!important;margin:.55rem 0!important;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+  }
+  .rv-compare-city-strip::-webkit-scrollbar{display:none}
+  .rv-compare-city-card{scroll-snap-align:start;border-radius:15px!important}
+  .rv-compare-grid{
+    width:100%!important;grid-template-columns:102px repeat(3,145px)!important;
+    overflow-x:auto!important;overflow-y:hidden!important;border-radius:16px!important;
+    -webkit-overflow-scrolling:touch;scrollbar-width:thin;overscroll-behavior-x:contain;
+  }
+  .rv-compare-grid>div{padding:.68rem .58rem!important;min-width:0}
+  .rv-compare-label{position:sticky;left:0;z-index:2;box-shadow:1px 0 0 var(--rv-line)}
+
+  /* City dossiers: compact, readable, and no sticky sidebar fighting the viewport. */
+  .rv-dossier-hero{min-height:330px!important;border-radius:20px!important}
+  .rv-dossier-hero__copy{max-width:100%!important;padding:1rem!important;padding-bottom:6.4rem!important}
+  .rv-dossier-hero__copy h1{font-size:clamp(2.45rem,12vw,3.3rem)!important}
+  .rv-dossier-media__secondary{width:46%!important;height:29%!important;right:.65rem!important;bottom:.65rem!important;border-radius:14px!important}
+  .rv-dossier-metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:.45rem!important}
+  .rv-dossier-metric{min-height:86px!important;padding:.72rem!important}
+  .rv-dossier-layout{grid-template-columns:1fr!important;gap:.7rem!important}
+  .rv-dossier-main{min-width:0}
+  .rv-dossier-summary{position:static!important;top:auto!important;order:-1;padding:.9rem!important}
+  .rv-dossier-insights{grid-template-columns:1fr!important;gap:.6rem!important}
+  .rv-dossier-section,.rv-dossier-insight{border-radius:17px!important;padding:.9rem!important}
+  .rv-prose{font-size:.92rem!important;line-height:1.66!important;overflow-wrap:anywhere}
+
+  /* Match/Favorites panels should not look like desktop modal cards on a phone. */
+  .rv-panel{border-radius:18px!important;box-shadow:0 12px 34px var(--rv-shadow)!important}
+  .rv-filter-pills{margin-inline:-.1rem;padding-inline:.1rem;scroll-snap-type:x proximity}
+  .rv-filter-pills .rv-pill{scroll-snap-align:start}
+
+  /* Theme control becomes a compact floating orb instead of covering content. */
+  .rv-theme-toggle{left:max(.7rem,env(safe-area-inset-left))!important;bottom:calc(.7rem + env(safe-area-inset-bottom))!important;padding:.25rem!important;width:50px!important;height:50px!important;border-radius:999px!important;z-index:55!important}
+  .rv-theme-toggle>span{display:none!important}
+  .rv-theme-toggle canvas{width:38px!important;height:38px!important}
+  .rv-theme-toggle--consent{bottom:calc(12.4rem + env(safe-area-inset-bottom))!important}
+
+  /* Footer stays useful but visually gets out of the way. */
+  footer,body>section:last-of-type{overflow-wrap:anywhere}
+}
+
+@media (max-width: 430px){
+  .rv-result-metrics strong{font-size:.82rem!important}
+  .rv-result-metrics span{font-size:.62rem!important}
+  .rv-dossier-metrics{grid-template-columns:1fr 1fr!important}
+  .rv-compare-grid{grid-template-columns:92px repeat(3,136px)!important}
+}
