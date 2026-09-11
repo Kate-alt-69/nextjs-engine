@@ -53,6 +53,22 @@ html[data-rv-theme='dark'] .rv-dossier-backdrop__veil{
 .rv-dossier-media__secondary{display:none!important}
 .rv-dossier-hero__copy{max-width:72%!important}
 
+
+
+/* Paged destination directory: only the current sheet is mounted. */
+.rv-cities-folder{position:relative;margin-top:.25rem;padding:.8rem;border:1px solid var(--rv-line);border-radius:0 24px 24px 24px;background:color-mix(in srgb,var(--rv-card) 82%,transparent);box-shadow:0 18px 50px color-mix(in srgb,var(--rv-shadow) 70%,transparent)}
+.rv-cities-folder__tabs{display:flex;align-items:flex-end;gap:.25rem;overflow-x:auto;margin:-2.55rem -.8rem .8rem;padding:1.75rem .8rem 0;scrollbar-width:none}
+.rv-cities-folder__tabs::-webkit-scrollbar{display:none}
+.rv-cities-page-tab{flex:0 0 auto;border:1px solid var(--rv-line);border-bottom-color:var(--rv-line);border-radius:12px 12px 4px 4px;padding:.5rem .68rem;background:var(--rv-card-soft);color:var(--rv-muted);font-size:.75rem;font-weight:800;cursor:pointer;transition:transform .16s ease,background .16s ease,color .16s ease,border-color .16s ease}
+.rv-cities-page-tab span{font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;opacity:.72}
+.rv-cities-page-tab[data-active='true']{transform:translateY(1px);background:var(--rv-card);color:var(--rv-ink);border-color:color-mix(in srgb,var(--rv-green) 38%,var(--rv-line));border-bottom-color:var(--rv-card)}
+.rv-cities-folder__footer{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:.75rem;margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--rv-line);color:var(--rv-muted);font-size:.78rem}
+.rv-cities-folder__footer>span{text-align:center}
+.rv-cities-page-nav{justify-self:start;border:1px solid var(--rv-line);border-radius:11px;background:var(--rv-card);color:var(--rv-ink);padding:.55rem .72rem;font-weight:750;cursor:pointer}
+.rv-cities-page-nav:last-child{justify-self:end}
+.rv-cities-page-nav:disabled{opacity:.38;cursor:not-allowed}
+.rv-cities-page-nav:not(:disabled):hover{border-color:color-mix(in srgb,var(--rv-green) 45%,var(--rv-line));background:var(--rv-card-soft)}
+
 @media (max-width:819px){
   nav[aria-label='Main navigation']{
     display:flex!important;
@@ -86,6 +102,14 @@ html[data-rv-theme='dark'] .rv-dossier-backdrop__veil{
     margin:0 -.72rem!important;
     padding:.45rem .72rem .72rem!important;
   }
+
+  .rv-cities-folder{padding:.55rem;border-radius:0 18px 18px 18px}
+  .rv-cities-folder__tabs{margin:-2.35rem -.55rem .6rem;padding:1.6rem .55rem 0}
+  .rv-cities-page-tab{padding:.48rem .62rem}
+  .rv-cities-folder__footer{grid-template-columns:1fr 1fr;gap:.45rem}
+  .rv-cities-folder__footer>span{grid-column:1/-1;grid-row:1;text-align:center}
+  .rv-cities-page-nav{grid-row:2;width:100%;justify-content:center}
+  .rv-footer-theme-slot{justify-content:flex-start}
 
   .rv-explore-hero-section{
     padding-top:1.15rem!important;

@@ -1,6 +1,7 @@
 "use client";
 
 import { EngineDrawer, EngineManim, EngineTransitionLink } from "@/engine";
+import { EngineNavManimIcon } from "@/src/engine/components/EngineNavManimIcon";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { copyFor, type RoavioLocale } from "./i18n";
@@ -52,6 +53,7 @@ export function RoavioMobileNav({ locale }: { locale: RoavioLocale }) {
   const pathname = usePathname() ?? "/";
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [menuTouched, setMenuTouched] = useState(false);
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -78,7 +80,7 @@ export function RoavioMobileNav({ locale }: { locale: RoavioLocale }) {
     <div className="rv-mobile-nav-root">
       <EngineDrawer
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={(next) => { setMenuTouched(true); setOpen(next); }}
         side="right"
         size="min(22rem, 88vw)"
         duration={320}
@@ -95,8 +97,13 @@ export function RoavioMobileNav({ locale }: { locale: RoavioLocale }) {
         closeLabel={locale === "es" ? "Cerrar navegación" : "Close navigation"}
         trigger={(
           <span className="rv-mobile-nav-trigger__icon" aria-hidden="true">
-            <span />
-            <span />
+            {menuTouched ? (
+              <EngineNavManimIcon open={open} size={22} />
+            ) : (
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M4 6h14M4 11h14M4 16h14" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+              </svg>
+            )}
           </span>
         )}
       >

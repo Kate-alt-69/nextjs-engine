@@ -26,10 +26,8 @@
     -webkit-backdrop-filter:blur(14px) saturate(.9)!important;
   }
   .rv-mobile-nav-trigger:active{transform:scale(.96)}
-  .rv-mobile-nav-trigger__icon{position:relative;width:18px;height:14px;display:block}
-  .rv-mobile-nav-trigger__icon span{position:absolute;left:0;width:18px;height:2px;border-radius:99px;background:currentColor;transition:transform .2s ease,top .2s ease}
-  .rv-mobile-nav-trigger__icon span:first-child{top:3px}
-  .rv-mobile-nav-trigger__icon span:last-child{top:10px;width:13px;left:5px}
+  .rv-mobile-nav-trigger__icon{position:relative;width:22px;height:22px;display:grid;place-items:center;color:inherit}
+  .rv-mobile-nav-trigger__icon>span,.rv-mobile-nav-trigger__icon canvas,.rv-mobile-nav-trigger__icon svg{display:block!important;width:22px!important;height:22px!important}
 
   .rv-mobile-nav-drawer{
     padding:max(1rem,env(safe-area-inset-top)) 1rem calc(1rem + env(safe-area-inset-bottom))!important;

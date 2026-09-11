@@ -122,6 +122,8 @@ export function Explorer({ catalog, locale, initialSearch = "" }: { catalog: Cit
   const [continent, setContinent] = useState("All");
   const [beachOnly, setBeachOnly] = useState(false);
   const [sort, setSort] = useState("fit");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(18);
   const [compare, setCompare] = useState<string[]>([]);
   const { favorites, toggle } = useFavorites();
   const continents = ["All", ...Array.from(new Set(catalog.map((city) => city.continent)))];
@@ -131,6 +133,18 @@ export function Explorer({ catalog, locale, initialSearch = "" }: { catalog: Cit
     const fromUrl = new URLSearchParams(window.location.search).get("search");
     if (fromUrl) setQuery(fromUrl);
   }, [initialSearch]);
+
+  useEffect(() => {
+    const mobile = window.matchMedia("(max-width: 700px)");
+    const syncPageSize = () => setPageSize(mobile.matches ? 12 : 18);
+    syncPageSize();
+    mobile.addEventListener?.("change", syncPageSize);
+    return () => mobile.removeEventListener?.("change", syncPageSize);
+  }, []);
+
+  useEffect(() => {
+    setPage(0);
+  }, [query, continent, beachOnly, sort, pageSize]);
 
   const results = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase(locale);
@@ -147,6 +161,28 @@ export function Explorer({ catalog, locale, initialSearch = "" }: { catalog: Cit
       return sortNumber(catalogFitScore(b)) - sortNumber(catalogFitScore(a));
     });
   }, [catalog, query, continent, beachOnly, sort, locale]);
+
+  const pageCount = Math.max(1, Math.ceil(results.length / pageSize));
+  const safePage = Math.min(page, pageCount - 1);
+  const visibleResults = results.slice(safePage * pageSize, safePage * pageSize + pageSize);
+  const pageNumbers = Array.from({ length: pageCount }, (_, index) => index);
+  const rangeStart = results.length ? safePage * pageSize + 1 : 0;
+  const rangeEnd = Math.min(results.length, safePage * pageSize + pageSize);
+
+  useEffect(() => {
+    if (page !== safePage) setPage(safePage);
+  }, [page, safePage]);
+
+  const goToPage = (nextPage: number) => {
+    const bounded = Math.max(0, Math.min(pageCount - 1, nextPage));
+    setPage(bounded);
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById("rv-city-results");
+      if (!target) return;
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      target.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    });
+  };
 
   const toggleCompare = (slug: string) => {
     setCompare((current) => {
@@ -172,11 +208,29 @@ export function Explorer({ catalog, locale, initialSearch = "" }: { catalog: Cit
       <div className="rv-filter-pills">
         {continents.map((item) => <button key={item} className="rv-pill" data-active={continent === item} onClick={() => setContinent(item)} type="button">{item === "All" ? (locale === "es" ? "Todos" : "All") : continentLabel(item, locale)}</button>)}
       </div>
-      <p style={{ color: "var(--rv-muted)", margin: ".55rem 0 1rem", fontSize: ".86rem" }}>{results.length} {copy.destinations} · {catalog.length} {copy.catalog} · {copy.compareHint}</p>
-      <div className="rv-result-grid">
-        {results.map((city) => (
+      <p style={{ color: "var(--rv-muted)", margin: ".55rem 0 1rem", fontSize: ".86rem" }}>{results.length} {copy.destinations} · {catalog.length} {copy.catalog} · {copy.compareHint} · {locale === "es" ? `mostrando ${rangeStart}–${rangeEnd}` : `showing ${rangeStart}–${rangeEnd}`}</p>
+      <div className="rv-cities-folder">
+        {pageCount > 1 ? (
+          <div className="rv-cities-folder__tabs" role="navigation" aria-label={locale === "es" ? "Páginas de destinos" : "Destination pages"}>
+            {pageNumbers.map((pageIndex) => (
+              <button key={pageIndex} type="button" className="rv-cities-page-tab" data-active={pageIndex === safePage} aria-current={pageIndex === safePage ? "page" : undefined} onClick={() => goToPage(pageIndex)}>
+                <span>{locale === "es" ? "Pág." : "Page"}</span> {pageIndex + 1}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <div className="rv-result-grid" id="rv-city-results">
+        {visibleResults.map((city) => (
           <CityResultCard key={city.slug} city={city} locale={locale} favorite={favorites.includes(city.slug)} compared={compare.includes(city.slug)} onFavorite={() => toggle(city.slug)} onCompare={() => toggleCompare(city.slug)} />
         ))}
+        </div>
+        {pageCount > 1 ? (
+          <div className="rv-cities-folder__footer">
+            <button type="button" className="rv-cities-page-nav" disabled={safePage === 0} onClick={() => goToPage(safePage - 1)}>← {locale === "es" ? "Anterior" : "Previous"}</button>
+            <span>{locale === "es" ? "Página" : "Page"} <strong>{safePage + 1}</strong> / {pageCount}</span>
+            <button type="button" className="rv-cities-page-nav" disabled={safePage >= pageCount - 1} onClick={() => goToPage(safePage + 1)}>{locale === "es" ? "Siguiente" : "Next"} →</button>
+          </div>
+        ) : null}
       </div>
       {results.length === 0 ? (
         <div className="rv-panel" style={{ padding: "2rem", textAlign: "center" }}>
