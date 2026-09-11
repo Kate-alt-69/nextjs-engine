@@ -6,6 +6,10 @@ on:
       - proposal/roavio-ne
     paths:
       - .github/workflows/roavio-current-fix.yml
+      - app/api/city-photo/route.ts
+      - app/page.tsx
+      - app/roavio/**
+      - app/cities/[slug]/loading.tsx
 
 jobs:
   validate:
