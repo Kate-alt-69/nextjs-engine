@@ -4,7 +4,6 @@ on:
   push:
     branches: [proposal/roavio-ne-datafix]
     paths:
-      - "content/cities/.scrape/mapped-v2.br.b64"
       - "scripts/roavio-materialize-scrape.js"
       - ".github/workflows/roavio-mapped-data-ci.yml"
 
@@ -21,7 +20,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Materialize exact mapped snapshot
+      - name: Install one-time HTML parser
+        run: npm install --no-save --package-lock=false cheerio@1.1.2
+      - name: Materialize the 90 mapped routes
         run: node scripts/roavio-materialize-scrape.js --force
       - name: Verify generated catalog
         shell: bash
