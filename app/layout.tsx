@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import React from "react";
 import { PreferencesShell } from "./roavio/PreferencesShell";
 import { getRoavioPreferences } from "./roavio/locale.server";
+import "./roavio/polish.css";
 
 export const metadata: Metadata = {
   title: {
@@ -20,7 +21,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const preferences = await getRoavioPreferences();
 
   return (
-    <html lang={preferences.locale} data-rv-theme={preferences.theme} suppressHydrationWarning>
+    <html lang={preferences.locale} data-rv-theme={preferences.theme} data-rv-locale={preferences.locale} suppressHydrationWarning>
       <head>
         <meta name="color-scheme" content="light dark" />
       </head>
