@@ -29,7 +29,7 @@ const HomeSchema = defineSchema({
             type: "stack",
             props: { direction: "vertical", gap: "1.35rem", align: "flex-start", justify: "center" },
             children: [
-              { type: "text", props: { as: "span", className: "rv-kicker", content: "● 80 cities · 6 continents · data updated 2026" } },
+              { type: "text", props: { as: "span", className: "rv-kicker", content: "● 90 cities · 6 continents · data updated 2026" } },
               {
                 type: "heading",
                 props: {
@@ -96,7 +96,7 @@ const HomeSchema = defineSchema({
             type: "grid",
             props: { columns: { xs: 2, md: 4 }, gap: ".8rem" },
             children: [
-              ["80", "indexed cities", "var(--rv-lime)"],
+              ["90", "indexed cities", "var(--rv-lime)"],
               ["407 Mbps", "fastest connection", "var(--rv-blue)"],
               ["8.9/10", "top safety score", "var(--rv-peach)"],
               ["6", "continents", "var(--rv-yellow)"]

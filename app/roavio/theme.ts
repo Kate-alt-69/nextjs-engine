@@ -93,6 +93,7 @@ export const roavioNav: SchemaNode = {
     logo: { alt: "roavio", href: "/" },
     items: [
       { label: "Explorar", href: "/cities", cprop: { link: { transition: "fade" } } },
+      { label: "Match", href: "/match", cprop: { link: { transition: "fade" } } },
       { label: "Comparar", href: "/compare", cprop: { link: { transition: "fade" } } },
       { label: "Favoritos", href: "/favoritos", cprop: { link: { transition: "fade" } } },
       { label: "ES · EN", href: "#language" }
