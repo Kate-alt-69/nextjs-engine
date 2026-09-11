@@ -8,19 +8,21 @@
 }
 .rv-dossier-backdrop{
   position:fixed;
-  inset:-28px;
+  inset:-18px;
   z-index:0;
   overflow:hidden;
   pointer-events:none;
+  contain:paint;
   background:radial-gradient(circle at 70% 18%,color-mix(in srgb,var(--rv-green) 24%,transparent),transparent 36%),var(--rv-paper);
 }
 .rv-dossier-backdrop__image{
   width:100%;
   height:100%;
   object-fit:cover;
-  transform:scale(1.08) translateZ(0);
-  filter:blur(22px) saturate(.82) contrast(.94);
-  opacity:.28;
+  transform:scale(1.035) translateZ(0);
+  filter:none;
+  opacity:.26;
+  image-rendering:auto;
   user-select:none;
   -webkit-user-drag:none;
 }
@@ -30,11 +32,11 @@
   background:linear-gradient(180deg,color-mix(in srgb,var(--rv-paper) 72%,transparent),color-mix(in srgb,var(--rv-paper) 86%,transparent) 45%,color-mix(in srgb,var(--rv-paper) 93%,transparent));
 }
 html[data-rv-theme='dark'] .rv-dossier-backdrop__image{
-  opacity:.25;
-  filter:blur(22px) saturate(.78) brightness(.7) contrast(1.04);
+  opacity:.22;
+  filter:none;
 }
 html[data-rv-theme='dark'] .rv-dossier-backdrop__veil{
-  background:linear-gradient(180deg,rgba(7,17,14,.58),rgba(7,17,14,.76) 45%,rgba(7,17,14,.9));
+  background:linear-gradient(180deg,rgba(7,17,14,.61),rgba(7,17,14,.79) 45%,rgba(7,17,14,.91));
 }
 .rv-dossier-page>nav,
 .rv-dossier-page>section{
@@ -117,13 +119,13 @@ html[data-rv-theme='dark'] .rv-dossier-backdrop__veil{
   .rv-explore-catalog-note{display:none!important}
   .rv-toolbar{grid-template-columns:1fr!important;gap:.5rem!important;margin:.75rem 0 .85rem!important}
 
-  .rv-dossier-backdrop{inset:-18px}
+  .rv-dossier-backdrop{inset:-12px}
   .rv-dossier-backdrop__image{
-    transform:scale(1.1) translateZ(0);
-    filter:blur(14px) saturate(.78) contrast(.95);
-    opacity:.23;
+    transform:scale(1.04) translateZ(0);
+    filter:none;
+    opacity:.22;
   }
-  html[data-rv-theme='dark'] .rv-dossier-backdrop__image{filter:blur(14px) saturate(.72) brightness(.66);opacity:.24}
+  html[data-rv-theme='dark'] .rv-dossier-backdrop__image{filter:none;opacity:.21}
   .rv-dossier-page>section{background:transparent!important}
   .rv-dossier-hero{
     min-height:286px!important;
@@ -176,5 +178,5 @@ html[data-rv-theme='dark'] .rv-dossier-backdrop__veil{
 }
 
 @media (prefers-reduced-motion:reduce){
-  .rv-dossier-backdrop__image{filter:blur(16px) saturate(.8)}
+  .rv-dossier-backdrop__image{filter:none}
 }
