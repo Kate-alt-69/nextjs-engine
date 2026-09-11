@@ -2,12 +2,15 @@
 
 import { useMemo, useState } from "react";
 
+const CITY_PHOTO_VERSION = "3";
+
 function cityPhotoUrl(city: string, country: string, slot: number): string {
   const params = new URLSearchParams({
     city,
     country,
     slot: String(slot),
     width: "720",
+    v: CITY_PHOTO_VERSION,
   });
   return `/api/city-photo?${params.toString()}`;
 }
