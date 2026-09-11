@@ -2,6 +2,7 @@
 
 import { EngineCanvas } from "@/engine";
 import { EngineCookies } from "@/src/engine/core/enginecookies/EngineCookies";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RoavioLocale } from "./i18n";
 import type { RoavioThemeMode } from "./locale.server";
@@ -12,17 +13,37 @@ type ConsentChoices = {
   personalization: boolean;
 };
 
+type MoonPhaseData = {
+  phase: string;
+  illumination: number;
+  age: number;
+  phaseFraction: number;
+  source: string;
+};
+
+type ViewTransitionDocument = Document & {
+  startViewTransition?: (update: () => void) => { finished: Promise<void> };
+};
+
 const ONE_YEAR = 60 * 60 * 24 * 365;
+const SYNODIC_MONTH = 29.530588853;
 
 function writeCookie(name: string, value: string, maxAge = ONE_YEAR) {
   document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
 }
 
-function currentMoonPhase(): number {
-  const synodicMonth = 29.530588853;
+function fallbackMoon(): MoonPhaseData {
   const knownNewMoon = Date.UTC(2000, 0, 6, 18, 14, 0);
   const days = (Date.now() - knownNewMoon) / 86_400_000;
-  return ((days % synodicMonth) + synodicMonth) % synodicMonth / synodicMonth;
+  const age = ((days % SYNODIC_MONTH) + SYNODIC_MONTH) % SYNODIC_MONTH;
+  const phaseFraction = age / SYNODIC_MONTH;
+  return {
+    phase: "Moon",
+    illumination: (1 - Math.cos(phaseFraction * Math.PI * 2)) * 50,
+    age,
+    phaseFraction,
+    source: "fallback",
+  };
 }
 
 function drawSun(ctx: CanvasRenderingContext2D, w: number, h: number, progress: number) {
@@ -31,23 +52,23 @@ function drawSun(ctx: CanvasRenderingContext2D, w: number, h: number, progress: 
   const r = Math.min(w, h) * 0.19;
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.rotate(progress * Math.PI * 0.28);
+  ctx.rotate((1 - progress) * -0.18 + progress * 0.08);
   ctx.lineCap = "round";
   ctx.strokeStyle = "#f4b53f";
   ctx.lineWidth = Math.max(1.5, w * 0.045);
   for (let i = 0; i < 8; i += 1) {
     const angle = i * Math.PI / 4;
-    const inner = r * 1.45;
-    const outer = r * (1.85 + (i % 2) * 0.1);
+    const inner = r * (1.42 + (1 - progress) * 0.12);
+    const outer = r * (1.82 + progress * 0.12);
     ctx.beginPath();
     ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
     ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
     ctx.stroke();
   }
-  const glow = ctx.createRadialGradient(0, 0, r * 0.1, 0, 0, r * 1.2);
-  glow.addColorStop(0, "#fff3ad");
-  glow.addColorStop(0.65, "#ffd65a");
-  glow.addColorStop(1, "#f4a82f");
+  const glow = ctx.createRadialGradient(0, 0, r * 0.12, 0, 0, r * 1.2);
+  glow.addColorStop(0, "#fff7c5");
+  glow.addColorStop(0.64, "#ffd65a");
+  glow.addColorStop(1, "#f3a62b");
   ctx.fillStyle = glow;
   ctx.beginPath();
   ctx.arc(0, 0, r, 0, Math.PI * 2);
@@ -55,62 +76,78 @@ function drawSun(ctx: CanvasRenderingContext2D, w: number, h: number, progress: 
   ctx.restore();
 }
 
-function drawMoon(ctx: CanvasRenderingContext2D, w: number, h: number, progress: number) {
+function drawMoon(ctx: CanvasRenderingContext2D, w: number, h: number, phaseFraction: number, progress: number) {
   const cx = w / 2;
   const cy = h / 2;
-  const r = Math.min(w, h) * 0.29;
-  const phase = currentMoonPhase();
+  const r = Math.min(w, h) * 0.32;
+  const angle = phaseFraction * Math.PI * 2;
+  const lightX = Math.sin(angle);
+  const lightZ = -Math.cos(angle);
+  const image = ctx.createImageData(Math.max(1, Math.floor(w)), Math.max(1, Math.floor(h)));
+  const pixels = image.data;
+
+  for (let y = 0; y < image.height; y += 1) {
+    for (let x = 0; x < image.width; x += 1) {
+      const nx = (x + 0.5 - cx) / r;
+      const ny = (y + 0.5 - cy) / r;
+      const radiusSq = nx * nx + ny * ny;
+      if (radiusSq > 1) continue;
+      const nz = Math.sqrt(Math.max(0, 1 - radiusSq));
+      const direct = Math.max(0, nx * lightX + nz * lightZ);
+      const edge = Math.min(1, Math.max(0, (1 - radiusSq) * 11));
+      const ambient = 0.11;
+      const brightness = ambient + direct * 0.89;
+      const crater = 1 - 0.055 * (
+        Math.exp(-((nx + 0.31) ** 2 + (ny + 0.2) ** 2) / 0.018)
+        + Math.exp(-((nx - 0.25) ** 2 + (ny - 0.04) ** 2) / 0.012)
+        + Math.exp(-((nx - 0.06) ** 2 + (ny - 0.31) ** 2) / 0.016)
+      );
+      const value = Math.max(0, Math.min(1, brightness * crater * (0.92 + progress * 0.08)));
+      const offset = (y * image.width + x) * 4;
+      pixels[offset] = Math.round(214 * value + 12);
+      pixels[offset + 1] = Math.round(226 * value + 14);
+      pixels[offset + 2] = Math.round(222 * value + 15);
+      pixels[offset + 3] = Math.round(255 * edge);
+    }
+  }
+
+  ctx.putImageData(image, 0, 0);
   ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate((1 - progress) * -0.16);
-  ctx.fillStyle = "#dfe9e5";
+  ctx.strokeStyle = "rgba(224,238,232,.34)";
+  ctx.lineWidth = Math.max(1, w * 0.025);
   ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "rgba(77,101,95,.24)";
-  [[-.3, -.22, .13], [.28, -.08, .09], [.08, .33, .11]].forEach(([x, y, rr]) => {
-    ctx.beginPath();
-    ctx.arc(r * x, r * y, r * rr, 0, Math.PI * 2);
-    ctx.fill();
-  });
-
-  const shadowX = phase < 0.5
-    ? -(phase / 0.5) * r * 2
-    : ((1 - ((phase - 0.5) / 0.5)) * r * 2);
-  ctx.fillStyle = "rgba(6,17,14,.9)";
-  ctx.beginPath();
-  ctx.arc(shadowX, 0, r * 1.01, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
   ctx.restore();
 }
 
-function CelestialGlyph({ mode }: { mode: RoavioThemeMode }) {
-  const startedAt = useRef(typeof performance === "undefined" ? 0 : performance.now());
-  useEffect(() => { startedAt.current = performance.now(); }, [mode]);
+function CelestialGlyph({ mode, moon }: { mode: RoavioThemeMode; moon: MoonPhaseData }) {
+  const startedAt = useRef(0);
+  useEffect(() => { startedAt.current = performance.now(); }, [mode, moon.phaseFraction]);
 
   const draw = useCallback((context: CanvasRenderingContext2D | WebGLRenderingContext | WebGL2RenderingContext, canvas: HTMLCanvasElement) => {
     if (!(context instanceof CanvasRenderingContext2D)) return false;
+    if (!startedAt.current) startedAt.current = performance.now();
     const elapsed = performance.now() - startedAt.current;
-    const progress = Math.min(1, elapsed / 480);
+    const progress = Math.min(1, elapsed / 620);
     const eased = 1 - Math.pow(1 - progress, 3);
     context.clearRect(0, 0, canvas.width, canvas.height);
-    if (mode === "dark") drawMoon(context, canvas.width, canvas.height, eased);
+    if (mode === "dark") drawMoon(context, canvas.width, canvas.height, moon.phaseFraction, eased);
     else drawSun(context, canvas.width, canvas.height, eased);
     return progress >= 1 ? false : undefined;
-  }, [mode]);
+  }, [mode, moon.phaseFraction]);
 
   return (
     <EngineCanvas
       mode="2d"
-      width={38}
-      height={38}
+      width={40}
+      height={40}
       maxDpr={1.5}
       adaptive={false}
       pauseWhenHidden
       pauseWhenOffscreen
       onDraw={draw}
-      style={{ width: 38, height: 38, pointerEvents: "none" }}
+      style={{ width: 40, height: 40, pointerEvents: "none" }}
     />
   );
 }
@@ -124,13 +161,28 @@ export function PreferencesShell({
   initialLocale: RoavioLocale;
   initialHasConsent: boolean;
 }) {
+  const router = useRouter();
   const [theme, setTheme] = useState<RoavioThemeMode>(initialTheme);
+  const [locale, setLocale] = useState<RoavioLocale>(initialLocale);
+  const [moon, setMoon] = useState<MoonPhaseData>(() => fallbackMoon());
   const [showConsent, setShowConsent] = useState(!initialHasConsent);
   const [customOpen, setCustomOpen] = useState(false);
   const [analytics, setAnalytics] = useState(false);
   const [personalization, setPersonalization] = useState(true);
   const cookieIndex = useRef<ReturnType<typeof EngineCookies.createIndex> | null>(null);
-  const spanish = initialLocale === "es";
+  const spanish = locale === "es";
+
+  useEffect(() => setLocale(initialLocale), [initialLocale]);
+  useEffect(() => setTheme(initialTheme), [initialTheme]);
+
+  useEffect(() => {
+    fetch("/api/moon-phase", { headers: { Accept: "application/json" } })
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((data: MoonPhaseData) => {
+        if (Number.isFinite(data.phaseFraction)) setMoon(data);
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     const index = EngineCookies.createIndex();
@@ -146,12 +198,44 @@ export function PreferencesShell({
     return () => { cookieIndex.current?.clear(); cookieIndex.current = null; };
   }, []);
 
+  useEffect(() => {
+    const handleLanguageClick = (event: MouseEvent) => {
+      const target = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (!(target instanceof HTMLAnchorElement)) return;
+      const url = new URL(target.href, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      const match = url.pathname.match(/^\/lang\/(es|en)\/?$/);
+      if (!match) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      const next = match[1] as RoavioLocale;
+      setLocale(next);
+      writeCookie("rv_lang", next);
+      document.documentElement.lang = next;
+      document.documentElement.dataset.rvLocale = next;
+      router.refresh();
+    };
+    document.addEventListener("click", handleLanguageClick, true);
+    return () => document.removeEventListener("click", handleLanguageClick, true);
+  }, [router]);
+
   const chooseTheme = () => {
     const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
-    document.documentElement.dataset.rvTheme = next;
-    document.documentElement.style.colorScheme = next;
-    writeCookie("rv_theme", next);
+    const apply = () => {
+      setTheme(next);
+      document.documentElement.dataset.rvTheme = next;
+      document.documentElement.style.colorScheme = next;
+      writeCookie("rv_theme", next);
+    };
+    const doc = document as ViewTransitionDocument;
+    if (typeof doc.startViewTransition === "function") {
+      doc.startViewTransition(apply);
+    } else {
+      document.documentElement.classList.add("rv-theme-changing");
+      apply();
+      window.setTimeout(() => document.documentElement.classList.remove("rv-theme-changing"), 480);
+    }
   };
 
   const saveConsent = (choices: ConsentChoices) => {
@@ -160,6 +244,8 @@ export function PreferencesShell({
     setCustomOpen(false);
   };
 
+  const phaseLabel = modeLabel(theme, moon.phase, spanish);
+
   return (
     <>
       <button
@@ -167,10 +253,10 @@ export function PreferencesShell({
         className={`rv-theme-toggle${showConsent ? " rv-theme-toggle--consent" : ""}`}
         onClick={chooseTheme}
         aria-label={theme === "dark" ? (spanish ? "Cambiar a modo claro" : "Switch to light mode") : (spanish ? "Cambiar a modo oscuro" : "Switch to dark mode")}
-        title={theme === "dark" ? (spanish ? "Modo oscuro · fase lunar actual" : "Dark mode · current moon phase") : (spanish ? "Modo claro · sol" : "Light mode · sun")}
+        title={theme === "dark" ? `${moon.phase} · ${Math.round(moon.illumination)}%` : (spanish ? "Modo claro · sol" : "Light mode · sun")}
       >
-        <CelestialGlyph mode={theme} />
-        <span>{theme === "dark" ? (spanish ? "Oscuro" : "Dark") : (spanish ? "Claro" : "Light")}</span>
+        <CelestialGlyph mode={theme} moon={moon} />
+        <span>{phaseLabel}</span>
       </button>
 
       {showConsent ? (
@@ -191,7 +277,7 @@ export function PreferencesShell({
         <div className="rv-cookie-modal" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setCustomOpen(false); }}>
           <section className="rv-cookie-custom" role="dialog" aria-modal="true" aria-label={spanish ? "Personalizar cookies" : "Customize cookies"}>
             <div className="rv-cookie-custom__head">
-              <div><span className="rv-overline">{spanish ? "CONTROL" : "CONTROL"}</span><h2>{spanish ? "Elige qué guardar" : "Choose what we store"}</h2></div>
+              <div><span className="rv-overline">CONTROL</span><h2>{spanish ? "Elige qué guardar" : "Choose what we store"}</h2></div>
               <button type="button" className="rv-icon-btn" onClick={() => setCustomOpen(false)} aria-label={spanish ? "Cerrar" : "Close"}>×</button>
             </div>
             <label className="rv-cookie-choice">
@@ -212,4 +298,19 @@ export function PreferencesShell({
       ) : null}
     </>
   );
+}
+
+function modeLabel(theme: RoavioThemeMode, phase: string, spanish: boolean) {
+  if (theme === "light") return spanish ? "Claro" : "Light";
+  const translated: Record<string, string> = {
+    "New Moon": "Luna nueva",
+    "Waxing Crescent": "Creciente",
+    "First Quarter": "Cuarto creciente",
+    "Waxing Gibbous": "Gibosa creciente",
+    "Full Moon": "Luna llena",
+    "Waning Gibbous": "Gibosa menguante",
+    "Last Quarter": "Cuarto menguante",
+    "Waning Crescent": "Menguante",
+  };
+  return spanish ? (translated[phase] ?? "Oscuro") : phase;
 }
