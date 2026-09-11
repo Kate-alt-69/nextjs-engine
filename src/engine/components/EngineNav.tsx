@@ -29,6 +29,11 @@ const LazyEngineTransitionLink = lazy(async () => {
 	return { default: transitionModule.EngineTransitionLink as React.ComponentType<any> };
 });
 
+const LazyEngineNavManimIcon = lazy(async () => {
+	const iconModule = await import("./EngineNavManimIcon");
+	return { default: iconModule.EngineNavManimIcon as React.ComponentType<{ open: boolean }> };
+});
+
 export interface EngineAnchorConfig {
 	href: string;
 	target?: string;
@@ -218,8 +223,12 @@ export const EngineNav = memo(
 		const routerPathname = usePathname() ?? "";
 		const [pathname, setPathname] = useState("");
 		const [mobileOpen, setMobileOpen] = useState(false);
+		const [mobileAnimated, setMobileAnimated] = useState(false);
 		useEffect(() => setPathname(routerPathname), [routerPathname]);
-		const toggleMobile = useCallback(() => setMobileOpen((value) => !value), []);
+		const toggleMobile = useCallback(() => {
+			setMobileAnimated(true);
+			setMobileOpen((value) => !value);
+		}, []);
 		const hoverClass = useCpropClass(cprop);
 		const navStyle = usePropStyles(restProps as any, style ?? {});
 
@@ -283,8 +292,10 @@ export const EngineNav = memo(
 					{children}
 					{items.length > 0 && (
 						<button aria-label={mobileOpen ? "Close menu" : "Open menu"} aria-expanded={mobileOpen} aria-controls="engine-nav-mobile" onClick={toggleMobile} className={mobileToggleClass}>
-							{mobileOpen ? (
-								<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 4l12 12M16 4L4 16" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /></svg>
+							{mobileAnimated ? (
+								<Suspense fallback={<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /></svg>}>
+									<LazyEngineNavManimIcon open={mobileOpen} />
+								</Suspense>
 							) : (
 								<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /></svg>
 							)}
