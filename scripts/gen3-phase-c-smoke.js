@@ -77,6 +77,12 @@ check(command.includes("NENC transport is not configured"), "client command call
 check(command.includes("Command inspection is development-only"), "command introspection fails closed in production");
 check(command.includes("Invalid command request"), "unknown server commands return a generic failure");
 
+const dispatcher = read("src/engine/core/nenc/NENCDispatcher.ts");
+check(dispatcher.includes("resolveAPI(options, authorizationContext)"), "backend resolvers receive authorized command context");
+
+const apiResolver = read("src/engine/core/EngineAPIResolver.ts");
+check(apiResolver.includes("input !== undefined ? input : formData"), "NENC command input reaches ordinary HTTP backends");
+
 const manifest = read("src/engine/core/nenc/NENCManifest.ts");
 check(manifest.includes('endpoint: "/_static/command"'), "client/server manifests use the single NENC endpoint");
 check(manifest.includes("commandsById"), "server manifest resolves opaque command ids");

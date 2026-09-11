@@ -51,6 +51,7 @@ export type {
 } from "./core/nenc/NENCDeviceProof";
 export { NENCReplayGuard, NENCMemoryReplayStore } from "./core/nenc/NENCReplay";
 export type {
+	NENCAPIResolverFactory,
 	NENCAuthenticationContext,
 	NENCAuthenticationResult,
 	NENCAuthorizationContext,

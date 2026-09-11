@@ -1,7 +1,7 @@
 # Generation 3 Phase C — Network and credential runtime
 
 > Branch: `main-3`  
-> Status: secure dispatcher and NENC build integration complete; proving flows in progress
+> Status: secure dispatcher, NENC build integration, and backend proving flows complete
 
 Phase C owns the secure application/network layer described by the Gen 3 master plan: EngineCookies, NENC, EngineCORS, command authorization, replay protection, device binding, and the EngineAPIResolver bridge.
 
@@ -202,6 +202,58 @@ createNENCDispatcher({ manifest, api, commandSecurity });
 
 A rule's replay guard replaces the default guard for that command and namespaces nonce claims by logical command. A configured rate rule fails closed when its key is missing/invalid or its store fails. Rejections use the generic response body with status `429` and `Retry-After`; replay failures remain generic `409` responses. The included memory stores are single-process implementations. Distributed and serverless deployments should supply atomic shared stores—`NENCRateLimitStore.consume()` must increment and return the count as one operation.
 
+## Ordinary and private backend proving flows
+
+The dispatcher accepts an `EngineAPIResolver` or a context-aware resolver factory. The factory runs only after authentication, rate policy, and permission authorization succeed. Keep private backend credentials in the server-only handler module and select a narrowly scoped resolver from the authorized command context:
+
+```ts
+const publicAPI = new EngineAPIResolver({
+	endpoint: "https://api.example.com/search",
+	method: "POST",
+	auth: { type: "none" },
+});
+
+const privateAPI = new EngineAPIResolver({
+	endpoint: process.env.PRIVATE_SEARCH_URL,
+	method: "POST",
+	auth: { type: "bearer", token: process.env.PRIVATE_SEARCH_TOKEN },
+});
+
+return createNENCDispatcher({
+	manifest,
+	authenticate: accountSessions.authenticate,
+	authorize: accountSessions.authorize,
+	api(context) {
+		if (context.command.name === "catalog.publicSearch") return publicAPI;
+		if (context.command.name === "catalog.privateSearch") return privateAPI;
+		throw new Error("No backend resolver is configured for this command.");
+	},
+});
+```
+
+Command declarations stay credential-free and use the resolver selected by the server:
+
+```ts
+EngineCommand.create("catalog.privateSearch", {
+	run: "server",
+	auth: "account",
+	permissions: ["catalog.read"],
+	input: { search: "string" },
+	async execute({ input, api, principal }) {
+		const response = await api.resolveRequest({ input });
+		const payload = await response.json();
+		return {
+			account: (principal as NENCAccountPrincipal).subject,
+			items: payload.items.map(({ id, title }) => ({ id, title })),
+		};
+	},
+});
+```
+
+For ordinary HTTP requests, explicit `input` is serialized as the request body and takes precedence over the legacy `formData` fallback, matching APIStatic behavior. The remote backend does not need to know NENC and may be implemented in any stack.
+
+Commands are responsible for returning an intentional public result. Returning a backend `Response` directly preserves its response semantics, while parsing it and returning a selected object—as above—prevents private fields, diagnostic headers, or credential echoes from reaching the browser. Command files must remain server-only and must not import private credentials into Client Components.
+
 ## EngineCORS
 
 The server-only CORS helper provides exact-origin handling, preflight responses, `Vary: Origin`, allowed method/header configuration, and rejects credentialed wildcard CORS.
@@ -224,6 +276,5 @@ session + EngineCookie + origin + trust + nonce + signature + rate policy
 
 ## Remaining implementation order
 
-1. ordinary/private backend proving flows through EngineAPIResolver;
-2. real private login/search proving application;
-3. Phase D debug/security inspection surfaces consuming these artifacts.
+1. real private login/search proving application;
+2. Phase D debug/security inspection surfaces consuming these artifacts.

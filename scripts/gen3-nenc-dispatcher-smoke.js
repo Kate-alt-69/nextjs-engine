@@ -32,7 +32,10 @@ check(dispatcher.includes('command.auth !== "anonymous"'), "non-anonymous comman
 check(dispatcher.includes("command.permissions.length > 0"), "permission-bearing commands require authorization");
 check(dispatcher.includes("verifySignature"), "dispatcher exposes signature verification before execution");
 check(dispatcher.includes("executeRegisteredEngineCommand"), "dispatcher executes through the EngineCommand registry");
-check(dispatcher.includes("resolveAPI(options)"), "dispatcher supplies EngineAPIResolver to command execution");
+check(
+	dispatcher.includes("resolveAPI(options, authorizationContext)"),
+	"dispatcher supplies an authorized EngineAPIResolver to command execution",
+);
 check(!dispatcher.includes("Available commands"), "dispatcher never returns a command list");
 
 check(replay.includes("NENCReplayStore"), "replay protection supports a replaceable persistence store");

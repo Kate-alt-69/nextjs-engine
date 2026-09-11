@@ -42,9 +42,21 @@ resolveRequest.nodeOverrides
 
 Only plain option objects are recursively merged. Platform objects such as `CryptoKey`, `Blob`, `FileList`, and `FormData` are preserved. **`endpoint` is an atomic routing field**: a later endpoint replaces the earlier endpoint as a whole. Static endpoint descriptors are never recursively combined, so an `operation` from one route cannot leak into a different overridden route.
 
-For methods other than `GET` and `HEAD`, plain objects are JSON serialized. Native `FormData` passes through unchanged. Plain objects containing browser binary values are converted to native `FormData`; a manually supplied multipart `Content-Type` is removed so the browser can add the correct boundary.
+For methods other than `GET` and `HEAD`, explicit `input` becomes the request body and takes precedence over `formData`. Plain objects and other JSON values are serialized. Native `FormData` passes through unchanged. Plain objects containing browser binary values are converted to native `FormData`; a manually supplied multipart `Content-Type` is removed so the browser can add the correct boundary.
 
 An empty HTTP endpoint throws before `fetch()`.
+
+### NENC server bridge
+
+NENC commands receive an `EngineAPIResolver` through `execute({ api })`, so the same call works for APIStatic and ordinary HTTP backends:
+
+```ts
+async execute({ input, api }) {
+	return api.resolveRequest({ input })
+}
+```
+
+For private backends, configure a context-aware resolver factory in the server-only NENC handler. Authentication and permission checks complete before the factory runs, allowing each command to receive a narrowly scoped resolver without placing credentials in command declarations or browser code. Parse and select private backend results before returning them when internal fields must not reach the browser.
 
 ---
 
