@@ -35,6 +35,15 @@ const nextConfig = {
 	images: {
 		formats: ["image/avif", "image/webp"],
 		minimumCacheTTL: 60 * 60 * 24 * 30,
+
+		// These are intentional same-origin image endpoints. They use query
+		// parameters for city/country/slot/width, so the pathname is constrained
+		// here while search params are deliberately left unrestricted.
+		localPatterns: [
+			{ pathname: "/api/city-photo" },
+			{ pathname: "/api/city-image" },
+		],
+
 		remotePatterns: [
 			{ protocol: "https", hostname: "images.unsplash.com" },
 			{ protocol: "https", hostname: "upload.wikimedia.org" },
