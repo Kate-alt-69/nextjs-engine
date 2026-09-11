@@ -15,6 +15,7 @@ function compileRuntime() {
 	execFileSync(process.execPath, [
 		tscPath,
 		"src/engine/core/EngineAPIResolver.ts",
+		"src/engine/core/nenc/NENCCommandAPI.ts",
 		"src/engine/core/nenc/NENCDispatcher.ts",
 		"src/engine/core/nenc/NENCSessionAuth.ts",
 		"--outDir", outDir,
@@ -39,6 +40,7 @@ function wireRequest(manifest, commandName, input, options = {}) {
 		[manifest.client.headers.timestamp]: String(options.now),
 	});
 	if (options.cookie) headers.set("Cookie", options.cookie);
+	if (options.origin) headers.set("Origin", options.origin);
 	return new Request("https://app.example.com/_static/command", {
 		method: "POST",
 		headers,
@@ -50,6 +52,7 @@ async function run() {
 	compileRuntime();
 	const { EngineAPIResolver } = require(path.join(outDir, "core", "EngineAPIResolver.js"));
 	const { registerEngineCommand } = require(path.join(outDir, "core", "nenc", "EngineCommand.js"));
+	const { createNENCCommandAPIResolverFactory } = require(path.join(outDir, "core", "nenc", "NENCCommandAPI.js"));
 	const { createNENCDispatcher } = require(path.join(outDir, "core", "nenc", "NENCDispatcher.js"));
 	const {
 		createNENCAccountSessionPolicy,
@@ -139,27 +142,30 @@ async function run() {
 	};
 
 	try {
-		const publicAPI = new EngineAPIResolver({
+		const publicAPIConfig = {
 			endpoint: "https://ordinary.invalid/search",
 			method: "POST",
 			auth: { type: "none" },
 			headers: { "X-Powered-By": "Next.js Engine" },
-		});
-		const privateAPI = new EngineAPIResolver({
+		};
+		const privateAPIConfig = {
 			endpoint: "https://private.invalid/search",
 			method: "POST",
 			auth: { type: "bearer", token: privateBackendToken },
 			headers: { "X-Engine-Command": "privateSearch" },
-		});
+		};
 		const resolverContexts = [];
-		const dispatcher = createNENCDispatcher({
-			manifest: manifest.server,
-			api(context) {
+		const api = createNENCCommandAPIResolverFactory({
+			async resolve(context) {
 				resolverContexts.push(context);
-				if (context.command.name === "catalog.publicSearch") return publicAPI;
-				if (context.command.name === "catalog.privateSearch") return privateAPI;
+				if (context.commandName === "catalog.publicSearch") return publicAPIConfig;
+				if (context.commandName === "catalog.privateSearch") return privateAPIConfig;
 				throw new Error("No scoped backend resolver for command.");
 			},
+		});
+		const dispatcher = createNENCDispatcher({
+			manifest: manifest.server,
+			api,
 			replay: { async verify() { return { allowed: true, reason: "ok" }; } },
 			authenticate: accountSessions.authenticate,
 			authorize: accountSessions.authorize,
@@ -180,7 +186,7 @@ async function run() {
 		assert.equal(requests[0].headers.has("Authorization"), false);
 		assert.equal(requests[0].headers.has("X-Powered-By"), false, "resolver must strip framework fingerprints");
 		assert.equal(resolverContexts.length, 1);
-		assert.equal(resolverContexts[0].command.name, "catalog.publicSearch");
+		assert.equal(resolverContexts[0].commandName, "catalog.publicSearch");
 
 		response = await dispatcher(wireRequest(manifest, "catalog.privateSearch", {
 			search: "private",
@@ -218,19 +224,49 @@ async function run() {
 		assert.equal(requests.length, 2);
 		assert.equal(resolverContexts.length, 2);
 		assert.equal(resolverContexts[1].principal.subject, "account-kate");
+		assert.deepEqual(Object.keys(resolverContexts[1]).sort(), [
+			"auth", "commandName", "origin", "permissions", "principal", "signal",
+		]);
+		assert.equal(Object.isFrozen(resolverContexts[1]), true);
+		assert.equal(Object.isFrozen(resolverContexts[1].permissions), true);
+		for (const forbidden of ["request", "cookie", "signature", "timestamp", "nonce", "input"]) {
+			assert.equal(
+				Object.hasOwn(resolverContexts[1], forbidden),
+				false,
+				`${forbidden} must not enter the backend resolver context`,
+			);
+		}
 		assert.equal(requests[1].url, "https://private.invalid/search");
 		assert.equal(requests[1].headers.get("Authorization"), `Bearer ${privateBackendToken}`);
 		assert.equal(requests[1].headers.has("X-Engine-Command"), false, "resolver must strip engine fingerprints");
 		assert.deepEqual(JSON.parse(requests[1].body), { search: "private" });
 		assert.equal(privateResultText.includes(privateBackendToken), false, "backend credentials must not reach the browser");
+		assert.equal(privateResultText.includes(sessionToken), false, "session credentials must not reach the browser");
 		assert.equal(privateResultText.includes("postgres.internal"), false, "private backend internals must be sanitized");
 
-		await publicAPI.resolveRequest({
+		response = await dispatcher(wireRequest(manifest, "catalog.privateSearch", {
+			search: "private",
+		}, {
+			now,
+			nonce: "backend_proving_nonce_0005",
+			cookie: `__Host-engine-session=${sessionToken}`,
+			origin: "https://untrusted.example.com",
+		}));
+		assert.equal(response.status, 403, "untrusted origins must fail before backend resolver creation");
+		assert.equal(requests.length, 2);
+		assert.equal(resolverContexts.length, 2);
+
+		const directAPI = new EngineAPIResolver(publicAPIConfig);
+		await directAPI.resolveRequest({
 			nodeOverrides: { endpoint: "https://ordinary.invalid/search", method: "POST" },
 			formData: { ignored: true },
 			input: false,
 		});
 		assert.equal(requests[2].body, "false", "explicit input must take precedence over the formData fallback");
+		assert.throws(
+			() => createNENCCommandAPIResolverFactory({}),
+			/resolve\(\) is required/,
+		);
 
 		console.log("Generation 3 NENC backend proving flows smoke: ok");
 	} finally {

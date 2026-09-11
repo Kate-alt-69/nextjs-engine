@@ -56,7 +56,7 @@ async execute({ input, api }) {
 }
 ```
 
-For private backends, configure a context-aware resolver factory in the server-only NENC handler. Authentication and permission checks complete before the factory runs, allowing each command to receive a narrowly scoped resolver without placing credentials in command declarations or browser code. Parse and select private backend results before returning them when internal fields must not reach the browser.
+For private backends, configure `createNENCCommandAPIResolverFactory()` in the server-only NENC handler. Authentication and permission checks complete before the factory runs, allowing each command to receive a narrowly scoped resolver without placing credentials in command declarations or browser code. The frozen factory context contains command metadata, principal, origin, and signal; it excludes the raw request, cookie, proof fields, and unvalidated input. Parse and select private backend results before returning them when internal fields must not reach the browser.
 
 ---
 

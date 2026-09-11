@@ -7,10 +7,10 @@ import { executeRegisteredEngineCommand } from "./EngineCommand";
 import { NENCReplayGuard } from "./NENCReplay";
 import type { NENCServerCommand } from "./NENCManifest";
 import type {
-	NENCAuthorizationContext,
 	NENCDispatcherOptions,
 	NENCRequestHandler,
 } from "./NENCDispatcherTypes";
+import type { NENCCommandAPIContext } from "./NENCCommandAPI";
 
 const DEFAULT_MAX_BODY = 64 * 1024;
 
@@ -77,10 +77,10 @@ async function readBody(request: Request, maxBodyBytes: number): Promise<{ raw: 
 	return { raw, value: JSON.parse(raw) as unknown };
 }
 
-function resolveAPI(
+async function resolveAPI(
 	options: NENCDispatcherOptions,
-	context: NENCAuthorizationContext,
-): EngineAPIResolver {
+	context: NENCCommandAPIContext,
+): Promise<EngineAPIResolver> {
 	return typeof options.api === "function" ? options.api(context) : options.api;
 }
 
@@ -118,9 +118,17 @@ async function executeCommand(
 		const allowed = await options.authorize(authorizationContext);
 		if (!allowed) return generic(403);
 	}
+	const apiContext: NENCCommandAPIContext = Object.freeze({
+		commandName: command.name,
+		auth: command.auth,
+		permissions: Object.freeze([...command.permissions]),
+		principal,
+		origin,
+		signal: request.signal,
+	});
 
 	const result = await executeRegisteredEngineCommand(command.name, input, {
-		api: resolveAPI(options, authorizationContext),
+		api: await resolveAPI(options, apiContext),
 		principal,
 		request,
 		origin,

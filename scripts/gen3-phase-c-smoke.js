@@ -32,6 +32,7 @@ const requiredFiles = [
 	"src/engine/core/nenc/NENCDeviceProof.ts",
 	"src/engine/core/nenc/NENCSessionAuth.ts",
 	"src/engine/core/nenc/NENCCommandSecurity.ts",
+	"src/engine/core/nenc/NENCCommandAPI.ts",
 	"src/engine/plugins/nencCompiler.js",
 	"src/engine/plugins/nencPlugin.js",
 	"src/engine/core/EngineCORS.ts",
@@ -70,6 +71,11 @@ check(commandSecurity.includes("NENCRateLimitStore"), "command rate limiting sup
 check(commandSecurity.includes("store-failure"), "rate-limit storage failures fail closed");
 check(commandSecurity.includes('this.rules["*"]'), "command security supports an explicit wildcard fallback policy");
 
+const commandAPI = read("src/engine/core/nenc/NENCCommandAPI.ts");
+check(commandAPI.includes("NENCCommandAPIContext"), "command API bridge exposes a request-scoped resolver context");
+check(!commandAPI.includes("request: Request"), "command API resolver context excludes the raw request");
+check(commandAPI.includes("new EngineAPIResolver"), "command API bridge creates isolated EngineAPIResolver instances");
+
 const command = read("src/engine/core/nenc/EngineCommand.ts");
 check(command.includes("validateEngineCommandInput"), "command input schemas are validated before execute()");
 check(command.includes("Object.create(null)"), "validated command input avoids prototype-bearing output objects");
@@ -78,7 +84,7 @@ check(command.includes("Command inspection is development-only"), "command intro
 check(command.includes("Invalid command request"), "unknown server commands return a generic failure");
 
 const dispatcher = read("src/engine/core/nenc/NENCDispatcher.ts");
-check(dispatcher.includes("resolveAPI(options, authorizationContext)"), "backend resolvers receive authorized command context");
+check(dispatcher.includes("await resolveAPI(options, apiContext)"), "backend resolvers receive sanitized authorized command context");
 
 const apiResolver = read("src/engine/core/EngineAPIResolver.ts");
 check(apiResolver.includes("input !== undefined ? input : formData"), "NENC command input reaches ordinary HTTP backends");

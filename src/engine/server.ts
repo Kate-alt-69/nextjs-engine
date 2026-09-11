@@ -24,6 +24,12 @@ export {
 export { createNENCDispatcher } from "./core/nenc/NENCDispatcher";
 export { createNENCDeviceSignatureVerifier } from "./core/nenc/NENCDeviceProof";
 export { createNENCAccountSessionPolicy, hashNENCSessionToken } from "./core/nenc/NENCSessionAuth";
+export { createNENCCommandAPIResolverFactory } from "./core/nenc/NENCCommandAPI";
+export type {
+	NENCCommandAPIContext,
+	NENCCommandAPIResolverFactory,
+	NENCCommandAPIResolverFactoryOptions,
+} from "./core/nenc/NENCCommandAPI";
 export {
 	NENCCommandSecurityPolicy,
 	NENCMemoryRateLimitStore,

@@ -121,7 +121,11 @@ optional signature verification
 ↓
 command authentication
 ↓
+per-command rate policy
+↓
 permission authorization
+↓
+sanitized API resolver factory
 ↓
 EngineCommand registry
 ↓
@@ -204,32 +208,40 @@ A rule's replay guard replaces the default guard for that command and namespaces
 
 ## Ordinary and private backend proving flows
 
-The dispatcher accepts an `EngineAPIResolver` or a context-aware resolver factory. The factory runs only after authentication, rate policy, and permission authorization succeed. Keep private backend credentials in the server-only handler module and select a narrowly scoped resolver from the authorized command context:
+The dispatcher accepts an `EngineAPIResolver` or a context-aware resolver factory. The factory runs only after authentication, rate policy, and permission authorization succeed. Keep private backend credentials in the server-only handler module and use `createNENCCommandAPIResolverFactory()` to select a narrowly scoped resolver from sanitized command context:
 
 ```ts
-const publicAPI = new EngineAPIResolver({
-	endpoint: "https://api.example.com/search",
-	method: "POST",
-	auth: { type: "none" },
-});
+import { createNENCCommandAPIResolverFactory } from "nextjs-engine/server";
 
-const privateAPI = new EngineAPIResolver({
-	endpoint: process.env.PRIVATE_SEARCH_URL,
-	method: "POST",
-	auth: { type: "bearer", token: process.env.PRIVATE_SEARCH_TOKEN },
+const api = createNENCCommandAPIResolverFactory({
+	resolve({ commandName, principal }) {
+		if (commandName === "catalog.publicSearch") {
+			return {
+				endpoint: "https://api.example.com/search",
+				method: "POST",
+				auth: { type: "none" },
+			};
+		}
+		if (commandName === "catalog.privateSearch" && principal) {
+			return {
+				endpoint: process.env.PRIVATE_SEARCH_URL,
+				method: "POST",
+				auth: { type: "bearer", token: process.env.PRIVATE_SEARCH_TOKEN },
+			};
+		}
+		throw new Error("No backend resolver is configured for this command.");
+	},
 });
 
 return createNENCDispatcher({
 	manifest,
 	authenticate: accountSessions.authenticate,
 	authorize: accountSessions.authorize,
-	api(context) {
-		if (context.command.name === "catalog.publicSearch") return publicAPI;
-		if (context.command.name === "catalog.privateSearch") return privateAPI;
-		throw new Error("No backend resolver is configured for this command.");
-	},
+	api,
 });
 ```
+
+The top-level factory context and permission list are frozen. Its only fields are the logical command name, auth mode, permissions, authenticated principal, normalized origin, and abort signal. It intentionally excludes the raw `Request`, cookie, signature, timestamp, nonce, and command input, so backend selection cannot accidentally retain browser credentials or make policy decisions from unvalidated input. Returning an `EngineAPIConfig` creates an isolated resolver for that command request; an existing `EngineAPIResolver` can also be returned when intentional sharing is safe.
 
 Command declarations stay credential-free and use the resolver selected by the server:
 
