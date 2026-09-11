@@ -200,6 +200,19 @@ async function resolveImage(city: string, width: number, height: number, slot: n
   return secondary ? { source: secondary.source, article: secondary.article } : fallbackLead;
 }
 
+function responseHeaders(type: string, length: number | null, article: string, width: number, height: number): Headers {
+  const headers = new Headers({
+    "Content-Type": type,
+    "Cache-Control": `public, max-age=${BROWSER_CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=${CACHE_SECONDS * 3}`,
+    "CDN-Cache-Control": `public, max-age=${CACHE_SECONDS}`,
+    "X-Roavio-Image-Source": "Wikipedia exact city article",
+    "X-Roavio-Image-Article": article,
+    "X-Roavio-Image-Target": `${width}x${height}`,
+  });
+  if (length !== null) headers.set("Content-Length", String(length));
+  return headers;
+}
+
 export async function GET(request: NextRequest) {
   const city = request.nextUrl.searchParams.get("city")?.trim();
   if (!city) return new Response("Missing city", { status: 400 });
@@ -221,23 +234,31 @@ export async function GET(request: NextRequest) {
       headers: { Accept: "image/avif,image/webp,image/*,*/*;q=0.7", "User-Agent": "RoavioProposal/1.0 (cached verified city photo proxy)" },
     });
     if (!upstream.ok) return new Response(null, { status: 404 });
-    const length = Number(upstream.headers.get("content-length") ?? 0);
-    if (length > MAX_SOURCE_BYTES) return new Response(null, { status: 413 });
+
+    const rawLength = upstream.headers.get("content-length");
+    const length = rawLength ? Number(rawLength) : null;
+    if (length !== null && Number.isFinite(length) && length > MAX_SOURCE_BYTES) {
+      return new Response(null, { status: 413 });
+    }
+
     const type = upstream.headers.get("content-type") ?? "image/jpeg";
     if (!type.startsWith("image/")) return new Response(null, { status: 415 });
+
+    // Width-bounded Wikimedia thumbnails normally expose Content-Length. Stream
+    // those directly so cards can start decoding while the remaining bytes are
+    // still arriving instead of waiting for an ArrayBuffer of the whole image.
+    if (upstream.body && length !== null && Number.isFinite(length)) {
+      return new Response(upstream.body, {
+        headers: responseHeaders(type, length, resolved.article, width, height),
+      });
+    }
+
+    // Unknown-length responses retain the hard byte ceiling before they are
+    // returned. This path is uncommon but keeps the proxy bounded defensively.
     const bytes = await upstream.arrayBuffer();
     if (bytes.byteLength > MAX_SOURCE_BYTES) return new Response(null, { status: 413 });
-
     return new Response(bytes, {
-      headers: {
-        "Content-Type": type,
-        "Content-Length": String(bytes.byteLength),
-        "Cache-Control": `public, max-age=${BROWSER_CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=${CACHE_SECONDS * 3}`,
-        "CDN-Cache-Control": `public, max-age=${CACHE_SECONDS}`,
-        "X-Roavio-Image-Source": "Wikipedia exact city article",
-        "X-Roavio-Image-Article": resolved.article,
-        "X-Roavio-Image-Target": `${width}x${height}`,
-      },
+      headers: responseHeaders(type, bytes.byteLength, resolved.article, width, height),
     });
   } catch {
     return new Response(null, { status: 502, headers: { "Cache-Control": "public, max-age=300, s-maxage=1800" } });
