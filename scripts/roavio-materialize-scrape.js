@@ -7,8 +7,18 @@ const cheerio = require("cheerio");
 // materializes those 90 known city routes and never discovers extra pages.
 const CITY_SLUGS = ["lisboa", "bangkok", "barcelona", "chiang-mai", "bali", "abu-dabi", "medellin", "auckland", "valencia", "belgrado", "almaty", "aman", "berlin", "bogota", "addis-abeba", "accra", "amsterdam", "atenas", "budapest", "braga", "ciudad-de-mexico", "buenos-aires", "el-cairo", "doha", "cusco", "dublin", "da-nang", "colombo", "panama", "copenhague", "cracovia", "hanoi", "estambul", "ciudad-del-cabo", "dubai", "ho-chi-minh", "marrakech", "hong-kong", "florencia", "guadalajara", "lima", "munich", "ljubljana", "londres", "milan", "kigali", "manila", "lagos", "montevideo", "madrid", "kuala-lumpur", "seattle", "santiago", "nairobi", "osaka", "rio-de-janeiro", "melbourne", "san-francisco", "perth", "mascate", "oslo", "paris", "praga", "playa-del-carmen", "miami", "roma", "riga", "sidney", "singapur", "suva", "pekin", "seul", "tirana", "varsovia", "oporto", "shenzhen", "sevilla", "split", "shanghai", "toronto", "taipei", "vancouver", "sofia", "tiflis", "viena", "wellington", "tallin", "tokio", "zanzibar", "yakarta"];
 
-if (CITY_SLUGS.length !== 90 || new Set(CITY_SLUGS).size !== 90) {
-  throw new Error(`[roavio] expected exactly 90 unique mapped city routes; got ${CITY_SLUGS.length}`);
+const EXPECTED_SIGNATURE = {
+  routes: 90,
+  cost: 65,
+  quality: 74,
+  safety: 68,
+  internet: 79,
+  beach: 35,
+  deep: 40,
+};
+
+if (CITY_SLUGS.length !== EXPECTED_SIGNATURE.routes || new Set(CITY_SLUGS).size !== EXPECTED_SIGNATURE.routes) {
+  throw new Error(`[roavio] expected exactly ${EXPECTED_SIGNATURE.routes} unique mapped city routes; got ${CITY_SLUGS.length}`);
 }
 
 const outputDir = path.join(process.cwd(), "content", "cities");
@@ -97,10 +107,10 @@ function numberMatch(text, expression) {
 
 function scrapedMetrics(strengths, considerations) {
   const text = [...strengths, ...considerations].join(" ");
-  const currency = text.match(/\b([A-Z]{3})\s*([\d.,]+)\s*\/(?:mes|mo)/i);
-  const euro = text.match(/([\d.,]+)\s*€\s*\/mes/i);
+  const cost = text.match(/Coste de vida (?:bajo|alto)\s*([A-Z]{3})\s*([\d.,]+)\s*\/(?:mes|mo)/i);
+  const euro = text.match(/Coste de vida (?:bajo|alto)\s*([\d.,]+)\s*€\s*\/mes/i);
   return {
-    cost: currency ? `${currency[1].toUpperCase()} ${currency[2]}/mo` : euro ? `EUR ${euro[1]}/mo` : null,
+    cost: cost ? `${cost[1].toUpperCase()} ${cost[2]}/mo` : euro ? `EUR ${euro[1]}/mo` : null,
     internet: numberMatch(text, /(?:Internet rápido|Internet por debajo de la media)\s*(\d+(?:[.,]\d+)?)\s*Mbps/i),
     safety: numberMatch(text, /Índice de seguridad\s*(\d+(?:[.,]\d+)?)\s*\/10/i),
     quality: numberMatch(text, /(?:Alta calidad de vida|Calidad de vida por debajo de la media)\s*(\d+(?:[.,]\d+)?)\s*\/10/i),
@@ -177,6 +187,7 @@ async function importCity(slug) {
   }
 
   const counts = {
+    routes: results.length,
     cost: results.filter((r) => r.metrics.cost !== null).length,
     quality: results.filter((r) => r.metrics.quality !== null).length,
     safety: results.filter((r) => r.metrics.safety !== null).length,
@@ -185,7 +196,13 @@ async function importCity(slug) {
     deep: results.filter((r) => r.deep).length,
   };
 
-  console.log(`[roavio] materialized ${results.length} mapped city routes.`);
+  for (const [key, expected] of Object.entries(EXPECTED_SIGNATURE)) {
+    if (counts[key] !== expected) {
+      throw new Error(`[roavio] mapped signature drift for ${key}: expected ${expected}, got ${counts[key]}`);
+    }
+  }
+
+  console.log(`[roavio] materialized ${counts.routes} mapped city routes.`);
   console.log(`[roavio] explicit metrics: ${counts.cost} cost · ${counts.quality} quality · ${counts.safety} safety · ${counts.internet} internet · ${counts.beach} beach.`);
   console.log(`[roavio] deep editorial guides: ${counts.deep}.`);
 })().catch((error) => {
