@@ -4,7 +4,7 @@ import { EngineImage } from "@/engine";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cityImage, cityInitials } from "./visuals";
 
-const CITY_PHOTO_VERSION = "3";
+const CITY_PHOTO_VERSION = "4";
 
 function cityProxySource(city: string, country: string, slot: number, width: number): string {
   const params = new URLSearchParams({
