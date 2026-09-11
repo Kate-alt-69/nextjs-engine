@@ -2,7 +2,7 @@
 
 import { EngineDrawer, EngineManim, EngineTransitionLink } from "@/engine";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { copyFor, type RoavioLocale } from "./i18n";
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
@@ -62,13 +62,6 @@ export function RoavioMobileNav({ locale }: { locale: RoavioLocale }) {
     { label: copy.favorites, href: "/favoritos" },
   ];
 
-  const drawerStyle = {
-    "--e-overlay-bg": "color-mix(in srgb, var(--rv-card) 96%, transparent)",
-    "--e-overlay-color": "var(--rv-ink)",
-    "--e-overlay-border": "var(--rv-line)",
-    "--e-overlay-shadow": "0 28px 90px rgba(0,0,0,.34)",
-  } as CSSProperties;
-
   const chooseLocale = (next: RoavioLocale) => {
     if (next === locale) {
       setOpen(false);
@@ -96,7 +89,6 @@ export function RoavioMobileNav({ locale }: { locale: RoavioLocale }) {
         restoreFocus
         zIndex={2200}
         className="rv-mobile-nav-drawer"
-        style={drawerStyle}
         overlayStyle={{ background: "rgba(2,10,7,.56)", backdropFilter: "blur(10px) saturate(.86)" }}
         triggerClassName="rv-mobile-nav-trigger"
         triggerAriaLabel={locale === "es" ? "Abrir navegación" : "Open navigation"}
