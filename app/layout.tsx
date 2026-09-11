@@ -6,6 +6,7 @@ import "./roavio/polish.css";
 import "./roavio/brand.css";
 import "./roavio/ux.css";
 import "./roavio/mobile.css";
+import "./roavio/responsive-v2.css";
 
 export const metadata: Metadata = {
   title: {
@@ -34,9 +35,6 @@ const THEME_BOOT = `(() => {
     let saved = get('rv_theme');
     const system = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 
-    // Builds before the system-theme pass wrote rv_theme without a marker.
-    // Ignore that legacy value once so an existing localhost session really
-    // returns to automatic device preference after updating.
     if (marker !== 'manual') {
       saved = null;
       document.cookie = 'rv_theme=; Path=/; Max-Age=0; SameSite=Lax';
@@ -47,9 +45,6 @@ const THEME_BOOT = `(() => {
     document.documentElement.dataset.rvThemeSource = saved === 'dark' || saved === 'light' ? 'user' : 'system';
     document.documentElement.style.colorScheme = mode;
 
-    // Mark subsequent clicks as intentional user overrides. PreferencesShell
-    // writes rv_theme during the same click, so the next load can distinguish
-    // an explicit choice from the legacy cookie above.
     document.addEventListener('click', (event) => {
       const target = event.target && event.target.closest ? event.target.closest('.rv-theme-toggle') : null;
       if (!target) return;
