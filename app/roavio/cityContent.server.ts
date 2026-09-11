@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { cities, citySlug } from "./cities";
+import type { CityCatalogEntry } from "./catalog";
 
 export interface CityMetrics {
   cost: string | null;
@@ -86,12 +87,13 @@ export async function loadCityContent(slug: string): Promise<CityContent | null>
 
   const guide = (await readText(path.join(contentRoot, slug, "guide.md")))?.trim() ?? "";
   const scraped = profile?.scrapedMetrics ?? {};
+
   const metrics: CityMetrics = {
-    cost: metricCity?.cost ?? scraped.cost ?? null,
-    quality: metricCity?.quality ?? scraped.quality ?? null,
-    safety: metricCity?.safety ?? scraped.safety ?? null,
-    internet: metricCity?.internet ?? scraped.internet ?? null,
-    beach: metricCity?.beach ?? scraped.beach ?? null,
+    cost: scraped.cost ?? metricCity?.cost ?? null,
+    quality: scraped.quality ?? metricCity?.quality ?? null,
+    safety: scraped.safety ?? metricCity?.safety ?? null,
+    internet: scraped.internet ?? metricCity?.internet ?? null,
+    beach: scraped.beach ?? metricCity?.beach ?? null,
   };
 
   return {
@@ -100,8 +102,8 @@ export async function loadCityContent(slug: string): Promise<CityContent | null>
     country: profile?.country ?? metricCity!.country,
     continent: profile?.continent ?? metricCity!.continent,
     summary: profile?.summary?.trim() ?? "",
-    strengths: Array.isArray(profile?.strengths) ? profile!.strengths! : [],
-    considerations: Array.isArray(profile?.considerations) ? profile!.considerations! : [],
+    strengths: Array.isArray(profile?.strengths) ? profile.strengths : [],
+    considerations: Array.isArray(profile?.considerations) ? profile.considerations : [],
     sourceUrl: profile?.sourceUrl ?? null,
     sourceTitle: profile?.sourceTitle ?? null,
     hasDeepGuide: profile?.hasDeepGuide === true,
@@ -109,4 +111,25 @@ export async function loadCityContent(slug: string): Promise<CityContent | null>
     guide,
     metrics,
   };
+}
+
+export async function loadCityCatalog(): Promise<CityCatalogEntry[]> {
+  const slugs = await getCitySlugs();
+  const loaded = await Promise.all(slugs.map((slug) => loadCityContent(slug)));
+
+  return loaded
+    .filter((city): city is CityContent => city !== null)
+    .map((city) => ({
+      slug: city.slug,
+      city: city.name,
+      country: city.country,
+      continent: city.continent,
+      cost: city.metrics.cost,
+      quality: city.metrics.quality,
+      safety: city.metrics.safety,
+      internet: city.metrics.internet,
+      beach: city.metrics.beach,
+      hasDeepGuide: city.hasDeepGuide,
+    }))
+    .sort((a, b) => a.city.localeCompare(b.city, "es"));
 }
