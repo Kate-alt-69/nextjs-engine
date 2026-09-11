@@ -12,7 +12,7 @@ export const featuredImages: Record<string, string> = {
   singapur: "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?q=78&w=960&auto=format&fit=crop",
   sidney: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?q=78&w=960&auto=format&fit=crop",
   roma: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=78&w=960&auto=format&fit=crop",
-  san-francisco: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?q=78&w=960&auto=format&fit=crop",
+  "san-francisco": "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?q=78&w=960&auto=format&fit=crop",
   miami: "https://images.unsplash.com/photo-1506966953602-c20cc11f75e3?q=78&w=960&auto=format&fit=crop",
   seul: "https://images.unsplash.com/photo-1517154421773-0529f29ea451?q=78&w=960&auto=format&fit=crop",
   praga: "https://images.unsplash.com/photo-1541849546-216549ae216d?q=78&w=960&auto=format&fit=crop",

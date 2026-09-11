@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { normalizeRoavioLocale } from "../../../roavio/i18n";
+import { normalizeRoavioLocale } from "../../roavio/i18n";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ locale: string }> }) {
   const { locale: rawLocale } = await params;
