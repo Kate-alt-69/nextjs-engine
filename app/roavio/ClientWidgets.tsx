@@ -73,7 +73,7 @@ function CityResultCard({ city, favorite, compared, onFavorite, onCompare }: {
       </div>
       <div className="rv-card-actions">
         <button className="rv-icon-btn" type="button" data-active={favorite} onClick={onFavorite} aria-label={favorite ? "Quitar de favoritos" : "Guardar favorito"}>{favorite ? "♥ Saved" : "♡ Save"}</button>
-        <button className="rv-icon-btn" type="button" data-active={compared} onClick={onCompare} disabled={!compared && false}>{compared ? "✓ Compare" : "+ Compare"}</button>
+        <button className="rv-icon-btn" type="button" data-active={compared} onClick={onCompare}>{compared ? "✓ Compare" : "+ Compare"}</button>
         <Link className="rv-icon-btn" href={`/cities/${slug}`} style={{ marginLeft: "auto", textDecoration: "none" }}>Open ↗</Link>
       </div>
     </article>
@@ -88,6 +88,12 @@ export function Explorer({ initialSearch = "" }: { initialSearch?: string }) {
   const [compare, setCompare] = useState<string[]>([]);
   const { favorites, toggle } = useFavorites();
   const continents = ["All", ...Array.from(new Set(cities.map((city) => city.continent)))];
+
+  useEffect(() => {
+    if (initialSearch) return;
+    const fromUrl = new URLSearchParams(window.location.search).get("search");
+    if (fromUrl) setQuery(fromUrl);
+  }, [initialSearch]);
 
   const results = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -151,10 +157,26 @@ const metrics: Array<{ label: string; key: keyof Pick<RoavioCity, "quality" | "s
   { label: "Internet", key: "internet", suffix: " Mbps" }
 ];
 
+function indexesForSlugs(slugs: string[], fallback: number[]): number[] {
+  const indexes = slugs.map((slug) => cities.findIndex((city) => citySlug(city.city) === slug)).filter((index) => index >= 0).slice(0, 3);
+  for (const index of fallback) {
+    if (indexes.length >= 3) break;
+    if (!indexes.includes(index)) indexes.push(index);
+  }
+  return indexes.slice(0, 3);
+}
+
 export function CompareBoard({ initialSlugs = ["valencia", "lisboa", "bali"] }: { initialSlugs?: string[] }) {
-  const defaultIndexes = initialSlugs.slice(0, 3).map((slug) => Math.max(0, cities.findIndex((city) => citySlug(city.city) === slug)));
-  const [selected, setSelected] = useState<number[]>([defaultIndexes[0] ?? 0, defaultIndexes[1] ?? 1, defaultIndexes[2] ?? 2]);
+  const fallback = indexesForSlugs(initialSlugs, [0, 1, 2]);
+  const [selected, setSelected] = useState<number[]>(fallback);
   const chosen = selected.map((index) => cities[index]);
+
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get("cities");
+    if (!raw) return;
+    const fromUrl = indexesForSlugs(raw.split(",").map((value) => value.trim()).filter(Boolean), fallback);
+    setSelected(fromUrl);
+  }, []);
 
   const update = (slot: number, cityIndex: number) => setSelected((current) => current.map((value, index) => index === slot ? cityIndex : value));
 
