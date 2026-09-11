@@ -58,7 +58,7 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
   const es = locale === "es";
   const sourceCopy = copyFor(locale).sourceLanguage;
   const score = fitScore(city);
-  const cityBackdrop = `/api/city-photo?city=${encodeURIComponent(city.name)}&country=${encodeURIComponent(city.country)}&slot=0&width=960&height=540&v=7`;
+  const cityBackdrop = `/api/city-photo?city=${encodeURIComponent(city.name)}&country=${encodeURIComponent(city.country)}&slot=0&width=480&height=270&v=7`;
   const labels = {
     monthlyCost: es ? "Coste mensual" : "Monthly cost",
     internet: "Internet",
