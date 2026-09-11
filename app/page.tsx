@@ -1,4 +1,4 @@
-import { createPage, defineSchema } from "@/engine";
+import { createPage, defineSchema, type SchemaNode } from "@/engine";
 import { CityShowcase } from "./roavio/CityShowcase";
 import { HeroSearch } from "./roavio/ClientWidgets";
 import { loadCityCatalog } from "./roavio/cityContent.server";
@@ -6,9 +6,54 @@ import { copyFor, type RoavioLocale } from "./roavio/i18n";
 import { getRoavioLocale } from "./roavio/locale.server";
 import { createFooterNode, createRoavioNav, roavioTheme } from "./roavio/theme";
 
+function statCards(locale: RoavioLocale): SchemaNode[] {
+  const es = locale === "es";
+  const stats = [
+    ["90", es ? "ciudades mapeadas" : "mapped cities", "var(--rv-lime)"],
+    ["407 Mbps", es ? "conexión más rápida" : "fastest connection", "var(--rv-blue)"],
+    ["8.9/10", es ? "mejor seguridad" : "top safety score", "var(--rv-peach)"],
+    ["6", es ? "continentes" : "continents", "var(--rv-yellow)"],
+  ] as const;
+
+  return stats.map(([value, label, accent]) => ({
+    type: "card",
+    key: label,
+    props: { variant: "flat", innerPadding: "1rem", bg: "var(--rv-card)", border: "1px solid var(--rv-line)", borderRadius: "20px" },
+    children: [
+      { type: "box", props: { w: "2rem", h: ".35rem", borderRadius: "99px", bg: accent } },
+      { type: "text", props: { content: value, size: { xs: "1.55rem", md: "2rem" }, weight: 800, mt: ".8rem", fontFamily: "Manrope" } },
+      { type: "text", props: { content: label, size: ".78rem", color: "var(--rv-muted)" } },
+    ],
+  }));
+}
+
+function decisionCards(locale: RoavioLocale): SchemaNode[] {
+  const es = locale === "es";
+  const cards = [
+    ["01", es ? "Elige lo que importa" : "Choose what matters", es ? "Presupuesto, seguridad, velocidad, playa y calidad siguen filtrables." : "Budget, safety, speed, beach and quality stay filterable."],
+    ["02", es ? "Compara con contexto" : "Compare in context", es ? "Hasta tres destinos con ganadores por métrica." : "Up to three destinations with metric winners."],
+    ["03", es ? "Lee menos, entiende más" : "Read less, know more", es ? "Las guías largas se convierten en dossiers navegables." : "Long guides become navigable dossiers."],
+    ["04", es ? "Confía en los números" : "Trust the numbers", es ? "Los datos ausentes no se rellenan con ficción." : "Missing data stays missing instead of becoming fiction."],
+  ] as const;
+
+  return cards.map(([number, title, body]) => ({
+    type: "card",
+    key: number,
+    props: { variant: "flat", innerPadding: "1rem", bg: "var(--rv-card)", border: "1px solid var(--rv-line)", borderRadius: "20px" },
+    children: [
+      { type: "text", props: { content: number, variant: "overline", color: "var(--rv-green)", weight: 800 } },
+      { type: "text", props: { content: title, size: "1.05rem", weight: 800, mt: ".65rem" } },
+      { type: "text", props: { content: body, size: ".82rem", color: "var(--rv-muted)", lineHeight: 1.6, mt: ".4rem" } },
+    ],
+  }));
+}
+
 function createHomeSchema(locale: RoavioLocale) {
   const copy = copyFor(locale).home;
   const es = locale === "es";
+  const stats = statCards(locale);
+  const decisions = decisionCards(locale);
+
   return defineSchema({
     meta: {
       title: es ? "Roavio — Encuentra tu próxima ciudad nómada" : "Roavio — Find your next nomad city",
@@ -65,20 +110,7 @@ function createHomeSchema(locale: RoavioLocale) {
         {
           type: "section",
           props: { contentMaxWidth: "1240px", px: "1rem", py: { xs: "1rem", md: "2rem" } },
-          children: [{
-            type: "grid", props: { columns: { xs: 2, md: 4 }, gap: ".8rem" }, children: [
-              ["90", es ? "ciudades mapeadas" : "mapped cities", "var(--rv-lime)"],
-              ["407 Mbps", es ? "conexión más rápida" : "fastest connection", "var(--rv-blue)"],
-              ["8.9/10", es ? "mejor seguridad" : "top safety score", "var(--rv-peach)"],
-              ["6", es ? "continentes" : "continents", "var(--rv-yellow)"],
-            ].map(([value, label, accent]) => ({
-              type: "card", key: label, props: { variant: "flat", innerPadding: "1rem", bg: "var(--rv-card)", border: "1px solid var(--rv-line)", borderRadius: "20px" }, children: [
-                { type: "box", props: { w: "2rem", h: ".35rem", borderRadius: "99px", bg: accent } },
-                { type: "text", props: { content: value, size: { xs: "1.55rem", md: "2rem" }, weight: 800, mt: ".8rem", fontFamily: "Manrope" } },
-                { type: "text", props: { content: label, size: ".78rem", color: "var(--rv-muted)" } },
-              ],
-            })),
-          }],
+          children: [{ type: "grid", props: { columns: { xs: 2, md: 4 }, gap: ".8rem" }, children: stats }],
         },
         {
           type: "section",
@@ -99,27 +131,21 @@ function createHomeSchema(locale: RoavioLocale) {
           type: "section",
           props: { contentMaxWidth: "1240px", px: "1rem", py: { xs: "3rem", md: "4.5rem" } },
           children: [{
-            type: "grid", props: { columns: { xs: 1, md: 2 }, gap: "1rem" }, children: [
-              { type: "card", props: { variant: "flat", innerPadding: "1.5rem", bg: "var(--rv-ink)", color: "var(--rv-paper)", borderRadius: "26px", style: { minHeight: "320px" } }, children: [
-                { type: "text", props: { content: "DECISION LAYER", variant: "overline", color: "var(--rv-lime)", weight: 800 } },
-                { type: "heading", props: { level: 2, content: es ? "Los rankings explican por qué, no solo quién gana." : "Rankings explain why — not just who won.", size: { xs: "2rem", md: "2.8rem" }, color: "var(--rv-paper)", style: { margin: ".8rem 0" } } },
-                { type: "text", props: { content: es ? "El encaje Roavio combina señales útiles mientras las métricas originales siguen visibles y comparables." : "Roavio Fit combines useful signals while the original source metrics stay visible and comparable.", color: "var(--rv-muted)", lineHeight: 1.7 } },
-                { type: "button", props: { href: "/compare", label: es ? "Abrir comparación" : "Open comparison", variant: "elevated", accentColor: "var(--rv-lime)", color: "#10231f", mt: "1.4rem" } },
-              ] },
-              { type: "grid", props: { columns: 2, gap: ".8rem" }, children: [
-                ["01", es ? "Elige lo que importa" : "Choose what matters", es ? "Presupuesto, seguridad, velocidad, playa y calidad siguen filtrables." : "Budget, safety, speed, beach and quality stay filterable."],
-                ["02", es ? "Compara con contexto" : "Compare in context", es ? "Hasta tres destinos con ganadores por métrica." : "Up to three destinations with metric winners."],
-                ["03", es ? "Lee menos, entiende más" : "Read less, know more", es ? "Las guías largas se convierten en dossiers navegables." : "Long guides become navigable dossiers."],
-                ["04", es ? "Confía en los números" : "Trust the numbers", es ? "Los datos ausentes no se rellenan con ficción." : "Missing data stays missing instead of becoming fiction."],
-              ].map(([number, title, body]) => ({
-                type: "card", key: number, props: { variant: "flat", innerPadding: "1rem", bg: "var(--rv-card)", border: "1px solid var(--rv-line)", borderRadius: "20px" }, children: [
-                  { type: "text", props: { content: number, variant: "overline", color: "var(--rv-green)", weight: 800 } },
-                  { type: "text", props: { content: title, size: "1.05rem", weight: 800, mt: ".65rem" } },
-                  { type: "text", props: { content: body, size: ".82rem", color: "var(--rv-muted)", lineHeight: 1.6, mt: ".4rem" } },
+            type: "grid",
+            props: { columns: { xs: 1, md: 2 }, gap: "1rem" },
+            children: [
+              {
+                type: "card",
+                props: { variant: "flat", innerPadding: "1.5rem", bg: "var(--rv-ink)", color: "var(--rv-paper)", borderRadius: "26px", style: { minHeight: "320px" } },
+                children: [
+                  { type: "text", props: { content: "DECISION LAYER", variant: "overline", color: "var(--rv-lime)", weight: 800 } },
+                  { type: "heading", props: { level: 2, content: es ? "Los rankings explican por qué, no solo quién gana." : "Rankings explain why — not just who won.", size: { xs: "2rem", md: "2.8rem" }, color: "var(--rv-paper)", style: { margin: ".8rem 0" } } },
+                  { type: "text", props: { content: es ? "El encaje Roavio combina señales útiles mientras las métricas originales siguen visibles y comparables." : "Roavio Fit combines useful signals while the original source metrics stay visible and comparable.", color: "var(--rv-muted)", lineHeight: 1.7 } },
+                  { type: "button", props: { href: "/compare", label: es ? "Abrir comparación" : "Open comparison", variant: "elevated", accentColor: "var(--rv-lime)", color: "#10231f", mt: "1.4rem" } },
                 ],
-              })),
               },
-            ] },
+              { type: "grid", props: { columns: 2, gap: ".8rem" }, children: decisions },
+            ],
           }],
         },
         createFooterNode(locale),
