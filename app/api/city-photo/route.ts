@@ -6,6 +6,7 @@ const MAX_SOURCE_BYTES = 8 * 1024 * 1024;
 
 const REJECT_MEDIA_TITLE = /\b(flag|map|locator|location|seal|coat[ _-]?of[ _-]?arms|logo|icon|diagram|route|metro|subway|districts?|boroughs?|portrait|player|athlete|politician|mayor|president|football|rugby|cricket|marathon|runner|race|team|jersey|medal|election|signature)\b/i;
 const CITY_MEDIA_HINT = /\b(skyline|cityscape|panorama|panoramic|aerial|downtown|waterfront|harbou?r|corniche|street|avenue|boulevard|old[ _-]?town|centre|center|architecture|tower|towers|landmark|mosque|cathedral|temple|palace|square|plaza|bay|beach|marina|river|bridge|night|city|urban)\b/i;
+const LANDMARK_MEDIA_HINT = /\b(landmark|monument|tower|towers|mosque|cathedral|church|temple|palace|castle|fort|museum|square|plaza|bridge|gate|old[ _-]?town|historic|heritage|waterfront|marina|corniche|avenue|boulevard|promenade|market|bazaar|garden|park)\b/i;
 
 type ArticleImage = { title: string };
 type ArticlePage = {
@@ -58,12 +59,23 @@ function folded(value: string): string {
     .toLowerCase();
 }
 
-function mediaTitleScore(title: string, city: string): number {
+function mediaTitleScore(title: string, city: string, slot: number): number {
   if (REJECT_MEDIA_TITLE.test(title) || /\.svg(?:\?|$)/i.test(title)) return -1000;
   const normalized = folded(title);
   const normalizedCity = folded(city);
   let score = CITY_MEDIA_HINT.test(normalized) ? 8 : 0;
   if (normalized.includes(normalizedCity)) score += 12;
+
+  if (slot === 1) {
+    // The secondary hero image is intentionally not "another skyline". Prefer a
+    // representative landmark/place attached to the exact city article so the
+    // inset reads like a best-known local highlight.
+    if (LANDMARK_MEDIA_HINT.test(normalized)) score += 30;
+    if (/\b(street|architecture|old town|waterfront|marina|bridge|market|garden|park)\b/i.test(normalized)) score += 10;
+    if (/\b(skyline|cityscape|panorama|aerial|downtown)\b/i.test(normalized)) score += 3;
+    return score;
+  }
+
   if (/\b(skyline|cityscape|panorama|aerial|downtown|waterfront|harbou?r|corniche)\b/i.test(normalized)) score += 16;
   if (/\b(street|architecture|landmark|square|plaza|marina|bridge|old town)\b/i.test(normalized)) score += 7;
   return score;
@@ -134,9 +146,9 @@ async function imageInfo(titles: string[], width: number, height: number): Promi
   return result;
 }
 
-async function articleMedia(page: ArticlePage, city: string, width: number, height: number): Promise<RankedMedia[]> {
+async function articleMedia(page: ArticlePage, city: string, width: number, height: number, slot: number): Promise<RankedMedia[]> {
   const scored = (page.images ?? [])
-    .map((image) => ({ title: image.title, score: mediaTitleScore(image.title, city) }))
+    .map((image) => ({ title: image.title, score: mediaTitleScore(image.title, city, slot) }))
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, 30);
@@ -173,7 +185,7 @@ async function resolveImage(city: string, width: number, height: number, slot: n
     let best: { source: string; score: number; article: string } | null = null;
     for (const { language, page } of pages) {
       try {
-        for (const item of await articleMedia(page, city, width, height)) {
+        for (const item of await articleMedia(page, city, width, height, 0)) {
           if (!best || item.score > best.score) best = { source: item.source, score: item.score, article: `${language}:${page.title ?? city}` };
         }
       } catch {
@@ -189,7 +201,7 @@ async function resolveImage(city: string, width: number, height: number, slot: n
     const lead = safeLead(page);
     if (!fallbackLead && lead) fallbackLead = { source: lead, article: `${language}:${page.title ?? city}` };
     try {
-      for (const item of await articleMedia(page, city, width, height)) {
+      for (const item of await articleMedia(page, city, width, height, 1)) {
         if (item.source === lead) continue;
         if (!secondary || item.score > secondary.score) secondary = { source: item.source, score: item.score, article: `${language}:${page.title ?? city}` };
       }
@@ -244,17 +256,12 @@ export async function GET(request: NextRequest) {
     const type = upstream.headers.get("content-type") ?? "image/jpeg";
     if (!type.startsWith("image/")) return new Response(null, { status: 415 });
 
-    // Width-bounded Wikimedia thumbnails normally expose Content-Length. Stream
-    // those directly so cards can start decoding while the remaining bytes are
-    // still arriving instead of waiting for an ArrayBuffer of the whole image.
     if (upstream.body && length !== null && Number.isFinite(length)) {
       return new Response(upstream.body, {
         headers: responseHeaders(type, length, resolved.article, width, height),
       });
     }
 
-    // Unknown-length responses retain the hard byte ceiling before they are
-    // returned. This path is uncommon but keeps the proxy bounded defensively.
     const bytes = await upstream.arrayBuffer();
     if (bytes.byteLength > MAX_SOURCE_BYTES) return new Response(null, { status: 413 });
     return new Response(bytes, {
