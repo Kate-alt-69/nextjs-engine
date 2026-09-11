@@ -33,6 +33,16 @@ type CommonsImagePage = {
   title?: string;
   imageinfo?: CommonsImageInfo[];
 };
+type RankedMedia = {
+  source: string;
+  title: string;
+  score: number;
+};
+type ResolvedCandidate = {
+  source: string;
+  score: number;
+  article: string;
+};
 
 function clampWidth(raw: string | null): number {
   const parsed = Number(raw ?? 960);
@@ -54,21 +64,19 @@ function folded(value: string): string {
 }
 
 function mediaTitleScore(title: string, city: string): number {
-  if (REJECT_MEDIA_TITLE.test(title)) return -1000;
+  if (REJECT_MEDIA_TITLE.test(title) || /\.svg(?:\?|$)/i.test(title)) return -1000;
   const normalized = folded(title);
   const normalizedCity = folded(city);
   let score = CITY_MEDIA_HINT.test(normalized) ? 8 : 0;
   if (normalized.includes(normalizedCity)) score += 12;
-  if (/\b(skyline|cityscape|panorama|aerial|downtown|waterfront|harbou?r|corniche)\b/i.test(normalized)) score += 8;
-  if (/\b(street|architecture|landmark|square|plaza|marina|bridge|old town)\b/i.test(normalized)) score += 4;
+  if (/\b(skyline|cityscape|panorama|aerial|downtown|waterfront|harbou?r|corniche)\b/i.test(normalized)) score += 16;
+  if (/\b(street|architecture|landmark|square|plaza|marina|bridge|old town)\b/i.test(normalized)) score += 7;
   return score;
 }
 
 function isUsefulAspect(width?: number, height?: number): boolean {
   if (!width || !height) return true;
   const ratio = width / height;
-  // Destination cards are landscape. Reject obvious portraits and very wide
-  // diagrams/banners even when their filename looks innocent.
   return ratio >= 1.08 && ratio <= 3.25;
 }
 
@@ -96,15 +104,13 @@ async function exactArticle(language: "es" | "en", city: string, width: number):
   if (!response.ok) return null;
 
   const data = await response.json() as { query?: { pages?: ArticlePage[] } };
-  const page = data.query?.pages?.find((candidate) => !candidate.missing && candidate.ns === 0);
-  return page ?? null;
+  return data.query?.pages?.find((candidate) => !candidate.missing && candidate.ns === 0) ?? null;
 }
 
 async function imageInfo(titles: string[], width: number): Promise<Map<string, CommonsImageInfo>> {
   const result = new Map<string, CommonsImageInfo>();
   if (!titles.length) return result;
 
-  // MediaWiki's titles parameter is intentionally chunked below its API limit.
   for (let start = 0; start < titles.length; start += 40) {
     const batch = titles.slice(start, start + 40);
     const params = new URLSearchParams({
@@ -134,61 +140,83 @@ async function imageInfo(titles: string[], width: number): Promise<Map<string, C
   return result;
 }
 
-async function articleMedia(page: ArticlePage, city: string, width: number): Promise<string[]> {
+async function articleMedia(page: ArticlePage, city: string, width: number): Promise<RankedMedia[]> {
   const scored = (page.images ?? [])
     .map((image) => ({ title: image.title, score: mediaTitleScore(image.title, city) }))
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 30);
+    .slice(0, 36);
 
   const infos = await imageInfo(scored.map((item) => item.title), width);
-  const urls: string[] = [];
+  const media: RankedMedia[] = [];
   for (const item of scored) {
     const info = infos.get(item.title);
     if (!info) continue;
     if (info.mime && !/^image\/(?:jpeg|png|webp|avif)$/i.test(info.mime)) continue;
     if (!isUsefulAspect(info.thumbwidth ?? info.width, info.thumbheight ?? info.height)) continue;
-    const url = info.thumburl ?? info.url;
-    if (url && !urls.includes(url)) urls.push(url);
+    const source = info.thumburl ?? info.url;
+    if (!source || media.some((entry) => entry.source === source)) continue;
+    media.push({ source, title: item.title, score: item.score });
   }
-  return urls;
+  return media;
 }
 
-async function resolveFromArticle(page: ArticlePage, city: string, width: number, slot: number): Promise<string | null> {
+async function candidatesFromArticle(
+  language: "es" | "en",
+  page: ArticlePage,
+  city: string,
+  width: number,
+  slot: number,
+): Promise<ResolvedCandidate[]> {
+  const article = `${language}:${page.title ?? city}`;
   const pageImageSafe = page.pageimage
     ? !REJECT_MEDIA_TITLE.test(page.pageimage) && !/\.svg(?:\?|$)/i.test(page.pageimage)
     : false;
-  const thumbnailSafe = Boolean(
+  const leadSafe = Boolean(
     pageImageSafe &&
     page.thumbnail?.source &&
     isUsefulAspect(page.thumbnail.width, page.thumbnail.height),
   );
-  const lead = thumbnailSafe ? page.thumbnail!.source! : null;
+  const lead = leadSafe ? page.thumbnail!.source! : null;
   const media = await articleMedia(page, city, width);
+  const candidates: ResolvedCandidate[] = [];
 
-  if (slot === 0) return lead ?? media[0] ?? null;
+  if (slot === 0) {
+    // A landscape lead image from the exact city article is the strongest signal.
+    if (lead) candidates.push({ source: lead, score: 100, article });
+    for (const item of media) {
+      candidates.push({ source: item.source, score: 55 + item.score, article });
+    }
+  } else {
+    // For the blurred page background prefer a distinct cityscape/landmark from
+    // the same article. Reusing the verified lead is the safe final fallback.
+    for (const item of media) {
+      if (item.source !== lead) candidates.push({ source: item.source, score: 70 + item.score, article });
+    }
+    if (lead) candidates.push({ source: lead, score: 25, article });
+  }
 
-  // A second city image is only used when it comes from the same city article.
-  // If no trustworthy second image exists, reusing the verified lead image is
-  // intentionally better than displaying unrelated search-result media.
-  const secondary = media.find((url) => url !== lead);
-  return secondary ?? lead ?? media[0] ?? null;
+  return candidates;
 }
 
-async function resolveImage(city: string, width: number, slot: number): Promise<{ source: string; article: string } | null> {
-  // The catalog uses Spanish-facing city names, so Spanish Wikipedia is the
-  // most reliable exact-title source. English is a safe exact-title fallback.
+async function resolveImage(city: string, width: number, slot: number): Promise<ResolvedCandidate | null> {
+  const candidates: ResolvedCandidate[] = [];
+
+  // Compare the Spanish and English exact-title articles instead of accepting
+  // the first vaguely useful hit. This handles translated city names such as
+  // Abu Dabi/Copenhagen while keeping all media anchored to the real city page.
   for (const language of ["es", "en"] as const) {
     try {
       const page = await exactArticle(language, city, width);
       if (!page) continue;
-      const source = await resolveFromArticle(page, city, width, slot);
-      if (source) return { source, article: `${language}:${page.title ?? city}` };
+      candidates.push(...await candidatesFromArticle(language, page, city, width, slot));
     } catch {
-      // Try the next exact-language article; never fall back to arbitrary search.
+      // A failed language source does not make arbitrary global search safe.
     }
   }
-  return null;
+
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0] ?? null;
 }
 
 export async function GET(request: NextRequest) {
