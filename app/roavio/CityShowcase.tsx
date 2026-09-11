@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { EngineTransitionLink } from "@/engine";
 import { catalogFitScore, type CityCatalogEntry } from "./catalog";
 import type { RoavioLocale } from "./i18n";
 import { cityImage } from "./visuals";
@@ -23,8 +23,8 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
         const image = cityImage(city.slug);
         const score = catalogFitScore(city);
         return (
-          <Link key={city.slug} className="rv-city-card" href={`/cities/${city.slug}`} style={{ background: gradients[index % gradients.length] }}>
-            {image ? <img className="rv-city-card__photo" src={image} alt="" loading={index < 2 ? "eager" : "lazy"} /> : null}
+          <EngineTransitionLink key={city.slug} className="rv-city-card" href={`/cities/${city.slug}`} transition="portal" style={{ background: gradients[index % gradients.length] }}>
+            {image ? <img className="rv-city-card__photo" src={image} alt="" loading={index < 2 ? "eager" : "lazy"} decoding="async" draggable={false} /> : null}
             <div className="rv-card-top">
               <span className="rv-score">Roavio fit {score === null ? "—" : score.toFixed(1)}</span>
               <span className="rv-score">{city.beach ? (es ? "Playa ✓" : "Beach ✓") : city.continent}</span>
@@ -38,7 +38,7 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
                 <div className="rv-mini-metric"><strong>{city.internet === null ? "—" : `${city.internet}M`}</strong><span>internet</span></div>
               </div>
             </div>
-          </Link>
+          </EngineTransitionLink>
         );
       })}
     </div>
