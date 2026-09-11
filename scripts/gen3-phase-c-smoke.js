@@ -36,6 +36,10 @@ const requiredFiles = [
 	"src/engine/plugins/nencCompiler.js",
 	"src/engine/plugins/nencPlugin.js",
 	"src/engine/core/EngineCORS.ts",
+	"examples/gen3-private-search/commands.ts",
+	"examples/gen3-private-search/nenc.server.ts",
+	"examples/gen3-private-search/client.ts",
+	"examples/gen3-private-search/sessionStore.ts",
 ];
 
 for (const file of requiredFiles) {
@@ -111,6 +115,14 @@ check(nencPlugin.includes("outputDir cannot be inside public/"), "server manifes
 const cors = read("src/engine/core/EngineCORS.ts");
 check(cors.includes("Credentialed CORS cannot use a wildcard origin"), "credentialed CORS rejects wildcard origins");
 check(cors.includes("Vary: \"Origin\""), "CORS responses vary by origin");
+
+const privateSearchServer = read("examples/gen3-private-search/nenc.server.ts");
+check(privateSearchServer.includes("createNENCDeviceSignatureVerifier"), "private-search login and sessions require device proof");
+check(privateSearchServer.includes("PRIVATE_BACKEND_TOKEN"), "private backend credentials remain in the server handler");
+
+const privateSearchClient = read("examples/gen3-private-search/client.ts");
+check(!privateSearchClient.includes("PRIVATE_BACKEND_TOKEN"), "private backend credentials are absent from the browser client");
+check(privateSearchClient.includes("EngineCommand.run"), "private-search browser calls use EngineCommand transport");
 
 if (failures > 0) {
 	console.error(`\nGeneration 3 Phase C foundation smoke failed with ${failures} issue(s).`);
