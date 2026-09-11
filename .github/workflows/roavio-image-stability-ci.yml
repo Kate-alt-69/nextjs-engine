@@ -6,7 +6,9 @@ on:
     paths:
       - "src/engine/components/EngineImage.tsx"
       - "app/roavio/CityThumb.tsx"
+      - "app/roavio/CityDossierBackdrop.tsx"
       - "app/roavio/MatchQuiz.tsx"
+      - "app/roavio/responsive-v2.css"
       - "app/loading.tsx"
       - ".github/workflows/roavio-image-stability-ci.yml"
 
