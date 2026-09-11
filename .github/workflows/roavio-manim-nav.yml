@@ -1,0 +1,97 @@
+name: Roavio Manim nav patch
+
+on:
+  push:
+    branches: [proposal/roavio-ne]
+    paths:
+      - ".github/workflows/roavio-manim-nav.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: proposal/roavio-ne
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Patch EngineNav to use lazy EngineManim mobile morph
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          p = Path('src/engine/components/EngineNav.tsx')
+          s = p.read_text()
+
+          old = '''const LazyEngineTransitionLink = lazy(async () => {
+          \tconst transitionModule = await import("./EngineTransitionLink");
+          \treturn { default: transitionModule.EngineTransitionLink as React.ComponentType<any> };
+          });'''
+          new = old + '''
+
+          const LazyEngineNavManimIcon = lazy(async () => {
+          \tconst iconModule = await import("./EngineNavManimIcon");
+          \treturn { default: iconModule.EngineNavManimIcon as React.ComponentType<{ open: boolean }> };
+          });'''
+          if old not in s:
+              raise SystemExit('lazy transition anchor not found')
+          s = s.replace(old, new, 1)
+
+          old = '''\t\tconst [pathname, setPathname] = useState("");
+          \t\tconst [mobileOpen, setMobileOpen] = useState(false);
+          \t\tuseEffect(() => setPathname(routerPathname), [routerPathname]);
+          \t\tconst toggleMobile = useCallback(() => setMobileOpen((value) => !value), []);'''
+          new = '''\t\tconst [pathname, setPathname] = useState("");
+          \t\tconst [mobileOpen, setMobileOpen] = useState(false);
+          \t\tconst [mobileAnimated, setMobileAnimated] = useState(false);
+          \t\tuseEffect(() => setPathname(routerPathname), [routerPathname]);
+          \t\tconst toggleMobile = useCallback(() => {
+          \t\t\tsetMobileAnimated(true);
+          \t\t\tsetMobileOpen((value) => !value);
+          \t\t}, []);'''
+          if old not in s:
+              raise SystemExit('mobile state block not found')
+          s = s.replace(old, new, 1)
+
+          old = '''\t\t\t\t\t\t<button aria-label={mobileOpen ? "Close menu" : "Open menu"} aria-expanded={mobileOpen} aria-controls="engine-nav-mobile" onClick={toggleMobile} className={mobileToggleClass}>
+          \t\t\t\t\t\t\t{mobileOpen ? (
+          \t\t\t\t\t\t\t\t<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 4l12 12M16 4L4 16" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /></svg>
+          \t\t\t\t\t\t\t) : (
+          \t\t\t\t\t\t\t\t<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /></svg>
+          \t\t\t\t\t\t\t)}
+          \t\t\t\t\t\t</button>'''
+          new = '''\t\t\t\t\t\t<button aria-label={mobileOpen ? "Close menu" : "Open menu"} aria-expanded={mobileOpen} aria-controls="engine-nav-mobile" onClick={toggleMobile} className={mobileToggleClass}>
+          \t\t\t\t\t\t\t{mobileAnimated ? (
+          \t\t\t\t\t\t\t\t<Suspense fallback={<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /></svg>}>
+          \t\t\t\t\t\t\t\t\t<LazyEngineNavManimIcon open={mobileOpen} />
+          \t\t\t\t\t\t\t\t</Suspense>
+          \t\t\t\t\t\t\t) : (
+          \t\t\t\t\t\t\t\t<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /></svg>
+          \t\t\t\t\t\t\t)}
+          \t\t\t\t\t\t</button>'''
+          if old not in s:
+              raise SystemExit('mobile toggle JSX not found')
+          s = s.replace(old, new, 1)
+
+          p.write_text(s)
+          PY
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npm run type-check
+      - run: npx next build
+      - name: Commit validated EngineNav patch
+        shell: bash
+        run: |
+          if git diff --quiet -- src/engine/components/EngineNav.tsx; then
+            echo "No EngineNav changes to commit"
+            exit 0
+          fi
+          git config user.name "Kate"
+          git config user.email "dhwanksh2000@gmail.com"
+          git add src/engine/components/EngineNav.tsx
+          git commit -m "feat: animate mobile nav with EngineManim"
+          git push origin HEAD:proposal/roavio-ne
