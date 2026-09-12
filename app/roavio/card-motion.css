@@ -65,7 +65,7 @@
     opacity .32s ease var(--rv-enter-delay,0ms),
     transform .54s cubic-bezier(.18,1.18,.28,1) var(--rv-enter-delay,0ms),
     border-color .24s ease,
-    box-shadow .32s ease;
+    box-shadow .32s ease!important;
 }
 
 .rv-result-card[data-rv-motion-mode='instant'],
