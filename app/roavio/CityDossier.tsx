@@ -59,7 +59,7 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
   const es = locale === "es";
   const sourceCopy = copyFor(locale).sourceLanguage;
   const score = fitScore(city);
-  const cityBackdrop = `/api/city-photo?city=${encodeURIComponent(city.name)}&country=${encodeURIComponent(city.country)}&slot=0&width=960&height=540&v=8`;
+  const cityBackdrop = `/api/city-photo?city=${encodeURIComponent(city.name)}&country=${encodeURIComponent(city.country)}&slot=0&width=960&height=540&v=9`;
   const labels = {
     monthlyCost: es ? "Coste mensual" : "Monthly cost",
     internet: "Internet",
@@ -244,7 +244,7 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
                       type: "box",
                       props: { className: "rv-dossier-summary__actions" },
                       children: [
-                        { type: "button", props: { href: `/compare?cities=${city.slug}`, label: labels.compare, variant: "elevated", accentColor: "var(--rv-ink)" } },
+                        { type: "button", props: { href: `/compare?cities=${city.slug}`, label: labels.compare, variant: "elevated", accentColor: "var(--rv-lime)", color: "#10231f" } },
                         { type: "button", props: { href: "/cities", label: labels.allCities, variant: "outline", accentColor: "var(--rv-ink)" } },
                         ...(city.sourceUrl ? [{ type: "link", props: { href: city.sourceUrl, target: "_blank", content: labels.original, color: "var(--rv-green)", weight: 800, size: ".76rem", mt: ".3rem" } } as SchemaNode] : []),
                       ],

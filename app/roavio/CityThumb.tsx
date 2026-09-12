@@ -5,7 +5,7 @@ import type { ImageLoader } from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cityImage, cityInitials } from "./visuals";
 
-const CITY_PHOTO_VERSION = "8";
+const CITY_PHOTO_VERSION = "9";
 const CARD_ASPECT = 16 / 9;
 
 function targetHeight(width: number): number {

@@ -20,6 +20,55 @@ const REJECT_MEDIA_TITLE = /\b(flag|map|locator|location|seal|coat[ _-]?of[ _-]?
 const CITY_MEDIA_HINT = /\b(skyline|cityscape|panorama|panoramic|aerial|downtown|waterfront|harbou?r|corniche|street|avenue|boulevard|old[ _-]?town|centre|center|architecture|tower|towers|landmark|mosque|cathedral|temple|palace|square|plaza|bay|beach|marina|river|bridge|night|city|urban)\b/i;
 const LANDMARK_MEDIA_HINT = /\b(landmark|monument|tower|towers|mosque|cathedral|church|temple|palace|castle|fort|museum|square|plaza|bridge|gate|old[ _-]?town|historic|heritage|waterfront|marina|corniche|avenue|boulevard|promenade|market|bazaar|garden|park)\b/i;
 
+// Roavio stores display names in Spanish. English Wikipedia does not consistently
+// redirect those names, so try the exact supplied title first and then a known
+// canonical article title. This stays deterministic; it is not a broad image search.
+const CITY_ARTICLE_ALIASES: Record<string, string> = {
+  "abu dabi": "Abu Dhabi",
+  "aman": "Amman",
+  "atenas": "Athens",
+  "belgrado": "Belgrade",
+  "ciudad de mexico": "Mexico City",
+  "ciudad del cabo": "Cape Town",
+  "copenhague": "Copenhagen",
+  "cracovia": "Kraków",
+  "dubai": "Dubai",
+  "el cairo": "Cairo",
+  "estambul": "Istanbul",
+  "florencia": "Florence",
+  "hanoi": "Hanoi",
+  "ho chi minh": "Ho Chi Minh City",
+  "liubliana": "Ljubljana",
+  "londres": "London",
+  "mascate": "Muscat",
+  "milan": "Milan",
+  "munich": "Munich",
+  "oporto": "Porto",
+  "pekin": "Beijing",
+  "praga": "Prague",
+  "roma": "Rome",
+  "seul": "Seoul",
+  "sevilla": "Seville",
+  "shanghai": "Shanghai",
+  "sidney": "Sydney",
+  "singapur": "Singapore",
+  "sofia": "Sofia",
+  "taipei": "Taipei",
+  "tallin": "Tallinn",
+  "tiflis": "Tbilisi",
+  "tokio": "Tokyo",
+  "varsovia": "Warsaw",
+  "viena": "Vienna",
+};
+
+// Verified cityscape files from Wikimedia Commons. These are deliberately narrow
+// fallbacks for destinations that were returning transparent fallback images.
+const CURATED_COMMONS_FILES: Record<string, string> = {
+  "taipei": "File:2026 Taipei Skyline.jpg",
+  "wellington": "File:Wellington Skyline (34319401232).jpg",
+  "oporto": "File:Porto skyline.jpg",
+};
+
 type ArticleImage = { title: string };
 type ArticlePage = {
   pageid?: number;
@@ -69,6 +118,11 @@ function folded(value: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[_-]+/g, " ")
     .toLowerCase();
+}
+
+function articleNamesForCity(city: string): string[] {
+  const alias = CITY_ARTICLE_ALIASES[folded(city)];
+  return alias && folded(alias) !== folded(city) ? [city, alias] : [city];
 }
 
 function mediaTitleScore(title: string, city: string, slot: number): number {
@@ -176,17 +230,39 @@ async function articleMedia(page: ArticlePage, city: string, width: number, heig
 }
 
 async function resolveImage(city: string, width: number, height: number, slot: number): Promise<ResolvedCandidate | null> {
+  if (slot === 0) {
+    const curatedTitle = CURATED_COMMONS_FILES[folded(city)];
+    if (curatedTitle) {
+      try {
+        const infos = await imageInfo([curatedTitle], width, height);
+        const info = infos.get(curatedTitle) ?? infos.values().next().value;
+        const source = info?.thumburl ?? info?.url;
+        if (source && (!info?.mime || /^image\/(?:jpeg|png|webp|avif)$/i.test(info.mime))) {
+          return { source, article: `commons:${curatedTitle}` };
+        }
+      } catch {
+        // Fall through to the exact article resolver.
+      }
+    }
+  }
+
   const pages: Array<{ language: "es" | "en"; page: ArticlePage }> = [];
+  const seenPageIds = new Set<string>();
 
   for (const language of ["es", "en"] as const) {
-    try {
-      const page = await exactArticle(language, city, width);
-      if (!page) continue;
-      pages.push({ language, page });
-      const lead = safeLead(page);
-      if (slot === 0 && lead) return { source: lead, article: `${language}:${page.title ?? city}` };
-    } catch {
-      // Try the next exact-language article only.
+    for (const articleName of articleNamesForCity(city)) {
+      try {
+        const page = await exactArticle(language, articleName, width);
+        if (!page) continue;
+        const pageKey = `${language}:${page.pageid ?? page.title ?? articleName}`;
+        if (seenPageIds.has(pageKey)) continue;
+        seenPageIds.add(pageKey);
+        pages.push({ language, page });
+        const lead = safeLead(page);
+        if (slot === 0 && lead) return { source: lead, article: `${language}:${page.title ?? articleName}` };
+      } catch {
+        // Try the next deterministic article candidate.
+      }
     }
   }
 

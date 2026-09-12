@@ -141,7 +141,7 @@ function createHomeSchema(locale: RoavioLocale) {
                 props: { variant: "flat", innerPadding: "1.5rem", bg: "var(--rv-ink)", color: "var(--rv-paper)", borderRadius: "26px", style: { minHeight: "320px" } },
                 children: [
                   { type: "text", props: { content: "DECISION LAYER", variant: "overline", color: "var(--rv-lime)", weight: 800 } },
-                  { type: "heading", props: { level: 2, content: es ? "Los rankings explican por qué, no solo quién gana." : "Rankings explain why — not just who won.", size: { xs: "2rem", md: "2.8rem" }, color: "var(--rv-paper)", style: { margin: ".8rem 0" } } },
+                  { type: "heading", props: { level: 2, content: es ? "Los rankings explican por qué, no solo quién gana." : "Rankings explain why — not just who won.", size: { xs: "2rem", md: "2.8rem" }, color: "#f3faf6", style: { margin: ".8rem 0" } } },
                   { type: "text", props: { content: es ? "El encaje Roavio combina señales útiles mientras las métricas originales siguen visibles y comparables." : "Roavio Fit combines useful signals while the original source metrics stay visible and comparable.", color: "var(--rv-muted)", lineHeight: 1.7 } },
                   { type: "button", props: { href: "/compare", label: es ? "Abrir comparación" : "Open comparison", variant: "elevated", accentColor: "var(--rv-lime)", color: "#10231f", mt: "1.4rem" } },
                 ],
