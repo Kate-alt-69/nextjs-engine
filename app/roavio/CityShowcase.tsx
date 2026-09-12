@@ -1,5 +1,6 @@
 import { EngineImage, EngineTransitionLink } from "@/engine";
 import { catalogFitScore, type CityCatalogEntry } from "./catalog";
+import { getRoavioCityImage } from "./cityImages";
 import type { RoavioLocale } from "./i18n";
 import { ROAVIO_MEDIA_VERSION } from "./mediaVersion";
 
@@ -14,7 +15,8 @@ const gradients = [
 ];
 
 function cityPhoto(city: CityCatalogEntry): string {
-  return `/city-media/${encodeURIComponent(city.slug)}-0.jpg?v=${ROAVIO_MEDIA_VERSION}`;
+  return getRoavioCityImage(city.slug)
+    ?? `/city-media/${encodeURIComponent(city.slug)}-0.jpg?v=${ROAVIO_MEDIA_VERSION}`;
 }
 
 export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[]; locale: RoavioLocale }) {
