@@ -23,17 +23,35 @@ function readFavorites(): string[] {
 
 function useFavorites() {
   const [favorites, setFavorites] = useState<string[]>([]);
-  useEffect(() => setFavorites(readFavorites()), []);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    const sync = () => {
+      setFavorites(readFavorites());
+      setHydrated(true);
+    };
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === FAVORITES_KEY || event.key === null) sync();
+    };
+
+    sync();
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   const toggle = (slug: string) => {
     setFavorites((current) => {
       const next = current.includes(slug) ? current.filter((item) => item !== slug) : [...current, slug];
-      window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+      try {
+        window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+      } catch {
+        // Keep the current session interactive even when storage is blocked.
+      }
       return next;
     });
   };
 
-  return { favorites, toggle };
+  return { favorites, hydrated, toggle };
 }
 
 function sortNumber(value: number | null): number {
@@ -85,7 +103,7 @@ function CityResultCard({ city, locale, favorite, compared, onFavorite, onCompar
   favorite: boolean;
   compared: boolean;
   onFavorite: () => void;
-  onCompare: () => void;
+  onCompare?: () => void;
 }) {
   const copy = copyFor(locale).cities;
   const cityHref = `/cities/${city.slug}`;
@@ -111,7 +129,11 @@ function CityResultCard({ city, locale, favorite, compared, onFavorite, onCompar
           <div><strong>{catalogMetric(city.quality, "/10")}</strong><span>{copy.quality}</span></div>
         </div>
         <div className="rv-card-actions">
-          <button className="rv-icon-btn" type="button" data-active={compared} onClick={onCompare}>{compared ? `✓ ${copy.compare}` : `+ ${copy.compare}`}</button>
+          {onCompare ? (
+            <button className="rv-icon-btn" type="button" data-active={compared} onClick={onCompare}>{compared ? `✓ ${copy.compare}` : `+ ${copy.compare}`}</button>
+          ) : (
+            <EngineTransitionLink className="rv-icon-btn" href={`/compare?cities=${city.slug}`} transition="depth" style={{ textDecoration: "none" }}>+ {copy.compare}</EngineTransitionLink>
+          )}
           <EngineTransitionLink className="rv-icon-btn" href={cityHref} transition="portal" style={{ marginLeft: "auto", textDecoration: "none" }}>{copy.open} ↗</EngineTransitionLink>
         </div>
       </div>
@@ -248,13 +270,20 @@ const metricKeys: Array<{ key: "quality" | "safety" | "internet"; suffix: string
 ];
 
 function indexesForSlugs(catalog: CityCatalogEntry[], slugs: string[], fallbackSlugs: string[]): number[] {
-  const indexes = slugs.map((slug) => catalog.findIndex((city) => city.slug === slug)).filter((index) => index >= 0).slice(0, 3);
+  const indexes: number[] = [];
+  for (const slug of slugs) {
+    if (indexes.length >= 3) break;
+    const index = catalog.findIndex((city) => city.slug === slug);
+    if (index >= 0 && !indexes.includes(index)) indexes.push(index);
+  }
   for (const slug of fallbackSlugs) {
     if (indexes.length >= 3) break;
     const index = catalog.findIndex((city) => city.slug === slug);
     if (index >= 0 && !indexes.includes(index)) indexes.push(index);
   }
-  for (let index = 0; indexes.length < 3 && index < catalog.length; index += 1) if (!indexes.includes(index)) indexes.push(index);
+  for (let index = 0; indexes.length < 3 && index < catalog.length; index += 1) {
+    if (!indexes.includes(index)) indexes.push(index);
+  }
   return indexes.slice(0, 3);
 }
 
@@ -267,15 +296,44 @@ export function CompareBoard({ catalog, locale, initialSlugs = ["valencia", "lis
   const copy = copyFor(locale).compare;
   const fallback = indexesForSlugs(catalog, initialSlugs, ["valencia", "lisboa", "bali"]);
   const [selected, setSelected] = useState<number[]>(fallback);
+  const [urlReady, setUrlReady] = useState(false);
   const chosen = selected.map((index) => catalog[index]).filter((city): city is CityCatalogEntry => Boolean(city));
 
   useEffect(() => {
     const raw = new URLSearchParams(window.location.search).get("cities");
-    if (!raw) return;
-    setSelected(indexesForSlugs(catalog, raw.split(",").map((value) => value.trim()).filter(Boolean), ["valencia", "lisboa", "bali"]));
+    if (raw) {
+      setSelected(indexesForSlugs(catalog, raw.split(",").map((value) => value.trim()).filter(Boolean), ["valencia", "lisboa", "bali"]));
+    }
+    setUrlReady(true);
   }, [catalog]);
 
-  const update = (slot: number, cityIndex: number) => setSelected((current) => current.map((value, index) => index === slot ? cityIndex : value));
+  useEffect(() => {
+    if (!urlReady) return;
+    const slugs = selected.map((index) => catalog[index]?.slug).filter((slug): slug is string => Boolean(slug));
+    if (!slugs.length) return;
+    const url = new URL(window.location.href);
+    const value = slugs.join(",");
+    if (url.searchParams.get("cities") === value) return;
+    url.searchParams.set("cities", value);
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [catalog, selected, urlReady]);
+
+  const update = (slot: number, cityIndex: number) => {
+    setSelected((current) => {
+      if (current[slot] === cityIndex) return current;
+      const duplicateSlot = current.findIndex((value, index) => index !== slot && value === cityIndex);
+      const next = [...current];
+      if (duplicateSlot >= 0) {
+        const previous = next[slot];
+        next[slot] = cityIndex;
+        next[duplicateSlot] = previous;
+        return next;
+      }
+      next[slot] = cityIndex;
+      return next;
+    });
+  };
+
   const scoreValues = chosen.map(catalogFitScore).filter((value): value is number => value !== null);
   const bestScore = scoreValues.length ? Math.max(...scoreValues) : null;
   const metricLabel = (key: "quality" | "safety" | "internet") => key === "quality" ? copy.quality : key === "safety" ? copy.safety : copy.internet;
@@ -337,12 +395,20 @@ export function CompareBoard({ catalog, locale, initialSlugs = ["valencia", "lis
 
 export function FavoritesBoard({ catalog, locale }: { catalog: CityCatalogEntry[]; locale: RoavioLocale }) {
   const copy = copyFor(locale);
-  const { favorites, toggle } = useFavorites();
+  const { favorites, hydrated, toggle } = useFavorites();
   const saved = catalog.filter((city) => favorites.includes(city.slug));
+
+  if (!hydrated) {
+    return (
+      <div className="rv-panel" aria-busy="true" style={{ padding: "2rem", textAlign: "center", color: "var(--rv-muted)" }}>
+        {locale === "es" ? "Cargando destinos guardados…" : "Loading saved destinations…"}
+      </div>
+    );
+  }
 
   if (saved.length === 0) {
     return <div className="rv-panel" style={{ padding: "2rem", textAlign: "center" }}><h3 style={{ marginTop: 0 }}>{copy.favorites.emptyTitle}</h3><p style={{ color: "var(--rv-muted)" }}>{copy.favorites.emptyBody}</p><EngineTransitionLink className="rv-primary" href="/cities" transition="reveal">{copy.favorites.find} →</EngineTransitionLink></div>;
   }
 
-  return <div className="rv-result-grid">{saved.map((city) => <CityResultCard key={city.slug} city={city} locale={locale} favorite compared={false} onFavorite={() => toggle(city.slug)} onCompare={() => undefined} />)}</div>;
+  return <div className="rv-result-grid">{saved.map((city) => <CityResultCard key={city.slug} city={city} locale={locale} favorite compared={false} onFavorite={() => toggle(city.slug)} />)}</div>;
 }
