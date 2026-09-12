@@ -46,37 +46,19 @@ async function loadCities() {
       throw new Error(`Missing bundled media manifest entry for ${slug}`);
     }
 
-    // The current UI intentionally uses deterministic JPEG paths. Keep this
-    // assertion beside the browser-path checks so a future PNG/WebP bundle
-    // cannot make API CI green while the real card URL becomes a 404.
     const expectedPrimary = `/city-media/${slug}-0.jpg`;
     const expectedSecondary = `/city-media/${slug}-1.jpg`;
     if (media.primary !== expectedPrimary || media.secondary !== expectedSecondary) {
-      throw new Error(
-        `UI/bundle media path mismatch for ${slug}: expected ${expectedPrimary} + ${expectedSecondary}, got ${media.primary} + ${media.secondary}`,
-      );
+      throw new Error(`UI/bundle media path mismatch for ${slug}: expected ${expectedPrimary} + ${expectedSecondary}, got ${media.primary} + ${media.secondary}`);
     }
 
-    cities.push({
-      slug,
-      city: city.name,
-      country: city.country,
-      primary: media.primary,
-      secondary: media.secondary,
-    });
+    cities.push({ slug, city: city.name, country: city.country, primary: media.primary, secondary: media.secondary });
   }
   return cities;
 }
 
 function apiPhotoUrl(city, slot) {
-  const params = new URLSearchParams({
-    city: city.city,
-    country: city.country,
-    slot: String(slot),
-    width: "960",
-    height: "540",
-    v: "sweep-api",
-  });
+  const params = new URLSearchParams({ city: city.city, country: city.country, slot: String(slot), width: "960", height: "540", v: "sweep-api" });
   return `${baseUrl}/api/city-photo?${params.toString()}`;
 }
 
@@ -86,11 +68,7 @@ function staticPhotoUrl(city, slot) {
 }
 
 function optimizerPhotoUrl(city) {
-  const params = new URLSearchParams({
-    url: `${city.primary}?v=sweep-browser`,
-    w: "640",
-    q: "58",
-  });
+  const params = new URLSearchParams({ url: `${city.primary}?v=sweep-browser`, w: "640", q: "58" });
   return `${baseUrl}/_next/image?${params.toString()}`;
 }
 
@@ -104,19 +82,10 @@ function validateImageResponse(response, { kind, city, ms, attempt, source = "",
   const type = response.headers.get("content-type") || "";
   const lengthHeader = response.headers.get("content-length");
   const declaredLength = lengthHeader ? Number(lengthHeader) : null;
-
-  if (!response.ok) {
-    return { ok: false, kind, city, reason: `HTTP ${response.status}`, ms, attempt, source, fallback, article };
-  }
-  if (!type.startsWith("image/")) {
-    return { ok: false, kind, city, reason: `invalid content-type ${type || "<missing>"}`, ms, attempt, source, fallback, article };
-  }
-  if (source === "fallback" || fallback) {
-    return { ok: false, kind, city, reason: `fallback:${fallback || "unknown"}`, ms, attempt, source, fallback, article };
-  }
-  if (declaredLength !== null && Number.isFinite(declaredLength) && declaredLength < 500) {
-    return { ok: false, kind, city, reason: `suspiciously small image (${declaredLength} bytes)`, ms, attempt, source, fallback, article };
-  }
+  if (!response.ok) return { ok: false, kind, city, reason: `HTTP ${response.status}`, ms, attempt, source, fallback, article };
+  if (!type.startsWith("image/")) return { ok: false, kind, city, reason: `invalid content-type ${type || "<missing>"}`, ms, attempt, source, fallback, article };
+  if (source === "fallback" || fallback) return { ok: false, kind, city, reason: `fallback:${fallback || "unknown"}`, ms, attempt, source, fallback, article };
+  if (declaredLength !== null && Number.isFinite(declaredLength) && declaredLength < 500) return { ok: false, kind, city, reason: `suspiciously small image (${declaredLength} bytes)`, ms, attempt, source, fallback, article };
   return { ok: true, kind, city, ms, attempt, source, article };
 }
 
@@ -125,59 +94,31 @@ async function inspectApiPhoto(city, slot) {
   const source = response.headers.get("x-roavio-image-source") || "";
   const fallback = response.headers.get("x-roavio-image-fallback") || "";
   const article = response.headers.get("x-roavio-image-article") || "";
-  const result = validateImageResponse(response, {
-    kind: `api-photo-${slot}`,
-    city,
-    ms,
-    attempt,
-    source,
-    fallback,
-    article,
-  });
+  const result = validateImageResponse(response, { kind: `api-photo-${slot}`, city, ms, attempt, source, fallback, article });
   if (result.ok) await drainPrefix(response);
   return result;
 }
 
 async function inspectStaticPhoto(city, slot) {
   const { response, ms, attempt } = await request(staticPhotoUrl(city, slot), { attempts: 2 });
-  const result = validateImageResponse(response, {
-    kind: `static-photo-${slot}`,
-    city,
-    ms,
-    attempt,
-    article: slot > 0 ? city.secondary : city.primary,
-  });
+  const result = validateImageResponse(response, { kind: `static-photo-${slot}`, city, ms, attempt, article: slot > 0 ? city.secondary : city.primary });
   if (result.ok) await drainPrefix(response);
   return result;
 }
 
 async function inspectOptimizerPhoto(city) {
   const { response, ms, attempt } = await request(optimizerPhotoUrl(city), { attempts: 2 });
-  const result = validateImageResponse(response, {
-    kind: "optimizer-photo-0",
-    city,
-    ms,
-    attempt,
-    article: city.primary,
-  });
+  const result = validateImageResponse(response, { kind: "optimizer-photo-0", city, ms, attempt, article: city.primary });
   if (result.ok) await drainPrefix(response);
   return result;
 }
 
 async function inspectCity(city) {
   const route = await request(`${baseUrl}/cities/${encodeURIComponent(city.slug)}`);
-  const routeResult = route.response.ok
-    ? { ok: true, kind: "route", city, ms: route.ms, attempt: route.attempt }
-    : { ok: false, kind: "route", city, reason: `HTTP ${route.response.status}`, ms: route.ms, attempt: route.attempt };
-
+  const routeResult = route.response.ok ? { ok: true, kind: "route", city, ms: route.ms, attempt: route.attempt } : { ok: false, kind: "route", city, reason: `HTTP ${route.response.status}`, ms: route.ms, attempt: route.attempt };
   const [apiPrimary, apiSecondary, staticPrimary, staticSecondary, optimizedPrimary] = await Promise.all([
-    inspectApiPhoto(city, 0),
-    inspectApiPhoto(city, 1),
-    inspectStaticPhoto(city, 0),
-    inspectStaticPhoto(city, 1),
-    inspectOptimizerPhoto(city),
+    inspectApiPhoto(city, 0), inspectApiPhoto(city, 1), inspectStaticPhoto(city, 0), inspectStaticPhoto(city, 1), inspectOptimizerPhoto(city),
   ]);
-
   return [routeResult, apiPrimary, apiSecondary, staticPrimary, staticSecondary, optimizedPrimary];
 }
 
@@ -196,8 +137,8 @@ async function mapLimit(items, limit, worker) {
 }
 
 const cities = await loadCities();
-if (cities.length !== 90) {
-  console.error(`Expected exactly 90 materialized cities, found ${cities.length}.`);
+if (cities.length !== 95) {
+  console.error(`Expected exactly 95 materialized cities, found ${cities.length}.`);
   process.exit(1);
 }
 
@@ -206,7 +147,7 @@ const nested = await mapLimit(cities, concurrency, async (city, index) => {
   const results = await inspectCity(city);
   const failures = results.filter((item) => !item.ok);
   const slowest = Math.max(...results.map((item) => item.ms || 0));
-  console.log(`${String(index + 1).padStart(2, "0")}/90 ${city.slug.padEnd(22)} ${failures.length ? "FAIL" : "ok  "} ${slowest}ms`);
+  console.log(`${String(index + 1).padStart(2, "0")}/95 ${city.slug.padEnd(22)} ${failures.length ? "FAIL" : "ok  "} ${slowest}ms`);
   return results;
 });
 
@@ -215,30 +156,14 @@ const failures = results.filter((item) => !item.ok);
 const apiPhotos = results.filter((item) => item.kind.startsWith("api-photo-"));
 const staticPhotos = results.filter((item) => item.kind.startsWith("static-photo-"));
 const optimizedPhotos = results.filter((item) => item.kind === "optimizer-photo-0");
-const slowPhotos = [...apiPhotos, ...optimizedPhotos]
-  .filter((item) => item.ok)
-  .sort((a, b) => b.ms - a.ms)
-  .slice(0, 12);
-
-console.log(`\nSweep summary: ${results.length - failures.length}/${results.length} checks passed.`);
-console.log(`Routes: ${results.filter((item) => item.kind === "route" && item.ok).length}/90`);
-console.log(`EngineAPIResolver/media API: ${apiPhotos.filter((item) => item.ok).length}/180`);
-console.log(`Bundled static files: ${staticPhotos.filter((item) => item.ok).length}/180`);
-console.log(`Next optimized primary cards: ${optimizedPhotos.filter((item) => item.ok).length}/90`);
-
-if (slowPhotos.length) {
-  console.log("\nSlowest successful image requests:");
-  for (const item of slowPhotos) {
-    console.log(`  ${item.city.slug} ${item.kind} ${item.ms}ms ${item.article || item.source || ""}`);
-  }
-}
+const slowPhotos = [...apiPhotos, ...optimizedPhotos].filter((item) => item.ok).sort((a, b) => b.ms - a.ms);
 
 if (failures.length) {
-  console.error("\nFailures:");
-  for (const item of failures) {
-    console.error(`  ${item.city.slug} (${item.city.city}, ${item.city.country}) ${item.kind}: ${item.reason}${item.article ? ` [${item.article}]` : ""}`);
-  }
+  console.error(`\n${failures.length} sweep checks failed:`);
+  for (const failure of failures) console.error(`- ${failure.kind} ${failure.city.slug}: ${failure.reason}`);
   process.exit(1);
 }
 
-console.log("\nAll 90 city routes, both media delivery paths, and optimized primary cards are healthy. ✅");
+console.log(`\n95 routes + ${apiPhotos.length} API photo checks + ${staticPhotos.length} static photo checks + ${optimizedPhotos.length} optimized primary checks passed. ✅`);
+console.log("Slowest image checks:");
+for (const item of slowPhotos.slice(0, 12)) console.log(`- ${item.kind} ${item.city.slug}: ${item.ms}ms`);
