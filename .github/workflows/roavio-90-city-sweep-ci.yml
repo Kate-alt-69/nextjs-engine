@@ -20,20 +20,20 @@ jobs:
         with:
           node-version: 24
       - name: Materialize two city photos per destination
-        if: contains(github.event.head_commit.message, 'ci: materialize Roavio media')
+        if: contains(github.event.head_commit.message, 'materialize Roavio media')
         env:
           ROAVIO_MEDIA_PAUSE_MS: "220"
           ROAVIO_MEDIA_RETRIES: "6"
         run: node tests/roavio-media-materialize.mjs
       - name: Commit generated media manifest
-        if: contains(github.event.head_commit.message, 'ci: materialize Roavio media')
+        if: contains(github.event.head_commit.message, 'materialize Roavio media')
         shell: bash
         run: |
           git config user.name "Kate"
           git config user.email "dhwanksh2000@gmail.com"
           git add app/roavio/city-media.generated.json
           if ! git diff --cached --quiet; then
-            git commit -m "content: materialize Roavio city media"
+            git commit -m "content: materialized Roavio city media"
             git push origin HEAD:proposal/roavio-ne
           fi
       - name: Install dependencies
