@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { EngineAPIResolver } from "@/engine";
 import mediaManifest from "./city-media.generated.json";
 
@@ -41,6 +43,35 @@ function resizedWikimediaThumb(source: string, width: number): string {
   return source.replace(/\/\d+px-([^/?]+)(\?.*)?$/, `/${bounded}px-$1$2`);
 }
 
+function localMediaType(filePath: string): string {
+  const lower = filePath.toLowerCase();
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".webp")) return "image/webp";
+  if (lower.endsWith(".avif")) return "image/avif";
+  return "image/jpeg";
+}
+
+async function readBundledMedia(source: string): Promise<Response> {
+  const relative = source.replace(/^\/+/, "");
+  if (!relative.startsWith("city-media/")) throw new Error("Unsupported local media path");
+
+  const mediaRoot = path.resolve(process.cwd(), "public", "city-media");
+  const absolute = path.resolve(process.cwd(), "public", relative);
+  if (absolute !== mediaRoot && !absolute.startsWith(`${mediaRoot}${path.sep}`)) {
+    throw new Error("Invalid local media path");
+  }
+
+  const bytes = await readFile(absolute);
+  return new Response(bytes, {
+    status: 200,
+    headers: {
+      "Content-Type": localMediaType(absolute),
+      "Content-Length": String(bytes.byteLength),
+      "Cache-Control": "public, max-age=31536000, immutable",
+    },
+  });
+}
+
 export function getMaterializedCityPhoto(
   city: string,
   country: string,
@@ -55,11 +86,12 @@ export function getMaterializedCityPhoto(
   if (!source) return null;
 
   return {
-    source: resizedWikimediaThumb(source, width),
+    source: source.startsWith("/") ? source : resizedWikimediaThumb(source, width),
     article: `manifest:${slug}:${slot > 0 ? "secondary" : "primary"}`,
   };
 }
 
 export function fetchCityPhotoSource(source: string): Promise<Response> {
+  if (source.startsWith("/city-media/")) return readBundledMedia(source);
   return mediaResolver.resolveRequest({ nodeOverrides: { endpoint: source } });
 }
