@@ -24,7 +24,7 @@
   max-width:none;
   object-fit:cover;
   object-position:center;
-  filter:blur(12px) saturate(.88) brightness(.58);
+  filter:blur(8px) saturate(.90) brightness(.60);
   transform:scale(1.02);
   opacity:.88;
   user-select:none;
@@ -39,7 +39,7 @@
 
 html[data-rv-theme='light'] .rv-dossier-page{background:#f5f4ee!important}
 html[data-rv-theme='light'] .rv-dossier-backdrop img{
-  filter:blur(10px) saturate(.86) brightness(.98);
+  filter:blur(7px) saturate(.88) brightness(.99);
   opacity:.60;
 }
 html[data-rv-theme='light'] .rv-dossier-backdrop__veil{
@@ -146,10 +146,10 @@ html[data-rv-theme='light'] .rv-dossier-backdrop--fallback{background:linear-gra
     inset:-1.25rem;
     width:calc(100% + 2.5rem);
     height:calc(100% + 2.5rem);
-    filter:blur(10px) saturate(.86) brightness(.56);
+    filter:blur(8px) saturate(.88) brightness(.58);
     transform:scale(1.015);
   }
-  html[data-rv-theme='light'] .rv-dossier-backdrop img{filter:blur(9px) saturate(.84) brightness(.98)}
+  html[data-rv-theme='light'] .rv-dossier-backdrop img{filter:blur(7px) saturate(.86) brightness(.99)}
   .rv-dossier-hero{min-height:250px!important}
   .rv-dossier-hero__copy{width:100%;max-width:none;padding:1.15rem!important}
   .rv-dossier-hero::after{background:linear-gradient(180deg,rgba(2,13,10,.16),rgba(2,13,10,.78) 78%,rgba(2,13,10,.88))}
