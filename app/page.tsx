@@ -11,7 +11,7 @@ const HOME_FEATURED_SLUGS = ["valencia", "lisboa", "bali", "bangkok", "dubai", "
 function statCards(locale: RoavioLocale): SchemaNode[] {
   const es = locale === "es";
   const stats = [
-    ["90", es ? "ciudades mapeadas" : "mapped cities", "var(--rv-lime)"],
+    ["95", es ? "ciudades mapeadas" : "mapped cities", "var(--rv-lime)"],
     ["407 Mbps", es ? "conexión más rápida" : "fastest connection", "var(--rv-blue)"],
     ["8.9/10", es ? "mejor seguridad" : "top safety score", "var(--rv-peach)"],
     ["6", es ? "continentes" : "continents", "var(--rv-yellow)"],
