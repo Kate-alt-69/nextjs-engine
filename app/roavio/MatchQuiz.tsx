@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { EngineTransitionLink } from "@/engine";
 import { useMemo, useState, type ReactNode } from "react";
 import { catalogFitScore, catalogMetric, type CityCatalogEntry } from "./catalog";
 import type { RoavioLocale } from "./i18n";
@@ -63,7 +63,7 @@ export function MatchQuiz({ catalog, locale }: { catalog: CityCatalogEntry[]; lo
         <div style={gridStyle}>
           <Choice value="balance" active={priority === "balance"} onClick={setPriority}>⚖️ {es ? "Equilibrio general" : "Balanced overall"}</Choice>
           <Choice value="quality" active={priority === "quality"} onClick={setPriority}>✨ {es ? "Calidad de vida" : "Quality of life"}</Choice>
-          <Choice value="safety" active={priority === "safety"} onClick={setPriority}>🛡 {es ? "Seguridad" : "Safety"}</Choice>
+          <Choice value="safety" active={priority === "safety"} onClick={setSafety => setPriority(setSafety)}>🛡 {es ? "Seguridad" : "Safety"}</Choice>
           <Choice value="internet" active={priority === "internet"} onClick={setPriority}>⚡ {es ? "Velocidad de internet" : "Internet speed"}</Choice>
         </div>
       </section>
@@ -110,8 +110,8 @@ export function MatchQuiz({ catalog, locale }: { catalog: CityCatalogEntry[]; lo
                     <div><strong>{catalogMetric(city.quality, "/10")}</strong><span>{es ? "calidad" : "quality"}</span></div>
                   </div>
                   <div className="rv-card-actions">
-                    <Link className="rv-primary" href={`/cities/${city.slug}`}>{es ? "Abrir ciudad" : "Open city"} →</Link>
-                    <Link className="rv-secondary" href={`/compare?cities=${city.slug}`}>{es ? "Comparar" : "Compare"}</Link>
+                    <EngineTransitionLink className="rv-primary" href={`/cities/${city.slug}`} transition="portal">{es ? "Abrir ciudad" : "Open city"} →</EngineTransitionLink>
+                    <EngineTransitionLink className="rv-secondary" href={`/compare?cities=${city.slug}`} transition="depth">{es ? "Comparar" : "Compare"}</EngineTransitionLink>
                   </div>
                 </div>
               </article>
