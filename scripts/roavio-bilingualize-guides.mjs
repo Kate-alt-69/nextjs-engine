@@ -54,8 +54,9 @@ function paragraphsFrom(body) {
 function unique(values) {
   const seen = new Set();
   return values.filter((value) => {
+    if (typeof value !== "string" || !value.trim()) return false;
     const key = value.toLocaleLowerCase("es");
-    if (!value || seen.has(key)) return false;
+    if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
