@@ -31,6 +31,20 @@
   border-radius:14px!important;
 }
 
+/* Local bundled photos and EngineImage photos must behave identically. */
+.rv-city-thumb__native{
+  position:relative;
+  z-index:2;
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  user-select:none;
+  -webkit-user-drag:none;
+  transform:scale(1);
+  transition:transform .48s cubic-bezier(.2,.8,.2,1),opacity .24s ease;
+}
+
 /*
  * EngineScheduler marks cards only when their viewport work should begin.
  * The animation is transform/opacity-only so it stays compositor friendly.
@@ -70,6 +84,12 @@
   .rv-compare-city-card[data-rv-entered='true']:hover{
     transform:translateY(-5px) scale(1.008);
   }
+  .rv-result-card:hover .rv-city-thumb__native,
+  .rv-result-card:focus-within .rv-city-thumb__native,
+  .rv-compare-city-card:hover .rv-city-thumb__native,
+  .rv-compare-city-card:focus-within .rv-city-thumb__native{
+    transform:scale(1.055);
+  }
 }
 
 @media(max-width:819px){
@@ -88,7 +108,8 @@
 @media(prefers-reduced-motion:reduce){
   .rv-result-card,
   .rv-city-card,
-  .rv-compare-city-card{
+  .rv-compare-city-card,
+  .rv-city-thumb__native{
     opacity:1!important;
     transform:none!important;
     transition:none!important;
