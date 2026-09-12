@@ -31,7 +31,7 @@ export function CardEntranceController() {
       element.setAttribute(ENTERED_ATTR, "false");
       element.style.setProperty("--rv-enter-delay", `${Math.min(index % 6, 5) * 42}ms`);
 
-      let stop = () => undefined;
+      let stop: () => void = () => undefined;
       stop = EngineScheduler.observe(element, (snapshot) => {
         if (!snapshot.visible || element.getAttribute(ENTERED_ATTR) === "true") return;
 
