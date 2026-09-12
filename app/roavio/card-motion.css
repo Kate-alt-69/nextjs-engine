@@ -46,9 +46,22 @@
 }
 
 /*
- * EngineScheduler marks cards only when their viewport work should begin.
- * The animation is transform/opacity-only so it stays compositor friendly.
+ * The head boot script marks motion before body paint. That lets SSR cards start
+ * in the same hidden pose the scheduler expects instead of flashing visible for
+ * one frame during hydration. The marker auto-releases if JS/controller boot
+ * fails, so progressive/no-JS content can never remain hidden.
  */
+html[data-rv-motion='boot'] .rv-result-card:not([data-rv-entered='true']),
+html[data-rv-motion='boot'] .rv-city-card:not([data-rv-entered='true']),
+html[data-rv-motion='boot'] .rv-compare-city-card:not([data-rv-entered='true']),
+html[data-rv-motion='ready'] .rv-result-card:not([data-rv-entered='true']),
+html[data-rv-motion='ready'] .rv-city-card:not([data-rv-entered='true']),
+html[data-rv-motion='ready'] .rv-compare-city-card:not([data-rv-entered='true']){
+  opacity:0;
+  transform:translate3d(0,16px,0) scale(.966);
+}
+
+/* EngineScheduler reveals cards only when viewport work should begin. */
 .rv-result-card[data-rv-motion-bound='true'][data-rv-entered='false'],
 .rv-city-card[data-rv-motion-bound='true'][data-rv-entered='false'],
 .rv-compare-city-card[data-rv-motion-bound='true'][data-rv-entered='false']{
@@ -98,6 +111,12 @@
     --rv-radius-media:14px;
     --rv-radius-control:11px;
   }
+  html[data-rv-motion='boot'] .rv-result-card:not([data-rv-entered='true']),
+  html[data-rv-motion='boot'] .rv-city-card:not([data-rv-entered='true']),
+  html[data-rv-motion='boot'] .rv-compare-city-card:not([data-rv-entered='true']),
+  html[data-rv-motion='ready'] .rv-result-card:not([data-rv-entered='true']),
+  html[data-rv-motion='ready'] .rv-city-card:not([data-rv-entered='true']),
+  html[data-rv-motion='ready'] .rv-compare-city-card:not([data-rv-entered='true']),
   .rv-result-card[data-rv-motion-bound='true'][data-rv-entered='false'],
   .rv-city-card[data-rv-motion-bound='true'][data-rv-entered='false'],
   .rv-compare-city-card[data-rv-motion-bound='true'][data-rv-entered='false']{
