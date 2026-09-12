@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { fetchCityPhotoSource, getMaterializedCityPhoto } from "@/app/roavio/cityMedia.server";
 
 const CACHE_SECONDS = 60 * 60 * 24 * 30;
 const BROWSER_CACHE_SECONDS = 60 * 60 * 24 * 7;
@@ -302,7 +303,7 @@ function responseHeaders(type: string, length: number | null, article: string, w
     "Content-Type": type,
     "Cache-Control": `public, max-age=${BROWSER_CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=${CACHE_SECONDS * 3}`,
     "CDN-Cache-Control": `public, max-age=${CACHE_SECONDS}`,
-    "X-Roavio-Image-Source": "Wikipedia exact city article",
+    "X-Roavio-Image-Source": article.startsWith("manifest:") ? "materialized media manifest" : "Wikipedia exact city article",
     "X-Roavio-Image-Article": article,
     "X-Roavio-Image-Target": `${width}x${height}`,
   });
@@ -327,18 +328,16 @@ function fallbackImage(reason: string, width: number, height: number): Response 
 export async function GET(request: NextRequest) {
   const city = request.nextUrl.searchParams.get("city")?.trim();
   if (!city) return new Response("Missing city", { status: 400 });
+  const country = request.nextUrl.searchParams.get("country")?.trim() ?? "";
 
   const width = clampDimension(request.nextUrl.searchParams.get("width"), 960, 1600);
   const height = clampDimension(request.nextUrl.searchParams.get("height"), Math.round(width * 9 / 16), 1200);
   const slot = normalizedSlot(request.nextUrl.searchParams.get("slot"));
-  const resolved = await resolveImage(city, width, height, slot);
+  const resolved = getMaterializedCityPhoto(city, country, slot, width) ?? await resolveImage(city, width, height, slot);
   if (!resolved) return fallbackImage("unresolved-city", width, height);
 
   try {
-    const upstream = await fetch(resolved.source, {
-      next: { revalidate: CACHE_SECONDS },
-      headers: { Accept: "image/avif,image/webp,image/*,*/*;q=0.7", "User-Agent": "RoavioProposal/1.0 (cached verified city photo proxy)" },
-    });
+    const upstream = await fetchCityPhotoSource(resolved.source);
     if (!upstream.ok) return fallbackImage(`upstream-${upstream.status}`, width, height);
 
     const rawLength = upstream.headers.get("content-length");
