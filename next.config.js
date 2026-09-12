@@ -37,12 +37,13 @@ const nextConfig = {
 		qualities: [58, 72, 75],
 		minimumCacheTTL: 60 * 60 * 24 * 30,
 
-		// These are intentional same-origin image endpoints. They use query
-		// parameters for city/country/slot/width, so the pathname is constrained
-		// here while search params are deliberately left unrestricted.
+		// These are intentional same-origin image surfaces. City media carries a
+		// version query so immutable bundled files can be replaced safely without
+		// leaving year-long stale browser entries behind.
 		localPatterns: [
 			{ pathname: "/api/city-photo" },
 			{ pathname: "/api/city-image" },
+			{ pathname: "/city-media/**" },
 		],
 
 		remotePatterns: [
