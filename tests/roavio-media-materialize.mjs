@@ -29,7 +29,7 @@ function sourceOf(item) {
 
 function usableInfo(info) {
   if (!info) return false;
-  if (info.mime && !/^image\/(?:jpeg|png|webp|avif)$/i.test(info.mime)) return false;
+  if (info.mime && info.mime.toLowerCase() !== "image/jpeg") return false;
   const width = info.thumbwidth || info.width || 0;
   const height = info.thumbheight || info.height || 0;
   if (width && width < 640) return false;
