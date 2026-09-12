@@ -3,6 +3,7 @@ import path from "node:path";
 
 const baseUrl = (process.env.ROAVIO_BASE_URL || "http://127.0.0.1:3100").replace(/\/$/, "");
 const contentRoot = path.resolve(process.cwd(), "content/cities");
+const mediaManifestPath = path.resolve(process.cwd(), "app/roavio/city-media.generated.json");
 const concurrency = Math.max(1, Math.min(6, Number(process.env.ROAVIO_SWEEP_CONCURRENCY || 3)));
 const timeoutMs = Math.max(5_000, Number(process.env.ROAVIO_SWEEP_TIMEOUT_MS || 18_000));
 
@@ -33,75 +34,151 @@ async function loadCities() {
     .filter((entry) => entry.isDirectory() && entry.name !== "_template" && !entry.name.startsWith("."))
     .map((entry) => entry.name)
     .sort();
+  const mediaManifest = JSON.parse(await readFile(mediaManifestPath, "utf8"));
+  const mediaCities = mediaManifest?.cities ?? {};
 
   const cities = [];
   for (const slug of slugs) {
     const raw = await readFile(path.join(contentRoot, slug, "city.json"), "utf8");
     const city = JSON.parse(raw);
-    cities.push({ slug, city: city.name, country: city.country });
+    const media = mediaCities[slug];
+    if (!media?.primary || !media?.secondary) {
+      throw new Error(`Missing bundled media manifest entry for ${slug}`);
+    }
+
+    // The current UI intentionally uses deterministic JPEG paths. Keep this
+    // assertion beside the browser-path checks so a future PNG/WebP bundle
+    // cannot make API CI green while the real card URL becomes a 404.
+    const expectedPrimary = `/city-media/${slug}-0.jpg`;
+    const expectedSecondary = `/city-media/${slug}-1.jpg`;
+    if (media.primary !== expectedPrimary || media.secondary !== expectedSecondary) {
+      throw new Error(
+        `UI/bundle media path mismatch for ${slug}: expected ${expectedPrimary} + ${expectedSecondary}, got ${media.primary} + ${media.secondary}`,
+      );
+    }
+
+    cities.push({
+      slug,
+      city: city.name,
+      country: city.country,
+      primary: media.primary,
+      secondary: media.secondary,
+    });
   }
   return cities;
 }
 
-function photoUrl(city, slot) {
+function apiPhotoUrl(city, slot) {
   const params = new URLSearchParams({
     city: city.city,
     country: city.country,
     slot: String(slot),
     width: "960",
     height: "540",
-    v: "sweep-1",
+    v: "sweep-api",
   });
   return `${baseUrl}/api/city-photo?${params.toString()}`;
 }
 
-async function inspectPhoto(city, slot) {
-  const { response, ms, attempt } = await request(photoUrl(city, slot), { attempts: 2 });
+function staticPhotoUrl(city, slot) {
+  const source = slot > 0 ? city.secondary : city.primary;
+  return `${baseUrl}${source}?v=sweep-browser`;
+}
+
+function optimizerPhotoUrl(city) {
+  const params = new URLSearchParams({
+    url: `${city.primary}?v=sweep-browser`,
+    w: "640",
+    q: "58",
+  });
+  return `${baseUrl}/_next/image?${params.toString()}`;
+}
+
+async function drainPrefix(response) {
+  const reader = response.body?.getReader();
+  if (!reader) return;
+  try { await reader.read(); } finally { await reader.cancel().catch(() => {}); }
+}
+
+function validateImageResponse(response, { kind, city, ms, attempt, source = "", fallback = "", article = "" }) {
   const type = response.headers.get("content-type") || "";
-  const source = response.headers.get("x-roavio-image-source") || "";
-  const fallback = response.headers.get("x-roavio-image-fallback") || "";
-  const article = response.headers.get("x-roavio-image-article") || "";
   const lengthHeader = response.headers.get("content-length");
   const declaredLength = lengthHeader ? Number(lengthHeader) : null;
 
   if (!response.ok) {
-    return { ok: false, kind: `photo-${slot}`, city, reason: `HTTP ${response.status}`, ms, attempt, source, fallback, article };
+    return { ok: false, kind, city, reason: `HTTP ${response.status}`, ms, attempt, source, fallback, article };
   }
   if (!type.startsWith("image/")) {
-    return { ok: false, kind: `photo-${slot}`, city, reason: `invalid content-type ${type || "<missing>"}`, ms, attempt, source, fallback, article };
+    return { ok: false, kind, city, reason: `invalid content-type ${type || "<missing>"}`, ms, attempt, source, fallback, article };
   }
   if (source === "fallback" || fallback) {
-    return { ok: false, kind: `photo-${slot}`, city, reason: `fallback:${fallback || "unknown"}`, ms, attempt, source, fallback, article };
+    return { ok: false, kind, city, reason: `fallback:${fallback || "unknown"}`, ms, attempt, source, fallback, article };
   }
   if (declaredLength !== null && Number.isFinite(declaredLength) && declaredLength < 500) {
-    return { ok: false, kind: `photo-${slot}`, city, reason: `suspiciously small image (${declaredLength} bytes)`, ms, attempt, source, fallback, article };
+    return { ok: false, kind, city, reason: `suspiciously small image (${declaredLength} bytes)`, ms, attempt, source, fallback, article };
   }
+  return { ok: true, kind, city, ms, attempt, source, article };
+}
 
-  // Drain a tiny prefix so streamed upstream responses are actually exercised without
-  // forcing CI to retain 180 full-resolution images in memory.
-  const reader = response.body?.getReader();
-  if (reader) {
-    try { await reader.read(); } finally { await reader.cancel().catch(() => {}); }
-  }
+async function inspectApiPhoto(city, slot) {
+  const { response, ms, attempt } = await request(apiPhotoUrl(city, slot), { attempts: 2 });
+  const source = response.headers.get("x-roavio-image-source") || "";
+  const fallback = response.headers.get("x-roavio-image-fallback") || "";
+  const article = response.headers.get("x-roavio-image-article") || "";
+  const result = validateImageResponse(response, {
+    kind: `api-photo-${slot}`,
+    city,
+    ms,
+    attempt,
+    source,
+    fallback,
+    article,
+  });
+  if (result.ok) await drainPrefix(response);
+  return result;
+}
 
-  return { ok: true, kind: `photo-${slot}`, city, ms, attempt, source, article };
+async function inspectStaticPhoto(city, slot) {
+  const { response, ms, attempt } = await request(staticPhotoUrl(city, slot), { attempts: 2 });
+  const result = validateImageResponse(response, {
+    kind: `static-photo-${slot}`,
+    city,
+    ms,
+    attempt,
+    article: slot > 0 ? city.secondary : city.primary,
+  });
+  if (result.ok) await drainPrefix(response);
+  return result;
+}
+
+async function inspectOptimizerPhoto(city) {
+  const { response, ms, attempt } = await request(optimizerPhotoUrl(city), { attempts: 2 });
+  const result = validateImageResponse(response, {
+    kind: "optimizer-photo-0",
+    city,
+    ms,
+    attempt,
+    article: city.primary,
+  });
+  if (result.ok) await drainPrefix(response);
+  return result;
 }
 
 async function inspectCity(city) {
   const route = await request(`${baseUrl}/cities/${encodeURIComponent(city.slug)}`);
-  if (!route.response.ok) {
-    return [{ ok: false, kind: "route", city, reason: `HTTP ${route.response.status}`, ms: route.ms, attempt: route.attempt }];
-  }
+  const routeResult = route.response.ok
+    ? { ok: true, kind: "route", city, ms: route.ms, attempt: route.attempt }
+    : { ok: false, kind: "route", city, reason: `HTTP ${route.response.status}`, ms: route.ms, attempt: route.attempt };
 
-  const [primary, secondary] = await Promise.all([
-    inspectPhoto(city, 0),
-    inspectPhoto(city, 1),
+  const [apiPrimary, apiSecondary, staticPrimary, staticSecondary, optimizedPrimary] = await Promise.all([
+    inspectApiPhoto(city, 0),
+    inspectApiPhoto(city, 1),
+    inspectStaticPhoto(city, 0),
+    inspectStaticPhoto(city, 1),
+    inspectOptimizerPhoto(city),
   ]);
-  return [
-    { ok: true, kind: "route", city, ms: route.ms, attempt: route.attempt },
-    primary,
-    secondary,
-  ];
+
+  return [routeResult, apiPrimary, apiSecondary, staticPrimary, staticSecondary, optimizedPrimary];
 }
 
 async function mapLimit(items, limit, worker) {
@@ -124,7 +201,7 @@ if (cities.length !== 90) {
   process.exit(1);
 }
 
-console.log(`Sweeping ${cities.length} Roavio city routes + ${cities.length * 2} photo slots at concurrency ${concurrency}...`);
+console.log(`Sweeping ${cities.length} Roavio routes + API media + static media + optimized primary cards at concurrency ${concurrency}...`);
 const nested = await mapLimit(cities, concurrency, async (city, index) => {
   const results = await inspectCity(city);
   const failures = results.filter((item) => !item.ok);
@@ -135,18 +212,22 @@ const nested = await mapLimit(cities, concurrency, async (city, index) => {
 
 const results = nested.flat();
 const failures = results.filter((item) => !item.ok);
-const photoResults = results.filter((item) => item.kind.startsWith("photo-"));
-const slowPhotos = photoResults
+const apiPhotos = results.filter((item) => item.kind.startsWith("api-photo-"));
+const staticPhotos = results.filter((item) => item.kind.startsWith("static-photo-"));
+const optimizedPhotos = results.filter((item) => item.kind === "optimizer-photo-0");
+const slowPhotos = [...apiPhotos, ...optimizedPhotos]
   .filter((item) => item.ok)
   .sort((a, b) => b.ms - a.ms)
   .slice(0, 12);
 
 console.log(`\nSweep summary: ${results.length - failures.length}/${results.length} checks passed.`);
 console.log(`Routes: ${results.filter((item) => item.kind === "route" && item.ok).length}/90`);
-console.log(`Photos: ${photoResults.filter((item) => item.ok).length}/180`);
+console.log(`EngineAPIResolver/media API: ${apiPhotos.filter((item) => item.ok).length}/180`);
+console.log(`Bundled static files: ${staticPhotos.filter((item) => item.ok).length}/180`);
+console.log(`Next optimized primary cards: ${optimizedPhotos.filter((item) => item.ok).length}/90`);
 
 if (slowPhotos.length) {
-  console.log("\nSlowest successful photo resolutions:");
+  console.log("\nSlowest successful image requests:");
   for (const item of slowPhotos) {
     console.log(`  ${item.city.slug} ${item.kind} ${item.ms}ms ${item.article || item.source || ""}`);
   }
@@ -160,4 +241,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("\nAll 90 city routes and both media slots resolved without fallback images. ✅");
+console.log("\nAll 90 city routes, both media delivery paths, and optimized primary cards are healthy. ✅");
