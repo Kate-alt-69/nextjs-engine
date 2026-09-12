@@ -35,7 +35,15 @@ function splitSections(markdown) {
   });
 }
 
-function unitsFrom(body) {
+function sentenceUnits(body) {
+  return clean(body)
+    .split(/(?<=[.!?])\s+/u)
+    .map((unit) => unit.replace(/^[-*]\s+/, "").trim())
+    .filter(Boolean)
+    .filter((unit) => !/muy pronto añadiremos/i.test(unit));
+}
+
+function clauseUnits(body) {
   return clean(body)
     .split(/(?<=[.!?])\s+|;\s+/u)
     .map((unit) => unit.replace(/^[-*]\s+/, "").trim())
@@ -73,38 +81,39 @@ function ensurePunctuation(value) {
 
 function compactSection(heading, body) {
   const key = sectionKey(heading);
-  const units = unitsFrom(body);
+  const sentences = sentenceUnits(body);
+  const clauses = clauseUnits(body);
   const paragraphs = paragraphsFrom(body);
   let picked = [];
 
   if (key.includes("visado") || key.includes("fiscal")) {
     picked = unique([
-      units[0],
-      firstMatching(units, /n[oó]mada|digital|remote|teletrab/i, 1),
-      firstMatching([...units].reverse(), /183|fiscal|tribut|impuesto|renta/i),
+      sentences[0],
+      firstMatching(clauses, /n[oó]mada|digital|remote|teletrab/i, 1),
+      firstMatching(clauses, /183|residente fiscal|residencia fiscal|tributar/i, 1),
     ]);
   } else if (key.includes("sanidad") || key.includes("seguro medico")) {
     picked = unique([
-      units[0],
-      firstMatching(units, /6 meses|seis meses|afili|resident|NHI|seguro nacional/i, 1),
-      firstMatching(units, /seguro.*priv|privad|hospital|cobertura/i, 1),
+      sentences[0],
+      firstMatching(sentences, /6 meses|seis meses|afili|resident|NHI|seguro nacional/i, 1),
+      firstMatching(sentences, /seguro.*priv|privad|hospital|cobertura/i, 1),
     ]);
   } else if (key.includes("barrios") || key.includes("cowork")) {
     picked = unique([
-      units[0],
-      units[1],
-      units[2],
-      firstMatching(units, /cowork|hot desk|oficina/i, 1),
+      sentences[0],
+      sentences[1],
+      sentences[2],
+      firstMatching(sentences, /cowork|hot desk|oficina/i, 1),
     ]);
   } else if (key.includes("internet") || key.includes("datos moviles")) {
-    picked = unique([units[0], units[1]]);
+    picked = unique([sentences[0], sentences[1]]);
   } else if (key.includes("fuentes")) {
     const sourceParagraphs = paragraphs.filter((paragraph) =>
       /Numbeo|Speedtest|Ookla|coste|seguridad|calidad de vida|banda ancha/i.test(paragraph),
     );
-    picked = unique(sourceParagraphs.length ? sourceParagraphs.slice(0, 4) : units.slice(0, 4));
+    picked = unique(sourceParagraphs.length ? sourceParagraphs.slice(0, 4) : sentences.slice(0, 4));
   } else {
-    picked = unique(units.slice(0, 3));
+    picked = unique(sentences.slice(0, 3));
   }
 
   picked = picked.filter(Boolean).slice(0, 4);
