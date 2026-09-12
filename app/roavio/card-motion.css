@@ -1,0 +1,96 @@
+:root{
+  --rv-radius-card:22px;
+  --rv-radius-media:16px;
+  --rv-radius-control:12px;
+}
+
+/* Keep card geometry concentric instead of mixing unrelated radii. */
+.rv-result-card{
+  border-radius:var(--rv-radius-card)!important;
+  transform:none;
+  will-change:auto;
+}
+.rv-result-card__visual-wrap,
+.rv-result-card__visual{
+  border-radius:var(--rv-radius-media)!important;
+  overflow:hidden;
+}
+.rv-city-thumb,
+.rv-city-thumb--compact{
+  border-radius:var(--rv-radius-media)!important;
+}
+.rv-result-metrics>div,
+.rv-icon-btn{
+  border-radius:var(--rv-radius-control)!important;
+}
+.rv-compare-city-card{
+  border-radius:20px!important;
+  overflow:hidden;
+}
+.rv-compare-city-card .rv-city-thumb{
+  border-radius:14px!important;
+}
+
+/*
+ * EngineScheduler marks cards only when their viewport work should begin.
+ * The animation is transform/opacity-only so it stays compositor friendly.
+ */
+.rv-result-card[data-rv-motion-bound='true'][data-rv-entered='false'],
+.rv-city-card[data-rv-motion-bound='true'][data-rv-entered='false'],
+.rv-compare-city-card[data-rv-motion-bound='true'][data-rv-entered='false']{
+  opacity:0;
+  transform:translate3d(0,16px,0) scale(.966);
+}
+
+.rv-result-card[data-rv-motion-bound='true'][data-rv-entered='true'],
+.rv-city-card[data-rv-motion-bound='true'][data-rv-entered='true'],
+.rv-compare-city-card[data-rv-motion-bound='true'][data-rv-entered='true']{
+  opacity:1;
+  transform:translate3d(0,0,0) scale(1);
+  transition:
+    opacity .32s ease var(--rv-enter-delay,0ms),
+    transform .54s cubic-bezier(.18,1.18,.28,1) var(--rv-enter-delay,0ms),
+    border-color .24s ease,
+    box-shadow .32s ease;
+}
+
+.rv-result-card[data-rv-motion-mode='instant'],
+.rv-city-card[data-rv-motion-mode='instant'],
+.rv-compare-city-card[data-rv-motion-mode='instant']{
+  transition:none!important;
+}
+
+@media(hover:hover) and (pointer:fine){
+  .rv-result-card[data-rv-entered='true']:hover{
+    transform:translateY(-6px) scale(1.006);
+  }
+  .rv-city-card[data-rv-entered='true']:hover{
+    transform:translateY(-4px) scale(1.004);
+  }
+  .rv-compare-city-card[data-rv-entered='true']:hover{
+    transform:translateY(-5px) scale(1.008);
+  }
+}
+
+@media(max-width:819px){
+  :root{
+    --rv-radius-card:18px;
+    --rv-radius-media:14px;
+    --rv-radius-control:11px;
+  }
+  .rv-result-card[data-rv-motion-bound='true'][data-rv-entered='false'],
+  .rv-city-card[data-rv-motion-bound='true'][data-rv-entered='false'],
+  .rv-compare-city-card[data-rv-motion-bound='true'][data-rv-entered='false']{
+    transform:translate3d(0,11px,0) scale(.975);
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .rv-result-card,
+  .rv-city-card,
+  .rv-compare-city-card{
+    opacity:1!important;
+    transform:none!important;
+    transition:none!important;
+  }
+}
