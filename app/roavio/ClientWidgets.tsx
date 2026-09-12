@@ -7,6 +7,7 @@ import { CityThumb } from "./CityThumb";
 import { CompareAtmosphere } from "./CompareAtmosphere";
 import { copyFor, type RoavioLocale } from "./i18n";
 import { SearchableCitySelect } from "./SearchableCitySelect";
+import { AnimatedLikeButton } from "./AnimatedLikeButton";
 
 const FAVORITES_KEY = "roavio-proposal-favorites";
 
@@ -90,9 +91,12 @@ function CityResultCard({ city, locale, favorite, compared, onFavorite, onCompar
   const cityHref = `/cities/${city.slug}`;
   return (
     <article className="rv-result-card">
-      <EngineTransitionLink href={cityHref} transition="portal" className="rv-result-card__visual" aria-label={`${copy.open} ${city.city}`}>
-        <CityThumb slug={city.slug} city={city.city} country={city.country} />
-      </EngineTransitionLink>
+      <div className="rv-result-card__visual-wrap">
+        <EngineTransitionLink href={cityHref} transition="portal" className="rv-result-card__visual" aria-label={`${copy.open} ${city.city}`}>
+          <CityThumb slug={city.slug} city={city.city} country={city.country} />
+        </EngineTransitionLink>
+        <AnimatedLikeButton active={favorite} onToggle={onFavorite} locale={locale} city={city.city} />
+      </div>
       <div className="rv-result-card__body">
         <div className="rv-result-head">
           <div>
@@ -107,7 +111,6 @@ function CityResultCard({ city, locale, favorite, compared, onFavorite, onCompar
           <div><strong>{catalogMetric(city.quality, "/10")}</strong><span>{copy.quality}</span></div>
         </div>
         <div className="rv-card-actions">
-          <button className="rv-icon-btn" type="button" data-active={favorite} onClick={onFavorite} aria-label={favorite ? copy.saved : copy.save}>{favorite ? `♥ ${copy.saved}` : `♡ ${copy.save}`}</button>
           <button className="rv-icon-btn" type="button" data-active={compared} onClick={onCompare}>{compared ? `✓ ${copy.compare}` : `+ ${copy.compare}`}</button>
           <EngineTransitionLink className="rv-icon-btn" href={cityHref} transition="portal" style={{ marginLeft: "auto", textDecoration: "none" }}>{copy.open} ↗</EngineTransitionLink>
         </div>
