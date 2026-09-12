@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
-const PHOTO_VERSION = "11";
+import { ROAVIO_MEDIA_VERSION } from "./mediaVersion";
 
 function photoUrl(city: string, country: string, slot: 0 | 1, width: number): string {
   const params = new URLSearchParams({
@@ -11,7 +10,7 @@ function photoUrl(city: string, country: string, slot: 0 | 1, width: number): st
     slot: String(slot),
     width: String(width),
     height: String(Math.round(width * 0.72)),
-    v: PHOTO_VERSION,
+    v: ROAVIO_MEDIA_VERSION,
   });
   return `/api/city-photo?${params.toString()}`;
 }
