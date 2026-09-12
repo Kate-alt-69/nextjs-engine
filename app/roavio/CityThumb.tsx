@@ -1,6 +1,6 @@
 "use client";
 
-import { EngineImage, useEngineSchedule } from "@/engine";
+import { EngineImage, useEngineSchedule, useEngineViewport } from "@/engine";
 import type { ImageLoader } from "next/image";
 import { useMemo } from "react";
 import { ROAVIO_MEDIA_VERSION } from "./mediaVersion";
@@ -87,10 +87,14 @@ export function CityThumb({
   eager?: boolean;
 }) {
   const staticSource = slot === 0 ? cityImage(slug) : null;
+  const viewport = useEngineViewport();
+  const mobile = viewport.layoutWidth === 0 || viewport.layoutWidth <= 700;
   const schedule = useEngineSchedule<HTMLDivElement>({
     priority: eager,
-    nearMargin: "96px 0px",
-    visibleThreshold: 0.02,
+    // Phones wait until the media actually reaches the viewport. Desktop gets
+    // a small prefetch runway so scrolling still feels instant.
+    nearMargin: mobile ? "0px" : "96px 0px",
+    visibleThreshold: mobile ? 0.03 : 0.02,
     releaseWhenFar: false,
   });
   const active = eager || schedule.near || schedule.visible;
