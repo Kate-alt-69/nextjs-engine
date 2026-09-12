@@ -9,11 +9,13 @@ const retryLimit = Math.max(2, Number(process.env.ROAVIO_MEDIA_RETRIES || 5));
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Destination imagery must read as a place, not merely contain the city's name.
-const rejectMedia = /\b(flag|bandera|bandiera|drapeau|fahne|map|locator|location|seal|escudo|coat[ _-]?of[ _-]?arms|logo|icon|diagram|route|metro[ _-]?map|subway[ _-]?map|districts?|boroughs?|portrait|player|athlete|politician|mayor|president|football|soccer|rugby|cricket|baseball|basketball|tennis|golf|marathon|runner|race|team|jersey|medal|election|signature|stadium|estadi|estadio|stade|stadion|stadio|arena|olympic|olimpic|sports?|sporting|food|comida|dish|meal|cuisine|soup|stew|noodles?|rice|soto|dessert|cake|sandwich|plate|plato|drawing|dibujo|sketch|illustration|ilustracion|painting|engraving|grabado|lithograph|poster|manuscript|stamp|coin|banknote|satellite|airport|aeropuerto|runway|aircraft|airplane|helicopter|species|specimen|shell|mollusc|mollusk|insect|bird|fish|animal|plant|flower|fossil|herbarium|botanical|zoological|beetle|butterfly)\b/i;
-const weakMedia = /\b(bus|taxi|car|vehicle|parking|terminal|road[ _-]?sign|signage)\b/i;
-const archivalHint = /(?:18|19)\d{2}|black[ _-]?and[ _-]?white|histor(?:ic|ical)[ _-]?(?:photo|photograph)|archiv(?:e|al)/i;
-const primaryHint = /\b(skyline|cityscape|panorama|panoramic|aerial|downtown|waterfront|harbou?r|corniche|bay|urban|old[ _-]?town|historic[ _-]?centre|historic[ _-]?center)\b/i;
+// A destination card should read as the destination itself. Reject media that is
+// technically related to a city but visually represents an event, object, person,
+// diagram, disaster, vehicle, meal, or archival/documentary subject instead.
+const rejectMedia = /\b(flag|bandera|bandiera|drapeau|fahne|map|locator|location|seal|sello|escudo|coat[ _-]?of[ _-]?arms|logo|icon|diagram|route|metro[ _-]?map|subway[ _-]?map|districts?|boroughs?|portrait|player|athlete|politician|mayor|president|football|soccer|rugby|cricket|baseball|basketball|tennis|golf|marathon|runner|race|team|jersey|medal|election|signature|stadium|estadi|estadio|stade|stadion|stadio|arena|olympics?|olimpic|sports?|sporting|food|comida|dish|meal|cuisine|soup|stew|noodles?|rice|soto|dessert|cake|sandwich|plate|plato|drawing|dibujo|sketch|illustration|ilustracion|painting|engraving|grabado|lithograph|poster|manuscript|stamp|coin|banknote|satellite|airport|aeropuerto|runway|aircraft|airplane|helicopter|species|specimen|shell|mollusc|mollusk|insect|bird|fish|animal|plant|flower|fossil|herbarium|botanical|zoological|beetle|butterfly|war|battle|military|army|navy|air[ _-]?force|fighter|soldiers?|troops?|airshow|black[ _-]?knight|dead|death|outbreak|epidemic|pandemic|covid|riot|protest|disaster|wildfire|flood|earthquake|crash|accident|cruise[ _-]?ship|wildlife|giraffe)\b/i;
+const weakMedia = /\b(bus|taxi|car|vehicle|parking|terminal|road[ _-]?sign|signage|bike|bicycle|citybike|smog|dusty)\b/i;
+const archivalHint = /(?:18|19)\d{2}|black[ _-]?and[ _-]?white|histor(?:ic|ical)[ _-]?(?:photo|photograph)|archiv(?:e|al)?|bundesarchiv/i;
+const primaryHint = /\b(skyline|cityscape|panorama|panoramic|aerial|downtown|waterfront|harbou?r|corniche|bay|urban|old[ _-]?town|historic[ _-]?(?:centre|center)|river|canal|coast|beach|city[ _-]?view|view[ _-]?of)\b/i;
 const secondaryHint = /\b(street|avenue|boulevard|architecture|landmark|monument|tower|mosque|cathedral|church|temple|palace|castle|fort|museum|square|plaza|bridge|gate|old[ _-]?town|historic|heritage|waterfront|marina|corniche|promenade|market|bazaar|garden|park|beach)\b/i;
 
 const aliases = {
@@ -72,6 +74,16 @@ function folded(value) {
 
 function canonicalCity(city) {
   return aliases[folded(city)] || city;
+}
+
+function mediaIdentity(item) {
+  return folded(item?.title || "")
+    .replace(/^file:\s*/, "")
+    .replace(/\.(?:jpe?g|png|webp|avif)$/i, "")
+    .replace(/\b(?:cropped?|copy|copie|edited?|edit)\b/g, "")
+    .replace(/[()[\]]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 async function fetchJson(url, attempt = 0) {
@@ -209,11 +221,12 @@ function titleScore(item, city, slot) {
   const normalizedCity = folded(city);
   let score = 0;
   if (normalized.includes(normalizedCity)) score += 24;
-  if (slot === 0 && primaryHint.test(normalized)) score += 18;
+  if (slot === 0 && primaryHint.test(normalized)) score += 20;
   if (slot === 1 && secondaryHint.test(normalized)) score += 22;
   if (slot === 1 && primaryHint.test(normalized)) score += 3;
-  if (weakMedia.test(normalized)) score -= 28;
-  if (archivalHint.test(normalized)) score -= slot === 0 ? 38 : 12;
+  if (slot === 0 && secondaryHint.test(normalized)) score += 4;
+  if (weakMedia.test(normalized)) score -= slot === 0 ? 38 : 24;
+  if (archivalHint.test(normalized)) score -= slot === 0 ? 52 : 24;
 
   const width = item.thumbwidth || item.width || 0;
   const height = item.thumbheight || item.height || 0;
@@ -224,12 +237,16 @@ function titleScore(item, city, slot) {
 
 function uniqueMedia(items) {
   const output = [];
-  const seen = new Set();
+  const seenSources = new Set();
+  const seenIdentities = new Set();
   for (const item of items) {
     const source = sourceOf(item);
-    if (!source || seen.has(source)) continue;
+    const identity = mediaIdentity(item);
+    if (!source || seenSources.has(source)) continue;
+    if (identity && seenIdentities.has(identity)) continue;
     if (rejectMedia.test(item.title || "") || /\.svg(?:$|\?)/i.test(item.title || "")) continue;
-    seen.add(source);
+    seenSources.add(source);
+    if (identity) seenIdentities.add(identity);
     output.push(item);
   }
   return output;
@@ -314,7 +331,7 @@ async function buildPool(city, country) {
   }
 
   if (pool.length < 2) {
-    try { pool = uniqueMedia([...pool, ...await commonsSearch(`${canonical} ${country}`, 30)]) }
+    try { pool = uniqueMedia([...pool, ...await commonsSearch(`${canonical} ${country}`, 30)]); }
     catch (error) { console.log(`    Commons broad search failed: ${error.message}`); }
   }
 
@@ -328,7 +345,7 @@ const entries = (await readdir(root, { withFileTypes: true }))
 
 if (entries.length !== 90) throw new Error(`Expected exactly 90 city directories, found ${entries.length}`);
 
-const manifest = { version: 3, generatedAt: new Date().toISOString(), qualityPolicy: "destination-scenes-v3", cities: {} };
+const manifest = { version: 4, generatedAt: new Date().toISOString(), qualityPolicy: "destination-scenes-v4", cities: {} };
 const failures = [];
 
 for (let index = 0; index < entries.length; index += 1) {
@@ -355,8 +372,17 @@ for (let index = 0; index < entries.length; index += 1) {
 
   const primarySource = sourceOf(primary);
   const secondarySource = sourceOf(secondary);
-  if (!primarySource || !secondarySource || primarySource === secondarySource) {
-    failures.push({ slug, city, country, candidates: pool.length, primary: Boolean(primarySource), secondary: Boolean(secondarySource) });
+  const sameIdentity = primary && secondary && mediaIdentity(primary) === mediaIdentity(secondary);
+  if (!primarySource || !secondarySource || primarySource === secondarySource || sameIdentity) {
+    failures.push({
+      slug,
+      city,
+      country,
+      candidates: pool.length,
+      primary: Boolean(primarySource),
+      secondary: Boolean(secondarySource),
+      duplicateIdentity: Boolean(sameIdentity),
+    });
     console.log(`    MISSING — ${pool.length} usable candidates`);
     continue;
   }
