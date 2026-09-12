@@ -3,40 +3,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { ROAVIO_MEDIA_VERSION } from "./mediaVersion";
 
-function photoUrl(city: string, country: string, slot: 0 | 1, width: number): string {
-  const params = new URLSearchParams({
-    city,
-    country,
-    slot: String(slot),
-    width: String(width),
-    height: String(Math.round(width * 0.72)),
-    v: ROAVIO_MEDIA_VERSION,
-  });
-  return `/api/city-photo?${params.toString()}`;
+function bundledPhoto(slug: string, slot: 0 | 1): string {
+  return `/city-media/${encodeURIComponent(slug)}-${slot}.jpg?v=${ROAVIO_MEDIA_VERSION}`;
 }
 
-export function CityDossierBackdrop({ city, country }: { city: string; country: string }) {
+export function CityDossierBackdrop({ slug }: { slug: string }) {
   const [slot, setSlot] = useState<0 | 1>(1);
   const [failed, setFailed] = useState(false);
-  const [previewReady, setPreviewReady] = useState(false);
   const [loaded, setLoaded] = useState(false);
-
-  const sources = useMemo(() => ({
-    preview: photoUrl(city, country, slot, 180),
-    sm: photoUrl(city, country, slot, 720),
-    md: photoUrl(city, country, slot, 1280),
-    lg: photoUrl(city, country, slot, 1800),
-  }), [city, country, slot]);
+  const source = useMemo(() => bundledPhoto(slug, slot), [slug, slot]);
 
   useEffect(() => {
-    setPreviewReady(false);
     setLoaded(false);
     setFailed(false);
     setSlot(1);
-  }, [city, country]);
+  }, [slug]);
 
   useEffect(() => {
-    setPreviewReady(false);
     setLoaded(false);
   }, [slot]);
 
@@ -45,23 +28,9 @@ export function CityDossierBackdrop({ city, country }: { city: string; country: 
   return (
     <div className="rv-dossier-backdrop rv-dossier-backdrop--progressive" data-loaded={loaded ? "true" : "false"} aria-hidden="true">
       <span className="rv-dossier-backdrop__loader" />
-
-      <img
-        className="rv-dossier-backdrop__preview"
-        src={sources.preview}
-        alt=""
-        draggable={false}
-        decoding="async"
-        fetchPriority="low"
-        onLoad={() => setPreviewReady(true)}
-        onDragStart={(event) => event.preventDefault()}
-      />
-
       <img
         className="rv-dossier-backdrop__full"
-        src={sources.md}
-        srcSet={`${sources.sm} 720w, ${sources.md} 1280w, ${sources.lg} 1800w`}
-        sizes="100vw"
+        src={source}
         alt=""
         draggable={false}
         decoding="async"
@@ -73,7 +42,6 @@ export function CityDossierBackdrop({ city, country }: { city: string; country: 
           else setFailed(true);
         }}
       />
-
       <span className="rv-dossier-backdrop__veil" />
 
       <style jsx>{`
@@ -82,7 +50,6 @@ export function CityDossierBackdrop({ city, country }: { city: string; country: 
         }
 
         .rv-dossier-backdrop__loader,
-        .rv-dossier-backdrop__preview,
         .rv-dossier-backdrop__full {
           position: absolute;
           inset: 0;
@@ -93,7 +60,7 @@ export function CityDossierBackdrop({ city, country }: { city: string; country: 
         }
 
         .rv-dossier-backdrop__loader {
-          z-index: 0;
+          z-index: 1;
           inset: -8%;
           width: 116%;
           height: 116%;
@@ -108,31 +75,21 @@ export function CityDossierBackdrop({ city, country }: { city: string; country: 
               rgba(255,255,255,.015) 100%);
           background-size: 100% 100%, 100% 100%, 240% 100%;
           animation: rv-backdrop-loading 1.65s ease-in-out infinite;
-          opacity: ${previewReady ? ".55" : "1"};
-          transition: opacity .42s ease;
-        }
-
-        .rv-dossier-backdrop__preview {
-          z-index: 1;
-          object-fit: cover;
-          opacity: ${previewReady && !loaded ? ".7" : "0"};
-          filter: blur(18px) saturate(.82) brightness(.86);
-          transform: scale(1.055);
-          transition: opacity .38s ease;
+          opacity: ${loaded ? "0" : "1"};
+          transition: opacity .46s ease;
         }
 
         .rv-dossier-backdrop__full {
           z-index: 2;
           object-fit: cover;
           opacity: ${loaded ? "1" : "0"};
-          transform: scale(${loaded ? "1" : "1.012"});
+          transform: scale(${loaded ? "1" : "1.018"});
           transition:
             opacity .68s cubic-bezier(.2,.72,.2,1),
             transform .9s cubic-bezier(.2,.72,.2,1);
         }
 
         .rv-dossier-backdrop[data-loaded='true'] .rv-dossier-backdrop__loader {
-          opacity: 0;
           animation-play-state: paused;
         }
 
@@ -148,7 +105,6 @@ export function CityDossierBackdrop({ city, country }: { city: string; country: 
 
         @media (prefers-reduced-motion: reduce) {
           .rv-dossier-backdrop__loader { animation: none; }
-          .rv-dossier-backdrop__preview,
           .rv-dossier-backdrop__full { transition: opacity .12s linear; }
         }
       `}</style>
