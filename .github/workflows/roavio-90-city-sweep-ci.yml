@@ -37,13 +37,13 @@ jobs:
             git push origin HEAD:proposal/roavio-ne
           fi
       - name: Bundle selected city photos locally
-        if: contains(github.event.head_commit.message, 'bundle Roavio media')
+        if: contains(github.event.head_commit.message, 'bundle Roavio media') || contains(github.event.head_commit.message, 'materialize Roavio media')
         env:
           ROAVIO_BUNDLE_PAUSE_MS: "160"
           ROAVIO_BUNDLE_RETRIES: "8"
         run: node tests/roavio-media-bundle.mjs
       - name: Commit bundled city media
-        if: contains(github.event.head_commit.message, 'bundle Roavio media')
+        if: contains(github.event.head_commit.message, 'bundle Roavio media') || contains(github.event.head_commit.message, 'materialize Roavio media')
         shell: bash
         run: |
           git config user.name "Kate"
