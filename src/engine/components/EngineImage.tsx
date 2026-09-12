@@ -70,6 +70,7 @@ export interface EngineImageProps extends Omit<ImageNodeProps, "type" | "objectF
 	qualityDesktop?: number;
 	loader?: ImageLoader;
 	onLoad?: () => void;
+	onError?: () => void;
 }
 
 export const EngineImage = memo(function EngineImage({
@@ -91,6 +92,7 @@ export const EngineImage = memo(function EngineImage({
 	blurDataURL,
 	loader,
 	onLoad,
+	onError,
 	style,
 	className,
 }: EngineImageProps) {
@@ -113,6 +115,10 @@ export const EngineImage = memo(function EngineImage({
 		setLoadedSrc(src);
 		onLoad?.();
 	}, [onLoad, src]);
+
+	const handleError = useCallback(() => {
+		onError?.();
+	}, [onError]);
 
 	const resolvedQuality = quality ?? QUALITY_PRESET[qualityPreset] ?? 78;
 	const usePerViewport = qualityMobile !== undefined || qualityDesktop !== undefined;
@@ -218,11 +224,11 @@ export const EngineImage = memo(function EngineImage({
 				<picture style={{ display: "block", width: "100%", height: fill || resolvedAspectRatio ? "100%" : "auto" }}>
 					<source media="(max-width: 767px)" srcSet={responsiveProps.mobile.props.srcSet} sizes={responsiveProps.mobile.props.sizes} />
 					<source media="(min-width: 768px)" srcSet={responsiveProps.desktop.props.srcSet} sizes={responsiveProps.desktop.props.sizes} />
-					<img ref={imageRef} {...responsiveProps.desktop.props} style={{ ...generatedStyle, ...imageStyle }} onLoad={handleLoad} />
+					<img ref={imageRef} {...responsiveProps.desktop.props} style={{ ...generatedStyle, ...imageStyle }} onLoad={handleLoad} onError={handleError} />
 				</picture>
 			);
 		} else {
-			imageNode = <Image ref={imageRef} {...commonImageProps} quality={resolvedQuality} onLoad={handleLoad} />;
+			imageNode = <Image ref={imageRef} {...commonImageProps} quality={resolvedQuality} onLoad={handleLoad} onError={handleError} />;
 		}
 	}
 
