@@ -286,7 +286,7 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
   return createComponent({
     schema,
     slots: {
-      pageBackdrop: <CityDossierBackdrop city={city.name} country={city.country} />,
+      pageBackdrop: <CityDossierBackdrop slug={city.slug} />,
       heroImage: (
         <div className="rv-dossier-hero__image">
           <CityThumb slug={city.slug} city={city.name} country={city.country} eager />
