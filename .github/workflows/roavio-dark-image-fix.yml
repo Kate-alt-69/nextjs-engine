@@ -6,6 +6,7 @@ on:
       - proposal/roavio-ne
     paths:
       - scripts/roavio-dark-image-fix.py
+      - .github/workflows/roavio-dark-image-fix.yml
 
 permissions:
   contents: write
@@ -21,7 +22,6 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-          cache: npm
       - name: Apply fixes
         run: python scripts/roavio-dark-image-fix.py
       - name: Install dependencies
