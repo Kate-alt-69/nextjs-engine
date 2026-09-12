@@ -5,7 +5,7 @@ import type { ImageLoader } from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cityImage, cityInitials } from "./visuals";
 
-const CITY_PHOTO_VERSION = "9";
+const CITY_PHOTO_VERSION = "12";
 const CARD_ASPECT = 16 / 9;
 
 function targetHeight(width: number): number {
@@ -53,7 +53,7 @@ const responsiveCityLoader: ImageLoader = ({ src, width, quality }) => {
   return src;
 };
 
-function lowResSource(source: string, city: string, country: string, slot: number): string | null {
+function lowResSource(source: string): string | null {
   if (source.includes("images.unsplash.com")) {
     try {
       const url = new URL(source);
@@ -68,9 +68,6 @@ function lowResSource(source: string, city: string, country: string, slot: numbe
       return source;
     }
   }
-  // Do not resolve Wikipedia twice (64px preview + final responsive image).
-  // The card's deterministic gradient/shimmer is the placeholder for proxy-backed
-  // cities, so the real city-photo request gets all of the network/API budget.
   return null;
 }
 
@@ -93,13 +90,14 @@ export function CityThumb({
   const hostRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(eager);
   const source = useMemo(
-    () => staticSource ?? cityProxySource(city, country, slot, 640),
+    () => staticSource ?? cityProxySource(city, country, slot, 960),
     [city, country, slot, staticSource],
   );
-  const preview = useMemo(
-    () => lowResSource(source, city, country, slot),
-    [city, country, slot, source],
-  );
+  const preview = useMemo(() => lowResSource(source), [source]);
+  const proxyBacked = source.startsWith("/api/city-photo?");
+  const sizes = compact
+    ? "(max-width: 700px) 44vw, 260px"
+    : "(max-width: 700px) calc(100vw - 2rem), (max-width: 1100px) calc(50vw - 2rem), 400px";
 
   useEffect(() => {
     if (active) return;
@@ -136,24 +134,35 @@ export function CityThumb({
         <small>{country}</small>
       </div>
       {active ? (
-        <EngineImage
-          src={source}
-          alt=""
-          width={720}
-          height={405}
-          aspectRatio="16 / 9"
-          sizes={compact
-            ? "(max-width: 700px) 44vw, 260px"
-            : "(max-width: 700px) calc(100vw - 2rem), (max-width: 1100px) calc(50vw - 2rem), 400px"}
-          qualityPreset="balanced"
-          qualityMobile={58}
-          qualityDesktop={72}
-          objectFit="cover"
-          priority={eager}
-          loader={responsiveCityLoader}
-          blurDataURL={preview ?? undefined}
-          className="rv-city-thumb__engine"
-        />
+        proxyBacked ? (
+          <img
+            className="rv-city-thumb__native"
+            src={cityProxySource(city, country, slot, 960)}
+            srcSet={`${cityProxySource(city, country, slot, 480)} 480w, ${cityProxySource(city, country, slot, 720)} 720w, ${cityProxySource(city, country, slot, 960)} 960w, ${cityProxySource(city, country, slot, 1280)} 1280w`}
+            sizes={sizes}
+            alt=""
+            draggable={false}
+            decoding="async"
+            loading={eager ? "eager" : "lazy"}
+          />
+        ) : (
+          <EngineImage
+            src={source}
+            alt=""
+            width={720}
+            height={405}
+            aspectRatio="16 / 9"
+            sizes={sizes}
+            qualityPreset="balanced"
+            qualityMobile={58}
+            qualityDesktop={72}
+            objectFit="cover"
+            priority={eager}
+            loader={responsiveCityLoader}
+            blurDataURL={preview ?? undefined}
+            className="rv-city-thumb__engine"
+          />
+        )
       ) : null}
     </div>
   );
