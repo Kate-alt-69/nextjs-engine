@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "ho-chi-minh",
+  "name": "Ho Chi Minh",
+  "country": "Vietnam",
+  "continent": "Asia",
+  "summary": "Ho Chi Minh (Saigon) is the most dynamic city in Vietnam. Overflowing energy, ultra-low cost of living, incredible gastronomy and a nomadic scene in full takeoff. District 1 and District 2 concentrate the majority of the infrastructure for remote workers.",
+  "strengths": [
+    "Low cost of livingEUR 428/month — 50% below the average of the 90 cities",
+    "Fast Internet274 Mbps — 55% above average (176 Mbps)"
+  ],
+  "considerations": [
+    "Safety below averageSafety index 5/10 compared to an average of 5.9/10",
+    "Quality of life below average3.7/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/ho-chi-minh",
+  "sourceTitle": "Ho Chi Minh, Vietnam para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 428/mo",
+    "internet": 274,
+    "safety": 5,
+    "quality": 3.7,
+    "beach": null
+  }
+}

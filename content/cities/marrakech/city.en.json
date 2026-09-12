@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "marrakech",
+  "name": "Marrakesh",
+  "country": "Morocco",
+  "continent": "Africa",
+  "summary": "Marrakech seduces with the bustle of the Jemaa el-Fnaa square and the labyrinth of the medina, but also offers a quiet life in the riads converted into coworking spaces of Gueliz. With a cost of living among the lowest on the nomadic circuit and direct flights of less than 3 hours from much of Europe, it is an increasingly popular base for working remotely without giving up culture or budget.",
+  "strengths": [
+    "Low cost of livingEUR 468/month — 46% below the average of the 90 cities"
+  ],
+  "considerations": [
+    "Internet below average57 Mbps compared to an average of 176 Mbps",
+    "Quality of life below average5.6/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/marrakech",
+  "sourceTitle": "Marrakech, Marruecos para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EUR 468/mo",
+    "internet": 57,
+    "safety": null,
+    "quality": 5.6,
+    "beach": null
+  }
+}

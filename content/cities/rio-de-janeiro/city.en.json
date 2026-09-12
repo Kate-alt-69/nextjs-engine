@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "rio-de-janeiro",
+  "name": "Rio de Janeiro",
+  "country": "Brazil",
+  "continent": "America",
+  "summary": "Rio de Janeiro combines iconic beaches such as Copacabana and Ipanema with the backdrop of Christ the Redeemer and Sugarloaf Mountain, plus a vibrant cultural and nightlife. The cost of living is low by Western standards, which makes it attractive for nomads on a tight budget, but safety is a real concern: it is advisable to choose the neighborhood (Zona Sul) well and move with caution, especially at night. Fixed internet in Brazil is surprisingly fast thanks to the expansion of fiber optics.",
+  "strengths": [
+    "Low cost of living BRL 550/month — 36% below the average of the 90 cities",
+    "Fast Internet220 Mbps — 25% above average (176 Mbps)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "Safety below averageSafety index 2.5/10 compared to an average of 5.9/10",
+    "Quality of life below average4.2/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/rio-de-janeiro",
+  "sourceTitle": "Río de Janeiro, Brasil para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "BRL 550/mo",
+    "internet": 220,
+    "safety": 2.5,
+    "quality": 4.2,
+    "beach": true
+  }
+}

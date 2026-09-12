@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "estambul",
+  "name": "Istanbul",
+  "country": "Türkiye",
+  "continent": "Europe",
+  "summary": "Istanbul is the only city in the world on two continents. A metropolis of 15 million with a unique energy, ancient history, extraordinary gastronomy and, thanks to Turkish inflation, a very competitive cost of living for those who earn in hard currency.",
+  "strengths": [
+    "Low cost of livingEUR 679/month — 21% below the average of the 90 cities",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "Internet below average69 Mbps compared to an average of 176 Mbps",
+    "Safety below averageSafety index 5.2/10 compared to an average of 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/estambul",
+  "sourceTitle": "Estambul, Turquía para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 679/mo",
+    "internet": 69,
+    "safety": 5.2,
+    "quality": null,
+    "beach": true
+  }
+}

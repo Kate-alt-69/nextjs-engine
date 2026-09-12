@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "almaty",
+  "name": "Almaty",
+  "country": "Kazakhstan",
+  "continent": "Asia",
+  "summary": "Almaty, Kazakhstan's largest city and former capital, sits at the foot of the Trans-Ili Alatau Mountains, with direct access to hiking, skiing (Shymbulak) and Big Almaty Lake. The cost of living is low and the cafe and coworking scene is growing rapidly along with the country's technological ecosystem. The main drawback is air pollution in winter due to thermal inversion, in addition to a notable language barrier (Russian and Kazakh dominate) and a clearly lower perceived safety at night than during the day.",
+  "strengths": [
+    "Low cost of livingKZT 627/month — 27% below the average of the 90 cities"
+  ],
+  "considerations": [
+    "Internet below average84 Mbps compared to an average of 176 Mbps",
+    "Safety below averageSafety index 4.7/10 compared to an average of 5.9/10",
+    "Quality of life below average4.9/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/almaty",
+  "sourceTitle": "Almaty, Kazajistán para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "KZT 627/mo",
+    "internet": 84,
+    "safety": 4.7,
+    "quality": 4.9,
+    "beach": null
+  }
+}

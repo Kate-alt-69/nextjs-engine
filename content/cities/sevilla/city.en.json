@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "sevilla",
+  "name": "Seville",
+  "country": "Spain",
+  "continent": "Europe",
+  "summary": "Seville is the capital of Andalusia and one of the cities with the most historical heritage in Spain, with the Giralda, the Cathedral and the Real Alcázar declared World Heritage Sites. The cost of living is notably lower than in Madrid or Barcelona, ​​while the quality of life and safety remain high. The city has an expanding tech and coworking community, driven in part by tourism and remote professionals attracted by its climate and affordable cost. Of course, its summers are extremely hot - with maximum temperatures frequently exceeding 40°C between June and August - so spring and autumn are the most recommended seasons to settle.",
+  "strengths": [
+    "Low cost of livingEUR 698/month — 19% below the average of the 90 cities",
+    "Fast Internet263 Mbps — 49% above average (176 Mbps)",
+    "High quality of life8.8/10, above average (6.9/10)"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/sevilla",
+  "sourceTitle": "Sevilla, España para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 698/mo",
+    "internet": 263,
+    "safety": null,
+    "quality": 8.8,
+    "beach": null
+  }
+}

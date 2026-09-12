@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "da-nang",
+  "name": "Da Nang",
+  "country": "Vietnam",
+  "continent": "Asia",
+  "summary": "Da Nang has become one of the most popular nomadic hubs in Southeast Asia: urban beach in My Khe, very low cost of living and very fast internet. The city combines modern skyscrapers with nearby mountains and temples, and its coworking and work cafe scene grows every year. The biggest drawback is the season of typhoons and heavy rains between September and December, in addition to the need to actively manage visas as there is no specific nomadic visa.",
+  "strengths": [
+    "Low cost of livingVND 390/month — 55% below the average of the 90 cities",
+    "Fast Internet274 Mbps — 55% above average (176 Mbps)",
+    "High securitySafety index 7.7/10, above average (5.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "Quality of life below average6/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/da-nang",
+  "sourceTitle": "Da Nang, Vietnam para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "VND 390/mo",
+    "internet": 274,
+    "safety": 7.7,
+    "quality": 6,
+    "beach": true
+  }
+}

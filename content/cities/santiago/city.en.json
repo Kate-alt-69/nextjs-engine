@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "santiago",
+  "name": "Santiago",
+  "country": "Chile",
+  "continent": "America",
+  "summary": "Santiago combines the strongest infrastructure in South America for digital nomads—fast fiber, modern coworkings, and a startup ecosystem powered by Start-Up Chile—with the Andes mountain range as a backdrop on clear days. The cost of living remains low by European standards, although winter smog, traffic and seismic activity are the real downside to living here.",
+  "strengths": [
+    "Low cost of livingCLP 602/month — 30% below the average of the 90 cities",
+    "Fast Internet357 Mbps — 102% above average (176 Mbps)"
+  ],
+  "considerations": [
+    "Safety below averageSafety index 3.6/10 compared to an average of 5.9/10",
+    "Quality of life below average5.6/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/santiago",
+  "sourceTitle": "Santiago, Chile para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "CLP 602/mo",
+    "internet": 357,
+    "safety": 3.6,
+    "quality": 5.6,
+    "beach": null
+  }
+}

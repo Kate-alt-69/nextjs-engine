@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "panama",
+  "name": "Panama City",
+  "country": "Panama",
+  "continent": "America",
+  "summary": "Panama City combines a financial skyscraper next to the Canal with a dollarized economy that eliminates currency exchange risk. The territorial tax system does not tax income from foreign sources, and the country has a real digital nomad visa (minimum income of $3,000/month, initial validity of about 9 months, renewable). The seafront of the city itself is not a beach suitable for bathing - the real beaches are 15-20 minutes away at Playa Kobbe or Amador - and security is only moderate in some areas.",
+  "strengths": [
+    "Low cost of livingUSD 729/month — 15% below the average of the 90 cities"
+  ],
+  "considerations": [
+    "Quality of life below average5.9/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/panama",
+  "sourceTitle": "Ciudad de Panamá, Panamá para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "USD 729/mo",
+    "internet": null,
+    "safety": null,
+    "quality": 5.9,
+    "beach": null
+  }
+}

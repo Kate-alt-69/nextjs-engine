@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "hanoi",
+  "name": "Hanoi",
+  "country": "Vietnam",
+  "continent": "Asia",
+  "summary": "Hanoi combines ancient temples, urban lakes and a chaotic Old Quarter with a world-class street food scene, all at a very low cost of living. The city has a growing but still low-key digital nomad community, with office cafes everywhere and a relaxed work culture compared to the hustle and bustle of Bangkok or Bali.",
+  "strengths": [
+    "Low cost of livingEUR 408/month — 53% below the average of the 90 cities",
+    "Fast Internet274 Mbps — 55% above average (176 Mbps)",
+    "High securitySafety index 6.6/10, above average (5.9/10)"
+  ],
+  "considerations": [
+    "Quality of life below average4.5/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/hanoi",
+  "sourceTitle": "Hanói, Vietnam para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EUR 408/mo",
+    "internet": 274,
+    "safety": 6.6,
+    "quality": 4.5,
+    "beach": null
+  }
+}

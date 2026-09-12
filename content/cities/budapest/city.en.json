@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "budapest",
+  "name": "Budapest",
+  "country": "Hungary",
+  "continent": "Europe",
+  "summary": "Budapest is Europe's hidden gem for nomads. One of the most beautiful cities on the continent with a cost of living notably lower than Western Europe, excellent internet, rich cultural life and a bustling nomadic scene.",
+  "strengths": [
+    "Fast Internet237 Mbps — 34% above average (176 Mbps)",
+    "High securitySafety index 6.6/10, above average (5.9/10)"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/budapest",
+  "sourceTitle": "Budapest, Hungría para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 237,
+    "safety": 6.6,
+    "quality": null,
+    "beach": null
+  }
+}

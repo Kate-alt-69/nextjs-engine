@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "munich",
+  "name": "Munich",
+  "country": "Germany",
+  "continent": "Europe",
+  "summary": "Munich is the capital of Bavaria and one of the most prosperous cities in Germany, known for combining historic architecture – such as Marienplatz and the Frauenkirche – with an economy that is at the cutting edge of technology, engineering and science. The cost of living is higher than the German average, but it is compensated by high salaries, exceptional security and a quality of life among the best in Europe. It is home to the headquarters of giants such as BMW, Siemens and Google, as well as an expanding tech and startup community with numerous coworkings and events. Its proximity to the Alps, the Englischer Garten in the center and internet connectivity among the fastest in Europe make it an attractive destination for digital nomads looking for stability and nature without leaving the city.",
+  "strengths": [
+    "High securitySafety index 7.8/10, above average (5.9/10)",
+    "High quality of life9.9/10, above average (6.9/10)"
+  ],
+  "considerations": [
+    "High cost of livingEUR 1111/month — 29% above average",
+    "Internet below average102 Mbps compared to an average of 176 Mbps"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/munich",
+  "sourceTitle": "Múnich, Alemania para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 1111/mo",
+    "internet": 102,
+    "safety": 7.8,
+    "quality": 9.9,
+    "beach": null
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "valencia",
+  "name": "Valencia",
+  "country": "Spain",
+  "continent": "Europe",
+  "summary": "Valencia combines beach, gastronomy and a thriving digital scene with one of the lowest costs of living in Western Europe. Mediterranean city with more than 300 days of sunshine a year, excellent infrastructure and a rapidly growing nomadic community.",
+  "strengths": [
+    "Fast Internet263 Mbps — 49% above average (176 Mbps)",
+    "High quality of life9.1/10, above average (6.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/valencia",
+  "sourceTitle": "Valencia, España para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 263,
+    "safety": null,
+    "quality": 9.1,
+    "beach": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "accra",
+  "name": "Accra",
+  "country": "Ghana",
+  "continent": "Africa",
+  "summary": "Accra combines an expanding tech ecosystem, Ghanaian hospitality and Atlantic beaches like Labadi with one of the lowest costs of living among digital nomad hubs. It is one of the most politically stable cities in West Africa, although occasional power outages, uneven internet outside central areas and heavy traffic are real limitations to consider.",
+  "strengths": [
+    "Low cost of livingGHS 525/month — 39% below the average of the 90 cities",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "Internet below average53 Mbps compared to an average of 176 Mbps",
+    "Quality of life below average 1.4/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/accra",
+  "sourceTitle": "Accra, Ghana para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "GHS 525/mo",
+    "internet": 53,
+    "safety": null,
+    "quality": 1.4,
+    "beach": true
+  }
+}

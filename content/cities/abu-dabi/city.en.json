@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "abu-dabi",
+  "name": "Abu Dhabi",
+  "country": "United Arab Emirates",
+  "continent": "Asia",
+  "summary": "Capital of the United Arab Emirates, Abu Dhabi offers a quieter, more formal life than Dubai, with seaside skyscrapers, the imposing Sheikh Zayed Mosque and royal beaches on the Corniche and Saadiyat Island. It is one of the safest cities in the world according to various rankings, has zero income tax and has a remote work visa program designed for digital nomads. In exchange for that security and quality of life, the cost of living is high and the environment is more conservative than that of its neighbor Dubai.",
+  "strengths": [
+    "Fast Internet356 Mbps — 102% above average (176 Mbps)",
+    "High securitySafety index 8.9/10, above average (5.9/10)",
+    "High quality of life9.3/10, above average (6.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/abu-dabi",
+  "sourceTitle": "Abu Dabi, Emiratos Árabes Unidos para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 356,
+    "safety": 8.9,
+    "quality": 9.3,
+    "beach": true
+  }
+}

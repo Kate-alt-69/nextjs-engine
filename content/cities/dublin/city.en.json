@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "dublin",
+  "name": "Dublin",
+  "country": "Ireland",
+  "continent": "Europe",
+  "summary": "Dublin has become Europe's technology hub, with European headquarters for Google, Meta, LinkedIn, Stripe and Airbnb, creating a very active digital nomad and expat community. It is one of the most expensive cities in Europe: rent is extremely high and the housing shortage is a real problem for those who arrive without a prior contract. The oceanic climate is mild but very rainy and unpredictable, although the internet is fast and reliable and the Irish culture makes social life very easy.",
+  "strengths": [
+    "High quality of life7.7/10, above average (6.9/10)"
+  ],
+  "considerations": [
+    "High cost of livingEUR 1133/month — 32% above average",
+    "Safety below averageSafety index 4.6/10 compared to an average of 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/dublin",
+  "sourceTitle": "Dublín, Irlanda para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EUR 1133/mo",
+    "internet": null,
+    "safety": 4.6,
+    "quality": 7.7,
+    "beach": null
+  }
+}

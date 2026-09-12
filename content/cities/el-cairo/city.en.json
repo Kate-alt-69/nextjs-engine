@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "el-cairo",
+  "name": "Cairo",
+  "country": "Egypt",
+  "continent": "Africa",
+  "summary": "Cairo combines millennia of history—with the pyramids of Giza at the city's doorstep—with one of the lowest costs of living among the world's major capitals, and an expanding regional technology ecosystem. In exchange, the digital nomad must deal with chaotic traffic, high levels of pollution and citizen security that must be monitored.",
+  "strengths": [
+    "Low cost of living EGP 355/month — 59% below the average of the 90 cities"
+  ],
+  "considerations": [
+    "Internet below average92 Mbps compared to an average of 176 Mbps",
+    "Safety below averageSafety index 5/10 compared to an average of 5.9/10",
+    "Quality of life below average4.1/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/el-cairo",
+  "sourceTitle": "El Cairo, Egipto para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EGP 355/mo",
+    "internet": 92,
+    "safety": 5,
+    "quality": 4.1,
+    "beach": null
+  }
+}

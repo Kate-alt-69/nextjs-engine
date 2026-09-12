@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "suva",
+  "name": "Suva",
+  "country": "Fiji",
+  "continent": "Oceania",
+  "summary": "Suva, the capital of Fiji, is the most affordable gateway to the South Pacific: low cost of living, English as the official language and beaches like Nasese within walking distance of the centre. It is more of an administrative and port capital than a postcard destination - that's what Nadi or the outer islands are for - but it already has a real coworking (Greenhouse Coworking). The internet is far behind other nomadic hubs and security drops significantly at night, something to keep in mind when choosing accommodation.",
+  "strengths": [
+    "Low cost of livingFJD 522/month — 39% below the average of the 90 cities",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "Internet below average13 Mbps compared to an average of 176 Mbps",
+    "Safety below averageSafety index 4.6/10 compared to an average of 5.9/10",
+    "Quality of life below average5.2/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/suva",
+  "sourceTitle": "Suva, Fiyi para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "FJD 522/mo",
+    "internet": 13,
+    "safety": 4.6,
+    "quality": 5.2,
+    "beach": true
+  }
+}

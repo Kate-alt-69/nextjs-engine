@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "viena",
+  "name": "Vienna",
+  "country": "Austria",
+  "continent": "Europe",
+  "summary": "Vienna combines imperial palaces, the best quality of life in Europe according to numerous rankings and an unrivaled cultural scene, with impeccable public transport. As an EU citizen, settling there does not require a visa or special procedures. It is a quiet, safe and very orderly city, ideal for those looking for stability and quality of life over frenetic nightlife.",
+  "strengths": [
+    "High securitySafety index 7.1/10, above average (5.9/10)",
+    "High quality of life9.9/10, above average (6.9/10)"
+  ],
+  "considerations": [
+    "High cost of livingEUR 1060/month — 23% above average",
+    "Internet below average114 Mbps compared to an average of 176 Mbps"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/viena",
+  "sourceTitle": "Viena, Austria para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EUR 1060/mo",
+    "internet": 114,
+    "safety": 7.1,
+    "quality": 9.9,
+    "beach": null
+  }
+}

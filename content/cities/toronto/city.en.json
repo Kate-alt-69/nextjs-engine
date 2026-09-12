@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "toronto",
+  "name": "toronto",
+  "country": "Canada",
+  "continent": "North America",
+  "summary": "Toronto is the financial and technological capital of Canada, with a rapidly growing startup ecosystem and one of the most multicultural populations in the world, which translates into a very wide gastronomic and social offer. The quality of life is high and the country offers political stability and security, but the cost of housing and the long, very cold winters are factors to take into account. For a Spanish or European digital nomad the biggest complication is not the cost or the climate, but the lack of a specific visa: Canada does not offer a digital nomad visa and working remotely for a foreign employer during a tourist stay moves in an ambiguous legal zone. Even so, its excellent connectivity, efficient public transportation, and cultural proximity to the United States make it an attractive destination for short stays.",
+  "strengths": [
+    "Fast Internet256 Mbps — 45% above average (176 Mbps)",
+    "High quality of life8.5/10, above average (6.9/10)"
+  ],
+  "considerations": [
+    "High cost of livingCAD 1,488/month — 73% above average"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/toronto",
+  "sourceTitle": "Toronto, Canadá para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "CAD 1488/mo",
+    "internet": 256,
+    "safety": null,
+    "quality": 8.5,
+    "beach": null
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "braga",
+  "name": "Panty",
+  "country": "Portugal",
+  "continent": "Europe",
+  "summary": "Braga is one of the oldest cities in Portugal (of Roman origin, the ancient Bracara Augusta) and today combines a monumental historical center - with the sanctuary of Bom Jesus do Monte as a great icon - with a cost of living clearly lower than Lisbon and Porto. It is home to the University of Minho, which gives it a young population and a very active cultural life, and in recent years it has developed a growing technological ecosystem that coexists with its traditional character. It is less than an hour by train from Porto, making it easy to access an international airport without living in a big city.",
+  "strengths": [
+    "Low cost of livingEUR 676/month — 21% below the average of the 90 cities",
+    "Fast Internet237 Mbps — 34% above average (176 Mbps)",
+    "High quality of life9.2/10, above average (6.9/10)"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/braga",
+  "sourceTitle": "Braga, Portugal para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 676/mo",
+    "internet": 237,
+    "safety": null,
+    "quality": 9.2,
+    "beach": null
+  }
+}

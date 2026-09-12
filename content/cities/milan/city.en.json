@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "milan",
+  "name": "Milan",
+  "country": "Italy",
+  "continent": "Europe",
+  "summary": "Milan is the undisputed capital of fashion, design and business in Italy, home of Fashion Week and a business ecosystem that rivals the great European capitals. The cost of living is noticeably more affordable than in London, Paris or Amsterdam, although higher than the Italian average, especially for rent. The city has an expanding tech and startup scene, concentrated in districts such as Porta Nuova and Bicocca, with frequent networking and innovation events. A distinctive feature is its perfect connection to the Alps and lakes of northern Italy, allowing for weekend getaways in less than two hours.",
+  "strengths": [],
+  "considerations": [
+    "High cost of livingEUR 1115/month — 30% above average",
+    "Internet below average 110 Mbps compared to an average of 176 Mbps",
+    "Safety below averageSafety index 4.6/10 compared to an average of 5.9/10",
+    "Quality of life below average6/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/milan",
+  "sourceTitle": "Milán, Italia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 1115/mo",
+    "internet": 110,
+    "safety": 4.6,
+    "quality": 6,
+    "beach": null
+  }
+}

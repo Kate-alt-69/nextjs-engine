@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "cusco",
+  "name": "Cusco",
+  "country": "Peru",
+  "continent": "America",
+  "summary": "Cusco, former capital of the Inca Empire at 3,400 meters above sea level, offers a spectacular historic center, an intense cultural scene and one of the best gateways to Machu Picchu. The cost of living is very low and the climate is mild and stable almost all year round, with a dry season from May to September ideal for working and exploring. The big determining factor is the altitude: the first days usually bring altitude sickness and lower performance, and healthcare and internet outside the main coworkings are more limited than in other South American cities.",
+  "strengths": [
+    "Low cost of living PEN 463/month — 46% below the average of the 90 cities",
+    "Fast Internet252 Mbps — 43% above average (176 Mbps)"
+  ],
+  "considerations": [
+    "Quality of life below average4.6/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/cusco",
+  "sourceTitle": "Cusco, Perú para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "PEN 463/mo",
+    "internet": 252,
+    "safety": null,
+    "quality": 4.6,
+    "beach": null
+  }
+}

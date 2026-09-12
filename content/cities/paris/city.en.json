@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "paris",
+  "name": "Paris",
+  "country": "France",
+  "continent": "Europe",
+  "summary": "Paris is the cultural and economic capital of France, and one of the largest startup and technology hubs in continental Europe, with a very active coworking scene, accelerators (such as Station F, the largest startup campus in the world) and tech events. The cost of living is high – among the most expensive in continental Europe – especially for rent, although the quality of life, the public transport network and the cultural offer compensate for many digital nomads. The city combines historic architecture, world-class museums and a very distinct café and neighborhood life, with very distinct districts that range from the bohemian to the elegant. Its central location in Europe also makes it an excellent base for traveling around the continent.",
+  "strengths": [
+    "Fast Internet346 Mbps — 96% above average (176 Mbps)"
+  ],
+  "considerations": [
+    "High cost of livingEUR 1126/month — 31% above average",
+    "Safety below averageSafety index 4.2/10 compared to an average of 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/paris",
+  "sourceTitle": "París, Francia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 1126/mo",
+    "internet": 346,
+    "safety": 4.2,
+    "quality": null,
+    "beach": null
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "ciudad-de-mexico",
+  "name": "Mexico City",
+  "country": "Mexico",
+  "continent": "America",
+  "summary": "CDMX is one of the great capitals of the world and a first-class nomadic city. Overflowing culture, world-class gastronomy, neighborhoods like Roma and Condesa full of cafes with WiFi and a vibrant creative and entrepreneurial scene.",
+  "strengths": [
+    "Low cost of livingEUR 729/month — 15% below the average of the 90 cities"
+  ],
+  "considerations": [
+    "Internet below average92 Mbps compared to an average of 176 Mbps",
+    "Safety below averageSafety index 3.4/10 compared to an average of 5.9/10",
+    "Quality of life below average4.8/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/ciudad-de-mexico",
+  "sourceTitle": "Ciudad de México, México para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 729/mo",
+    "internet": 92,
+    "safety": 3.4,
+    "quality": 4.8,
+    "beach": null
+  }
+}

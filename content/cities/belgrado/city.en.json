@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "belgrado",
+  "name": "Belgrade",
+  "country": "Serbia",
+  "continent": "Europe",
+  "summary": "Located at the confluence of the Sava and Danube rivers, Belgrade has become one of the favorite destinations for digital nomads in the Balkans thanks to its extremely low cost of living and a rapidly growing expat community. The city is famous for its intense nightlife, led by the 'splavovi' (floating clubs on the river), and for leisure spaces such as the spa island of Ada Ciganlija. As it does not belong to the European Union or the Schengen area, Serbia imposes its own entry and residence rules, something that should be planned carefully before a long stay.",
+  "strengths": [],
+  "considerations": [
+    "Internet below average103.8 Mbps compared to an average of 176 Mbps",
+    "Quality of life below average6.1/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/belgrado",
+  "sourceTitle": "Belgrado, Serbia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 103.8,
+    "safety": null,
+    "quality": 6.1,
+    "beach": null
+  }
+}

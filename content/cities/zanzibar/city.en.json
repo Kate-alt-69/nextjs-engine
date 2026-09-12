@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "zanzibar",
+  "name": "Zanzibar",
+  "country": "Tanzania",
+  "continent": "Africa",
+  "summary": "Zanzibar combines picture-postcard white sand beaches with the historic heritage of Stone Town, a UNESCO World Heritage Site. Nomad hubs like Paje or Nungwi offer beachfront coworking and a growing international community, with flexible visa policies for long stays. The main challenge is infrastructure: power and internet outages are frequent outside the main coworkings, and almost everything is imported, which makes daily life more expensive compared to other economic destinations.",
+  "strengths": [
+    "Low cost of livingTZS 377/month — 56% below the average of the 90 cities",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "Internet below average21 Mbps compared to an average of 176 Mbps",
+    "Safety below averageSafety index 4.7/10 compared to an average of 5.9/10",
+    "Quality of life below average5.1/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/zanzibar",
+  "sourceTitle": "Zanzíbar, Tanzania para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "TZS 377/mo",
+    "internet": 21,
+    "safety": 4.7,
+    "quality": 5.1,
+    "beach": true
+  }
+}

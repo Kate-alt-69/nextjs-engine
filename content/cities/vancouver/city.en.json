@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "vancouver",
+  "name": "vancouver",
+  "country": "Canada",
+  "continent": "North America",
+  "summary": "Vancouver combines snow-capped mountains, sea and forest at the city's doorstep with a rapidly expanding technological ecosystem and an exceptional quality of life. However, it is one of the most expensive cities in North America to live in – especially in housing – and its long and very rainy winters are not for everyone.",
+  "strengths": [
+    "Fast Internet256 Mbps — 45% above average (176 Mbps)",
+    "High quality of life9.3/10, above average (6.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/vancouver",
+  "sourceTitle": "Vancouver, Canadá para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 256,
+    "safety": null,
+    "quality": 9.3,
+    "beach": true
+  }
+}

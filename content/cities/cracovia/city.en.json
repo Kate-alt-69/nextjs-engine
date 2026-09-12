@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "cracovia",
+  "name": "Krakow",
+  "country": "Poland",
+  "continent": "Europe",
+  "summary": "Krakow combines one of the best-preserved medieval squares in Europe with a remarkably low cost of living and a rapidly growing nomadic community. Its historic center, declared a World Heritage Site, coexists with a growing ecosystem of specialty cafes and coworking spaces, especially in the Kazimierz and Stare Miasto neighborhoods.",
+  "strengths": [
+    "Low cost of livingEUR 729/month — 15% below the average of the 90 cities",
+    "Fast Internet213 Mbps — 21% above average (176 Mbps)",
+    "High securitySafety index 7.5/10, above average (5.9/10)"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/cracovia",
+  "sourceTitle": "Cracovia, Polonia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EUR 729/mo",
+    "internet": 213,
+    "safety": 7.5,
+    "quality": null,
+    "beach": null
+  }
+}

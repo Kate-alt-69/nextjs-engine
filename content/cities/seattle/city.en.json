@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "seattle",
+  "name": "seattle",
+  "country": "United States",
+  "continent": "North America",
+  "summary": "Seattle is home to tech giants like Amazon and Microsoft, making it a hub of innovation with high salaries but also one of the highest costs of living in the United States. For a Spanish or European digital nomad, the biggest barrier is not economic but legal: the United States does not have a digital nomad visa and working remotely for a foreign employer while with ESTA or a tourist visa is not authorized, although it is a common practice and difficult to detect. The climate is oceanic and very rainy much of the year, compensated by dry and bright summers between July and September. In return, the city offers quick access to mountains, lakes and forests, a well-developed cafe and coworking scene, and good internet connectivity.",
+  "strengths": [
+    "Fast Internet303 Mbps — 72% above average (176 Mbps)",
+    "High quality of life9.2/10, above average (6.9/10)"
+  ],
+  "considerations": [
+    "High cost of livingUSD 1,571/month — 83% above average",
+    "Safety below averageSafety index 4.5/10 compared to an average of 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/seattle",
+  "sourceTitle": "Seattle, Estados Unidos para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "USD 1571/mo",
+    "internet": 303,
+    "safety": 4.5,
+    "quality": 9.2,
+    "beach": null
+  }
+}

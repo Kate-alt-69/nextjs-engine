@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "addis-abeba",
+  "name": "Addis Ababa",
+  "country": "Ethiopia",
+  "continent": "Africa",
+  "summary": "Addis Ababa, capital of Ethiopia and headquarters of the African Union, sits at more than 2,350 meters above sea level, which gives it a mild and stable climate all year round despite its tropical latitude. The cost of living is low and it has a nascent coworking scene (iceaddis, blueSpace, ShegerHive) linked to a growing startup ecosystem. The internet is far behind other nomadic hubs, and exchange restrictions and banking friction for international payments are a real obstacle to take into account.",
+  "strengths": [
+    "Low cost of livingETB 661/month — 23% below the average of the 90 cities"
+  ],
+  "considerations": [
+    "Internet below average9.4 Mbps compared to an average of 176 Mbps",
+    "Safety below averageSafety index 5/10 compared to an average of 5.9/10",
+    "Quality of life below average2.8/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/addis-abeba",
+  "sourceTitle": "Adís Abeba, Etiopía para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "ETB 661/mo",
+    "internet": 9.4,
+    "safety": 5,
+    "quality": 2.8,
+    "beach": null
+  }
+}

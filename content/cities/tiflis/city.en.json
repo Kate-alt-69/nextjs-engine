@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "tiflis",
+  "name": "Tbilisi",
+  "country": "Georgia",
+  "continent": "Europe",
+  "summary": "Tbilisi is the nomads' best kept secret. 0% taxes for foreigners for the first year, very low cost of living, fascinating culture, unique cuisine and a nomadic community that has exploded since 2022. Georgia allows visa-free entry to most countries.",
+  "strengths": [
+    "Low cost of livingEUR 574/month — 33% below the average of the 90 cities",
+    "High securitySafety index 7.4/10, above average (5.9/10)"
+  ],
+  "considerations": [
+    "Internet below average45 Mbps compared to an average of 176 Mbps",
+    "Quality of life below average6/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/tiflis",
+  "sourceTitle": "Tiflis, Georgia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 574/mo",
+    "internet": 45,
+    "safety": 7.4,
+    "quality": 6,
+    "beach": null
+  }
+}

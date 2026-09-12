@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "miami",
+  "name": "Miami",
+  "country": "United States",
+  "continent": "North America",
+  "summary": "Miami combines a beach atmosphere, a vibrant Latin and international culture and one of the fastest growing financial and technological hubs in the United States. Its time zone coincides with much of Latin America, which makes remote work easier with that region, although the cost of living is high by American standards and it is worth taking into account the hurricane season.",
+  "strengths": [
+    "Fast Internet303 Mbps — 72% above average (176 Mbps)",
+    "High quality of life7.9/10, above average (6.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "High cost of livingUSD 1,222/month — 42% above average",
+    "Safety below averageSafety index 4.7/10 compared to an average of 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/miami",
+  "sourceTitle": "Miami, Estados Unidos para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "USD 1222/mo",
+    "internet": 303,
+    "safety": 4.7,
+    "quality": 7.9,
+    "beach": true
+  }
+}

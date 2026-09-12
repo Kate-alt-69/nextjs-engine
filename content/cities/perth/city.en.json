@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "perth",
+  "name": "Perth",
+  "country": "Australia",
+  "continent": "Oceania",
+  "summary": "Perth, on the west coast of Australia, offers a relaxed pace of life, urban beaches such as Cottesloe and one of the best quality of life in Roavio's catalogue. The Mediterranean climate, with dry, hot summers and mild winters, and an active coworking community (FLUX, Riff, WeWork) make it attractive for those looking for a beach without the intensity of Sydney or Melbourne. Its major drawback is extreme geographic isolation – the next major city, Adelaide, is more than 2,600 km away – and limited visa options for long stays.",
+  "strengths": [
+    "High quality of life9.4/10, above average (6.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "High cost of livingAUD 1033/month — 20% above average"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/perth",
+  "sourceTitle": "Perth, Australia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "AUD 1033/mo",
+    "internet": null,
+    "safety": null,
+    "quality": 9.4,
+    "beach": true
+  }
+}

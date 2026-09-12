@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "guadalajara",
+  "name": "Guadalajara",
+  "country": "Mexico",
+  "continent": "America",
+  "summary": "Guadalajara, known as “Mexican Silicon Valley,” combines a booming tech and startup scene with the culture that gave rise to tequila and mariachi. The coworking and young atmosphere of the Colonia Americana neighborhood attract a growing nomadic community, with a mild climate thanks to its altitude (1,566 m) and a low cost of living compared to the US or Europe. The trade-off is a perceived lower security than other nomadic hubs and a rainy season (June-September) with intense storms in the afternoons.",
+  "strengths": [
+    "Low cost of livingMXN 638/month — 26% below the average of the 90 cities"
+  ],
+  "considerations": [
+    "Internet below average92 Mbps compared to an average of 176 Mbps",
+    "Safety below averageSafety index 3.8/10 compared to an average of 5.9/10",
+    "Quality of life below average5.9/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/guadalajara",
+  "sourceTitle": "Guadalajara, México para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "MXN 638/mo",
+    "internet": 92,
+    "safety": 3.8,
+    "quality": 5.9,
+    "beach": null
+  }
+}

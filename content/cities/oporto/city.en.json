@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "oporto",
+  "name": "Porto",
+  "country": "Portugal",
+  "continent": "Europe",
+  "summary": "Porto combines a historic center declared a World Heritage Site with a significantly lower cost of living than Lisbon, without losing good digital connection or proximity to the sea. It offers a calmer and more authentic environment than the Portuguese capital, with a growing community of digital nomads and the same access to the Portuguese D8 visa.",
+  "strengths": [
+    "Low cost of livingEUR 721/month — 16% below the average of the 90 cities",
+    "Fast Internet237 Mbps — 34% above average (176 Mbps)",
+    "High securitySafety index 6.6/10, above average (5.9/10)",
+    "High quality of life8.9/10, above average (6.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/oporto",
+  "sourceTitle": "Oporto, Portugal para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 721/mo",
+    "internet": 237,
+    "safety": 6.6,
+    "quality": 8.9,
+    "beach": true
+  }
+}

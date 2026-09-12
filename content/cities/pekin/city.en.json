@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "pekin",
+  "name": "Beijing",
+  "country": "China",
+  "continent": "Asia",
+  "summary": "Beijing is the political and historical heart of China: the Forbidden City, the Great Wall at the city gates and an ultra-modern subway that connects a metropolis of more than 20 million people. The cost of living is remarkably low for the size of the city, but the Great Firewall blocks Google, WhatsApp, Instagram and Gmail, so you need a reliable VPN installed before you arrive. China does not offer a digital nomad visa, so working remotely is usually done under a tourist visa, in an ambiguous legal zone.",
+  "strengths": [
+    "Fast Internet223 Mbps — 26% above average (176 Mbps)",
+    "High securitySafety index 7.4/10, above average (5.9/10)"
+  ],
+  "considerations": [
+    "High cost of livingCNY 3940/month — 358% above average",
+    "Quality of life below average5.8/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/pekin",
+  "sourceTitle": "Pekín, China para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "CNY 3940/mo",
+    "internet": 223,
+    "safety": 7.4,
+    "quality": 5.8,
+    "beach": null
+  }
+}

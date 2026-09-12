@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "madrid",
+  "name": "Madrid",
+  "country": "Spain",
+  "continent": "Europe",
+  "summary": "Madrid combines the pulse of a first-class European capital with a cost of living significantly lower than London, Paris or Amsterdam. It offers social life until dawn, a constant cultural offer between the Prado and the Reina Sofía, and a growing community of digital nomads thanks to the teleworker visa. Its dry climate, an airport with direct connections to all of Europe and Latin America, and an extensive metro network make it a practical base for working and traveling.",
+  "strengths": [
+    "Fast Internet263 Mbps — 49% above average (176 Mbps)",
+    "High securitySafety index 7.1/10, above average (5.9/10)",
+    "High quality of life9/10, above average (6.9/10)"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/madrid",
+  "sourceTitle": "Madrid, España para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 263,
+    "safety": 7.1,
+    "quality": 9,
+    "beach": null
+  }
+}

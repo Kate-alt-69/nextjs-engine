@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "varsovia",
+  "name": "Warsaw",
+  "country": "Poland",
+  "continent": "Europe",
+  "summary": "Warsaw is the emerging capital of Central Europe. A modern, dynamic and affordable city with excellent internet, good infrastructure and a growing startup and tech scene. European time zone, within the EU and with cheap flights throughout Europe.",
+  "strengths": [
+    "Fast Internet213 Mbps — 21% above average (176 Mbps)",
+    "High securitySafety index 7.5/10, above average (5.9/10)"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/varsovia",
+  "sourceTitle": "Varsovia, Polonia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 213,
+    "safety": 7.5,
+    "quality": null,
+    "beach": null
+  }
+}

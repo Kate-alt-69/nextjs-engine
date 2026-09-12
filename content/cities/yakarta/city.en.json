@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "yakarta",
+  "name": "Jakarta",
+  "country": "Indonesia",
+  "continent": "Asia",
+  "summary": "Jakarta is a vibrant and affordable megacity, with a remarkably low cost of living for Southeast Asia, ideal for nomads on a tight budget. Traffic is legendarily chaotic and air pollution can be a serious problem for much of the year, but the local tech scene is booming, with startups like Gojek and Tokopedia driving an increasingly mature digital ecosystem. Fixed internet is reasonable in central areas, although it varies greatly depending on the neighborhood.",
+  "strengths": [
+    "Low cost of living IDR 432/month — 50% below the average of the 90 cities"
+  ],
+  "considerations": [
+    "Internet below average43 Mbps compared to an average of 176 Mbps",
+    "Safety below averageSafety index 4.7/10 compared to an average of 5.9/10",
+    "Quality of life below average3.7/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/yakarta",
+  "sourceTitle": "Yakarta, Indonesia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "IDR 432/mo",
+    "internet": 43,
+    "safety": 4.7,
+    "quality": 3.7,
+    "beach": null
+  }
+}

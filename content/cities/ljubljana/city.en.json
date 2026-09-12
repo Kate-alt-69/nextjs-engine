@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "ljubljana",
+  "name": "Ljubljana",
+  "country": "Slovenia",
+  "continent": "Europe",
+  "summary": "Ljubljana, the small, green capital of Slovenia, combines a pedestrian historic center on the banks of the Ljubljana River with one of the best quality of life in all of Europe. It was European Green Capital in 2016 and remains one of the cleanest and safest cities on the continent, with easy road access to Italy, Austria and Croatia. Not having its own coast (the Slovenian coast is an hour away by car) and being a small city, the nomadic community is still small compared to Lisbon or Berlin.",
+  "strengths": [
+    "High securitySafety index 7.8/10, above average (5.9/10)",
+    "High quality of life9/10, above average (6.9/10)"
+  ],
+  "considerations": [
+    "Internet below average 130 Mbps compared to an average of 176 Mbps"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/ljubljana",
+  "sourceTitle": "Liubliana, Eslovenia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 130,
+    "safety": 7.8,
+    "quality": 9,
+    "beach": null
+  }
+}

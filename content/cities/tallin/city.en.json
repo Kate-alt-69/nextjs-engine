@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "tallin",
+  "name": "Tallinn",
+  "country": "Estonia",
+  "continent": "Europe",
+  "summary": "Tallinn is the most digital city in Europe. Estonia is the most advanced country in the world in e-government and technology, and Tallinn offers the e-Residency program for digital entrepreneurs. Beautiful medieval city, within the EU, with a unique tech ecosystem.",
+  "strengths": [
+    "High securitySafety index 7.8/10, above average (5.9/10)",
+    "High quality of life9.6/10, above average (6.9/10)"
+  ],
+  "considerations": [
+    "Internet below average94 Mbps compared to an average of 176 Mbps"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/tallin",
+  "sourceTitle": "Tallin, Estonia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 94,
+    "safety": 7.8,
+    "quality": 9.6,
+    "beach": null
+  }
+}

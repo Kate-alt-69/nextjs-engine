@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "bangkok",
+  "name": "bangkok",
+  "country": "Thailand",
+  "continent": "Asia",
+  "summary": "Bangkok is a megacity that never sleeps. Ultra-fast internet, world-class cuisine at ridiculous prices, efficient transportation and modern infrastructure make Bangkok one of the best cities in the world to work remotely.",
+  "strengths": [
+    "Low cost of livingEUR 644/month — 25% below the average of the 90 cities",
+    "Fast Internet275 Mbps — 56% above average (176 Mbps)"
+  ],
+  "considerations": [
+    "Quality of life below average 4/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/bangkok",
+  "sourceTitle": "Bangkok, Tailandia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 644/mo",
+    "internet": 275,
+    "safety": null,
+    "quality": 4,
+    "beach": null
+  }
+}

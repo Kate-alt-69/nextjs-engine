@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "singapur",
+  "name": "Singapore",
+  "country": "Singapore",
+  "continent": "Asia",
+  "summary": "Singapore is the great business and technology hub of Southeast Asia: skyscrapers, first-class infrastructure and ultra-fast internet coexist with parks like Gardens by the Bay. It is one of the safest and cleanest cities in the world, ideal for nomads who prioritize efficiency and quality of life, although the cost of living is one of the highest in Asia.",
+  "strengths": [
+    "Fast Internet407 Mbps — 131% above average (176 Mbps)",
+    "High securitySafety index 7.8/10, above average (5.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "High cost of livingEUR 1,304/month — 52% above average"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/singapur",
+  "sourceTitle": "Singapur, Singapur para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EUR 1304/mo",
+    "internet": 407,
+    "safety": 7.8,
+    "quality": null,
+    "beach": true
+  }
+}

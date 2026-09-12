@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "berlin",
+  "name": "Berlin",
+  "country": "Germany",
+  "continent": "Europe",
+  "summary": "Berlin is an affordable capital by Western European standards, with a growing tech scene and a well-developed cafe and coworking infrastructure. It combines intense nightlife and cultural life with urban lakes where you can swim in the summer, although it does not have a beach. Its public transportation system effectively connects all neighborhoods, and its international community of freelancers is one of the largest in Europe.",
+  "strengths": [
+    "High quality of life8.5/10, above average (6.9/10)"
+  ],
+  "considerations": [
+    "High cost of livingEUR 1055/month — 23% above average",
+    "Internet below average102 Mbps compared to an average of 176 Mbps"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/berlin",
+  "sourceTitle": "Berlín, Alemania para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 1055/mo",
+    "internet": 102,
+    "safety": null,
+    "quality": 8.5,
+    "beach": null
+  }
+}

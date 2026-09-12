@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "sidney",
+  "name": "Sydney",
+  "country": "Australia",
+  "continent": "Oceania",
+  "summary": "Sydney combines spectacular nature – urban beaches, the harbor and nearby national parks – with a mature digital economy and good quality of life, but it is one of the most expensive cities in the southern hemisphere to live in. Accommodation takes up a large part of the budget, although in exchange the digital nomad finds first-class infrastructure, high security and a very active international community in coworkings in the CBD.",
+  "strengths": [
+    "High securitySafety index 6.6/10, above average (5.9/10)",
+    "High quality of life9.1/10, above average (6.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "High cost of livingAUD 1,137/month — 32% above average"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/sidney",
+  "sourceTitle": "Sídney, Australia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "AUD 1137/mo",
+    "internet": null,
+    "safety": 6.6,
+    "quality": 9.1,
+    "beach": true
+  }
+}

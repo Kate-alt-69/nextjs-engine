@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "mascate",
+  "name": "Muscat",
+  "country": "Oman",
+  "continent": "Asia",
+  "summary": "Muscat combines a spectacular coastline between arid mountains and the Gulf of Oman with one of the safest and most stable environments in the Persian Gulf. The city offers a very high quality of life and low crime, although the cost of living is medium-high for the region and the summers are extremely hot. The community of digital nomads is still very small, making it a more suitable destination for those seeking tranquility than an intense social life.",
+  "strengths": [
+    "Low cost of livingOMR 636/month — 26% below the 90 city average",
+    "High securitySafety index 8.1/10, above average (5.9/10)",
+    "High quality of life9.2/10, above average (6.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "Internet below average94 Mbps compared to an average of 176 Mbps"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/mascate",
+  "sourceTitle": "Mascate, Omán para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "OMR 636/mo",
+    "internet": 94,
+    "safety": 8.1,
+    "quality": 9.2,
+    "beach": true
+  }
+}

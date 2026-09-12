@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "roma",
+  "name": "Rome",
+  "country": "Italy",
+  "continent": "Europe",
+  "summary": "Rome combines an incomparable historical heritage – the Colosseum, the Forum, the Vatican – with a cost of living notably lower than other major Western European capitals. The city offers a vibrant environment for digital nomads, with an expanding coworking scene in neighborhoods like Ostiense and Garbatella, plus a gastronomy and social life that make a stay worthwhile beyond work.",
+  "strengths": [],
+  "considerations": [
+    "Internet below average 110 Mbps compared to an average of 176 Mbps"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/roma",
+  "sourceTitle": "Roma, Italia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 110,
+    "safety": null,
+    "quality": null,
+    "beach": null
+  }
+}

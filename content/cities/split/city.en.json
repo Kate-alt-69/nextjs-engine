@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "split",
+  "name": "Split",
+  "country": "Croatia",
+  "continent": "Europe",
+  "summary": "Split is the pearl of the Adriatic. A medieval coastal city with a beach in the center, spectacular Mediterranean climate, reasonable cost of living for Europe and a quality of life that is difficult to beat. Within the EU and with the sea at your feet.",
+  "strengths": [
+    "High securitySafety index 7/10, above average (5.9/10)",
+    "High quality of life8.7/10, above average (6.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "Internet below average113 Mbps compared to an average of 176 Mbps"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/split",
+  "sourceTitle": "Split, Croacia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 113,
+    "safety": 7,
+    "quality": 8.7,
+    "beach": true
+  }
+}

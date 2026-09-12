@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "barcelona",
+  "name": "Barcelona",
+  "country": "Spain",
+  "continent": "Europe",
+  "summary": "Barcelona combines beach, mountains and unique modernist architecture, with a community of digital nomads consolidated in neighborhoods such as Gràcia and Poblenou. It offers good connectivity and a startup ecosystem in the 22@ technology district, in addition to more than 2,500 hours of sunshine per year. The cost of living is more affordable than in other large European capitals, although housing has become significantly more expensive in recent years.",
+  "strengths": [
+    "Fast Internet263 Mbps — 49% above average (176 Mbps)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "Safety below averageSafety index 4.8/10 compared to an average of 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/barcelona",
+  "sourceTitle": "Barcelona, España para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 263,
+    "safety": 4.8,
+    "quality": null,
+    "beach": true
+  }
+}

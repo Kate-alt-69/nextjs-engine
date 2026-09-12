@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "wellington",
+  "name": "Wellington",
+  "country": "New Zealand",
+  "continent": "Oceania",
+  "summary": "Wellington, the capital of New Zealand, combines a vibrant cultural and food scene with spectacular nature just minutes from the city centre. It is one of the safest cities in the world, with excellent internet connectivity and a growing technology community. The main drawback is its extreme geographical isolation, which makes international flights more expensive and complicates time zones with Europe or the US, in addition to a considerable cost of living and a windy and changeable climate.",
+  "strengths": [
+    "Fast Internet216 Mbps — 22% above average (176 Mbps)",
+    "High securitySafety index 6.7/10, above average (5.9/10)",
+    "High quality of life9.4/10, above average (6.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/wellington",
+  "sourceTitle": "Wellington, Nueva Zelanda para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 216,
+    "safety": 6.7,
+    "quality": 9.4,
+    "beach": true
+  }
+}

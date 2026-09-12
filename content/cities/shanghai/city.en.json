@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "shanghai",
+  "name": "Shanghai",
+  "country": "China",
+  "continent": "Asia",
+  "summary": "Shanghai is the largest metropolis in mainland China, a financial and technological center of futuristic skyscrapers along the Huangpu River, with excellent public transport and a significantly lower cost of living than other comparable global megacities. The big obstacle for the digital nomad is the Great Firewall: Google, WhatsApp, Instagram, Gmail and most Western tools are blocked and require a reliable VPN installed before arriving in the country, since the app stores and VPN websites are inaccessible once inside. China does not offer a digital nomad visa, so working remotely is usually done under a tourist visa, an ambiguous legal zone with no work coverage. In return, Shanghai offers ultra-modern urban living, world-class cuisine and a fast, cheap subway that connects the entire city.",
+  "strengths": [
+    "Fast Internet223 Mbps — 26% above average (176 Mbps)",
+    "High securitySafety index 7.4/10, above average (5.9/10)"
+  ],
+  "considerations": [
+    "High cost of livingCNY 4,183/month — 386% above average"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/shanghai",
+  "sourceTitle": "Shanghái, China para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "CNY 4183/mo",
+    "internet": 223,
+    "safety": 7.4,
+    "quality": null,
+    "beach": null
+  }
+}

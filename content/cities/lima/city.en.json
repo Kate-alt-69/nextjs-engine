@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "lima",
+  "name": "Lima",
+  "country": "Peru",
+  "continent": "America",
+  "summary": "Lima combines one of the most celebrated food scenes in the world with a cost of living well below that of European capitals, ideal for digital nomads on a tight budget. Miraflores, San Isidro and Barranco offer coworkings, cafes with good Wi-Fi and views of the Pacific from the Costa Verde boardwalk. Safety varies greatly depending on the area: these neighborhoods are noticeably quieter than the rest of the city.",
+  "strengths": [
+    "Low cost of livingPEN 530/month — 38% below the average of the 90 cities",
+    "Fast Internet252 Mbps — 43% above average (176 Mbps)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "Safety below averageSafety index 3/10 compared to an average of 5.9/10",
+    "Quality of life below average4.5/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/lima",
+  "sourceTitle": "Lima, Perú para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "PEN 530/mo",
+    "internet": 252,
+    "safety": 3,
+    "quality": 4.5,
+    "beach": true
+  }
+}

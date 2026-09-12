@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "florencia",
+  "name": "Florence",
+  "country": "Italy",
+  "continent": "Europe",
+  "summary": "Florence is the cradle of the Renaissance, with a density of artistic heritage that is difficult to match and a human scale that allows you to explore it on foot in a few minutes. It combines intense cultural life with a lower cost of living than Rome or Milan and an excellent rail connection with the rest of Europe. Its compact size and university character make it attractive for stays of several months.",
+  "strengths": [],
+  "considerations": [
+    "High cost of livingEUR 1005/month — 17% above average",
+    "Internet below average 110 Mbps compared to an average of 176 Mbps"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/florencia",
+  "sourceTitle": "Florencia, Italia para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 1005/mo",
+    "internet": 110,
+    "safety": null,
+    "quality": null,
+    "beach": null
+  }
+}

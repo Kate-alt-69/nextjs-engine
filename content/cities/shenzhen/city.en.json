@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "shenzhen",
+  "name": "Shenzhen",
+  "country": "China",
+  "continent": "Asia",
+  "summary": "Shenzhen is China's technological mecca: from a fishing village to a megacity of skyscrapers in four decades, today it is home to the headquarters of Tencent, Huawei and DJI, as well as the world's largest electronics market in Huaqiangbei. The cost of living is remarkably low for a world-class city, although the big obstacle for the remote nomad is the Great Firewall: Google, WhatsApp, Instagram and Gmail are blocked, so you need a reliable VPN installed before entering the country.",
+  "strengths": [
+    "Low cost of livingEUR 583/month — 32% below the average of the 90 cities",
+    "Fast Internet223 Mbps — 26% above average (176 Mbps)",
+    "High securitySafety index 7.6/10, above average (5.9/10)",
+    "High quality of life7.7/10, above average (6.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/shenzhen",
+  "sourceTitle": "Shenzhen, China para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EUR 583/mo",
+    "internet": 223,
+    "safety": 7.6,
+    "quality": 7.7,
+    "beach": true
+  }
+}

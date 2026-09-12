@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "melbourne",
+  "name": "Melbourne",
+  "country": "Australia",
+  "continent": "Oceania",
+  "summary": "Melbourne combines a world-class cultural and coffee scene with a quality of life among the highest in Oceania, thanks to its excellent healthcare, low pollution and temperate climate. It is an expensive city to live in and somewhat geographically isolated from the rest of the world, but its creative atmosphere, its urban beaches like St Kilda and its digital infrastructure make it a solid destination for nomads on a medium-high budget.",
+  "strengths": [
+    "High quality of life9.4/10, above average (6.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "High cost of livingAUD 1160/month — 35% above average"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/melbourne",
+  "sourceTitle": "Melbourne, Australia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "AUD 1160/mo",
+    "internet": null,
+    "safety": null,
+    "quality": 9.4,
+    "beach": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "playa-del-carmen",
+  "name": "Playa del Carmen",
+  "country": "Mexico",
+  "continent": "America",
+  "summary": "Playa del Carmen, in the Riviera Maya, is one of Latin America's favorite nomadic destinations: Caribbean beach, pedestrian Fifth Avenue full of cafes and coworkings, and fast fiber optics in most buildings. The international community is huge and the Cancun airport is only an hour away. The cost of living has risen with mass tourism, and it is worth taking into account the hurricane season (June-November) and the recent increase in perceived insecurity in some areas.",
+  "strengths": [
+    "Low cost of livingMXN 727/month — 15% below the average of the 90 cities",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "Internet below average92 Mbps compared to an average of 176 Mbps",
+    "Quality of life below average6.2/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/playa-del-carmen",
+  "sourceTitle": "Playa del Carmen, México para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "MXN 727/mo",
+    "internet": 92,
+    "safety": null,
+    "quality": 6.2,
+    "beach": true
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "montevideo",
+  "name": "Montevideo",
+  "country": "Uruguay",
+  "continent": "America",
+  "summary": "Montevideo combines urban beaches on the Río de la Plata, a 30 km promenade and the highest institutional stability in South America, although with a higher cost of living than other capitals in the region and a still small digital nomad community.",
+  "strengths": [
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "Safety below averageSafety index 4.3/10 compared to an average of 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/montevideo",
+  "sourceTitle": "Montevideo, Uruguay para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": null,
+    "safety": 4.3,
+    "quality": null,
+    "beach": true
+  }
+}

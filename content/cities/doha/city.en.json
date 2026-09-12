@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "doha",
+  "name": "Doha",
+  "country": "Qatar",
+  "continent": "Asia",
+  "summary": "Doha combines futuristic skyscrapers, a Persian Gulf coastline and one of the lowest crime rates in the world, with zero income tax and world-class digital infrastructure. In return, the digital nomad finds a high cost of living by regional standards, extreme heat between May and September, and a still small and underdeveloped community of nomads.",
+  "strengths": [
+    "High securitySafety index 8.5/10, above average (5.9/10)",
+    "High quality of life8.7/10, above average (6.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [],
+  "sourceUrl": "https://www.roavio.es/cities/doha",
+  "sourceTitle": "Doha, Catar para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": null,
+    "safety": 8.5,
+    "quality": 8.7,
+    "beach": true
+  }
+}

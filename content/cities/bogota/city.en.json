@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "bogota",
+  "name": "Bogota",
+  "country": "Colombia",
+  "continent": "America",
+  "summary": "At 2,640 meters above sea level, Bogotá offers an almost constant temperate climate all year round and a rapidly growing technological and digital nomad scene, especially in Chapinero and Zona G. It is one of the most affordable capitals in South America, with an increasingly consolidated cultural, gastronomic and coworking offer.",
+  "strengths": [
+    "Low cost of livingEUR 604/month — 30% below the average of the 90 cities",
+    "Fast Internet207 Mbps — 17% above average (176 Mbps)"
+  ],
+  "considerations": [
+    "Safety below averageSafety index 3.3/10 compared to an average of 5.9/10",
+    "Quality of life below average5.2/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/bogota",
+  "sourceTitle": "Bogotá, Colombia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": "EUR 604/mo",
+    "internet": 207,
+    "safety": 3.3,
+    "quality": 5.2,
+    "beach": null
+  }
+}

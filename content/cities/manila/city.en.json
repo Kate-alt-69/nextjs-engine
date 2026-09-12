@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "manila",
+  "name": "Manila",
+  "country": "Philippines",
+  "continent": "Asia",
+  "summary": "Manila is the capital of the Philippines and one of the great business hubs in Southeast Asia, with a remarkably low cost of living for digital nomads who earn in hard currencies. The city combines modern skyscrapers in districts such as Makati or BGC with the Spanish colonial heritage of Intramuros and a lively food and cultural scene. It is important to be honest: traffic in Manila is among the most congested in the world and public safety is below average, so choosing the neighborhood well and taking basic precautions is key to enjoying the city peacefully.",
+  "strengths": [
+    "Low cost of livingEUR 492/month — 43% below the average of the 90 cities"
+  ],
+  "considerations": [
+    "Internet below average108 Mbps compared to an average of 176 Mbps",
+    "Safety below averageSafety index 3.5/10 compared to an average of 5.9/10",
+    "Quality of life below average2.6/10 compared to an average of 6.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/manila",
+  "sourceTitle": "Manila, Filipinas para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 492/mo",
+    "internet": 108,
+    "safety": 3.5,
+    "quality": 2.6,
+    "beach": null
+  }
+}

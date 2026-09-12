@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "atenas",
+  "name": "Athens",
+  "country": "Greece",
+  "continent": "Europe",
+  "summary": "Cradle of Western civilization and today one of the most affordable capitals in Europe, Athens combines ancient ruins with a rapidly expanding scene of cafes, rooftops and coworkings. Greece offers a specific visa for digital nomads, and the Mediterranean climate, the Aegean Sea within walking distance and a remarkably low cost of living make it an attractive base for those looking for history, sun and good connection without spending too much.",
+  "strengths": [
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "Internet below average87 Mbps compared to an average of 176 Mbps",
+    "Safety below averageSafety index 4.5/10 compared to an average of 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/atenas",
+  "sourceTitle": "Atenas, Grecia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {
+    "cost": null,
+    "internet": 87,
+    "safety": 4.5,
+    "quality": null,
+    "beach": true
+  }
+}

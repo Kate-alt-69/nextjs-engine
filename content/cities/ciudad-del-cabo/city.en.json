@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "ciudad-del-cabo",
+  "name": "Cape Town",
+  "country": "South Africa",
+  "continent": "Africa",
+  "summary": "Cape Town combines Table Mountain, urban beaches like Camps Bay and one of the most established technology scenes in Africa, known as 'Silicon Cape', with a cost of living much lower than that of the major European capitals. Its time zone (UTC+2) barely differs one hour from Spanish time, which makes it easier to coordinate with clients or teams in Europe, although it is worth keeping in mind that citizen insecurity rates are considerably higher than in most nomadic destinations.",
+  "strengths": [
+    "Low cost of livingEUR 606/month — 30% below the average of the 90 cities",
+    "High quality of life7.8/10, above average (6.9/10)",
+    "Beach accessThe city has a beach"
+  ],
+  "considerations": [
+    "Internet below average48.3 Mbps compared to an average of 176 Mbps",
+    "Safety below averageSafety index 2.6/10 compared to an average of 5.9/10"
+  ],
+  "sourceUrl": "https://www.roavio.es/cities/ciudad-del-cabo",
+  "sourceTitle": "Ciudad del Cabo, Sudáfrica para nómadas digitales | Roavio",
+  "hasDeepGuide": true,
+  "scrapedMetrics": {
+    "cost": "EUR 606/mo",
+    "internet": 48.3,
+    "safety": 2.6,
+    "quality": 7.8,
+    "beach": true
+  }
+}
