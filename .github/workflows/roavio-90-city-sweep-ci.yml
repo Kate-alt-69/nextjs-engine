@@ -53,6 +53,23 @@ jobs:
             git commit -m "content: bundled Roavio city media"
             git push origin HEAD:proposal/roavio-ne
           fi
+      - name: Generate concise bilingual city content
+        if: contains(github.event.head_commit.message, 'bilingualize Roavio guides')
+        env:
+          ROAVIO_TRANSLATE_PAUSE_MS: "220"
+          ROAVIO_TRANSLATE_RETRIES: "6"
+        run: node scripts/roavio-bilingualize-guides.mjs
+      - name: Commit concise bilingual city content
+        if: contains(github.event.head_commit.message, 'bilingualize Roavio guides')
+        shell: bash
+        run: |
+          git config user.name "Kate"
+          git config user.email "dhwanksh2000@gmail.com"
+          git add content/cities
+          if ! git diff --cached --quiet; then
+            git commit -m "content: generated concise bilingual Roavio guides"
+            git push origin HEAD:proposal/roavio-ne
+          fi
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Type check
