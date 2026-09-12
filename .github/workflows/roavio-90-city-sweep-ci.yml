@@ -24,6 +24,17 @@ jobs:
       - name: Verify exact official Roavio image URLs
         run: node tests/roavio-official-image-map.mjs
       - name: Type check
-        run: npm run type-check
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run type-check 2>&1 | tee tsc.log
+      - name: Upload type-check diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: roavio-tsc-diagnostics
+          path: tsc.log
+          if-no-files-found: ignore
+          retention-days: 1
       - name: Production build
         run: npx next build
