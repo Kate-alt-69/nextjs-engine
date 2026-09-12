@@ -84,6 +84,8 @@ export function CardEntranceController() {
     };
 
     scan();
+    document.documentElement.dataset.rvMotion = "ready";
+
     const observer = new MutationObserver(scheduleScan);
     observer.observe(document.body, { childList: true, subtree: true });
 
@@ -93,6 +95,9 @@ export function CardEntranceController() {
       for (const element of [...subscriptions.keys()]) release(element);
       for (const timer of settleTimers.values()) window.clearTimeout(timer);
       settleTimers.clear();
+      if (document.documentElement.dataset.rvMotion === "ready") {
+        delete document.documentElement.dataset.rvMotion;
+      }
     };
   }, []);
 
