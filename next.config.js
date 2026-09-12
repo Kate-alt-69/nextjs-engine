@@ -52,6 +52,17 @@ const nextConfig = {
 		],
 	},
 
+	async headers() {
+		return [
+			{
+				source: "/city-media/:path*",
+				headers: [
+					{ key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+				],
+			},
+		];
+	},
+
 	// ── Turbopack Compiler Configuration (Next.js 16 Stable) ──────────────────
 	turbopack: {
 		resolveAlias: {
