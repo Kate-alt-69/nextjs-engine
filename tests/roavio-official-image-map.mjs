@@ -1,4 +1,4 @@
-import { readdir, readFile } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 const root = process.cwd();
@@ -42,21 +42,56 @@ if (missing.length) {
   throw new Error(`Cities missing an official Roavio image URL: ${missing.join(", ")}`);
 }
 
-const runtimeFiles = [
-  "app/roavio/OfficialCityImage.tsx",
-  "app/roavio/CityThumb.tsx",
-  "app/roavio/CityDossierBackdrop.tsx",
-  "app/roavio/CityShowcase.tsx",
-];
-const banned = ["/city-media/", "/api/city-photo", "/api/city-image", "from \"next/image\""];
+async function sourceFiles(directory) {
+  const output = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      output.push(...await sourceFiles(absolute));
+    } else if (/\.(?:ts|tsx|js|jsx|css)$/.test(entry.name)) {
+      output.push(absolute);
+    }
+  }
+  return output;
+}
 
-for (const relative of runtimeFiles) {
-  const text = await readFile(path.join(root, relative), "utf8");
-  for (const token of banned) {
+const roavioRoot = path.join(root, "app", "roavio");
+const retiredTokens = [
+  "/city-media/",
+  "/api/city-photo",
+  "/api/city-image",
+  "cityMedia.server",
+  "ROAVIO_MEDIA_VERSION",
+  "from \"next/image\"",
+  "from 'next/image'",
+];
+
+for (const absolute of await sourceFiles(roavioRoot)) {
+  const text = await readFile(absolute, "utf8");
+  for (const token of retiredTokens) {
     if (text.includes(token)) {
-      throw new Error(`${relative} still depends on retired image plumbing: ${token}`);
+      throw new Error(`${path.relative(root, absolute)} still depends on retired image plumbing: ${token}`);
     }
   }
 }
 
-console.log(`Roavio official image map OK: ${entries.size} exact static Unsplash URLs; ${cityDirs.length} content cities covered.`);
+const retiredPaths = [
+  "app/api/city-photo",
+  "app/api/city-image",
+  "app/roavio/cityMedia.server.ts",
+  "app/roavio/city-media.generated.json",
+  "app/roavio/official-city-images.generated.json",
+  "public/city-media",
+];
+
+for (const relative of retiredPaths) {
+  try {
+    await access(path.join(root, relative));
+    throw new Error(`Retired Roavio image path still exists: ${relative}`);
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("Retired Roavio image path")) throw error;
+    if (error?.code !== "ENOENT") throw error;
+  }
+}
+
+console.log(`Roavio official image map OK: ${entries.size} exact static Unsplash URLs; ${cityDirs.length} content cities covered; retired media pipeline absent.`);
