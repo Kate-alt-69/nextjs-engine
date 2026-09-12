@@ -3,6 +3,7 @@ import type { CityContent } from "./cityContent.server";
 import { copyFor, type RoavioLocale } from "./i18n";
 import { createFooterNode, createRoavioNav, roavioTheme } from "./theme";
 import { CityThumb } from "./CityThumb";
+import { CityDossierBackdrop } from "./CityDossierBackdrop";
 
 function metricValue(value: string | number | boolean | null, locale: RoavioLocale, suffix = ""): string {
   if (value === null) return locale === "es" ? "Sin dato" : "Not captured";
@@ -59,7 +60,6 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
   const es = locale === "es";
   const sourceCopy = copyFor(locale).sourceLanguage;
   const score = fitScore(city);
-  const cityBackdrop = `/api/city-photo?city=${encodeURIComponent(city.name)}&country=${encodeURIComponent(city.country)}&slot=0&width=960&height=540&v=9`;
   const labels = {
     monthlyCost: es ? "Coste mensual" : "Monthly cost",
     internet: "Internet",
@@ -111,15 +111,9 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
         className: "rv-dossier-page",
         color: "var(--rv-ink)",
         minH: "100svh",
-        style: {
-          backgroundImage: `linear-gradient(rgba(7,17,14,.70), rgba(7,17,14,.82)), url("${cityBackdrop}")`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          backgroundAttachment: "fixed",
-        },
       },
       children: [
+        { type: "slot", props: { name: "pageBackdrop" } },
         createRoavioNav(locale),
         {
           type: "section",
@@ -140,7 +134,6 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
                   children: [
                     { type: "text", props: { content: `${city.country} · ${continentLabel(city.continent, locale)}`, variant: "overline", color: "var(--rv-lime)", weight: 800 } },
                     { type: "heading", props: { level: 1, content: city.name, size: { xs: "2.65rem", md: "4rem" }, color: "#fff", lineHeight: .96, style: { margin: ".3rem 0 .55rem" } } },
-                    ...(city.summary ? [{ type: "text", props: { content: city.summary, size: ".92rem", lineHeight: 1.6, maxW: "650px", color: "rgba(255,255,255,.92)" } } as SchemaNode] : []),
                   ],
                 },
                 { type: "slot", props: { name: "heroImage" } },
@@ -263,6 +256,9 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
   return createComponent({
     schema,
     slots: {
+      pageBackdrop: (
+        <CityDossierBackdrop city={city.name} country={city.country} />
+      ),
       heroImage: (
         <div className="rv-dossier-hero__image">
           <CityThumb slug={city.slug} city={city.name} country={city.country} eager />
