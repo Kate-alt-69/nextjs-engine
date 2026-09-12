@@ -2,6 +2,7 @@ import { createComponent, defineSchema, type SchemaNode } from "@/engine";
 import type { CityContent } from "./cityContent.server";
 import { copyFor, type RoavioLocale } from "./i18n";
 import { createFooterNode, createRoavioNav, roavioTheme } from "./theme";
+import { CityThumb } from "./CityThumb";
 
 function metricValue(value: string | number | boolean | null, locale: RoavioLocale, suffix = ""): string {
   if (value === null) return locale === "es" ? "Sin dato" : "Not captured";
@@ -58,7 +59,7 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
   const es = locale === "es";
   const sourceCopy = copyFor(locale).sourceLanguage;
   const score = fitScore(city);
-  const cityBackdrop = `/api/city-photo?city=${encodeURIComponent(city.name)}&country=${encodeURIComponent(city.country)}&slot=0&width=480&height=270&v=7`;
+  const cityBackdrop = `/api/city-photo?city=${encodeURIComponent(city.name)}&country=${encodeURIComponent(city.country)}&slot=0&width=960&height=540&v=8`;
   const labels = {
     monthlyCost: es ? "Coste mensual" : "Monthly cost",
     internet: "Internet",
@@ -106,7 +107,18 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
     theme: roavioTheme,
     root: {
       type: "box",
-      props: { className: "rv-dossier-page", bg: "var(--rv-paper)", color: "var(--rv-ink)", minH: "100svh" },
+      props: {
+        className: "rv-dossier-page",
+        color: "var(--rv-ink)",
+        minH: "100svh",
+        style: {
+          backgroundImage: `linear-gradient(rgba(7,17,14,.70), rgba(7,17,14,.82)), url("${cityBackdrop}")`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          backgroundAttachment: "fixed",
+        },
+      },
       children: [
         createRoavioNav(locale),
         {
@@ -116,12 +128,6 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
             contentMaxWidth: "1240px",
             px: "1rem",
             py: { xs: "1.2rem", md: "1.8rem" },
-            style: {
-              backgroundImage: `linear-gradient(90deg, rgba(7,17,14,.78), rgba(7,17,14,.48)), url("${cityBackdrop}")`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundRepeat: "no-repeat",
-            },
           },
           children: [
             {
@@ -137,6 +143,7 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
                     ...(city.summary ? [{ type: "text", props: { content: city.summary, size: ".92rem", lineHeight: 1.6, maxW: "650px", color: "rgba(255,255,255,.92)" } } as SchemaNode] : []),
                   ],
                 },
+                { type: "slot", props: { name: "heroImage" } },
               ],
             },
             {
@@ -255,6 +262,13 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
 
   return createComponent({
     schema,
+    slots: {
+      heroImage: (
+        <div className="rv-dossier-hero__image">
+          <CityThumb slug={city.slug} city={city.name} country={city.country} eager />
+        </div>
+      ),
+    },
     compiler: { pageId: `roavio-city-${city.slug}`, serverFirst: true },
   });
 }

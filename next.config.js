@@ -34,6 +34,7 @@ const nextConfig = {
 
 	images: {
 		formats: ["image/avif", "image/webp"],
+		qualities: [58, 72, 75],
 		minimumCacheTTL: 60 * 60 * 24 * 30,
 
 		// These are intentional same-origin image endpoints. They use query

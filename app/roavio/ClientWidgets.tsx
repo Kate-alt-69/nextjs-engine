@@ -165,7 +165,6 @@ export function Explorer({ catalog, locale, initialSearch = "" }: { catalog: Cit
   const pageCount = Math.max(1, Math.ceil(results.length / pageSize));
   const safePage = Math.min(page, pageCount - 1);
   const visibleResults = results.slice(safePage * pageSize, safePage * pageSize + pageSize);
-  const pageNumbers = Array.from({ length: pageCount }, (_, index) => index);
   const rangeStart = results.length ? safePage * pageSize + 1 : 0;
   const rangeEnd = Math.min(results.length, safePage * pageSize + pageSize);
 
@@ -210,15 +209,6 @@ export function Explorer({ catalog, locale, initialSearch = "" }: { catalog: Cit
       </div>
       <p style={{ color: "var(--rv-muted)", margin: ".55rem 0 1rem", fontSize: ".86rem" }}>{results.length} {copy.destinations} · {catalog.length} {copy.catalog} · {copy.compareHint} · {locale === "es" ? `mostrando ${rangeStart}–${rangeEnd}` : `showing ${rangeStart}–${rangeEnd}`}</p>
       <div className="rv-cities-folder">
-        {pageCount > 1 ? (
-          <div className="rv-cities-folder__tabs" role="navigation" aria-label={locale === "es" ? "Páginas de destinos" : "Destination pages"}>
-            {pageNumbers.map((pageIndex) => (
-              <button key={pageIndex} type="button" className="rv-cities-page-tab" data-active={pageIndex === safePage} aria-current={pageIndex === safePage ? "page" : undefined} onClick={() => goToPage(pageIndex)}>
-                <span>{locale === "es" ? "Pág." : "Page"}</span> {pageIndex + 1}
-              </button>
-            ))}
-          </div>
-        ) : null}
         <div className="rv-result-grid" id="rv-city-results">
         {visibleResults.map((city) => (
           <CityResultCard key={city.slug} city={city} locale={locale} favorite={favorites.includes(city.slug)} compared={compare.includes(city.slug)} onFavorite={() => toggle(city.slug)} onCompare={() => toggleCompare(city.slug)} />

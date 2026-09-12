@@ -5,7 +5,7 @@ import type { ImageLoader } from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cityImage, cityInitials } from "./visuals";
 
-const CITY_PHOTO_VERSION = "6";
+const CITY_PHOTO_VERSION = "8";
 const CARD_ASPECT = 16 / 9;
 
 function targetHeight(width: number): number {
@@ -53,7 +53,7 @@ const responsiveCityLoader: ImageLoader = ({ src, width, quality }) => {
   return src;
 };
 
-function lowResSource(source: string, city: string, country: string, slot: number): string {
+function lowResSource(source: string, city: string, country: string, slot: number): string | null {
   if (source.includes("images.unsplash.com")) {
     try {
       const url = new URL(source);
@@ -68,7 +68,10 @@ function lowResSource(source: string, city: string, country: string, slot: numbe
       return source;
     }
   }
-  return cityProxySource(city, country, slot, 64);
+  // Do not resolve Wikipedia twice (64px preview + final responsive image).
+  // The card's deterministic gradient/shimmer is the placeholder for proxy-backed
+  // cities, so the real city-photo request gets all of the network/API budget.
+  return null;
 }
 
 export function CityThumb({
@@ -148,7 +151,7 @@ export function CityThumb({
           objectFit="cover"
           priority={eager}
           loader={responsiveCityLoader}
-          blurDataURL={preview}
+          blurDataURL={preview ?? undefined}
           className="rv-city-thumb__engine"
         />
       ) : null}
