@@ -1,68 +1,53 @@
-"use client";
+'use client'
 
-import { EngineImage, useEngineSchedule, useEngineViewport } from "@/engine";
-import { ROAVIO_MEDIA_VERSION } from "./mediaVersion";
-import { cityInitials } from "./visuals";
+import { EngineImage } from '@/src/engine/components/EngineImage'
+import { useEffect, useMemo, useState } from 'react'
+import type { City } from './data'
+import { getRoavioCityImage } from './cityImages'
+import { ROAVIO_MEDIA_VERSION } from './mediaVersion'
 
-export function CityThumb({
-  slug,
-  city,
-  country,
-  compact = false,
-  slot = 0,
-  eager = false,
-}: {
-  slug: string;
-  city: string;
-  country: string;
-  compact?: boolean;
-  slot?: 0 | 1;
-  eager?: boolean;
-}) {
-  const viewport = useEngineViewport();
-  const mobile = viewport.layoutWidth === 0 || viewport.layoutWidth <= 700;
-  const schedule = useEngineSchedule<HTMLDivElement>({
-    priority: eager,
-    // Phones wait until the media actually reaches the viewport. Desktop gets
-    // a small prefetch runway so scrolling still feels instant.
-    nearMargin: mobile ? "0px" : "96px 0px",
-    visibleThreshold: mobile ? 0.03 : 0.02,
-    releaseWhenFar: false,
-  });
-  const active = eager || schedule.near || schedule.visible;
-  const source = `/city-media/${encodeURIComponent(slug)}-${slot}.jpg?v=${ROAVIO_MEDIA_VERSION}`;
-  const sizes = compact
-    ? "(max-width: 700px) 44vw, 260px"
-    : "(max-width: 700px) calc(100vw - 2rem), (max-width: 1100px) calc(50vw - 2rem), 400px";
+const imageExtensions = ['webp', 'jpg', 'jpeg', 'png'] as const
+
+export function CityThumb({ city, className }: { city: City; className?: string }) {
+  const candidates = useMemo(() => {
+    const original = getRoavioCityImage(city.slug)
+    const localFallbacks = imageExtensions.map(
+      (extension) => `/city-media/${city.slug}.${extension}?v=${ROAVIO_MEDIA_VERSION}`,
+    )
+
+    return original ? [original, ...localFallbacks] : localFallbacks
+  }, [city.slug])
+
+  const [activeIndex, setActiveIndex] = useState(0)
+
+  useEffect(() => {
+    setActiveIndex(0)
+  }, [city.slug])
+
+  const source = candidates[Math.min(activeIndex, candidates.length - 1)]
 
   return (
     <div
-      ref={schedule.ref}
-      className={`rv-city-thumb${compact ? " rv-city-thumb--compact" : ""}`}
-      data-city-slug={slug}
-      aria-hidden
-      onDragStart={(event) => event.preventDefault()}
+      data-roavio-city-image
+      className={`relative overflow-hidden bg-[#10201b] ${className ?? ''}`.trim()}
     >
-      <div className="rv-city-thumb__fallback">
-        <span>{cityInitials(city)}</span>
-        <small>{country}</small>
-      </div>
-      {active ? (
-        <EngineImage
-          src={source}
-          alt=""
-          width={720}
-          height={405}
-          aspectRatio="16 / 9"
-          sizes={sizes}
-          qualityPreset="balanced"
-          qualityMobile={58}
-          qualityDesktop={72}
-          objectFit="cover"
-          priority={eager}
-          className="rv-city-thumb__engine"
-        />
-      ) : null}
+      <EngineImage
+        key={`${city.slug}-${activeIndex}`}
+        src={source}
+        alt=""
+        fill
+        priority
+        unoptimized
+        sizes="(max-width: 640px) 78px, 96px"
+        className="object-cover transition duration-300 group-hover:scale-[1.025]"
+        onError={() => {
+          setActiveIndex((current) => {
+            if (current >= candidates.length - 1) return current
+            return current + 1
+          })
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#07100dcc] via-transparent to-transparent" />
     </div>
-  );
+  )
 }

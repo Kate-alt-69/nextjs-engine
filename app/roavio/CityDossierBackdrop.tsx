@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { getRoavioCityImage } from "./cityImages";
 import { ROAVIO_MEDIA_VERSION } from "./mediaVersion";
 
 function bundledPhoto(slug: string, slot: 0 | 1): string {
@@ -8,20 +9,27 @@ function bundledPhoto(slug: string, slot: 0 | 1): string {
 }
 
 export function CityDossierBackdrop({ slug }: { slug: string }) {
-  const [slot, setSlot] = useState<0 | 1>(1);
+  const candidates = useMemo(() => {
+    const original = getRoavioCityImage(slug);
+    const localFallbacks = [bundledPhoto(slug, 1), bundledPhoto(slug, 0)];
+
+    return original ? [original, ...localFallbacks] : localFallbacks;
+  }, [slug]);
+
+  const [activeIndex, setActiveIndex] = useState(0);
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const source = useMemo(() => bundledPhoto(slug, slot), [slug, slot]);
+  const source = candidates[Math.min(activeIndex, candidates.length - 1)];
 
   useEffect(() => {
+    setActiveIndex(0);
     setLoaded(false);
     setFailed(false);
-    setSlot(1);
   }, [slug]);
 
   useEffect(() => {
     setLoaded(false);
-  }, [slot]);
+  }, [activeIndex]);
 
   if (failed) return <div className="rv-dossier-backdrop rv-dossier-backdrop--fallback" aria-hidden="true" />;
 
@@ -29,6 +37,7 @@ export function CityDossierBackdrop({ slug }: { slug: string }) {
     <div className="rv-dossier-backdrop rv-dossier-backdrop--progressive" data-loaded={loaded ? "true" : "false"} aria-hidden="true">
       <span className="rv-dossier-backdrop__loader" />
       <img
+        key={`${slug}-${activeIndex}`}
         className="rv-dossier-backdrop__full"
         src={source}
         alt=""
@@ -38,8 +47,13 @@ export function CityDossierBackdrop({ slug }: { slug: string }) {
         onLoad={() => setLoaded(true)}
         onDragStart={(event) => event.preventDefault()}
         onError={() => {
-          if (slot === 1) setSlot(0);
-          else setFailed(true);
+          setActiveIndex((current) => {
+            if (current >= candidates.length - 1) {
+              setFailed(true);
+              return current;
+            }
+            return current + 1;
+          });
         }}
       />
       <span className="rv-dossier-backdrop__veil" />
