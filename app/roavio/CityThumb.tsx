@@ -4,7 +4,7 @@ import { EngineImage, useEngineSchedule, useEngineViewport } from "@/engine";
 import type { ImageLoader } from "next/image";
 import { useMemo } from "react";
 import { ROAVIO_MEDIA_VERSION } from "./mediaVersion";
-import { cityImage, cityInitials } from "./visuals";
+import { cityInitials } from "./visuals";
 
 const CARD_ASPECT = 16 / 9;
 
@@ -86,7 +86,6 @@ export function CityThumb({
   slot?: 0 | 1;
   eager?: boolean;
 }) {
-  const staticSource = slot === 0 ? cityImage(slug) : null;
   const viewport = useEngineViewport();
   const mobile = viewport.layoutWidth === 0 || viewport.layoutWidth <= 700;
   const schedule = useEngineSchedule<HTMLDivElement>({
@@ -99,8 +98,8 @@ export function CityThumb({
   });
   const active = eager || schedule.near || schedule.visible;
   const source = useMemo(
-    () => staticSource ?? cityProxySource(city, country, slot, 960),
-    [city, country, slot, staticSource],
+    () => cityProxySource(city, country, slot, 960),
+    [city, country, slot],
   );
   const preview = useMemo(() => lowResSource(source), [source]);
   const proxyBacked = source.startsWith("/api/city-photo?");
@@ -112,6 +111,7 @@ export function CityThumb({
     <div
       ref={schedule.ref}
       className={`rv-city-thumb${compact ? " rv-city-thumb--compact" : ""}`}
+      data-city-slug={slug}
       aria-hidden
       onDragStart={(event) => event.preventDefault()}
     >
