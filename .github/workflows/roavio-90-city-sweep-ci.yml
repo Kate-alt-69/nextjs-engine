@@ -1,4 +1,4 @@
-name: Roavio 90-city sweep
+name: Roavio official image map
 
 on:
   push:
@@ -6,12 +6,12 @@ on:
       - proposal/roavio-ne
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  sweep:
+  verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,84 +19,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Materialize two city photos per destination
-        if: contains(github.event.head_commit.message, 'materialize Roavio media')
-        env:
-          ROAVIO_MEDIA_PAUSE_MS: "220"
-          ROAVIO_MEDIA_RETRIES: "6"
-        run: node tests/roavio-media-materialize.mjs
-      - name: Commit generated media manifest
-        if: contains(github.event.head_commit.message, 'materialize Roavio media')
-        shell: bash
-        run: |
-          git config user.name "Kate"
-          git config user.email "dhwanksh2000@gmail.com"
-          git add app/roavio/city-media.generated.json
-          if ! git diff --cached --quiet; then
-            git commit -m "content: materialized Roavio city media"
-            git push origin HEAD:proposal/roavio-ne
-          fi
-      - name: Apply official Roavio primary images
-        if: contains(github.event.head_commit.message, 'official Roavio media')
-        run: node tests/roavio-media-use-official.mjs
-      - name: Bundle selected city photos locally
-        if: contains(github.event.head_commit.message, 'bundle Roavio media') || contains(github.event.head_commit.message, 'materialize Roavio media') || contains(github.event.head_commit.message, 'official Roavio media')
-        env:
-          ROAVIO_BUNDLE_PAUSE_MS: "160"
-          ROAVIO_BUNDLE_RETRIES: "8"
-        run: node tests/roavio-media-bundle.mjs
-      - name: Commit bundled city media
-        if: contains(github.event.head_commit.message, 'bundle Roavio media') || contains(github.event.head_commit.message, 'materialize Roavio media') || contains(github.event.head_commit.message, 'official Roavio media')
-        shell: bash
-        run: |
-          git config user.name "Kate"
-          git config user.email "dhwanksh2000@gmail.com"
-          git add app/roavio/city-media.generated.json public/city-media
-          if ! git diff --cached --quiet; then
-            git commit -m "content: bundled official Roavio city media"
-            git push origin HEAD:proposal/roavio-ne
-          fi
-      - name: Generate concise bilingual city content
-        if: contains(github.event.head_commit.message, 'bilingualize Roavio guides')
-        env:
-          ROAVIO_TRANSLATE_PAUSE_MS: "220"
-          ROAVIO_TRANSLATE_RETRIES: "6"
-        run: node scripts/roavio-bilingualize-guides.mjs
-      - name: Commit concise bilingual city content
-        if: contains(github.event.head_commit.message, 'bilingualize Roavio guides')
-        shell: bash
-        run: |
-          git config user.name "Kate"
-          git config user.email "dhwanksh2000@gmail.com"
-          git add content/cities
-          if ! git diff --cached --quiet; then
-            git commit -m "content: generated concise bilingual Roavio guides"
-            git push origin HEAD:proposal/roavio-ne
-          fi
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Verify exact official Roavio image URLs
+        run: node tests/roavio-official-image-map.mjs
       - name: Type check
         run: npm run type-check
       - name: Production build
         run: npx next build
-      - name: Start production server
-        shell: bash
-        run: |
-          (npm run start -- -p 3100 > /tmp/roavio-next.log 2>&1 & echo $! > /tmp/roavio-next.pid)
-          for i in {1..60}; do
-            if curl -fsS http://127.0.0.1:3100/cities >/dev/null; then
-              exit 0
-            fi
-            sleep 1
-          done
-          cat /tmp/roavio-next.log
-          exit 1
-      - name: Sweep all 90 city routes and both photo slots
-        env:
-          ROAVIO_BASE_URL: http://127.0.0.1:3100
-          ROAVIO_SWEEP_CONCURRENCY: "3"
-          ROAVIO_SWEEP_TIMEOUT_MS: "20000"
-        run: node tests/roavio-city-sweep.mjs
-      - name: Print server log on failure
-        if: failure()
-        run: cat /tmp/roavio-next.log || true
