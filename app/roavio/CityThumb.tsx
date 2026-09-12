@@ -3,9 +3,9 @@
 import { EngineImage, useEngineSchedule } from "@/engine";
 import type { ImageLoader } from "next/image";
 import { useMemo } from "react";
+import { ROAVIO_MEDIA_VERSION } from "./mediaVersion";
 import { cityImage, cityInitials } from "./visuals";
 
-const CITY_PHOTO_VERSION = "12";
 const CARD_ASPECT = 16 / 9;
 
 function targetHeight(width: number): number {
@@ -19,7 +19,7 @@ function cityProxySource(city: string, country: string, slot: number, width: num
     slot: String(slot),
     width: String(width),
     height: String(targetHeight(width)),
-    v: CITY_PHOTO_VERSION,
+    v: ROAVIO_MEDIA_VERSION,
   });
   return `/api/city-photo?${params.toString()}`;
 }
@@ -31,7 +31,7 @@ const responsiveCityLoader: ImageLoader = ({ src, width, quality }) => {
     const url = new URL(src, "http://roavio.local");
     url.searchParams.set("width", String(width));
     url.searchParams.set("height", String(height));
-    url.searchParams.set("v", CITY_PHOTO_VERSION);
+    url.searchParams.set("v", ROAVIO_MEDIA_VERSION);
     return `${url.pathname}?${url.searchParams.toString()}`;
   }
 
