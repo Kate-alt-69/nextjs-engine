@@ -6,722 +6,1084 @@
     "abu-dabi": {
       "city": "Abu Dabi",
       "country": "Emiratos Árabes Unidos",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/Beach_Rotana_Abu_Dhabi_-_beach.JPG/1920px-Beach_Rotana_Abu_Dhabi_-_beach.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/A_view_from_Lake_Park_in_Abu_Dhabi%2C_UAE.JPG/1920px-A_view_from_Lake_Park_in_Abu_Dhabi%2C_UAE.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/abu-dabi-0.jpg",
+      "secondary": "/city-media/abu-dabi-1.jpg",
       "primaryTitle": "File:Beach Rotana Abu Dhabi - beach.JPG",
-      "secondaryTitle": "File:A view from Lake Park in Abu Dhabi, UAE.JPG"
+      "secondaryTitle": "File:A view from Lake Park in Abu Dhabi, UAE.JPG",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/Beach_Rotana_Abu_Dhabi_-_beach.JPG/1920px-Beach_Rotana_Abu_Dhabi_-_beach.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 274546,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/A_view_from_Lake_Park_in_Abu_Dhabi%2C_UAE.JPG/1920px-A_view_from_Lake_Park_in_Abu_Dhabi%2C_UAE.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 173674
     },
     "accra": {
       "city": "Accra",
       "country": "Ghana",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/High_Street%2C_Accra.jpg/1920px-High_Street%2C_Accra.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/The_Holy_Trinity_Cathedral%2C_Accra%27s_oldest_church.jpg/1920px-The_Holy_Trinity_Cathedral%2C_Accra%27s_oldest_church.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/accra-0.jpg",
+      "secondary": "/city-media/accra-1.jpg",
       "primaryTitle": "File:High Street, Accra.jpg",
-      "secondaryTitle": "File:The Holy Trinity Cathedral, Accra's oldest church.jpg"
+      "secondaryTitle": "File:The Holy Trinity Cathedral, Accra's oldest church.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/High_Street%2C_Accra.jpg/1920px-High_Street%2C_Accra.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 336009,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/The_Holy_Trinity_Cathedral%2C_Accra%27s_oldest_church.jpg/1920px-The_Holy_Trinity_Cathedral%2C_Accra%27s_oldest_church.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 195544
     },
     "addis-abeba": {
       "city": "Adís Abeba",
       "country": "Etiopía",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Palacio_de_Menelik_II%2C_Ad%C3%ADs_Abeba%2C_Etiop%C3%ADa%2C_2024-01-19%2C_DD_05.jpg/1920px-Palacio_de_Menelik_II%2C_Ad%C3%ADs_Abeba%2C_Etiop%C3%ADa%2C_2024-01-19%2C_DD_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/Plaza_de_Menelik_II%2C_Ad%C3%ADs_Abeba%2C_Etiop%C3%ADa%2C_2024-01-19%2C_DD_24.jpg/1920px-Plaza_de_Menelik_II%2C_Ad%C3%ADs_Abeba%2C_Etiop%C3%ADa%2C_2024-01-19%2C_DD_24.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/addis-abeba-0.jpg",
+      "secondary": "/city-media/addis-abeba-1.jpg",
       "primaryTitle": "File:Palacio de Menelik II, Adís Abeba, Etiopía, 2024-01-19, DD 05.jpg",
-      "secondaryTitle": "File:Plaza de Menelik II, Adís Abeba, Etiopía, 2024-01-19, DD 24.jpg"
+      "secondaryTitle": "File:Plaza de Menelik II, Adís Abeba, Etiopía, 2024-01-19, DD 24.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Palacio_de_Menelik_II%2C_Ad%C3%ADs_Abeba%2C_Etiop%C3%ADa%2C_2024-01-19%2C_DD_05.jpg/1920px-Palacio_de_Menelik_II%2C_Ad%C3%ADs_Abeba%2C_Etiop%C3%ADa%2C_2024-01-19%2C_DD_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 244858,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/Plaza_de_Menelik_II%2C_Ad%C3%ADs_Abeba%2C_Etiop%C3%ADa%2C_2024-01-19%2C_DD_24.jpg/1920px-Plaza_de_Menelik_II%2C_Ad%C3%ADs_Abeba%2C_Etiop%C3%ADa%2C_2024-01-19%2C_DD_24.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 255894
     },
     "almaty": {
       "city": "Almaty",
       "country": "Kazajistán",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Kabanbai_Batyr_Street_85%2C_Almaty%2C_Kazakhstan_-_panoramio_%281%29.jpg/1920px-Kabanbai_Batyr_Street_85%2C_Almaty%2C_Kazakhstan_-_panoramio_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bd/Accession_Cathedral%2C_Almaty_%281%29.jpg/1920px-Accession_Cathedral%2C_Almaty_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/almaty-0.jpg",
+      "secondary": "/city-media/almaty-1.jpg",
       "primaryTitle": "File:Kabanbai Batyr Street 85, Almaty, Kazakhstan - panoramio (1).jpg",
-      "secondaryTitle": "File:Accession Cathedral, Almaty (1).jpg"
+      "secondaryTitle": "File:Accession Cathedral, Almaty (1).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Kabanbai_Batyr_Street_85%2C_Almaty%2C_Kazakhstan_-_panoramio_%281%29.jpg/1920px-Kabanbai_Batyr_Street_85%2C_Almaty%2C_Kazakhstan_-_panoramio_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 512513,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bd/Accession_Cathedral%2C_Almaty_%281%29.jpg/1920px-Accession_Cathedral%2C_Almaty_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 219367
     },
     "aman": {
       "city": "Amán",
       "country": "Jordania",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6a/Aerial_photograph_of_Amman_%283%29.JPG/1920px-Aerial_photograph_of_Amman_%283%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9d/Abdoun_Bridge_-_Amman.jpg/1920px-Abdoun_Bridge_-_Amman.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/aman-0.jpg",
+      "secondary": "/city-media/aman-1.jpg",
       "primaryTitle": "File:Aerial photograph of Amman (3).JPG",
-      "secondaryTitle": "File:Abdoun Bridge - Amman.jpg"
+      "secondaryTitle": "File:Abdoun Bridge - Amman.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6a/Aerial_photograph_of_Amman_%283%29.JPG/1920px-Aerial_photograph_of_Amman_%283%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 476596,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9d/Abdoun_Bridge_-_Amman.jpg/1920px-Abdoun_Bridge_-_Amman.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 90984
     },
     "amsterdam": {
       "city": "Ámsterdam",
       "country": "Países Bajos",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c7/Amsterdam_Canal_Tour.jpg/1920px-Amsterdam_Canal_Tour.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/61/De_nieuwe_vleugel_van_het_Stedelijk_Museum_Amsterdam.jpg/1920px-De_nieuwe_vleugel_van_het_Stedelijk_Museum_Amsterdam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/amsterdam-0.jpg",
+      "secondary": "/city-media/amsterdam-1.jpg",
       "primaryTitle": "File:Amsterdam Canal Tour.jpg",
-      "secondaryTitle": "File:De nieuwe vleugel van het Stedelijk Museum Amsterdam.jpg"
+      "secondaryTitle": "File:De nieuwe vleugel van het Stedelijk Museum Amsterdam.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c7/Amsterdam_Canal_Tour.jpg/1920px-Amsterdam_Canal_Tour.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 560387,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/61/De_nieuwe_vleugel_van_het_Stedelijk_Museum_Amsterdam.jpg/1920px-De_nieuwe_vleugel_van_het_Stedelijk_Museum_Amsterdam.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 109244
     },
     "atenas": {
       "city": "Atenas",
       "country": "Grecia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/View_of_the_Ancient_Agora_of_Athens_from_Apostolou_Pavlou_Pedestrian_Street_on_February_16%2C_2021.jpg/1920px-View_of_the_Ancient_Agora_of_Athens_from_Apostolou_Pavlou_Pedestrian_Street_on_February_16%2C_2021.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f3/Monastiraki_Square_in_Athens_%2830996716898%29.jpg/1920px-Monastiraki_Square_in_Athens_%2830996716898%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/atenas-0.jpg",
+      "secondary": "/city-media/atenas-1.jpg",
       "primaryTitle": "File:View of the Ancient Agora of Athens from Apostolou Pavlou Pedestrian Street on February 16, 2021.jpg",
-      "secondaryTitle": "File:Monastiraki Square in Athens (30996716898).jpg"
+      "secondaryTitle": "File:Monastiraki Square in Athens (30996716898).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/View_of_the_Ancient_Agora_of_Athens_from_Apostolou_Pavlou_Pedestrian_Street_on_February_16%2C_2021.jpg/1920px-View_of_the_Ancient_Agora_of_Athens_from_Apostolou_Pavlou_Pedestrian_Street_on_February_16%2C_2021.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 477907,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f3/Monastiraki_Square_in_Athens_%2830996716898%29.jpg/1920px-Monastiraki_Square_in_Athens_%2830996716898%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 229080
     },
     "auckland": {
       "city": "Auckland",
       "country": "Nueva Zelanda",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Auckland_Harbour_Bridge_aerial.jpg/1920px-Auckland_Harbour_Bridge_aerial.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Auckland_Harbour_Bridge_Sunset_%28cropped%29.jpg/1920px-Auckland_Harbour_Bridge_Sunset_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/auckland-0.jpg",
+      "secondary": "/city-media/auckland-1.jpg",
       "primaryTitle": "File:Auckland Harbour Bridge aerial.jpg",
-      "secondaryTitle": "File:Auckland Harbour Bridge Sunset (cropped).jpg"
+      "secondaryTitle": "File:Auckland Harbour Bridge Sunset (cropped).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Auckland_Harbour_Bridge_aerial.jpg/1920px-Auckland_Harbour_Bridge_aerial.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 253966,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Auckland_Harbour_Bridge_Sunset_%28cropped%29.jpg/1920px-Auckland_Harbour_Bridge_Sunset_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 92532
     },
     "bali": {
       "city": "Bali",
       "country": "Indonesia",
-      "primary": "https://upload.wikimedia.org/wikipedia/commons/3/36/Bali_panorama.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-      "secondary": "https://upload.wikimedia.org/wikipedia/commons/c/cf/Bali_%E2%80%93_Uluwatu_Sunset_Temple_%282688001517%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primary": "/city-media/bali-0.jpg",
+      "secondary": "/city-media/bali-1.jpg",
       "primaryTitle": "File:Bali panorama.jpg",
-      "secondaryTitle": "File:Bali – Uluwatu Sunset Temple (2688001517).jpg"
+      "secondaryTitle": "File:Bali – Uluwatu Sunset Temple (2688001517).jpg",
+      "primarySource": "https://upload.wikimedia.org/wikipedia/commons/3/36/Bali_panorama.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primaryBytes": 475776,
+      "secondarySource": "https://upload.wikimedia.org/wikipedia/commons/c/cf/Bali_%E2%80%93_Uluwatu_Sunset_Temple_%282688001517%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "secondaryBytes": 87272
     },
     "bangkok": {
       "city": "Bangkok",
       "country": "Tailandia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/Chao_Phraya_River_view_from_the_State_Tower%2C_Bangkok_2017.jpg/1920px-Chao_Phraya_River_view_from_the_State_Tower%2C_Bangkok_2017.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Chakra_Maha_Prasat_Throne_Hall_Grand_Palace_Bangkok_aerial_photo_by_Don_Ramey_Logan.jpg/1920px-Chakra_Maha_Prasat_Throne_Hall_Grand_Palace_Bangkok_aerial_photo_by_Don_Ramey_Logan.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/bangkok-0.jpg",
+      "secondary": "/city-media/bangkok-1.jpg",
       "primaryTitle": "File:Chao Phraya River view from the State Tower, Bangkok 2017.jpg",
-      "secondaryTitle": "File:Chakra Maha Prasat Throne Hall Grand Palace Bangkok aerial photo by Don Ramey Logan.jpg"
+      "secondaryTitle": "File:Chakra Maha Prasat Throne Hall Grand Palace Bangkok aerial photo by Don Ramey Logan.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/Chao_Phraya_River_view_from_the_State_Tower%2C_Bangkok_2017.jpg/1920px-Chao_Phraya_River_view_from_the_State_Tower%2C_Bangkok_2017.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 407732,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Chakra_Maha_Prasat_Throne_Hall_Grand_Palace_Bangkok_aerial_photo_by_Don_Ramey_Logan.jpg/1920px-Chakra_Maha_Prasat_Throne_Hall_Grand_Palace_Bangkok_aerial_photo_by_Don_Ramey_Logan.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 170771
     },
     "barcelona": {
       "city": "Barcelona",
       "country": "España",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/Evening_light_over_Barcelona.jpg/1920px-Evening_light_over_Barcelona.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Barcino_marble_barcelona.jpg/1920px-Barcino_marble_barcelona.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/barcelona-0.jpg",
+      "secondary": "/city-media/barcelona-1.jpg",
       "primaryTitle": "Evening_light_over_Barcelona.jpg",
-      "secondaryTitle": "File:Barcino marble barcelona.jpg"
+      "secondaryTitle": "File:Barcino marble barcelona.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/Evening_light_over_Barcelona.jpg/1920px-Evening_light_over_Barcelona.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 277742,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Barcino_marble_barcelona.jpg/1920px-Barcino_marble_barcelona.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 97801
     },
     "belgrado": {
       "city": "Belgrado",
       "country": "Serbia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Belgrade_Waterfront_%28%D0%91%D0%B5%D0%BE%D0%B3%D1%80%D0%B0%D0%B4_%D0%BD%D0%B0_%D0%B2%D0%BE%D0%B4%D0%B8%29.jpg/1920px-Belgrade_Waterfront_%28%D0%91%D0%B5%D0%BE%D0%B3%D1%80%D0%B0%D0%B4_%D0%BD%D0%B0_%D0%B2%D0%BE%D0%B4%D0%B8%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/Belgrade_Cathedral_%26_Landing_Place_1.jpg/1920px-Belgrade_Cathedral_%26_Landing_Place_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/belgrado-0.jpg",
+      "secondary": "/city-media/belgrado-1.jpg",
       "primaryTitle": "File:Belgrade Waterfront (Београд на води).jpg",
-      "secondaryTitle": "File:Belgrade Cathedral & Landing Place 1.jpg"
+      "secondaryTitle": "File:Belgrade Cathedral & Landing Place 1.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Belgrade_Waterfront_%28%D0%91%D0%B5%D0%BE%D0%B3%D1%80%D0%B0%D0%B4_%D0%BD%D0%B0_%D0%B2%D0%BE%D0%B4%D0%B8%29.jpg/1920px-Belgrade_Waterfront_%28%D0%91%D0%B5%D0%BE%D0%B3%D1%80%D0%B0%D0%B4_%D0%BD%D0%B0_%D0%B2%D0%BE%D0%B4%D0%B8%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 499867,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/Belgrade_Cathedral_%26_Landing_Place_1.jpg/1920px-Belgrade_Cathedral_%26_Landing_Place_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 193052
     },
     "berlin": {
       "city": "Berlín",
       "country": "Alemania",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Canciller%C3%ADa_Federal%2C_Berl%C3%ADn%2C_Alemania%2C_2016-04-21%2C_DD_34_-36_HDR.JPG/1920px-Canciller%C3%ADa_Federal%2C_Berl%C3%ADn%2C_Alemania%2C_2016-04-21%2C_DD_34_-36_HDR.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/46/Canciller%C3%ADa_Federal%2C_Berl%C3%ADn%2C_Alemania%2C_2016-04-21%2C_DD_04-06_HDR.JPG/1920px-Canciller%C3%ADa_Federal%2C_Berl%C3%ADn%2C_Alemania%2C_2016-04-21%2C_DD_04-06_HDR.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/berlin-0.jpg",
+      "secondary": "/city-media/berlin-1.jpg",
       "primaryTitle": "File:Cancillería Federal, Berlín, Alemania, 2016-04-21, DD 34 -36 HDR.JPG",
-      "secondaryTitle": "File:Cancillería Federal, Berlín, Alemania, 2016-04-21, DD 04-06 HDR.JPG"
+      "secondaryTitle": "File:Cancillería Federal, Berlín, Alemania, 2016-04-21, DD 04-06 HDR.JPG",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Canciller%C3%ADa_Federal%2C_Berl%C3%ADn%2C_Alemania%2C_2016-04-21%2C_DD_34_-36_HDR.JPG/1920px-Canciller%C3%ADa_Federal%2C_Berl%C3%ADn%2C_Alemania%2C_2016-04-21%2C_DD_34_-36_HDR.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 212846,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/46/Canciller%C3%ADa_Federal%2C_Berl%C3%ADn%2C_Alemania%2C_2016-04-21%2C_DD_04-06_HDR.JPG/1920px-Canciller%C3%ADa_Federal%2C_Berl%C3%ADn%2C_Alemania%2C_2016-04-21%2C_DD_04-06_HDR.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 114548
     },
     "bogota": {
       "city": "Bogotá",
       "country": "Colombia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/Bogota%2C_Colombia_%2836668708290%29.jpg/1920px-Bogota%2C_Colombia_%2836668708290%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://upload.wikimedia.org/wikipedia/commons/c/c3/CatedralPrimadaBogota2004-7.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primary": "/city-media/bogota-0.jpg",
+      "secondary": "/city-media/bogota-1.jpg",
       "primaryTitle": "Bogota,_Colombia_(36668708290).jpg",
-      "secondaryTitle": "File:CatedralPrimadaBogota2004-7.jpg"
+      "secondaryTitle": "File:CatedralPrimadaBogota2004-7.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/Bogota%2C_Colombia_%2836668708290%29.jpg/1920px-Bogota%2C_Colombia_%2836668708290%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 442109,
+      "secondarySource": "https://upload.wikimedia.org/wikipedia/commons/c/c3/CatedralPrimadaBogota2004-7.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "secondaryBytes": 151970
     },
     "braga": {
       "city": "Braga",
       "country": "Portugal",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Braga_Panorama.jpg/1920px-Braga_Panorama.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/84/Aerial_photograph_of_Braga_2018_%2831%29.jpg/1920px-Aerial_photograph_of_Braga_2018_%2831%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/braga-0.jpg",
+      "secondary": "/city-media/braga-1.jpg",
       "primaryTitle": "Braga_Panorama.jpg",
-      "secondaryTitle": "File:Aerial photograph of Braga 2018 (31).jpg"
+      "secondaryTitle": "File:Aerial photograph of Braga 2018 (31).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Braga_Panorama.jpg/1920px-Braga_Panorama.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 373213,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/84/Aerial_photograph_of_Braga_2018_%2831%29.jpg/1920px-Aerial_photograph_of_Braga_2018_%2831%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 335593
     },
     "budapest": {
       "city": "Budapest",
       "country": "Hungría",
-      "primary": "https://upload.wikimedia.org/wikipedia/commons/f/f8/Budapest_Fine_Arts_Museum_bldg.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f1/Ethnographic_Museum_%28N%C3%A9prajzi_M%C3%BAzeum%29_in_Budapest%2C_Hungary.jpg/1920px-Ethnographic_Museum_%28N%C3%A9prajzi_M%C3%BAzeum%29_in_Budapest%2C_Hungary.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/budapest-0.jpg",
+      "secondary": "/city-media/budapest-1.jpg",
       "primaryTitle": "File:Budapest Fine Arts Museum bldg.jpg",
-      "secondaryTitle": "File:Ethnographic Museum (Néprajzi Múzeum) in Budapest, Hungary.jpg"
+      "secondaryTitle": "File:Ethnographic Museum (Néprajzi Múzeum) in Budapest, Hungary.jpg",
+      "primarySource": "https://upload.wikimedia.org/wikipedia/commons/f/f8/Budapest_Fine_Arts_Museum_bldg.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primaryBytes": 250280,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f1/Ethnographic_Museum_%28N%C3%A9prajzi_M%C3%BAzeum%29_in_Budapest%2C_Hungary.jpg/1920px-Ethnographic_Museum_%28N%C3%A9prajzi_M%C3%BAzeum%29_in_Budapest%2C_Hungary.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 135592
     },
     "buenos-aires": {
       "city": "Buenos Aires",
       "country": "Argentina",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/2018-10-19_Plaza_Miserere_Station%2C_Buenos_Aires%2C_Argentina_%28Martin_Rulsch%29_26.jpg/1920px-2018-10-19_Plaza_Miserere_Station%2C_Buenos_Aires%2C_Argentina_%28Martin_Rulsch%29_26.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a0/Buenos_Aires_-_Bolsa_de_Comercio.jpg/1920px-Buenos_Aires_-_Bolsa_de_Comercio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/buenos-aires-0.jpg",
+      "secondary": "/city-media/buenos-aires-1.jpg",
       "primaryTitle": "File:2018-10-19 Plaza Miserere Station, Buenos Aires, Argentina (Martin Rulsch) 26.jpg",
-      "secondaryTitle": "File:Buenos Aires - Bolsa de Comercio.jpg"
+      "secondaryTitle": "File:Buenos Aires - Bolsa de Comercio.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/2018-10-19_Plaza_Miserere_Station%2C_Buenos_Aires%2C_Argentina_%28Martin_Rulsch%29_26.jpg/1920px-2018-10-19_Plaza_Miserere_Station%2C_Buenos_Aires%2C_Argentina_%28Martin_Rulsch%29_26.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 266686,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a0/Buenos_Aires_-_Bolsa_de_Comercio.jpg/1920px-Buenos_Aires_-_Bolsa_de_Comercio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 244758
     },
     "chiang-mai": {
       "city": "Chiang Mai",
       "country": "Tailandia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Ping_River_in_Chiang_Mai_1.jpg/1920px-Ping_River_in_Chiang_Mai_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Chiang_Mai_sunday_evening_walking_street.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primary": "/city-media/chiang-mai-0.jpg",
+      "secondary": "/city-media/chiang-mai-1.jpg",
       "primaryTitle": "File:Ping River in Chiang Mai 1.jpg",
-      "secondaryTitle": "File:Chiang Mai sunday evening walking street.jpg"
+      "secondaryTitle": "File:Chiang Mai sunday evening walking street.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Ping_River_in_Chiang_Mai_1.jpg/1920px-Ping_River_in_Chiang_Mai_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 243099,
+      "secondarySource": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Chiang_Mai_sunday_evening_walking_street.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "secondaryBytes": 171707
     },
     "ciudad-de-mexico": {
       "city": "Ciudad de México",
       "country": "México",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Mexico_City_Reforma_Street.jpg/1920px-Mexico_City_Reforma_Street.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Mexico_city_Universidad_Nacional_Aut%C3%B3noma_de_M%C3%A9xico_UNAM.JPG/1920px-Mexico_city_Universidad_Nacional_Aut%C3%B3noma_de_M%C3%A9xico_UNAM.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/ciudad-de-mexico-0.jpg",
+      "secondary": "/city-media/ciudad-de-mexico-1.jpg",
       "primaryTitle": "File:Mexico City Reforma Street.jpg",
-      "secondaryTitle": "File:Mexico city Universidad Nacional Autónoma de México UNAM.JPG"
+      "secondaryTitle": "File:Mexico city Universidad Nacional Autónoma de México UNAM.JPG",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Mexico_City_Reforma_Street.jpg/1920px-Mexico_City_Reforma_Street.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 367134,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Mexico_city_Universidad_Nacional_Aut%C3%B3noma_de_M%C3%A9xico_UNAM.JPG/1920px-Mexico_city_Universidad_Nacional_Aut%C3%B3noma_de_M%C3%A9xico_UNAM.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 234853
     },
     "ciudad-del-cabo": {
       "city": "Ciudad del Cabo",
       "country": "Sudáfrica",
-      "primary": "https://upload.wikimedia.org/wikipedia/commons/7/71/Llandudno_Beach%2C_Cape_Town%2C_Western_Cape_Province_%286252674535%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-      "secondary": "https://upload.wikimedia.org/wikipedia/commons/2/26/00000-St_Georges_Cathedral-Cape_Town-s.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primary": "/city-media/ciudad-del-cabo-0.jpg",
+      "secondary": "/city-media/ciudad-del-cabo-1.jpg",
       "primaryTitle": "File:Llandudno Beach, Cape Town, Western Cape Province (6252674535).jpg",
-      "secondaryTitle": "File:00000-St Georges Cathedral-Cape Town-s.jpg"
+      "secondaryTitle": "File:00000-St Georges Cathedral-Cape Town-s.jpg",
+      "primarySource": "https://upload.wikimedia.org/wikipedia/commons/7/71/Llandudno_Beach%2C_Cape_Town%2C_Western_Cape_Province_%286252674535%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primaryBytes": 206406,
+      "secondarySource": "https://upload.wikimedia.org/wikipedia/commons/2/26/00000-St_Georges_Cathedral-Cape_Town-s.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "secondaryBytes": 354628
     },
     "colombo": {
       "city": "Colombo",
       "country": "Sri Lanka",
-      "primary": "https://upload.wikimedia.org/wikipedia/commons/1/12/Train_track_on_the_beach_in_Colombo_%2816779050855%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/A_view_of_Colombo%27s_skyline_from_the_Lotus_Tower.jpg/1920px-A_view_of_Colombo%27s_skyline_from_the_Lotus_Tower.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/colombo-0.jpg",
+      "secondary": "/city-media/colombo-1.jpg",
       "primaryTitle": "File:Train track on the beach in Colombo (16779050855).jpg",
-      "secondaryTitle": "File:A view of Colombo's skyline from the Lotus Tower.jpg"
+      "secondaryTitle": "File:A view of Colombo's skyline from the Lotus Tower.jpg",
+      "primarySource": "https://upload.wikimedia.org/wikipedia/commons/1/12/Train_track_on_the_beach_in_Colombo_%2816779050855%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primaryBytes": 246188,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/A_view_of_Colombo%27s_skyline_from_the_Lotus_Tower.jpg/1920px-A_view_of_Colombo%27s_skyline_from_the_Lotus_Tower.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 243638
     },
     "copenhague": {
       "city": "Copenhague",
       "country": "Dinamarca",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/12/Copenhagen_skyline.jpg/1920px-Copenhagen_skyline.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Arsenal_Museum_Copenhagen_backend.jpg/1920px-Arsenal_Museum_Copenhagen_backend.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/copenhague-0.jpg",
+      "secondary": "/city-media/copenhague-1.jpg",
       "primaryTitle": "File:Copenhagen skyline.jpg",
-      "secondaryTitle": "File:Arsenal Museum Copenhagen backend.jpg"
+      "secondaryTitle": "File:Arsenal Museum Copenhagen backend.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/12/Copenhagen_skyline.jpg/1920px-Copenhagen_skyline.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 229513,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Arsenal_Museum_Copenhagen_backend.jpg/1920px-Arsenal_Museum_Copenhagen_backend.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 153459
     },
     "cracovia": {
       "city": "Cracovia",
       "country": "Polonia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Palace_of_Art%2C_4%2CSzczepanski_square%2Csecession_building%2C_Krakow_Old_Town.jpg/1920px-Palace_of_Art%2C_4%2CSzczepanski_square%2Csecession_building%2C_Krakow_Old_Town.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/Planty_Garden%2C_pavilion%2C_Old_Town%2C_Krakow%2C_Poland.JPG/1920px-Planty_Garden%2C_pavilion%2C_Old_Town%2C_Krakow%2C_Poland.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/cracovia-0.jpg",
+      "secondary": "/city-media/cracovia-1.jpg",
       "primaryTitle": "File:Palace of Art, 4,Szczepanski square,secession building, Krakow Old Town.jpg",
-      "secondaryTitle": "File:Planty Garden, pavilion, Old Town, Krakow, Poland.JPG"
+      "secondaryTitle": "File:Planty Garden, pavilion, Old Town, Krakow, Poland.JPG",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Palace_of_Art%2C_4%2CSzczepanski_square%2Csecession_building%2C_Krakow_Old_Town.jpg/1920px-Palace_of_Art%2C_4%2CSzczepanski_square%2Csecession_building%2C_Krakow_Old_Town.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 350031,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/Planty_Garden%2C_pavilion%2C_Old_Town%2C_Krakow%2C_Poland.JPG/1920px-Planty_Garden%2C_pavilion%2C_Old_Town%2C_Krakow%2C_Poland.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 375533
     },
     "cusco": {
       "city": "Cusco",
       "country": "Perú",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Cusco_skyline_-_October_2025.jpg/1920px-Cusco_skyline_-_October_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Iglesia_de_la_Compa%C3%B1%C3%ADa_de_Jes%C3%BAs%2C_Plaza_de_Armas%2C_Cusco%2C_Per%C3%BA%2C_2015-07-31%2C_DD_74.JPG/1920px-Iglesia_de_la_Compa%C3%B1%C3%ADa_de_Jes%C3%BAs%2C_Plaza_de_Armas%2C_Cusco%2C_Per%C3%BA%2C_2015-07-31%2C_DD_74.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/cusco-0.jpg",
+      "secondary": "/city-media/cusco-1.jpg",
       "primaryTitle": "File:Cusco skyline - October 2025.jpg",
-      "secondaryTitle": "File:Iglesia de la Compañía de Jesús, Plaza de Armas, Cusco, Perú, 2015-07-31, DD 74.JPG"
+      "secondaryTitle": "File:Iglesia de la Compañía de Jesús, Plaza de Armas, Cusco, Perú, 2015-07-31, DD 74.JPG",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Cusco_skyline_-_October_2025.jpg/1920px-Cusco_skyline_-_October_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 337142,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Iglesia_de_la_Compa%C3%B1%C3%ADa_de_Jes%C3%BAs%2C_Plaza_de_Armas%2C_Cusco%2C_Per%C3%BA%2C_2015-07-31%2C_DD_74.JPG/1920px-Iglesia_de_la_Compa%C3%B1%C3%ADa_de_Jes%C3%BAs%2C_Plaza_de_Armas%2C_Cusco%2C_Per%C3%BA%2C_2015-07-31%2C_DD_74.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 162529
     },
     "da-nang": {
       "city": "Da Nang",
       "country": "Vietnam",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Dragon_Bridge%2C_Da_Nang_during_day_-_20230819_%28cropped%29.jpg/1920px-Dragon_Bridge%2C_Da_Nang_during_day_-_20230819_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Marble_Mountain_Gate%2C_Da_Nang.jpg/1920px-Marble_Mountain_Gate%2C_Da_Nang.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/da-nang-0.jpg",
+      "secondary": "/city-media/da-nang-1.jpg",
       "primaryTitle": "Dragon_Bridge,_Da_Nang_during_day_-_20230819_(cropped).jpg",
-      "secondaryTitle": "File:Marble Mountain Gate, Da Nang.jpg"
+      "secondaryTitle": "File:Marble Mountain Gate, Da Nang.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Dragon_Bridge%2C_Da_Nang_during_day_-_20230819_%28cropped%29.jpg/1920px-Dragon_Bridge%2C_Da_Nang_during_day_-_20230819_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 217410,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Marble_Mountain_Gate%2C_Da_Nang.jpg/1920px-Marble_Mountain_Gate%2C_Da_Nang.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 269964
     },
     "doha": {
       "city": "Doha",
       "country": "Catar",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Katar_Doha_Katara_beach%2C_Strand.jpg/1920px-Katar_Doha_Katara_beach%2C_Strand.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Doha_Corniche_Skyline_View_2.jpg/1920px-Doha_Corniche_Skyline_View_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/doha-0.jpg",
+      "secondary": "/city-media/doha-1.jpg",
       "primaryTitle": "File:Katar Doha Katara beach, Strand.jpg",
-      "secondaryTitle": "File:Doha Corniche Skyline View 2.jpg"
+      "secondaryTitle": "File:Doha Corniche Skyline View 2.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Katar_Doha_Katara_beach%2C_Strand.jpg/1920px-Katar_Doha_Katara_beach%2C_Strand.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 303828,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Doha_Corniche_Skyline_View_2.jpg/1920px-Doha_Corniche_Skyline_View_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 155208
     },
     "dubai": {
       "city": "Dubái",
       "country": "Emiratos Árabes Unidos",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Dubai_Marina_Skyline.jpg/1920px-Dubai_Marina_Skyline.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/Meydan_Beach_Club%2C_Dubai_%288668492594%29.jpg/1920px-Meydan_Beach_Club%2C_Dubai_%288668492594%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/dubai-0.jpg",
+      "secondary": "/city-media/dubai-1.jpg",
       "primaryTitle": "File:Dubai Marina Skyline.jpg",
-      "secondaryTitle": "File:Meydan Beach Club, Dubai (8668492594).jpg"
+      "secondaryTitle": "File:Meydan Beach Club, Dubai (8668492594).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Dubai_Marina_Skyline.jpg/1920px-Dubai_Marina_Skyline.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 392577,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/Meydan_Beach_Club%2C_Dubai_%288668492594%29.jpg/1920px-Meydan_Beach_Club%2C_Dubai_%288668492594%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 177304
     },
     "dublin": {
       "city": "Dublín",
       "country": "Irlanda",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Dublin_-_aerial_-_2025-07-07_01.jpg/1920px-Dublin_-_aerial_-_2025-07-07_01.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/E4395-Dublin-Castle.jpg/1920px-E4395-Dublin-Castle.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/dublin-0.jpg",
+      "secondary": "/city-media/dublin-1.jpg",
       "primaryTitle": "Dublin_-_aerial_-_2025-07-07_01.jpg",
-      "secondaryTitle": "File:E4395-Dublin-Castle.jpg"
+      "secondaryTitle": "File:E4395-Dublin-Castle.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Dublin_-_aerial_-_2025-07-07_01.jpg/1920px-Dublin_-_aerial_-_2025-07-07_01.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 334260,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/E4395-Dublin-Castle.jpg/1920px-E4395-Dublin-Castle.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 226681
     },
     "el-cairo": {
       "city": "El Cairo",
       "country": "Egipto",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/72/Cairo_Opera_House%2C_Al_Hurriyah_Park_and_the_Nile_river_%2814797782354%29.jpg/1920px-Cairo_Opera_House%2C_Al_Hurriyah_Park_and_the_Nile_river_%2814797782354%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d6/View_of_the_Qasr_al-Nil_Bridge_%28Zamalek%29_from_the_Cairo_Tower_%2814609687888%29.jpg/1920px-View_of_the_Qasr_al-Nil_Bridge_%28Zamalek%29_from_the_Cairo_Tower_%2814609687888%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/el-cairo-0.jpg",
+      "secondary": "/city-media/el-cairo-1.jpg",
       "primaryTitle": "Cairo_Opera_House,_Al_Hurriyah_Park_and_the_Nile_river_(14797782354).jpg",
-      "secondaryTitle": "File:View of the Qasr al-Nil Bridge (Zamalek) from the Cairo Tower (14609687888).jpg"
+      "secondaryTitle": "File:View of the Qasr al-Nil Bridge (Zamalek) from the Cairo Tower (14609687888).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/72/Cairo_Opera_House%2C_Al_Hurriyah_Park_and_the_Nile_river_%2814797782354%29.jpg/1920px-Cairo_Opera_House%2C_Al_Hurriyah_Park_and_the_Nile_river_%2814797782354%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 328404,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d6/View_of_the_Qasr_al-Nil_Bridge_%28Zamalek%29_from_the_Cairo_Tower_%2814609687888%29.jpg/1920px-View_of_the_Qasr_al-Nil_Bridge_%28Zamalek%29_from_the_Cairo_Tower_%2814609687888%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 200043
     },
     "estambul": {
       "city": "Estambul",
       "country": "Turquía",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Historical_peninsula_and_modern_skyline_of_Istanbul.jpg/1920px-Historical_peninsula_and_modern_skyline_of_Istanbul.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Bosphorus_Bridge%2C_%C4%B0stanbul_%2813080111123%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primary": "/city-media/estambul-0.jpg",
+      "secondary": "/city-media/estambul-1.jpg",
       "primaryTitle": "Historical_peninsula_and_modern_skyline_of_Istanbul.jpg",
-      "secondaryTitle": "File:Bosphorus Bridge, İstanbul (13080111123).jpg"
+      "secondaryTitle": "File:Bosphorus Bridge, İstanbul (13080111123).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Historical_peninsula_and_modern_skyline_of_Istanbul.jpg/1920px-Historical_peninsula_and_modern_skyline_of_Istanbul.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 288269,
+      "secondarySource": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Bosphorus_Bridge%2C_%C4%B0stanbul_%2813080111123%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "secondaryBytes": 226278
     },
     "florencia": {
       "city": "Florencia",
       "country": "Italia",
-      "primary": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Colored_woodcut_town_view_of_Florence.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Florence_with_snow_cover_in_December_2009.jpg/1920px-Florence_with_snow_cover_in_December_2009.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/florencia-0.jpg",
+      "secondary": "/city-media/florencia-1.jpg",
       "primaryTitle": "File:Colored woodcut town view of Florence.jpg",
-      "secondaryTitle": "File:Florence with snow cover in December 2009.jpg"
+      "secondaryTitle": "File:Florence with snow cover in December 2009.jpg",
+      "primarySource": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Colored_woodcut_town_view_of_Florence.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primaryBytes": 372414,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Florence_with_snow_cover_in_December_2009.jpg/1920px-Florence_with_snow_cover_in_December_2009.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 238697
     },
     "guadalajara": {
       "city": "Guadalajara",
       "country": "México",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Panor%C3%A1mica_Guadalajara_desde_edificio_Bansi_hacia_norte_%28cropped%29.jpg/1920px-Panor%C3%A1mica_Guadalajara_desde_edificio_Bansi_hacia_norte_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/Guadalajara%2C_Jalisco%2C_M%C3%A9xico_9.0.jpg/1920px-Guadalajara%2C_Jalisco%2C_M%C3%A9xico_9.0.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/guadalajara-0.jpg",
+      "secondary": "/city-media/guadalajara-1.jpg",
       "primaryTitle": "Panorámica_Guadalajara_desde_edificio_Bansi_hacia_norte_(cropped).jpg",
-      "secondaryTitle": "File:Guadalajara, Jalisco, México 9.0.jpg"
+      "secondaryTitle": "File:Guadalajara, Jalisco, México 9.0.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Panor%C3%A1mica_Guadalajara_desde_edificio_Bansi_hacia_norte_%28cropped%29.jpg/1920px-Panor%C3%A1mica_Guadalajara_desde_edificio_Bansi_hacia_norte_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 365284,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/Guadalajara%2C_Jalisco%2C_M%C3%A9xico_9.0.jpg/1920px-Guadalajara%2C_Jalisco%2C_M%C3%A9xico_9.0.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 337615
     },
     "hanoi": {
       "city": "Hanói",
       "country": "Vietnam",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8e/Hanoi_skyline_with_Ba_Vi_Mountain.jpg/1920px-Hanoi_skyline_with_Ba_Vi_Mountain.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/Hanoi_Temple_of_Literature.jpg/1920px-Hanoi_Temple_of_Literature.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/hanoi-0.jpg",
+      "secondary": "/city-media/hanoi-1.jpg",
       "primaryTitle": "Hanoi_skyline_with_Ba_Vi_Mountain.jpg",
-      "secondaryTitle": "File:Hanoi Temple of Literature.jpg"
+      "secondaryTitle": "File:Hanoi Temple of Literature.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8e/Hanoi_skyline_with_Ba_Vi_Mountain.jpg/1920px-Hanoi_skyline_with_Ba_Vi_Mountain.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 244738,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/Hanoi_Temple_of_Literature.jpg/1920px-Hanoi_Temple_of_Literature.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 326674
     },
     "ho-chi-minh": {
       "city": "Ho Chi Minh",
       "country": "Vietnam",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/95/Ho_Chi_Minh_City_Skyline.jpg/1920px-Ho_Chi_Minh_City_Skyline.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/Ho_Chi_Minh_City%2C_Nguyen_Hue_Street%2C_2020-01_CN-02.jpg/1920px-Ho_Chi_Minh_City%2C_Nguyen_Hue_Street%2C_2020-01_CN-02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/ho-chi-minh-0.jpg",
+      "secondary": "/city-media/ho-chi-minh-1.jpg",
       "primaryTitle": "File:Ho Chi Minh City Skyline.jpg",
-      "secondaryTitle": "File:Ho Chi Minh City, Nguyen Hue Street, 2020-01 CN-02.jpg"
+      "secondaryTitle": "File:Ho Chi Minh City, Nguyen Hue Street, 2020-01 CN-02.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/95/Ho_Chi_Minh_City_Skyline.jpg/1920px-Ho_Chi_Minh_City_Skyline.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 114292,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/Ho_Chi_Minh_City%2C_Nguyen_Hue_Street%2C_2020-01_CN-02.jpg/1920px-Ho_Chi_Minh_City%2C_Nguyen_Hue_Street%2C_2020-01_CN-02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 139423
     },
     "hong-kong": {
       "city": "Hong Kong",
       "country": "Hong Kong",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Kowloon_Waterfront%2C_Hong_Kong%2C_2013-08-09%2C_DD_05.jpg/1920px-Kowloon_Waterfront%2C_Hong_Kong%2C_2013-08-09%2C_DD_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://upload.wikimedia.org/wikipedia/commons/2/24/Bishop%27s_House%2C_Anglican_Church%2C_Hong_Kong.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primary": "/city-media/hong-kong-0.jpg",
+      "secondary": "/city-media/hong-kong-1.jpg",
       "primaryTitle": "File:Kowloon Waterfront, Hong Kong, 2013-08-09, DD 05.jpg",
-      "secondaryTitle": "File:Bishop's House, Anglican Church, Hong Kong.JPG"
+      "secondaryTitle": "File:Bishop's House, Anglican Church, Hong Kong.JPG",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Kowloon_Waterfront%2C_Hong_Kong%2C_2013-08-09%2C_DD_05.jpg/1920px-Kowloon_Waterfront%2C_Hong_Kong%2C_2013-08-09%2C_DD_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 283268,
+      "secondarySource": "https://upload.wikimedia.org/wikipedia/commons/2/24/Bishop%27s_House%2C_Anglican_Church%2C_Hong_Kong.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "secondaryBytes": 140623
     },
     "kigali": {
       "city": "Kigali",
       "country": "Ruanda",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/High_Angle_View_Of_Kigali_City_Street_on_November_29%2C_2018._Emmanuel_Kwizera.jpg/1920px-High_Angle_View_Of_Kigali_City_Street_on_November_29%2C_2018._Emmanuel_Kwizera.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Kigali_Market_%2802%29.jpg/1920px-Kigali_Market_%2802%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/kigali-0.jpg",
+      "secondary": "/city-media/kigali-1.jpg",
       "primaryTitle": "High_Angle_View_Of_Kigali_City_Street_on_November_29,_2018._Emmanuel_Kwizera.jpg",
-      "secondaryTitle": "File:Kigali Market (02).jpg"
+      "secondaryTitle": "File:Kigali Market (02).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/High_Angle_View_Of_Kigali_City_Street_on_November_29%2C_2018._Emmanuel_Kwizera.jpg/1920px-High_Angle_View_Of_Kigali_City_Street_on_November_29%2C_2018._Emmanuel_Kwizera.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 462649,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Kigali_Market_%2802%29.jpg/1920px-Kigali_Market_%2802%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 206355
     },
     "kuala-lumpur": {
       "city": "Kuala Lumpur",
       "country": "Malasia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Downtown_Kuala_Lumpur_at_Night_%2849125936143%29.jpg/1920px-Downtown_Kuala_Lumpur_at_Night_%2849125936143%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/2016_Kuala_Lumpur%2C_Park_KLCC%2C_Fontanna_na_jeziorze_Symphony_%2801%29.jpg/1920px-2016_Kuala_Lumpur%2C_Park_KLCC%2C_Fontanna_na_jeziorze_Symphony_%2801%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/kuala-lumpur-0.jpg",
+      "secondary": "/city-media/kuala-lumpur-1.jpg",
       "primaryTitle": "File:Downtown Kuala Lumpur at Night (49125936143).jpg",
-      "secondaryTitle": "File:2016 Kuala Lumpur, Park KLCC, Fontanna na jeziorze Symphony (01).jpg"
+      "secondaryTitle": "File:2016 Kuala Lumpur, Park KLCC, Fontanna na jeziorze Symphony (01).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Downtown_Kuala_Lumpur_at_Night_%2849125936143%29.jpg/1920px-Downtown_Kuala_Lumpur_at_Night_%2849125936143%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 354984,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/2016_Kuala_Lumpur%2C_Park_KLCC%2C_Fontanna_na_jeziorze_Symphony_%2801%29.jpg/1920px-2016_Kuala_Lumpur%2C_Park_KLCC%2C_Fontanna_na_jeziorze_Symphony_%2801%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 157237
     },
     "lagos": {
       "city": "Lagos",
       "country": "Nigeria",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Aerial-shot-of-makoko-community-in-lagos-3-third-mainland-bridge-aview2.jpg/1920px-Aerial-shot-of-makoko-community-in-lagos-3-third-mainland-bridge-aview2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ac/The-elegushi-beach-lagos.jpg/1920px-The-elegushi-beach-lagos.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/lagos-0.jpg",
+      "secondary": "/city-media/lagos-1.jpg",
       "primaryTitle": "File:Aerial-shot-of-makoko-community-in-lagos-3-third-mainland-bridge-aview2.jpg",
-      "secondaryTitle": "File:The-elegushi-beach-lagos.jpg"
+      "secondaryTitle": "File:The-elegushi-beach-lagos.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Aerial-shot-of-makoko-community-in-lagos-3-third-mainland-bridge-aview2.jpg/1920px-Aerial-shot-of-makoko-community-in-lagos-3-third-mainland-bridge-aview2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 294672,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ac/The-elegushi-beach-lagos.jpg/1920px-The-elegushi-beach-lagos.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 76399
     },
     "lima": {
       "city": "Lima",
       "country": "Perú",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Plaza_de_Armas%2C_Lima.jpg/1920px-Plaza_de_Armas%2C_Lima.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Bas%C3%ADlica_Catedral_Metropolitana_de_Lima_%28cropped%29.jpg/1920px-Bas%C3%ADlica_Catedral_Metropolitana_de_Lima_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primary": "/city-media/lima-0.jpg",
+      "secondary": "/city-media/lima-1.jpg",
       "primaryTitle": "File:Plaza de Armas, Lima.jpg",
-      "secondaryTitle": "Basílica_Catedral_Metropolitana_de_Lima_(cropped).jpg"
+      "secondaryTitle": "Basílica_Catedral_Metropolitana_de_Lima_(cropped).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Plaza_de_Armas%2C_Lima.jpg/1920px-Plaza_de_Armas%2C_Lima.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 408029,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Bas%C3%ADlica_Catedral_Metropolitana_de_Lima_%28cropped%29.jpg/1920px-Bas%C3%ADlica_Catedral_Metropolitana_de_Lima_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "secondaryBytes": 203087
     },
     "lisboa": {
       "city": "Lisboa",
       "country": "Portugal",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Lisboa_-_Portugal_%2852597836992%29.jpg/1920px-Lisboa_-_Portugal_%2852597836992%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://upload.wikimedia.org/wikipedia/commons/a/a3/Aerial_view_of_Augusta_Street%2C_Lisbon_%2850644280948%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primary": "/city-media/lisboa-0.jpg",
+      "secondary": "/city-media/lisboa-1.jpg",
       "primaryTitle": "Lisboa_-_Portugal_(52597836992).jpg",
-      "secondaryTitle": "File:Aerial view of Augusta Street, Lisbon (50644280948).jpg"
+      "secondaryTitle": "File:Aerial view of Augusta Street, Lisbon (50644280948).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Lisboa_-_Portugal_%2852597836992%29.jpg/1920px-Lisboa_-_Portugal_%2852597836992%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 361352,
+      "secondarySource": "https://upload.wikimedia.org/wikipedia/commons/a/a3/Aerial_view_of_Augusta_Street%2C_Lisbon_%2850644280948%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "secondaryBytes": 293025
     },
     "ljubljana": {
       "city": "Liubliana",
       "country": "Eslovenia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c7/Ljubljana_Old_Town%2C_Slovenia_%28Old_Camera%29_%2833286165680%29.jpg/1920px-Ljubljana_Old_Town%2C_Slovenia_%28Old_Camera%29_%2833286165680%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Ljubljana_old_town_with_excursion_boat.JPG/1920px-Ljubljana_old_town_with_excursion_boat.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/ljubljana-0.jpg",
+      "secondary": "/city-media/ljubljana-1.jpg",
       "primaryTitle": "Ljubljana_Old_Town,_Slovenia_(Old_Camera)_(33286165680).jpg",
-      "secondaryTitle": "File:Ljubljana old town with excursion boat.JPG"
+      "secondaryTitle": "File:Ljubljana old town with excursion boat.JPG",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c7/Ljubljana_Old_Town%2C_Slovenia_%28Old_Camera%29_%2833286165680%29.jpg/1920px-Ljubljana_Old_Town%2C_Slovenia_%28Old_Camera%29_%2833286165680%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 448239,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Ljubljana_old_town_with_excursion_boat.JPG/1920px-Ljubljana_old_town_with_excursion_boat.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 236474
     },
     "londres": {
       "city": "Londres",
       "country": "Reino Unido",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/df/Aerial_Tower_of_London.jpg/1920px-Aerial_Tower_of_London.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/Buckingham_Palace%2C_London_-_April_2009.jpg/1920px-Buckingham_Palace%2C_London_-_April_2009.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/londres-0.jpg",
+      "secondary": "/city-media/londres-1.jpg",
       "primaryTitle": "File:Aerial Tower of London.jpg",
-      "secondaryTitle": "File:Buckingham Palace, London - April 2009.jpg"
+      "secondaryTitle": "File:Buckingham Palace, London - April 2009.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/df/Aerial_Tower_of_London.jpg/1920px-Aerial_Tower_of_London.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 366013,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/Buckingham_Palace%2C_London_-_April_2009.jpg/1920px-Buckingham_Palace%2C_London_-_April_2009.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 233519
     },
     "madrid": {
       "city": "Madrid",
       "country": "España",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Madrid_-_Sky_Bar_360%C2%BA_%28Hotel_Riu_Plaza_Espa%C3%B1a%29%2C_vistas_19.jpg/1920px-Madrid_-_Sky_Bar_360%C2%BA_%28Hotel_Riu_Plaza_Espa%C3%B1a%29%2C_vistas_19.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://upload.wikimedia.org/wikipedia/commons/e/ea/%28Castillejos%29_Vista_de_Madrid_desde_Plaza_de_Castilla_03_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primary": "/city-media/madrid-0.jpg",
+      "secondary": "/city-media/madrid-1.jpg",
       "primaryTitle": "Madrid_-_Sky_Bar_360º_(Hotel_Riu_Plaza_España),_vistas_19.jpg",
-      "secondaryTitle": "File:(Castillejos) Vista de Madrid desde Plaza de Castilla 03 (cropped).jpg"
+      "secondaryTitle": "File:(Castillejos) Vista de Madrid desde Plaza de Castilla 03 (cropped).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Madrid_-_Sky_Bar_360%C2%BA_%28Hotel_Riu_Plaza_Espa%C3%B1a%29%2C_vistas_19.jpg/1920px-Madrid_-_Sky_Bar_360%C2%BA_%28Hotel_Riu_Plaza_Espa%C3%B1a%29%2C_vistas_19.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 369366,
+      "secondarySource": "https://upload.wikimedia.org/wikipedia/commons/e/ea/%28Castillejos%29_Vista_de_Madrid_desde_Plaza_de_Castilla_03_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "secondaryBytes": 141526
     },
     "manila": {
       "city": "Manila",
       "country": "Filipinas",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Manila_downtown_-_Binondo%2C_Quiapo%2C_Quezon_Bridge%2C_Pasig_River%2C_Arroceros_%28close-up%29_%28Manila%29%282018-02-07%29.jpg/1920px-Manila_downtown_-_Binondo%2C_Quiapo%2C_Quezon_Bridge%2C_Pasig_River%2C_Arroceros_%28close-up%29_%28Manila%29%282018-02-07%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Manila_Bay_beach_%28Roxas_Boulevard%2C_Manila%3B_09-19-2020%29_wiki.jpg/1920px-Manila_Bay_beach_%28Roxas_Boulevard%2C_Manila%3B_09-19-2020%29_wiki.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/manila-0.jpg",
+      "secondary": "/city-media/manila-1.jpg",
       "primaryTitle": "File:Manila downtown - Binondo, Quiapo, Quezon Bridge, Pasig River, Arroceros (close-up) (Manila)(2018-02-07).jpg",
-      "secondaryTitle": "File:Manila Bay beach (Roxas Boulevard, Manila; 09-19-2020) wiki.jpg"
+      "secondaryTitle": "File:Manila Bay beach (Roxas Boulevard, Manila; 09-19-2020) wiki.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Manila_downtown_-_Binondo%2C_Quiapo%2C_Quezon_Bridge%2C_Pasig_River%2C_Arroceros_%28close-up%29_%28Manila%29%282018-02-07%29.jpg/1920px-Manila_downtown_-_Binondo%2C_Quiapo%2C_Quezon_Bridge%2C_Pasig_River%2C_Arroceros_%28close-up%29_%28Manila%29%282018-02-07%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 340108,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Manila_Bay_beach_%28Roxas_Boulevard%2C_Manila%3B_09-19-2020%29_wiki.jpg/1920px-Manila_Bay_beach_%28Roxas_Boulevard%2C_Manila%3B_09-19-2020%29_wiki.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 176966
     },
     "marrakech": {
       "city": "Marrakech",
       "country": "Marruecos",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Marrakech_museum.jpg/1920px-Marrakech_museum.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Marrakech_Koutoubia_Mosque_%2854273634927%29.jpg/1920px-Marrakech_Koutoubia_Mosque_%2854273634927%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/marrakech-0.jpg",
+      "secondary": "/city-media/marrakech-1.jpg",
       "primaryTitle": "File:Marrakech museum.jpg",
-      "secondaryTitle": "File:Marrakech Koutoubia Mosque (54273634927).jpg"
+      "secondaryTitle": "File:Marrakech Koutoubia Mosque (54273634927).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Marrakech_museum.jpg/1920px-Marrakech_museum.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 450108,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Marrakech_Koutoubia_Mosque_%2854273634927%29.jpg/1920px-Marrakech_Koutoubia_Mosque_%2854273634927%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 215174
     },
     "mascate": {
       "city": "Mascate",
       "country": "Omán",
-      "primary": "https://upload.wikimedia.org/wikipedia/commons/a/a0/Muscat_harbor.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-      "secondary": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Oman-Muscat-Muttrah-21-Marina.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primary": "/city-media/mascate-0.jpg",
+      "secondary": "/city-media/mascate-1.jpg",
       "primaryTitle": "File:Muscat harbor.jpg",
-      "secondaryTitle": "File:Oman-Muscat-Muttrah-21-Marina.JPG"
+      "secondaryTitle": "File:Oman-Muscat-Muttrah-21-Marina.JPG",
+      "primarySource": "https://upload.wikimedia.org/wikipedia/commons/a/a0/Muscat_harbor.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primaryBytes": 326201,
+      "secondarySource": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Oman-Muscat-Muttrah-21-Marina.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "secondaryBytes": 133415
     },
     "medellin": {
       "city": "Medellín",
       "country": "Colombia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6d/Plaza_de_Cisneros_Medellin_Colombia.jpg/1920px-Plaza_de_Cisneros_Medellin_Colombia.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://upload.wikimedia.org/wikipedia/commons/5/57/CongresosNegociosMedell%C3%ADn.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primary": "/city-media/medellin-0.jpg",
+      "secondary": "/city-media/medellin-1.jpg",
       "primaryTitle": "File:Plaza de Cisneros Medellin Colombia.jpg",
-      "secondaryTitle": "File:CongresosNegociosMedellín.jpg"
+      "secondaryTitle": "File:CongresosNegociosMedellín.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6d/Plaza_de_Cisneros_Medellin_Colombia.jpg/1920px-Plaza_de_Cisneros_Medellin_Colombia.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 284205,
+      "secondarySource": "https://upload.wikimedia.org/wikipedia/commons/5/57/CongresosNegociosMedell%C3%ADn.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "secondaryBytes": 124490
     },
     "melbourne": {
       "city": "Melbourne",
       "country": "Australia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Melbourne_Skyline_and_Princes_Bridge_-_Dec_2008_%28cropped%29.jpg/1920px-Melbourne_Skyline_and_Princes_Bridge_-_Dec_2008_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Melbourne_Collins_Street_Architecture.jpg/1920px-Melbourne_Collins_Street_Architecture.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/melbourne-0.jpg",
+      "secondary": "/city-media/melbourne-1.jpg",
       "primaryTitle": "File:Melbourne Skyline and Princes Bridge - Dec 2008 (cropped).jpg",
-      "secondaryTitle": "File:Melbourne Collins Street Architecture.jpg"
+      "secondaryTitle": "File:Melbourne Collins Street Architecture.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Melbourne_Skyline_and_Princes_Bridge_-_Dec_2008_%28cropped%29.jpg/1920px-Melbourne_Skyline_and_Princes_Bridge_-_Dec_2008_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 234923,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Melbourne_Collins_Street_Architecture.jpg/1920px-Melbourne_Collins_Street_Architecture.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 326087
     },
     "miami": {
       "city": "Miami",
       "country": "Estados Unidos",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Mouth_of_Miami_River_20100211.jpg/1920px-Mouth_of_Miami_River_20100211.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d0/Cathedral_of_Saint_Mary_-_Miami_08.jpg/1920px-Cathedral_of_Saint_Mary_-_Miami_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/miami-0.jpg",
+      "secondary": "/city-media/miami-1.jpg",
       "primaryTitle": "File:Mouth of Miami River 20100211.jpg",
-      "secondaryTitle": "File:Cathedral of Saint Mary - Miami 08.jpg"
+      "secondaryTitle": "File:Cathedral of Saint Mary - Miami 08.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Mouth_of_Miami_River_20100211.jpg/1920px-Mouth_of_Miami_River_20100211.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 390937,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d0/Cathedral_of_Saint_Mary_-_Miami_08.jpg/1920px-Cathedral_of_Saint_Mary_-_Miami_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 195755
     },
     "milan": {
       "city": "Milán",
       "country": "Italia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/70/Milan_Cathedral_from_Piazza_del_Duomo.jpg/1920px-Milan_Cathedral_from_Piazza_del_Duomo.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/91/Milan_cathedral_29-07-19.jpg/1920px-Milan_cathedral_29-07-19.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/milan-0.jpg",
+      "secondary": "/city-media/milan-1.jpg",
       "primaryTitle": "Milan_Cathedral_from_Piazza_del_Duomo.jpg",
-      "secondaryTitle": "File:Milan cathedral 29-07-19.jpg"
+      "secondaryTitle": "File:Milan cathedral 29-07-19.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/70/Milan_Cathedral_from_Piazza_del_Duomo.jpg/1920px-Milan_Cathedral_from_Piazza_del_Duomo.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 394146,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/91/Milan_cathedral_29-07-19.jpg/1920px-Milan_cathedral_29-07-19.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 171318
     },
     "montevideo": {
       "city": "Montevideo",
       "country": "Uruguay",
-      "primary": "https://upload.wikimedia.org/wikipedia/commons/8/8d/Cabildo_de_Montevideo.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cd/MuseoHistoricoNacionalMontevideo.jpg/1920px-MuseoHistoricoNacionalMontevideo.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/montevideo-0.jpg",
+      "secondary": "/city-media/montevideo-1.jpg",
       "primaryTitle": "File:Cabildo de Montevideo.jpg",
-      "secondaryTitle": "File:MuseoHistoricoNacionalMontevideo.jpg"
+      "secondaryTitle": "File:MuseoHistoricoNacionalMontevideo.jpg",
+      "primarySource": "https://upload.wikimedia.org/wikipedia/commons/8/8d/Cabildo_de_Montevideo.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primaryBytes": 267674,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cd/MuseoHistoricoNacionalMontevideo.jpg/1920px-MuseoHistoricoNacionalMontevideo.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 152680
     },
     "munich": {
       "city": "Múnich",
       "country": "Alemania",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/da/Frauenkirche_Munich_-_View_from_Peterskirche_Tower2.jpg/1920px-Frauenkirche_Munich_-_View_from_Peterskirche_Tower2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/BMW_Welt%2C_M%C3%BAnich%2C_Alemania16.jpg/1920px-BMW_Welt%2C_M%C3%BAnich%2C_Alemania16.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/munich-0.jpg",
+      "secondary": "/city-media/munich-1.jpg",
       "primaryTitle": "File:Frauenkirche Munich - View from Peterskirche Tower2.jpg",
-      "secondaryTitle": "File:BMW Welt, Múnich, Alemania16.jpg"
+      "secondaryTitle": "File:BMW Welt, Múnich, Alemania16.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/da/Frauenkirche_Munich_-_View_from_Peterskirche_Tower2.jpg/1920px-Frauenkirche_Munich_-_View_from_Peterskirche_Tower2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 343323,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/BMW_Welt%2C_M%C3%BAnich%2C_Alemania16.jpg/1920px-BMW_Welt%2C_M%C3%BAnich%2C_Alemania16.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 156134
     },
     "nairobi": {
       "city": "Nairobi",
       "country": "Kenia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/be/Nairobi_skyline_from_Gem_Hotel.jpg/1920px-Nairobi_skyline_from_Gem_Hotel.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://upload.wikimedia.org/wikipedia/commons/d/d9/UAP_Towers_seen_from_Uhuru_Park%2C_Nairobi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primary": "/city-media/nairobi-0.jpg",
+      "secondary": "/city-media/nairobi-1.jpg",
       "primaryTitle": "Nairobi_skyline_from_Gem_Hotel.jpg",
-      "secondaryTitle": "File:UAP Towers seen from Uhuru Park, Nairobi.jpg"
+      "secondaryTitle": "File:UAP Towers seen from Uhuru Park, Nairobi.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/be/Nairobi_skyline_from_Gem_Hotel.jpg/1920px-Nairobi_skyline_from_Gem_Hotel.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 295231,
+      "secondarySource": "https://upload.wikimedia.org/wikipedia/commons/d/d9/UAP_Towers_seen_from_Uhuru_Park%2C_Nairobi.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "secondaryBytes": 184528
     },
     "oporto": {
       "city": "Oporto",
       "country": "Portugal",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/Lu%C3%ADs_I_Bridge%2C_Porto%2C_Portugal.jpg/1920px-Lu%C3%ADs_I_Bridge%2C_Porto%2C_Portugal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/Azuelo_tile_mural_at_Porto_Cathedral.jpg/1920px-Azuelo_tile_mural_at_Porto_Cathedral.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/oporto-0.jpg",
+      "secondary": "/city-media/oporto-1.jpg",
       "primaryTitle": "File:Luís I Bridge, Porto, Portugal.jpg",
-      "secondaryTitle": "File:Azuelo tile mural at Porto Cathedral.jpg"
+      "secondaryTitle": "File:Azuelo tile mural at Porto Cathedral.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/Lu%C3%ADs_I_Bridge%2C_Porto%2C_Portugal.jpg/1920px-Lu%C3%ADs_I_Bridge%2C_Porto%2C_Portugal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 362047,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/Azuelo_tile_mural_at_Porto_Cathedral.jpg/1920px-Azuelo_tile_mural_at_Porto_Cathedral.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 342138
     },
     "osaka": {
       "city": "Osaka",
       "country": "Japón",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/Ufoto-wiki-01_Osaka-Skyline_May2014.jpg/1920px-Ufoto-wiki-01_Osaka-Skyline_May2014.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Osaka_Castle_03bs3200.jpg/1920px-Osaka_Castle_03bs3200.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primary": "/city-media/osaka-0.jpg",
+      "secondary": "/city-media/osaka-1.jpg",
       "primaryTitle": "File:Ufoto-wiki-01 Osaka-Skyline May2014.jpg",
-      "secondaryTitle": "Osaka_Castle_03bs3200.jpg"
+      "secondaryTitle": "Osaka_Castle_03bs3200.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/Ufoto-wiki-01_Osaka-Skyline_May2014.jpg/1920px-Ufoto-wiki-01_Osaka-Skyline_May2014.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 269834,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Osaka_Castle_03bs3200.jpg/1920px-Osaka_Castle_03bs3200.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "secondaryBytes": 218593
     },
     "oslo": {
       "city": "Oslo",
       "country": "Noruega",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Karl_Johans_Gate%2C_Oslo_%2836299588652%29.jpg/1920px-Karl_Johans_Gate%2C_Oslo_%2836299588652%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bd/Oslo%2C_Vigeland_Park_%282%29.jpg/1920px-Oslo%2C_Vigeland_Park_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/oslo-0.jpg",
+      "secondary": "/city-media/oslo-1.jpg",
       "primaryTitle": "File:Karl Johans Gate, Oslo (36299588652).jpg",
-      "secondaryTitle": "File:Oslo, Vigeland Park (2).jpg"
+      "secondaryTitle": "File:Oslo, Vigeland Park (2).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Karl_Johans_Gate%2C_Oslo_%2836299588652%29.jpg/1920px-Karl_Johans_Gate%2C_Oslo_%2836299588652%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 340359,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bd/Oslo%2C_Vigeland_Park_%282%29.jpg/1920px-Oslo%2C_Vigeland_Park_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 160332
     },
     "panama": {
       "city": "Ciudad de Panamá",
       "country": "Panamá",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/Atardecer_en_la_ciudad_de_Panam%C3%A1.jpg/1920px-Atardecer_en_la_ciudad_de_Panam%C3%A1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://upload.wikimedia.org/wikipedia/commons/6/6d/DirkvdM_panama_plaza-perspective.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primary": "/city-media/panama-0.jpg",
+      "secondary": "/city-media/panama-1.jpg",
       "primaryTitle": "File:Atardecer en la ciudad de Panamá.jpg",
-      "secondaryTitle": "File:DirkvdM panama plaza-perspective.jpg"
+      "secondaryTitle": "File:DirkvdM panama plaza-perspective.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/Atardecer_en_la_ciudad_de_Panam%C3%A1.jpg/1920px-Atardecer_en_la_ciudad_de_Panam%C3%A1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 152427,
+      "secondarySource": "https://upload.wikimedia.org/wikipedia/commons/6/6d/DirkvdM_panama_plaza-perspective.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "secondaryBytes": 183053
     },
     "paris": {
       "city": "París",
       "country": "Francia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Boulevard_P%C3%A9riph%C3%A9rique_vu_depuis_Boulevard_Auteuil_-_Paris_XVI_%28FR75%29_-_2021-08-11_-_3.jpg/1920px-Boulevard_P%C3%A9riph%C3%A9rique_vu_depuis_Boulevard_Auteuil_-_Paris_XVI_%28FR75%29_-_2021-08-11_-_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/26/Paris_Opera_full_frontal_architecture%2C_May_2009_sky.JPG/1920px-Paris_Opera_full_frontal_architecture%2C_May_2009_sky.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/paris-0.jpg",
+      "secondary": "/city-media/paris-1.jpg",
       "primaryTitle": "File:Boulevard Périphérique vu depuis Boulevard Auteuil - Paris XVI (FR75) - 2021-08-11 - 3.jpg",
-      "secondaryTitle": "File:Paris Opera full frontal architecture, May 2009 sky.JPG"
+      "secondaryTitle": "File:Paris Opera full frontal architecture, May 2009 sky.JPG",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Boulevard_P%C3%A9riph%C3%A9rique_vu_depuis_Boulevard_Auteuil_-_Paris_XVI_%28FR75%29_-_2021-08-11_-_3.jpg/1920px-Boulevard_P%C3%A9riph%C3%A9rique_vu_depuis_Boulevard_Auteuil_-_Paris_XVI_%28FR75%29_-_2021-08-11_-_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 453191,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/26/Paris_Opera_full_frontal_architecture%2C_May_2009_sky.JPG/1920px-Paris_Opera_full_frontal_architecture%2C_May_2009_sky.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 214415
     },
     "pekin": {
       "city": "Pekín",
       "country": "China",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Corner_Tower_of_the_Forbidden_City%2C_Beijing.jpg/1920px-Corner_Tower_of_the_Forbidden_City%2C_Beijing.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/Beijing_Financial_Street_from_Fuchengmen_%2820200821145313%29.jpg/1920px-Beijing_Financial_Street_from_Fuchengmen_%2820200821145313%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/pekin-0.jpg",
+      "secondary": "/city-media/pekin-1.jpg",
       "primaryTitle": "File:Corner Tower of the Forbidden City, Beijing.jpg",
-      "secondaryTitle": "File:Beijing Financial Street from Fuchengmen (20200821145313).jpg"
+      "secondaryTitle": "File:Beijing Financial Street from Fuchengmen (20200821145313).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Corner_Tower_of_the_Forbidden_City%2C_Beijing.jpg/1920px-Corner_Tower_of_the_Forbidden_City%2C_Beijing.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 253654,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/Beijing_Financial_Street_from_Fuchengmen_%2820200821145313%29.jpg/1920px-Beijing_Financial_Street_from_Fuchengmen_%2820200821145313%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 216957
     },
     "perth": {
       "city": "Perth",
       "country": "Australia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/Beach_sunset_Perth.jpg/1920px-Beach_sunset_Perth.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Cottesloe_Beach%2C_Perth%2C_Western_Australia_%284431664542%29.jpg/1920px-Cottesloe_Beach%2C_Perth%2C_Western_Australia_%284431664542%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/perth-0.jpg",
+      "secondary": "/city-media/perth-1.jpg",
       "primaryTitle": "File:Beach sunset Perth.jpg",
-      "secondaryTitle": "File:Cottesloe Beach, Perth, Western Australia (4431664542).jpg"
+      "secondaryTitle": "File:Cottesloe Beach, Perth, Western Australia (4431664542).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/Beach_sunset_Perth.jpg/1920px-Beach_sunset_Perth.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 173958,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Cottesloe_Beach%2C_Perth%2C_Western_Australia_%284431664542%29.jpg/1920px-Cottesloe_Beach%2C_Perth%2C_Western_Australia_%284431664542%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 185607
     },
     "playa-del-carmen": {
       "city": "Playa del Carmen",
       "country": "México",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/PalmTreesWhiteSandPlayadelCarmen.jpg/1920px-PalmTreesWhiteSandPlayadelCarmen.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2e/Quinta_Avenida_%282026%29.jpg/1920px-Quinta_Avenida_%282026%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/playa-del-carmen-0.jpg",
+      "secondary": "/city-media/playa-del-carmen-1.jpg",
       "primaryTitle": "File:PalmTreesWhiteSandPlayadelCarmen.jpg",
-      "secondaryTitle": "File:Quinta Avenida (2026).jpg"
+      "secondaryTitle": "File:Quinta Avenida (2026).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/PalmTreesWhiteSandPlayadelCarmen.jpg/1920px-PalmTreesWhiteSandPlayadelCarmen.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 284848,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2e/Quinta_Avenida_%282026%29.jpg/1920px-Quinta_Avenida_%282026%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 238980
     },
     "praga": {
       "city": "Praga",
       "country": "República Checa",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Night_view_of_the_Castle_and_Charles_Bridge%2C_Prague_-_8034.jpg/1920px-Night_view_of_the_Castle_and_Charles_Bridge%2C_Prague_-_8034.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Prague_07-2016_View_from_Old_Town_Hall_Tower_img3.jpg/1920px-Prague_07-2016_View_from_Old_Town_Hall_Tower_img3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/praga-0.jpg",
+      "secondary": "/city-media/praga-1.jpg",
       "primaryTitle": "File:Night view of the Castle and Charles Bridge, Prague - 8034.jpg",
-      "secondaryTitle": "File:Prague 07-2016 View from Old Town Hall Tower img3.jpg"
+      "secondaryTitle": "File:Prague 07-2016 View from Old Town Hall Tower img3.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Night_view_of_the_Castle_and_Charles_Bridge%2C_Prague_-_8034.jpg/1920px-Night_view_of_the_Castle_and_Charles_Bridge%2C_Prague_-_8034.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 343060,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Prague_07-2016_View_from_Old_Town_Hall_Tower_img3.jpg/1920px-Prague_07-2016_View_from_Old_Town_Hall_Tower_img3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 232873
     },
     "riga": {
       "city": "Riga",
       "country": "Letonia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Riga_Castle_seen_across_the_river_Daugava_.jpg/1920px-Riga_Castle_seen_across_the_river_Daugava_.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Plaza_del_Ayuntamiento%2C_Riga%2C_Letonia%2C_2012-08-07%2C_DD_10.JPG/1920px-Plaza_del_Ayuntamiento%2C_Riga%2C_Letonia%2C_2012-08-07%2C_DD_10.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/riga-0.jpg",
+      "secondary": "/city-media/riga-1.jpg",
       "primaryTitle": "File:Riga Castle seen across the river Daugava .jpg",
-      "secondaryTitle": "File:Plaza del Ayuntamiento, Riga, Letonia, 2012-08-07, DD 10.JPG"
+      "secondaryTitle": "File:Plaza del Ayuntamiento, Riga, Letonia, 2012-08-07, DD 10.JPG",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Riga_Castle_seen_across_the_river_Daugava_.jpg/1920px-Riga_Castle_seen_across_the_river_Daugava_.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 244782,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Plaza_del_Ayuntamiento%2C_Riga%2C_Letonia%2C_2012-08-07%2C_DD_10.JPG/1920px-Plaza_del_Ayuntamiento%2C_Riga%2C_Letonia%2C_2012-08-07%2C_DD_10.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 249545
     },
     "rio-de-janeiro": {
       "city": "Río de Janeiro",
       "country": "Brasil",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ee/Centro._Rio_de_Janeiro%2C_Brazil_%2833%29.jpg/1920px-Centro._Rio_de_Janeiro%2C_Brazil_%2833%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Aeroporto_do_Rio_de_Janeiro_RJ_Santos_Dumont_2.jpg/1920px-Aeroporto_do_Rio_de_Janeiro_RJ_Santos_Dumont_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/rio-de-janeiro-0.jpg",
+      "secondary": "/city-media/rio-de-janeiro-1.jpg",
       "primaryTitle": "File:Centro. Rio de Janeiro, Brazil (33).jpg",
-      "secondaryTitle": "File:Aeroporto do Rio de Janeiro RJ Santos Dumont 2.jpg"
+      "secondaryTitle": "File:Aeroporto do Rio de Janeiro RJ Santos Dumont 2.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ee/Centro._Rio_de_Janeiro%2C_Brazil_%2833%29.jpg/1920px-Centro._Rio_de_Janeiro%2C_Brazil_%2833%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 363579,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Aeroporto_do_Rio_de_Janeiro_RJ_Santos_Dumont_2.jpg/1920px-Aeroporto_do_Rio_de_Janeiro_RJ_Santos_Dumont_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 204414
     },
     "roma": {
       "city": "Roma",
       "country": "Italia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Trevi_Fountain%2C_Rome%2C_Italy_2_-_May_2007.jpg/1920px-Trevi_Fountain%2C_Rome%2C_Italy_2_-_May_2007.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Colosseum_in_Rome-April_2007-1-_copie_2B.jpg/1920px-Colosseum_in_Rome-April_2007-1-_copie_2B.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/roma-0.jpg",
+      "secondary": "/city-media/roma-1.jpg",
       "primaryTitle": "Trevi_Fountain,_Rome,_Italy_2_-_May_2007.jpg",
-      "secondaryTitle": "File:Colosseum in Rome-April 2007-1- copie 2B.jpg"
+      "secondaryTitle": "File:Colosseum in Rome-April 2007-1- copie 2B.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Trevi_Fountain%2C_Rome%2C_Italy_2_-_May_2007.jpg/1920px-Trevi_Fountain%2C_Rome%2C_Italy_2_-_May_2007.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 395114,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Colosseum_in_Rome-April_2007-1-_copie_2B.jpg/1920px-Colosseum_in_Rome-April_2007-1-_copie_2B.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 152382
     },
     "san-francisco": {
       "city": "San Francisco",
       "country": "Estados Unidos",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Painted_Ladies_San_Francisco_January_2013_panorama_2.jpg/1920px-Painted_Ladies_San_Francisco_January_2013_panorama_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Golden_Gate_Theatre_-_San_Francisco%2C_CA_-_DSC06532_%28cropped%29.jpg/1920px-Golden_Gate_Theatre_-_San_Francisco%2C_CA_-_DSC06532_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/san-francisco-0.jpg",
+      "secondary": "/city-media/san-francisco-1.jpg",
       "primaryTitle": "File:Painted Ladies San Francisco January 2013 panorama 2.jpg",
-      "secondaryTitle": "File:Golden Gate Theatre - San Francisco, CA - DSC06532 (cropped).jpg"
+      "secondaryTitle": "File:Golden Gate Theatre - San Francisco, CA - DSC06532 (cropped).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Painted_Ladies_San_Francisco_January_2013_panorama_2.jpg/1920px-Painted_Ladies_San_Francisco_January_2013_panorama_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 210312,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Golden_Gate_Theatre_-_San_Francisco%2C_CA_-_DSC06532_%28cropped%29.jpg/1920px-Golden_Gate_Theatre_-_San_Francisco%2C_CA_-_DSC06532_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 224833
     },
     "santiago": {
       "city": "Santiago",
       "country": "Chile",
-      "primary": "https://upload.wikimedia.org/wikipedia/commons/0/04/Chile_Costanera_Norte_crossing_downtown_Santiago.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Metropolitan_Cathedral_of_Santiago.jpg/1920px-Metropolitan_Cathedral_of_Santiago.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/santiago-0.jpg",
+      "secondary": "/city-media/santiago-1.jpg",
       "primaryTitle": "File:Chile Costanera Norte crossing downtown Santiago.JPG",
-      "secondaryTitle": "File:Metropolitan Cathedral of Santiago.jpg"
+      "secondaryTitle": "File:Metropolitan Cathedral of Santiago.jpg",
+      "primarySource": "https://upload.wikimedia.org/wikipedia/commons/0/04/Chile_Costanera_Norte_crossing_downtown_Santiago.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primaryBytes": 309145,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Metropolitan_Cathedral_of_Santiago.jpg/1920px-Metropolitan_Cathedral_of_Santiago.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 204360
     },
     "seattle": {
       "city": "Seattle",
       "country": "Estados Unidos",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Seattle_I-5_skyline_dllu.jpg/1920px-Seattle_I-5_skyline_dllu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/Seattle_Downtown_Aerial%2C_July_2025_%28zoomed_and_perspective_corrected%29.jpg/1920px-Seattle_Downtown_Aerial%2C_July_2025_%28zoomed_and_perspective_corrected%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/seattle-0.jpg",
+      "secondary": "/city-media/seattle-1.jpg",
       "primaryTitle": "File:Seattle I-5 skyline dllu.jpg",
-      "secondaryTitle": "File:Seattle Downtown Aerial, July 2025 (zoomed and perspective corrected).jpg"
+      "secondaryTitle": "File:Seattle Downtown Aerial, July 2025 (zoomed and perspective corrected).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Seattle_I-5_skyline_dllu.jpg/1920px-Seattle_I-5_skyline_dllu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 288613,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/Seattle_Downtown_Aerial%2C_July_2025_%28zoomed_and_perspective_corrected%29.jpg/1920px-Seattle_Downtown_Aerial%2C_July_2025_%28zoomed_and_perspective_corrected%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 175366
     },
     "seul": {
       "city": "Seúl",
       "country": "Corea del Sur",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/National_Museum_of_Korea%2C_Seoul_%282%29_%2840236586235%29.jpg/1920px-National_Museum_of_Korea%2C_Seoul_%282%29_%2840236586235%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Seoul_City_Hall_from_Plaza.jpg/1920px-Seoul_City_Hall_from_Plaza.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/seul-0.jpg",
+      "secondary": "/city-media/seul-1.jpg",
       "primaryTitle": "File:National Museum of Korea, Seoul (2) (40236586235).jpg",
-      "secondaryTitle": "File:Seoul City Hall from Plaza.jpg"
+      "secondaryTitle": "File:Seoul City Hall from Plaza.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/National_Museum_of_Korea%2C_Seoul_%282%29_%2840236586235%29.jpg/1920px-National_Museum_of_Korea%2C_Seoul_%282%29_%2840236586235%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 229069,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Seoul_City_Hall_from_Plaza.jpg/1920px-Seoul_City_Hall_from_Plaza.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 190449
     },
     "sevilla": {
       "city": "Sevilla",
       "country": "España",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4a/Gold_Tower_Guadalquivir_Seville_Tower_Arabic.jpg/1920px-Gold_Tower_Guadalquivir_Seville_Tower_Arabic.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/H%C3%B4tel_Ville_-_S%C3%A9ville_%28ES61%29_-_2023-04-24_-_14.jpg/1920px-H%C3%B4tel_Ville_-_S%C3%A9ville_%28ES61%29_-_2023-04-24_-_14.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/sevilla-0.jpg",
+      "secondary": "/city-media/sevilla-1.jpg",
       "primaryTitle": "File:Gold Tower Guadalquivir Seville Tower Arabic.jpg",
-      "secondaryTitle": "File:Hôtel Ville - Séville (ES61) - 2023-04-24 - 14.jpg"
+      "secondaryTitle": "File:Hôtel Ville - Séville (ES61) - 2023-04-24 - 14.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4a/Gold_Tower_Guadalquivir_Seville_Tower_Arabic.jpg/1920px-Gold_Tower_Guadalquivir_Seville_Tower_Arabic.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 362174,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/H%C3%B4tel_Ville_-_S%C3%A9ville_%28ES61%29_-_2023-04-24_-_14.jpg/1920px-H%C3%B4tel_Ville_-_S%C3%A9ville_%28ES61%29_-_2023-04-24_-_14.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 242070
     },
     "shanghai": {
       "city": "Shanghái",
       "country": "China",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Blue_hour_view_of_the_Bund_from_the_Shanghai_World_Financial_Center_dllu.jpg/1920px-Blue_hour_view_of_the_Bund_from_the_Shanghai_World_Financial_Center_dllu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Huangpu_Park_20124-Shanghai_%2832208802494%29.jpg/1920px-Huangpu_Park_20124-Shanghai_%2832208802494%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primary": "/city-media/shanghai-0.jpg",
+      "secondary": "/city-media/shanghai-1.jpg",
       "primaryTitle": "File:Blue hour view of the Bund from the Shanghai World Financial Center dllu.jpg",
-      "secondaryTitle": "Huangpu_Park_20124-Shanghai_(32208802494).jpg"
+      "secondaryTitle": "Huangpu_Park_20124-Shanghai_(32208802494).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Blue_hour_view_of_the_Bund_from_the_Shanghai_World_Financial_Center_dllu.jpg/1920px-Blue_hour_view_of_the_Bund_from_the_Shanghai_World_Financial_Center_dllu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 328098,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Huangpu_Park_20124-Shanghai_%2832208802494%29.jpg/1920px-Huangpu_Park_20124-Shanghai_%2832208802494%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "secondaryBytes": 177932
     },
     "shenzhen": {
       "city": "Shenzhen",
       "country": "China",
-      "primary": "https://upload.wikimedia.org/wikipedia/commons/5/5e/Shenzhen_Bay_Bridge_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-      "secondary": "https://upload.wikimedia.org/wikipedia/commons/8/81/Civic_Center%2C_Shenzhen_Lianhuashan_Park.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primary": "/city-media/shenzhen-0.jpg",
+      "secondary": "/city-media/shenzhen-1.jpg",
       "primaryTitle": "File:Shenzhen Bay Bridge 2.jpg",
-      "secondaryTitle": "File:Civic Center, Shenzhen Lianhuashan Park.JPG"
+      "secondaryTitle": "File:Civic Center, Shenzhen Lianhuashan Park.JPG",
+      "primarySource": "https://upload.wikimedia.org/wikipedia/commons/5/5e/Shenzhen_Bay_Bridge_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primaryBytes": 114468,
+      "secondarySource": "https://upload.wikimedia.org/wikipedia/commons/8/81/Civic_Center%2C_Shenzhen_Lianhuashan_Park.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "secondaryBytes": 200261
     },
     "sidney": {
       "city": "Sídney",
       "country": "Australia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/Sydney_Opera_House_and_Harbour_Bridge_Dusk_%282%29_2019-06-21.jpg/1920px-Sydney_Opera_House_and_Harbour_Bridge_Dusk_%282%29_2019-06-21.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/Aerial_View_Chatswood_to_Sydney_CBD.jpg/1920px-Aerial_View_Chatswood_to_Sydney_CBD.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/sidney-0.jpg",
+      "secondary": "/city-media/sidney-1.jpg",
       "primaryTitle": "Sydney_Opera_House_and_Harbour_Bridge_Dusk_(2)_2019-06-21.jpg",
-      "secondaryTitle": "File:Aerial View Chatswood to Sydney CBD.jpg"
+      "secondaryTitle": "File:Aerial View Chatswood to Sydney CBD.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/Sydney_Opera_House_and_Harbour_Bridge_Dusk_%282%29_2019-06-21.jpg/1920px-Sydney_Opera_House_and_Harbour_Bridge_Dusk_%282%29_2019-06-21.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 155181,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/Aerial_View_Chatswood_to_Sydney_CBD.jpg/1920px-Aerial_View_Chatswood_to_Sydney_CBD.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 281259
     },
     "singapur": {
       "city": "Singapur",
       "country": "Singapur",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Singapore_Former-Hill-Street-Police-Station-02.jpg/1920px-Singapore_Former-Hill-Street-Police-Station-02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4b/Satay_Street_Lau_Pa_Sat_Singapore.jpg/1920px-Satay_Street_Lau_Pa_Sat_Singapore.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/singapur-0.jpg",
+      "secondary": "/city-media/singapur-1.jpg",
       "primaryTitle": "File:Singapore Former-Hill-Street-Police-Station-02.jpg",
-      "secondaryTitle": "File:Satay Street Lau Pa Sat Singapore.jpg"
+      "secondaryTitle": "File:Satay Street Lau Pa Sat Singapore.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Singapore_Former-Hill-Street-Police-Station-02.jpg/1920px-Singapore_Former-Hill-Street-Police-Station-02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 240212,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4b/Satay_Street_Lau_Pa_Sat_Singapore.jpg/1920px-Satay_Street_Lau_Pa_Sat_Singapore.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 202429
     },
     "sofia": {
       "city": "Sofía",
       "country": "Bulgaria",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Panoramic_view_over_central_Sofia_and_the_Vitosha_Mountain_2017-10-08.jpg/1920px-Panoramic_view_over_central_Sofia_and_the_Vitosha_Mountain_2017-10-08.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Royal_Palace_Sofia.jpg/1920px-Royal_Palace_Sofia.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/sofia-0.jpg",
+      "secondary": "/city-media/sofia-1.jpg",
       "primaryTitle": "Panoramic_view_over_central_Sofia_and_the_Vitosha_Mountain_2017-10-08.jpg",
-      "secondaryTitle": "File:Royal Palace Sofia.jpg"
+      "secondaryTitle": "File:Royal Palace Sofia.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Panoramic_view_over_central_Sofia_and_the_Vitosha_Mountain_2017-10-08.jpg/1920px-Panoramic_view_over_central_Sofia_and_the_Vitosha_Mountain_2017-10-08.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 553452,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Royal_Palace_Sofia.jpg/1920px-Royal_Palace_Sofia.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 144790
     },
     "split": {
       "city": "Split",
       "country": "Croacia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Split_Cathedral_Bell_Tower_From_The_Vestibule_-_Split.jpg/1920px-Split_Cathedral_Bell_Tower_From_The_Vestibule_-_Split.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Ferry_Port_of_Split%2C_Croatia_%2848693924822%29.jpg/1920px-Ferry_Port_of_Split%2C_Croatia_%2848693924822%29.jpg?utm_source=es.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primary": "/city-media/split-0.jpg",
+      "secondary": "/city-media/split-1.jpg",
       "primaryTitle": "File:Split Cathedral Bell Tower From The Vestibule - Split.jpg",
-      "secondaryTitle": "Ferry_Port_of_Split,_Croatia_(48693924822).jpg"
+      "secondaryTitle": "Ferry_Port_of_Split,_Croatia_(48693924822).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Split_Cathedral_Bell_Tower_From_The_Vestibule_-_Split.jpg/1920px-Split_Cathedral_Bell_Tower_From_The_Vestibule_-_Split.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 324312,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Ferry_Port_of_Split%2C_Croatia_%2848693924822%29.jpg/1920px-Ferry_Port_of_Split%2C_Croatia_%2848693924822%29.jpg?utm_source=es.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "secondaryBytes": 121940
     },
     "suva": {
       "city": "Suva",
       "country": "Fiyi",
-      "primary": "https://upload.wikimedia.org/wikipedia/commons/9/91/Southern_Waterfront%2C_Suva.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Clock_Tower_Suva_MatthiasSuessen-8428.jpg/1920px-Clock_Tower_Suva_MatthiasSuessen-8428.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/suva-0.jpg",
+      "secondary": "/city-media/suva-1.jpg",
       "primaryTitle": "File:Southern Waterfront, Suva.jpg",
-      "secondaryTitle": "File:Clock Tower Suva MatthiasSuessen-8428.jpg"
+      "secondaryTitle": "File:Clock Tower Suva MatthiasSuessen-8428.jpg",
+      "primarySource": "https://upload.wikimedia.org/wikipedia/commons/9/91/Southern_Waterfront%2C_Suva.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primaryBytes": 208542,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Clock_Tower_Suva_MatthiasSuessen-8428.jpg/1920px-Clock_Tower_Suva_MatthiasSuessen-8428.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 305452
     },
     "taipei": {
       "city": "Taipéi",
       "country": "Taiwán",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ea/Taipei_Skyline_2022.06.29.jpg/1920px-Taipei_Skyline_2022.06.29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Taipei_228_Memorial_Museum_face_20070928.jpg/1920px-Taipei_228_Memorial_Museum_face_20070928.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/taipei-0.jpg",
+      "secondary": "/city-media/taipei-1.jpg",
       "primaryTitle": "Taipei_Skyline_2022.06.29.jpg",
-      "secondaryTitle": "File:Taipei 228 Memorial Museum face 20070928.jpg"
+      "secondaryTitle": "File:Taipei 228 Memorial Museum face 20070928.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ea/Taipei_Skyline_2022.06.29.jpg/1920px-Taipei_Skyline_2022.06.29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 344364,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Taipei_228_Memorial_Museum_face_20070928.jpg/1920px-Taipei_228_Memorial_Museum_face_20070928.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 224500
     },
     "tallin": {
       "city": "Tallin",
       "country": "Estonia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/Old_Town_of_Tallinn%2C_Tallinn%2C_Estonia_-_panoramio_%2858_cropped%29.jpg/1920px-Old_Town_of_Tallinn%2C_Tallinn%2C_Estonia_-_panoramio_%2858_cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Plaza_de_la_Torre%2C_Tallinn%2C_Estonia%2C_2012-08-05%2C_DD_02.JPG/1920px-Plaza_de_la_Torre%2C_Tallinn%2C_Estonia%2C_2012-08-05%2C_DD_02.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/tallin-0.jpg",
+      "secondary": "/city-media/tallin-1.jpg",
       "primaryTitle": "File:Old Town of Tallinn, Tallinn, Estonia - panoramio (58 cropped).jpg",
-      "secondaryTitle": "File:Plaza de la Torre, Tallinn, Estonia, 2012-08-05, DD 02.JPG"
+      "secondaryTitle": "File:Plaza de la Torre, Tallinn, Estonia, 2012-08-05, DD 02.JPG",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/Old_Town_of_Tallinn%2C_Tallinn%2C_Estonia_-_panoramio_%2858_cropped%29.jpg/1920px-Old_Town_of_Tallinn%2C_Tallinn%2C_Estonia_-_panoramio_%2858_cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 235745,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Plaza_de_la_Torre%2C_Tallinn%2C_Estonia%2C_2012-08-05%2C_DD_02.JPG/1920px-Plaza_de_la_Torre%2C_Tallinn%2C_Estonia%2C_2012-08-05%2C_DD_02.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 242781
     },
     "tiflis": {
       "city": "Tiflis",
       "country": "Georgia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/View_of_Tbilisi_from_Tabori_Church_2023-10-08-2.jpg/1920px-View_of_Tbilisi_from_Tabori_Church_2023-10-08-2.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Alexander_Nevsky_Cathedral%2C_Tbilisi_%28%E1%83%A2%E1%83%A4%E1%83%98%E1%83%9A%E1%83%98%E1%83%A1%E1%83%98%E1%83%A1_%E1%83%A1%E1%83%90%E1%83%9B%E1%83%AE%E1%83%94%E1%83%93%E1%83%A0%E1%83%9D_%E1%83%A2%E1%83%90%E1%83%AB%E1%83%90%E1%83%A0%E1%83%98%29.jpg/1920px-Alexander_Nevsky_Cathedral%2C_Tbilisi_%28%E1%83%A2%E1%83%A4%E1%83%98%E1%83%9A%E1%83%98%E1%83%A1%E1%83%98%E1%83%A1_%E1%83%A1%E1%83%90%E1%83%9B%E1%83%AE%E1%83%94%E1%83%93%E1%83%A0%E1%83%9D_%E1%83%A2%E1%83%90%E1%83%AB%E1%83%90%E1%83%A0%E1%83%98%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/tiflis-0.jpg",
+      "secondary": "/city-media/tiflis-1.jpg",
       "primaryTitle": "View_of_Tbilisi_from_Tabori_Church_2023-10-08-2.jpg",
-      "secondaryTitle": "File:Alexander Nevsky Cathedral, Tbilisi (ტფილისის სამხედრო ტაძარი).jpg"
+      "secondaryTitle": "File:Alexander Nevsky Cathedral, Tbilisi (ტფილისის სამხედრო ტაძარი).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/View_of_Tbilisi_from_Tabori_Church_2023-10-08-2.jpg/1920px-View_of_Tbilisi_from_Tabori_Church_2023-10-08-2.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 384031,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Alexander_Nevsky_Cathedral%2C_Tbilisi_%28%E1%83%A2%E1%83%A4%E1%83%98%E1%83%9A%E1%83%98%E1%83%A1%E1%83%98%E1%83%A1_%E1%83%A1%E1%83%90%E1%83%9B%E1%83%AE%E1%83%94%E1%83%93%E1%83%A0%E1%83%9D_%E1%83%A2%E1%83%90%E1%83%AB%E1%83%90%E1%83%A0%E1%83%98%29.jpg/1920px-Alexander_Nevsky_Cathedral%2C_Tbilisi_%28%E1%83%A2%E1%83%A4%E1%83%98%E1%83%9A%E1%83%98%E1%83%A1%E1%83%98%E1%83%A1_%E1%83%A1%E1%83%90%E1%83%9B%E1%83%AE%E1%83%94%E1%83%93%E1%83%A0%E1%83%9D_%E1%83%A2%E1%83%90%E1%83%AB%E1%83%90%E1%83%A0%E1%83%98%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 114894
     },
     "tirana": {
       "city": "Tirana",
       "country": "Albania",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/Tirana_panorama_2016.jpg/1920px-Tirana_panorama_2016.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/Skanderbeg_square_tirana_2016.jpg/1920px-Skanderbeg_square_tirana_2016.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primary": "/city-media/tirana-0.jpg",
+      "secondary": "/city-media/tirana-1.jpg",
       "primaryTitle": "File:Tirana panorama 2016.jpg",
-      "secondaryTitle": "Skanderbeg_square_tirana_2016.jpg"
+      "secondaryTitle": "Skanderbeg_square_tirana_2016.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/Tirana_panorama_2016.jpg/1920px-Tirana_panorama_2016.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 173826,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/Skanderbeg_square_tirana_2016.jpg/1920px-Skanderbeg_square_tirana_2016.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "secondaryBytes": 163440
     },
     "tokio": {
       "city": "Tokio",
       "country": "Japón",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/2019-09-05_Rainbow_bridge%2C_view_from_Daibo_park%2C_Tokyo.jpg/1920px-2019-09-05_Rainbow_bridge%2C_view_from_Daibo_park%2C_Tokyo.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/2018_National_Art_Center%2C_Tokyo_2.jpg/1920px-2018_National_Art_Center%2C_Tokyo_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/tokio-0.jpg",
+      "secondary": "/city-media/tokio-1.jpg",
       "primaryTitle": "File:2019-09-05 Rainbow bridge, view from Daibo park, Tokyo.jpg",
-      "secondaryTitle": "File:2018 National Art Center, Tokyo 2.jpg"
+      "secondaryTitle": "File:2018 National Art Center, Tokyo 2.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/2019-09-05_Rainbow_bridge%2C_view_from_Daibo_park%2C_Tokyo.jpg/1920px-2019-09-05_Rainbow_bridge%2C_view_from_Daibo_park%2C_Tokyo.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 221013,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/2018_National_Art_Center%2C_Tokyo_2.jpg/1920px-2018_National_Art_Center%2C_Tokyo_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 207726
     },
     "toronto": {
       "city": "Toronto",
       "country": "Canadá",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ea/Rouge_National_Urban_Park-_the_Mouth_of_the_Rouge_River-Toronto-Ontario.jpg/1920px-Rouge_National_Urban_Park-_the_Mouth_of_the_Rouge_River-Toronto-Ontario.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Toronto_-_ON_-_Humber_Bay_und_Humber_Bay_Arch_Bridge.jpg/1920px-Toronto_-_ON_-_Humber_Bay_und_Humber_Bay_Arch_Bridge.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/toronto-0.jpg",
+      "secondary": "/city-media/toronto-1.jpg",
       "primaryTitle": "File:Rouge National Urban Park- the Mouth of the Rouge River-Toronto-Ontario.jpg",
-      "secondaryTitle": "File:Toronto - ON - Humber Bay und Humber Bay Arch Bridge.jpg"
+      "secondaryTitle": "File:Toronto - ON - Humber Bay und Humber Bay Arch Bridge.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ea/Rouge_National_Urban_Park-_the_Mouth_of_the_Rouge_River-Toronto-Ontario.jpg/1920px-Rouge_National_Urban_Park-_the_Mouth_of_the_Rouge_River-Toronto-Ontario.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 343885,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Toronto_-_ON_-_Humber_Bay_und_Humber_Bay_Arch_Bridge.jpg/1920px-Toronto_-_ON_-_Humber_Bay_und_Humber_Bay_Arch_Bridge.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 159681
     },
     "valencia": {
       "city": "Valencia",
       "country": "España",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/Malvarrosa_Beach%2C_Valencia%2C_Spain_%2829812271043%29.jpg/1920px-Malvarrosa_Beach%2C_Valencia%2C_Spain_%2829812271043%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Carrer_de_la_Pau%2C_sign_of_street_in_Valencia.jpg/1920px-Carrer_de_la_Pau%2C_sign_of_street_in_Valencia.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/valencia-0.jpg",
+      "secondary": "/city-media/valencia-1.jpg",
       "primaryTitle": "Malvarrosa_Beach,_Valencia,_Spain_(29812271043).jpg",
-      "secondaryTitle": "File:Carrer de la Pau, sign of street in Valencia.jpg"
+      "secondaryTitle": "File:Carrer de la Pau, sign of street in Valencia.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/Malvarrosa_Beach%2C_Valencia%2C_Spain_%2829812271043%29.jpg/1920px-Malvarrosa_Beach%2C_Valencia%2C_Spain_%2829812271043%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "primaryBytes": 245926,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Carrer_de_la_Pau%2C_sign_of_street_in_Valencia.jpg/1920px-Carrer_de_la_Pau%2C_sign_of_street_in_Valencia.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 106646
     },
     "vancouver": {
       "city": "Vancouver",
       "country": "Canadá",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/3rd_Beach%2C_Vancouver%2C_BC_-_panoramio.jpg/1920px-3rd_Beach%2C_Vancouver%2C_BC_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Waterfront_station_Vancouver_%2842914420220%29.jpg/1920px-Waterfront_station_Vancouver_%2842914420220%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/vancouver-0.jpg",
+      "secondary": "/city-media/vancouver-1.jpg",
       "primaryTitle": "File:3rd Beach, Vancouver, BC - panoramio.jpg",
-      "secondaryTitle": "File:Waterfront station Vancouver (42914420220).jpg"
+      "secondaryTitle": "File:Waterfront station Vancouver (42914420220).jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/3rd_Beach%2C_Vancouver%2C_BC_-_panoramio.jpg/1920px-3rd_Beach%2C_Vancouver%2C_BC_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 320223,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Waterfront_station_Vancouver_%2842914420220%29.jpg/1920px-Waterfront_station_Vancouver_%2842914420220%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 236860
     },
     "varsovia": {
       "city": "Varsovia",
       "country": "Polonia",
-      "primary": "https://upload.wikimedia.org/wikipedia/commons/3/35/Aleja_Niepdleglosci_Warsaw_2022_aerial_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
-      "secondary": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Palace_on_the_Water%2C_%C5%81azienki_Park%2C_Warsaw.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primary": "/city-media/varsovia-0.jpg",
+      "secondary": "/city-media/varsovia-1.jpg",
       "primaryTitle": "Aleja_Niepdleglosci_Warsaw_2022_aerial_(cropped).jpg",
-      "secondaryTitle": "File:Palace on the Water, Łazienki Park, Warsaw.jpg"
+      "secondaryTitle": "File:Palace on the Water, Łazienki Park, Warsaw.jpg",
+      "primarySource": "https://upload.wikimedia.org/wikipedia/commons/3/35/Aleja_Niepdleglosci_Warsaw_2022_aerial_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+      "primaryBytes": 249544,
+      "secondarySource": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Palace_on_the_Water%2C_%C5%81azienki_Park%2C_Warsaw.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "secondaryBytes": 304140
     },
     "viena": {
       "city": "Viena",
       "country": "Austria",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Vienna_-_View_of_Maria_Theresien-Platz_and_the_Kunsthistorisches_Museum_-_6291.jpg/1920px-Vienna_-_View_of_Maria_Theresien-Platz_and_the_Kunsthistorisches_Museum_-_6291.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/eb/Vienna_-_Johann_Strauss_Monument_in_Stadt_Park_-_4572.jpg/1920px-Vienna_-_Johann_Strauss_Monument_in_Stadt_Park_-_4572.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/viena-0.jpg",
+      "secondary": "/city-media/viena-1.jpg",
       "primaryTitle": "File:Vienna - View of Maria Theresien-Platz and the Kunsthistorisches Museum - 6291.jpg",
-      "secondaryTitle": "File:Vienna - Johann Strauss Monument in Stadt Park - 4572.jpg"
+      "secondaryTitle": "File:Vienna - Johann Strauss Monument in Stadt Park - 4572.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Vienna_-_View_of_Maria_Theresien-Platz_and_the_Kunsthistorisches_Museum_-_6291.jpg/1920px-Vienna_-_View_of_Maria_Theresien-Platz_and_the_Kunsthistorisches_Museum_-_6291.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 351197,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/eb/Vienna_-_Johann_Strauss_Monument_in_Stadt_Park_-_4572.jpg/1920px-Vienna_-_Johann_Strauss_Monument_in_Stadt_Park_-_4572.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 141668
     },
     "wellington": {
       "city": "Wellington",
       "country": "Nueva Zelanda",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/View_of_Wellington_from_Mt_Victoria_%2810%29.jpg/1920px-View_of_Wellington_from_Mt_Victoria_%2810%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Historic_Wellington_Buildings.jpg/1920px-Historic_Wellington_Buildings.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/wellington-0.jpg",
+      "secondary": "/city-media/wellington-1.jpg",
       "primaryTitle": "File:View of Wellington from Mt Victoria (10).jpg",
-      "secondaryTitle": "File:Historic Wellington Buildings.jpg"
+      "secondaryTitle": "File:Historic Wellington Buildings.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/View_of_Wellington_from_Mt_Victoria_%2810%29.jpg/1920px-View_of_Wellington_from_Mt_Victoria_%2810%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 392422,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Historic_Wellington_Buildings.jpg/1920px-Historic_Wellington_Buildings.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 202080
     },
     "yakarta": {
       "city": "Yakarta",
       "country": "Indonesia",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Batavia_City_Hall_%28Jakarta_History_Museum%29_Fatahillah_Square_%282025%29_-_img_03.jpg/1920px-Batavia_City_Hall_%28Jakarta_History_Museum%29_Fatahillah_Square_%282025%29_-_img_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Balaikota_DKI_Jakarta.jpg/1920px-Balaikota_DKI_Jakarta.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primary": "/city-media/yakarta-0.jpg",
+      "secondary": "/city-media/yakarta-1.jpg",
       "primaryTitle": "File:Batavia City Hall (Jakarta History Museum) Fatahillah Square (2025) - img 03.jpg",
-      "secondaryTitle": "File:Balaikota DKI Jakarta.jpg"
+      "secondaryTitle": "File:Balaikota DKI Jakarta.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Batavia_City_Hall_%28Jakarta_History_Museum%29_Fatahillah_Square_%282025%29_-_img_03.jpg/1920px-Batavia_City_Hall_%28Jakarta_History_Museum%29_Fatahillah_Square_%282025%29_-_img_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 235013,
+      "secondarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Balaikota_DKI_Jakarta.jpg/1920px-Balaikota_DKI_Jakarta.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "secondaryBytes": 181581
     },
     "zanzibar": {
       "city": "Zanzíbar",
       "country": "Tanzania",
-      "primary": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Front_view_of_the_palace_now_known_as_a_museum.jpg/1920px-Front_view_of_the_palace_now_known_as_a_museum.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "secondary": "https://upload.wikimedia.org/wikipedia/commons/b/b1/Christ_Church_Stone_Town_Zanzibar.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "primary": "/city-media/zanzibar-0.jpg",
+      "secondary": "/city-media/zanzibar-1.jpg",
       "primaryTitle": "File:Front view of the palace now known as a museum.jpg",
-      "secondaryTitle": "File:Christ Church Stone Town Zanzibar.jpg"
+      "secondaryTitle": "File:Christ Church Stone Town Zanzibar.jpg",
+      "primarySource": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Front_view_of_the_palace_now_known_as_a_museum.jpg/1920px-Front_view_of_the_palace_now_known_as_a_museum.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "primaryBytes": 438263,
+      "secondarySource": "https://upload.wikimedia.org/wikipedia/commons/b/b1/Christ_Church_Stone_Town_Zanzibar.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "secondaryBytes": 166569
     }
-  }
+  },
+  "bundledAt": "2026-09-12T15:07:07.728Z",
+  "delivery": "local-static"
 }
