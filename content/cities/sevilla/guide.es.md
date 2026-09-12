@@ -1,7 +1,7 @@
 ## Visado y fiscalidad
 
 - Para un ciudadano español no existe trámite de visado: instalarse en Sevilla es simplemente un cambio de residencia dentro del país.
-- A efectos de IRPF, Andalucía tiene competencia sobre el tramo autonómico del impuesto, con su propia escala de tipos y deducciones.
+- El trámite se hace en Importass (Seguridad Social) junto con el alta censal en la Agencia Tributaria (modelo 036/037).
 
 ## Sanidad y seguro médico
 
@@ -13,8 +13,7 @@
 
 - Triana: al otro lado del Guadalquivir, es el barrio con más tradición flamenca y alfarera de Sevilla, con un ambiente auténtico y muy vivo.
 - Los alquileres rondan los 700-750 € para un piso de una o dos habitaciones, y ofrece buena conexión a pie con el centro cruzando el puente de Triana.
-- Alameda de Hércules: el barrio más bohemio y alternativo de la ciudad, con gran densidad de bares, terrazas y restaurantes.
-- es una de las zonas favoritas de expats y nómadas digitales jóvenes por su vida social nocturna y su cercanía al centro y a varios coworkings.
+- Alameda de Hércules: el barrio más bohemio y alternativo de la ciudad, con gran densidad de bares, terrazas y restaurantes; es una de las zonas favoritas de expats y nómadas digitales jóvenes por su vida social nocturna y su cercanía al centro y a varios coworkings.
 
 ## Internet y datos móviles
 

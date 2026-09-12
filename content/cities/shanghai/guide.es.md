@@ -2,6 +2,7 @@
 
 - China no dispone de un visado de nómada digital.
 - solo estancias en China superiores a 183 días en un año natural (con el correspondiente visado de residencia o trabajo) podrían alterar esa residencia, algo poco habitual para un nómada digital que entra y sale cada 30 días.
+- A efectos fiscales españoles, quien pase más de 183 días al año en España sigue siendo residente fiscal allí.
 
 ## Sanidad y seguro médico
 
@@ -10,9 +11,9 @@
 
 ## Barrios y coworkings
 
-- Los barrios más recomendados para nómadas digitales en Shanghái son la antigua Concesión Francesa (French Concession), con calles arboladas, cafés y ambiente cosmopolita, y Jing'an, un distrito céntrico y bien conectado con vida nocturna y oferta gastronómica internacional.
-- Pudong, al otro lado del río, ofrece el distrito financiero y rascacielos icónicos pero resulta más aislado del ambiente de calle.
+- Los barrios más recomendados para nómadas digitales en Shanghái son la antigua Concesión Francesa (French Concession), con calles arboladas, cafés y ambiente cosmopolita, y Jing'an, un distrito céntrico y bien conectado con vida nocturna y oferta gastronómica internacional; Pudong, al otro lado del río, ofrece el distrito financiero y rascacielos icónicos pero resulta más aislado del ambiente de calle.
 - Un estudio de una habitación en el centro ronda los 950-1.000 dólares al mes, y hay coworkings como Sandbox3 o Agora Space con escritorios flexibles desde unos 150 dólares al mes.
+- El obstáculo práctico diario más relevante es el Gran Cortafuegos: Google (búsqueda, Gmail, Drive, Maps), WhatsApp, Instagram, Facebook, Twitter/X, Telegram y YouTube están bloqueados, así que herramientas cotidianas de trabajo remoto (videollamadas, calendario, comunicación con clientes) dejan de funcionar sin una VPN.
 
 ## Internet y datos móviles
 

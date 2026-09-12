@@ -7,13 +7,13 @@
 ## Health and medical insurance
 
 - Legal residents in Madrid have access to the National Health System once they have formalized their Social Security affiliation or registration, with public care with broad coverage and very low cost for the patient.
-- However, to process the teleworker visa it is mandatory to present a private medical insurance policy, contracted with an insurer authorized by the General Directorate of Insurance and Pension Funds, which covers healthcare in Spain without co-payments or deficiencies.
+- However, to process the teleworker visa it is mandatory to present a private medical insurance policy, contracted with an insurer authorized by the General Directorate of Insurance and Pension Funds, which covers healthcare in Spain without co-payments or deficiencies; Travel insurance is expressly excluded.
 
 ## Neighborhoods and coworkings
 
-- Malasaña is the reference neighborhood for young digital nomads due to its alternative atmosphere, its nightlife and its high density of cafes with Wi-Fi.
-- the rent is between €1,200 and €1,460 per month for a 50-60 m² apartment.
+- Malasaña is the reference neighborhood for young digital nomads due to its alternative atmosphere, its nightlife and its high density of cafes with Wi-Fi; The rent is between €1,200 and €1,460 per month for a 50-60 m² apartment.
 - Chueca, next door, stands out for its cosmopolitan atmosphere and similar prices.
+- Salamanca is the most elegant and expensive neighborhood, with stately architecture, around €1,165 to €1,400 for an apartment of that size.
 - Among coworking spaces, Impact Hub Madrid operates several spaces in the city, including Alameda (next to Atocha) and Barceló (next to Malasaña), with flexible positions and an active community of entrepreneurs.
 
 ## Internet and mobile data

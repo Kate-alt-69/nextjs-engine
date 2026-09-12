@@ -2,7 +2,7 @@
 
 - For a Spanish citizen, as they belong to the European Union, free movement applies.
 - For citizens from outside the European Union there is no official digital nomad visa in Poland.
-- Among the most frequent errors are choosing the wrong tax regime without professional advice, underestimating ZUS (Polish social security) contributions and assuming that the IP Box requirements are met without verifying it.
+- In tax matters, residency is acquired after 183 days of stay or when the center of vital interests is in Poland.
 
 ## Health and medical insurance
 

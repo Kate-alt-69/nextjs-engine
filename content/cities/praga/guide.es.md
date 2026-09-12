@@ -1,12 +1,12 @@
 ## Visado y fiscalidad
 
 - La República Checa no cuenta con un visado específico para nómadas digitales, por lo que existen dos vías principales.
-- Entre los errores más frecuentes están no cerrar la residencia fiscal española al activar el živno, olvidar darse de alta en la seguridad social o el seguro checos, y superar sin darse cuenta el límite de facturación del paušální daň.
+- A efectos fiscales, se es residente al superar los 183 días en el país o al tener allí la vivienda permanente.
 
 ## Sanidad y seguro médico
 
 - Entre las clínicas privadas más utilizadas por extranjeros en Praga están Canadian Medical Care (con 7 sedes y hospitalización propia), UNICARE (atención en 16 idiomas) y My Clinic.
-- en los hospitales públicos se suele exigir un depósito de entre 5.000 y 10.000 coronas checas a los extranjeros que no acrediten seguro.
+- Pagando de bolsillo, una consulta cuesta entre 22 y 35 dólares, y una urgencia entre 65 y 435 dólares; en los hospitales públicos se suele exigir un depósito de entre 5.000 y 10.000 coronas checas a los extranjeros que no acrediten seguro.
 
 ## Barrios y coworkings
 

@@ -2,7 +2,7 @@
 
 - Existen dos vías principales para instalarse legalmente en Estambul.
 - La primera es el Visado de Nómada Digital a través de GoTürkiye, que constituye una pre-aprobación y no una residencia directa: el solicitante obtiene primero el visado en el consulado turco correspondiente y, ya en Turquía, debe tramitar el İkamet Tezkeresi (permiso de residencia), que es el documento que realmente autoriza la estancia en el país.
-- Entre los errores más habituales se encuentran creer que el visado exime automáticamente del pago de impuestos al superar los 183 días de estancia, confundir el permiso de residencia con la residencia fiscal, y no actualizar el İkametgah (domicilio registrado) al cambiar de vivienda.
+- En materia fiscal, se adquiere la residencia fiscal a partir de 183 días de estancia en el país.
 
 ## Sanidad y seguro médico
 
@@ -11,9 +11,9 @@
 
 ## Barrios y coworkings
 
-- Entre los barrios más recomendados para nómadas digitales están Kadıköy y Moda, de ambiente bohemio y situados en el lado asiático de la ciudad.
-- Beşiktaş, dinámico y céntrico.
-- Nişantaşı y Şişli, sofisticados pero caros.
+- Entre los barrios más recomendados para nómadas digitales están Kadıköy y Moda, de ambiente bohemio y situados en el lado asiático de la ciudad; Beşiktaş, dinámico y céntrico; Nişantaşı y Şişli, sofisticados pero caros; Sarıyer, tranquilo, junto al bosque y de categoría premium; y Bomonti, en pleno proceso de gentrificación y con perfil creativo.
+- El alquiler de referencia se sitúa entre 974 y 979 dólares al mes en el centro, y entre 651 y 654 dólares al mes fuera del centro.
+- Se recomienda evitar zonas como Tarlabaşı, Esenler, Gaziosmanpaşa, Sultangazi, Zeytinburnu y Bağcılar.
 - En cuanto a espacios de coworking, destacan Kolektif House (en Levent, abierto 24 horas los 7 días de la semana), Impact Hub (en Kâğıthane, desde 200 liras al mes), IDEA (en Kadıköy, abierto de 9 a 23 horas, con vistas al mar), Workinton (en Nişantaşı, desde 1.425 liras al mes, abierto 24/7), e-Ofis (en Pera, desde 860 liras al mes) y DAIRE (en Beşiktaş, desde 50 liras la hora).
 
 ## Internet y datos móviles

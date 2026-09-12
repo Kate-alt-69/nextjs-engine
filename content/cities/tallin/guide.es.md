@@ -2,7 +2,7 @@
 
 - Para un ciudadano español, la libre circulación en la Unión Europea permite la entrada sin trámites.
 - Para los ciudadanos de fuera de la Unión Europea existe el Visado de Nómada Digital, pionero en Europa, que se tramita en las embajadas de Estonia o directamente ante la PBGB.
-- Entre los errores más comunes están el mal conteo de los días de estancia, confundir el ingreso bruto con el neto, operar una OÜ "sin sustancia" (lo que conlleva un alto riesgo de inspección fiscal), no presentar la declaración aunque el resultado sea de 0 euros (con sanciones de entre 400 y 3.200 euros) y no darse de alta a efectos de IVA al superar los 40.000 euros de facturación.
+- En materia fiscal, se adquiere la residencia a partir de 183 días de estancia dentro de cualquier periodo móvil de 12 meses.
 
 ## Sanidad y seguro médico
 
@@ -11,9 +11,8 @@
 
 ## Barrios y coworkings
 
-- Entre las zonas de la ciudad destacan el casco antiguo o Vanalinn, medieval y recorrible enteramente a pie.
-- el Kesklinn moderno, de perfil comercial.
-- Kalamaja, bohemio, en pleno proceso de gentrificación y favorito de los nómadas digitales.
+- Entre las zonas de la ciudad destacan el casco antiguo o Vanalinn, medieval y recorrible enteramente a pie; el Kesklinn moderno, de perfil comercial; Kalamaja, bohemio, en pleno proceso de gentrificación y favorito de los nómadas digitales; Kadriorg, verde y orientado a familias; la zona del puerto, práctica por su ubicación; y Ülemiste, junto al aeropuerto y de perfil corporativo.
+- Como referencia, una habitación en el centro cuesta unos 707 euros al mes, y fuera del centro unos 509 euros al mes, de las cifras más bajas entre las 20 ciudades comparadas.
 - En cuanto a coworkings, destacan Lift99 (el más económico, entre 120 y 160 euros al mes, orientado a startups), Spring Hub (entre 180 y 250 euros al mes), WorkHub Telliskivi (entre 180 y 250 euros al mes, en el distrito creativo de Telliskivi), Ülemiste City Business Campus (entre 270 y 350 euros al mes, abierto 24/7, con gimnasio y clínica), Tempt Coworking (entre 270 y 350 euros al mes, abierto 24/7) y Garden Hub (entre 180 y 250 euros al mes, el más flexible).
 
 ## Internet y datos móviles

@@ -12,9 +12,8 @@
 ## Barrios y coworkings
 
 - Le Marais (III y IV distrito): histórico, elegante y muy vivo, con museos, galerías de arte, cafés y tiendas de diseño.
-- Precios altos, pero céntrico y muy bien conectado.
-- ambiente cosmopolita.
-- precios más asequibles que el centro, con coworkings como Le Tank.
+- Precios altos, pero céntrico y muy bien conectado; ambiente cosmopolita.
+- Canal Saint-Martin (X y XI distrito): barrio creativo y menos turístico, con ambiente bohemio junto al canal, terrazas y tiendas independientes; precios más asequibles que el centro, con coworkings como Le Tank.
 
 ## Internet y datos móviles
 

@@ -11,9 +11,9 @@
 
 ## Barrios y coworkings
 
-- Kreuzberg y Friedrichshain concentran gran parte de la vida nocturna y cultural alternativa de Berlín y atraen a jóvenes profesionales de toda Europa.
-- un piso de un dormitorio ronda entre 1.000 € y 1.400 € al mes.
+- Kreuzberg y Friedrichshain concentran gran parte de la vida nocturna y cultural alternativa de Berlín y atraen a jóvenes profesionales de toda Europa; un piso de un dormitorio ronda entre 1.000 € y 1.400 € al mes.
 - Neukölln, especialmente su zona norte, se ha consolidado como el barrio más dinámico y asequible para nómadas digitales, con alquileres de un dormitorio entre 500 € y 900 €.
+- Prenzlauer Berg combina cafés con buen wifi y calles tranquilas, con rentas de entre 800 € y 1.500 € para un dormitorio.
 - Entre los coworkings, betahaus, fundado en 2009 en Kreuzberg, fue uno de los primeros espacios de coworking de Berlín, con bonos de día desde 35 € y membresías mensuales desde 115 €.
 
 ## Internet y datos móviles

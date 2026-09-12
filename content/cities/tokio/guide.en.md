@@ -2,7 +2,7 @@
 
 - The corresponding procedure is the Designated Activities Visa for Digital Nomads, managed by the Ministry of Foreign Affairs of Japan (MOFA) through its embassies and consulates.
 - As the digital nomad visa only allows 6 months, this threshold is normally not exceeded, so Japanese tax is not paid on income obtained abroad.
-- The most common mistake is to believe that the visa automatically exempts you from paying taxes in Japan: in reality, everything depends on not exceeding one year of accumulated stay.
+- In tax matters, the threshold that determines tax residence in Japan is one year of accumulated stay, not the usual 183 days in other countries.
 
 ## Health and medical insurance
 

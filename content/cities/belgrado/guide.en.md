@@ -2,7 +2,7 @@
 
 - Spanish citizens can enter and stay in Serbia without a visa for a maximum of 90 days within any 180-day period, either with a passport or with an ID, as confirmed by the Serbian Ministry of Foreign Affairs.
 - Serbia does not have an official 'digital nomad visa', but there is a practical and widely used route for foreign freelancers: registering as a 'preduzetnik paušalac' (individual entrepreneur with flat-rate taxation) with the Commercial Registry Agency (APR), which allows you to then apply for a temporary residence permit renewable annually (up to 3 years of continuous residence before being eligible for permanent residence).
-- Anyone who spends most of the year in Serbia and breaks both ties can stop being a tax resident in Spain, but it is advisable to analyze each case with a tax advisor before taking the step, especially if income, property or family ties are maintained in Spain.
+- For Spanish tax purposes, it is worth remembering the general rule: a person is considered to be a tax resident in Spain if they remain in Spanish territory for more than 183 days within a calendar year, or if the main nucleus or base of their activities or economic interests is located in Spain, directly or indirectly.
 
 ## Health and medical insurance
 

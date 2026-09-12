@@ -2,7 +2,6 @@
 
 - For a Spanish citizen, the European Union allows free movement for 90 days.
 - For citizens from outside the European Union there is a stay permit for digital nomads, processed before the MUP.
-- A common mistake is to believe that digital nomad status exempts you from paying all Croatian taxes, when in reality it only covers income from work on behalf of a foreign employer.
 
 ## Health and medical insurance
 
@@ -11,9 +10,8 @@
 
 ## Neighborhoods and coworkings
 
-- Among the areas of the city, the historic center stands out, around the Diocletian's Palace and very touristy.
-- Veli Varoš, made of traditional stone and next to the center.
-- Lučac, near Bačvice.
+- Among the areas of the city, the historic center stands out, around the Diocletian's Palace and very touristy; Veli Varoš, made of traditional stone and next to the center; Lučac, near Bačvice; Bačvice, next to the beach and with a social atmosphere; Meje, residential and quiet; and Split 3/Spinut, with a university profile and affordable.
+- As a reference, a room in the center costs about 920 euros per month, and outside the center about 665 euros per month, with notable increases between June and September.
 - As for coworkings, CoCreative stands out (in Spinut, 11 euros per day or 99 euros per month), Saltwater Workspace (in Riva, with audio and video equipment), Amosfera (in Split 3, closed on weekends) and TinkTank, The Works and Re.Split, all of them active but without a verified price, so it is advisable to confirm it directly.
 
 ## Internet and mobile data

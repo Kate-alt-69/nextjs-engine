@@ -2,7 +2,7 @@
 
 - El trámite específico es la Residencia Transitoria como Nómada Digital, gestionada por la Dirección Nacional de Migraciones (DNM) al amparo del artículo 24h de la Ley 25.871, y solo está disponible para nacionalidades que no cuenten ya con visa de turista.
 - a diferencia de la residencia de nómada digital, sí contempla la reagrupación familiar (cónyuge, padres e hijos).
-- Los errores más comunes son confundir la residencia migratoria con la residencia fiscal, no cerrar debidamente la residencia fiscal española, y subestimar la volatilidad cambiaria entre el dólar oficial y el dólar blue.
+- En materia fiscal, se es residente si se cuenta con residencia migratoria permanente, si se ha permanecido más de 12 meses en el país, o si se superan los 183 días con centro de intereses en Argentina.
 
 ## Sanidad y seguro médico
 

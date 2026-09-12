@@ -6,13 +6,13 @@
 ## Health and medical insurance
 
 - Among the reference hospitals are the Hospital da Luz Lisboa, the CUF network (with centers such as Descobertas and Tejo) and the Lisbon Particular Hospital.
-- hospitalization, between €300 and €800/night (in CUF, between €275 and €745).
+- The indicative pocket prices are: general practitioner consultation, between €40 and €100; consultation with a specialist, between €65 and €180 (in CUF, between €89 and €125); emergencies, between €80 and €200; hospitalization, between €300 and €800/night (in CUF, between €275 and €745); and one night in the ICU, between €880 and €1,765.
 
 ## Neighborhoods and coworkings
 
 - Among the recommended neighborhoods the following stand out: 1.
-- Mouraria/Intendente — local and authentic, with rents between €1,000 and €1,300/month.
-- central.
+- Mouraria/Intendente — local and authentic in character, with rents between €1,000 and €1,300/month; central.
+- 2.
 - Alfama — historic and with steep streets, with few coworkings available.
 
 ## Internet and mobile data

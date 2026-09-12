@@ -2,6 +2,7 @@
 
 - China does not have a digital nomad visa.
 - Only stays in China of more than 183 days in a calendar year (with the corresponding residence or work visa) could alter that residence, something unusual for a digital nomad who enters and leaves every 30 days.
+- For Spanish tax purposes, anyone who spends more than 183 days a year in Spain remains a tax resident there.
 
 ## Health and medical insurance
 
@@ -10,9 +11,9 @@
 
 ## Neighborhoods and coworkings
 
-- The most recommended neighborhoods for digital nomads in Shanghai are the former French Concession, with tree-lined streets, cafes and a cosmopolitan atmosphere, and Jing'an, a central district well connected to nightlife and international gastronomic offerings.
-- Pudong, on the other side of the river, offers the financial district and iconic skyscrapers but is more isolated from the street environment.
+- The most recommended neighborhoods for digital nomads in Shanghai are the former French Concession, with tree-lined streets, cafes and a cosmopolitan atmosphere, and Jing'an, a central district well connected to nightlife and international gastronomic offerings; Pudong, on the other side of the river, offers the financial district and iconic skyscrapers but is more isolated from the street environment.
 - A one-bedroom studio downtown is around $950-$1,000 per month, and there are coworking spaces like Sandbox3 or Agora Space with flexible desks from around $150 per month.
+- The most relevant daily practical obstacle is the Great Firewall: Google (search, Gmail, Drive, Maps), WhatsApp, Instagram, Facebook, Twitter/X, Telegram and YouTube are blocked, so everyday remote work tools (video calls, calendar, communication with clients) stop working without a VPN.
 
 ## Internet and mobile data
 

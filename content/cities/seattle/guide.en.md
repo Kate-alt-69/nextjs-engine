@@ -1,7 +1,7 @@
 ## Visa and taxation
 
 - The United States does not offer any digital nomad visa, unlike countries like Spain or Portugal.
-- can activate the IRS 'Substantial Presence Test', generating a possible double tax obligation that should be consulted with a tax advisor before planning long stays.
+- In addition, anyone who spends long periods in the United States must monitor their tax residence in Spain: prolonged stays in the United States.
 
 ## Health and medical insurance
 
@@ -10,9 +10,9 @@
 
 ## Neighborhoods and coworkings
 
-- Capitol Hill is the favorite neighborhood of the young creative and technological community, with an intense nightlife, cafes with good Wi-Fi and the boutique coworking The Cloud Room, with day passes from about $40 and monthly memberships between $160 and $590.
-- The rent for a studio in the area is around $1,600 per month.
+- Capitol Hill is the favorite neighborhood of the young creative and technological community, with an intense nightlife, cafes with good Wi-Fi and the boutique coworking The Cloud Room, with day passes from about $40 and monthly memberships between $160 and $590; The rent for a studio in the area is around $1,600 a month.
 - Fremont and Ballard, north of the canal, offer a quieter, more residential atmosphere with artisan markets, breweries, and the Collective Chemistry community space in Fremont, geared toward freelancers and creatives.
+- Belltown and the center concentrate the most professional options, such as the historic The Pioneer Collective or the Hawk Tower WeWork, with views of the skyline; Rents for a one-bedroom apartment in the center are around $2,200 per month, a representative figure for the city as a whole.
 - For those looking for something more affordable, Wallingford offers the Works Progress Cooperative space from $225 a month, and Lake Union has Thinkspace, a lakeside coworking popular with startups.
 
 ## Internet and mobile data

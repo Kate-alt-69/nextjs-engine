@@ -1,7 +1,7 @@
 ## Visa and taxation
 
 - For a Spanish citizen there is no visa procedure: settling in Seville is simply a change of residence within the country.
-- For personal income tax purposes, Andalusia has jurisdiction over the regional section of the tax, with its own scale of rates and deductions.
+- The procedure is carried out at Importass (Social Security) together with the census registration at the Tax Agency (form 036/037).
 
 ## Health and medical insurance
 
@@ -13,8 +13,7 @@
 
 - Triana: on the other side of the Guadalquivir, it is the neighborhood with the most flamenco and pottery tradition in Seville, with an authentic and very lively atmosphere.
 - Rents are around €700-750 for a one- or two-bedroom apartment, and it offers a good connection on foot to the center by crossing the Triana bridge.
-- Alameda de Hércules: the most bohemian and alternative neighborhood in the city, with a high density of bars, terraces and restaurants.
-- is one of the favorite areas of expats and young digital nomads due to its social nightlife and its proximity to the center and several coworkings.
+- Alameda de Hércules: the most bohemian and alternative neighborhood in the city, with a high density of bars, terraces and restaurants; It is one of the favorite areas of expats and young digital nomads for its social nightlife and its proximity to the center and several coworkings.
 
 ## Internet and mobile data
 

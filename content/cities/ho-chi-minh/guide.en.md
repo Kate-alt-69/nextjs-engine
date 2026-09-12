@@ -2,12 +2,12 @@
 
 - Vietnam does not have a digital nomad visa.
 - The third way is the SVEC, aimed at highly talented profiles, inaccessible to the majority of digital nomads.
-- The most common mistakes are not counting arrival and departure days as full days, ignoring the rental rule, and simply assuming that physically working from Vietnam for foreign clients never constitutes "Vietnamese source income", a criterion that is in fact the subject of debate.
+- In tax matters, a resident is considered to be someone who spends 183 days in the country within a calendar year, or within any moving period of 12 months, counting both the day of entry and the day of departure as a full day.
 
 ## Health and medical insurance
 
 - Among the leading private hospitals in Ho Chi Minh are FV Hospital (District 7), Vinmec Central Park (Binh Thanh) and Family Medical Practice (Diamond Plaza).
-- International hospitals usually require a deposit from those who do not have insurance.
+- Paying out of pocket, a consultation costs about 757,812 Vietnamese dongs (between $29 and $30); International hospitals often require a deposit from those who do not have insurance.
 
 ## Neighborhoods and coworkings
 

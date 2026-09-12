@@ -7,15 +7,14 @@
 ## Sanidad y seguro médico
 
 - Una vez inscrito como residente (con el Certificado de Registo para comunitarios, o el permiso de residencia para titulares del D8), es posible darse de alta en el Serviço Nacional de Saúde (SNS) acudiendo al centro de salud correspondiente y solicitando el 'número de utente', que da acceso a la sanidad pública portuguesa en condiciones similares a un residente nacional.
-- este requisito desaparece una vez obtenida la residencia y el acceso al SNS, aunque muchos residentes optan por mantener un seguro privado complementario.
-- Los solicitantes del visado D8 deben además contratar, antes de la cita consular, un seguro médico privado con una cobertura mínima de 30.000 € válido en la UE/Espacio Schengen (incluyendo evacuación médica y repatriación).
+- Los solicitantes del visado D8 deben además contratar, antes de la cita consular, un seguro médico privado con una cobertura mínima de 30.000 € válido en la UE/Espacio Schengen (incluyendo evacuación médica y repatriación); este requisito desaparece una vez obtenida la residencia y el acceso al SNS, aunque muchos residentes optan por mantener un seguro privado complementario.
 
 ## Barrios y coworkings
 
 - El centro histórico, la zona civil conocida como Sé e Cividade (alrededor de la Catedral de Braga), es la opción más cómoda para nómadas: todo se hace a pie, hay buena oferta de cafés y fibra óptica, y los pisos de 1 habitación en el centro rondan los 550 €/mes (frente a unos 442 €/mes en zonas algo más alejadas del centro, según datos de coste de vida basados en Numbeo).
 - Maximinos, colindante con el casco histórico y muy próxima a la universidad, es una zona popular entre estudiantes y nómadas por su ambiente joven y sus precios algo más ajustados.
 - Quien prefiera estar cerca del campus de Gualtar de la Universidade do Minho encuentra alquileres más económicos y buena conexión en transporte urbano hacia el centro.
-- En coworkings, Braga cuenta con varias opciones: Regus (Avenida da Liberdade), con coworking desde 159 €/mes y oficina privada desde 195 €/mes.
+- En coworkings, Braga cuenta con varias opciones: Regus (Avenida da Liberdade), con coworking desde 159 €/mes y oficina privada desde 195 €/mes; Braga Business Center, con puestos desde 140 €/mes; Liberty Hub Coworking, desde 110 €/mes; y Factory Braga, con coworking desde 102 €/mes y oficina privada desde 274 €/mes.
 
 ## Internet y datos móviles
 

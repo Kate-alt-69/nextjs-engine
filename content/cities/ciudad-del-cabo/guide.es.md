@@ -11,9 +11,10 @@
 
 ## Barrios y coworkings
 
-- Entre los barrios más habituales para nómadas digitales en Ciudad del Cabo destacan Sea Point, un área muy caminable junto al paseo marítimo con alquileres de un dormitorio de entre 8.000 y 10.000 ZAR al mes.
-- el City Bowl/CBD, la zona central con la mayor concentración de coworkings y vida nocturna, con pisos de un dormitorio entre 7.000 y 9.000 ZAR al mes.
-- Woodstock, un barrio más creativo y local con alquileres desde unos 8.000 ZAR al mes para un dormitorio.
+- Entre los barrios más habituales para nómadas digitales en Ciudad del Cabo destacan Sea Point, un área muy caminable junto al paseo marítimo con alquileres de un dormitorio de entre 8.000 y 10.000 ZAR al mes; el City Bowl/CBD, la zona central con la mayor concentración de coworkings y vida nocturna, con pisos de un dormitorio entre 7.000 y 9.000 ZAR al mes; Woodstock, un barrio más creativo y local con alquileres desde unos 8.000 ZAR al mes para un dormitorio; y Green Point, cerca del Waterfront, con pisos de un dormitorio en torno a 8.500 ZAR al mes.
+- Camps Bay y Clifton ofrecen el entorno más panorámico junto al mar, aunque a precios más altos y con un enfoque más turístico que práctico.
+- Como referencia general, Numbeo sitúa el alquiler medio de un piso de un dormitorio en el centro de la ciudad en unos 17.235 ZAR al mes, y fuera del centro en unos 11.788 ZAR al mes.
+- En cuanto a coworkings, la cadena Workshop17 (con varias sedes, entre ellas V&A Waterfront y Kloof Street) ofrece puestos desde unos 2.180 ZAR al mes; otras opciones con precios similares son Cube Workspace (desde 2.100 ZAR/mes), Craft+Graft (desde 2.100 ZAR/mes) y Neighbourgood Bree Street (desde 3.000 ZAR/mes).
 
 ## Internet y datos móviles
 

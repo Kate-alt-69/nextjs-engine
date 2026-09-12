@@ -2,19 +2,19 @@
 
 - Spanish citizens can enter Taiwan without a visa and stay up to 90 days as tourists.
 - For those who want to stay longer working remotely, Taiwan introduced a specific visa for digital nomads in January 2025: it requires a minimum income of USD 40,000 per year (or USD 20,000 if you are between 20 and 29 years old) declared in the last two years, and grants an initial stay of 3 months, extendable to a maximum of 6 months.
-- below that threshold, and unless proven otherwise, you are still considered a tax resident in Spain and must declare your overall income to the Spanish Tax Agency.
+- In tax matters, as for any other destination, a Spaniard who spends more than 183 days a year in Taiwan or moves the center of his economic interests there may become considered a tax resident in Taiwan, which would force him to pay taxes there on his worldwide income.
 
 ## Health and medical insurance
 
 - Taiwan has a National Health Insurance (NHI) system considered one of the most efficient and cheapest in the world, with very low co-payments (around 100 NTD, about 3 euros, per outpatient consultation).
-- However, access for foreigners is not immediate: those who reside with an Alien Resident Certificate (ARC) for reasons other than a local employment contract must prove 6 months of continuous residence in Taiwan (a trip abroad of up to 30 days is allowed without breaking the continuity) before being able to register in the NHI.
+- However, access for foreigners is not immediate: those who reside with an Alien Resident Certificate (ARC) for reasons other than a local employment contract must prove 6 months of continuous residence in Taiwan (a trip abroad of up to 30 days is allowed without breaking the continuity) before being able to register in the NHI; On the other hand, those who arrive with a local employment contract are immediately affiliated through their employer.
 - This means that most digital nomads and Gold Card holders who work for foreign companies must cover that first semester—and often their entire stay—with private international health insurance, since they are not working for a Taiwanese employer.
 
 ## Neighborhoods and coworkings
 
-- Da'an is the favorite neighborhood of many digital nomads: residential, full of universities, cafes and the famous Yongkang food street, near the large Da'an forest park.
-- a 15-20 m² studio is around 24,000 NTD/month.
+- Da'an is the favorite neighborhood of many digital nomads: residential, full of universities, cafes and the famous Yongkang food street, near the large forest park of Da'an; a 15-20 m² studio is around 24,000 NTD/month.
 - Xinyi is the financial and business district, with Taipei 101, shopping centers and nightlife, more oriented to profiles with a higher budget (studios from about 28,000 NTD/month) and a good offer of offices and coworkings.
+- Zhongshan is probably the most balanced option for nomads on a tight budget: it connects with four subway lines, reaches Taoyuan airport in about 36 minutes and combines historical areas such as Dihua Street with a modern atmosphere; studies are around 21,000 NTD/month, around 20% less than in Xinyi.
 
 ## Internet and mobile data
 

@@ -2,12 +2,12 @@
 
 - Vietnam no cuenta con un visado de nómada digital.
 - La tercera vía es el SVEC, dirigido a perfiles de alto talento, inaccesible para la mayoría de nómadas digitales.
-- Los errores más frecuentes son no contar los días de entrada y salida como días completos, desconocer la regla del alquiler, y asumir sin más que trabajar físicamente desde Vietnam para clientes extranjeros nunca constituye "renta de fuente vietnamita", un criterio que de hecho es objeto de debate.
+- En materia fiscal, se considera residente a quien pasa 183 días en el país dentro de un año natural, o bien dentro de cualquier periodo móvil de 12 meses, contando como día completo tanto el de entrada como el de salida.
 
 ## Sanidad y seguro médico
 
 - Entre los hospitales privados de referencia en Ho Chi Minh están el FV Hospital (Distrito 7), Vinmec Central Park (Binh Thanh) y Family Medical Practice (Diamond Plaza).
-- los hospitales internacionales suelen exigir un depósito a quienes no acreditan un seguro.
+- Pagando de bolsillo, una consulta cuesta unos 757.812 dongs vietnamitas (entre 29 y 30 dólares); los hospitales internacionales suelen exigir un depósito a quienes no acreditan un seguro.
 
 ## Barrios y coworkings
 

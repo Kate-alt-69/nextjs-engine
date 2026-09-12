@@ -2,7 +2,7 @@
 
 - In 2026 there has been an important change: the old "Remotely from Georgia" program has been suspended and is no longer a valid entry route.
 - For digital nomads whose clients are 100% foreigners, the exact applicability of this permit is still pending regulatory clarification from the authorities: it is, in practice, a real gray area.
-- The most common mistakes are relying solely on the visa exemption without regularizing the new work permit required from 2026, not keeping documentation proving where the work is carried out from, and not requesting the Georgian tax residence certificate.
+- In tax matters, the SBS regime allows you to pay taxes at 1% on gross turnover up to 500,000 GEL per year (approximately 166,000 euros), and 3% above that threshold.
 
 ## Health and medical insurance
 
@@ -14,7 +14,7 @@
 - Vake is a neighborhood with a European feel and a quiet atmosphere, with rents between 400 and 600 dollars a month, although it lacks its own subway station.
 - Vera has a creative character and a lively offer of wine bars, with similar prices ($400-$600/month), and is the neighborhood specifically recommended for digital nomads.
 - Saburtalo is an area of ​​renovated Soviet architecture, with rents between 300 and 500 dollars.
-- In coworkings, Vibe Coworking Cafe costs $7 per day or $93 per month.
+- In coworkings, Vibe Coworking Cafe costs $7 per day or $93 per month; Impact Hub Tbilisi, located in the Fabrika complex, charges $15 per day and $194 per month; Space Z has a monthly fee of $56 and includes a gym; Terminal Khorava offers 24/7 access for $11 per day or $157 per month; D Block @ Stamba costs $15 per day and $185 per month; and Tsre Coworking, $9 per day and $108 per month.
 
 ## Internet and mobile data
 

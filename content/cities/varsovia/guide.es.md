@@ -2,7 +2,7 @@
 
 - Para un ciudadano español, al pertenecer a la Unión Europea, rige la libre circulación.
 - Para los ciudadanos de fuera de la Unión Europea no existe un visado de nómada digital oficial en Polonia.
-- Entre los errores más frecuentes están elegir mal el régimen fiscal sin asesoría profesional, subestimar las cotizaciones al ZUS (la seguridad social polaca) y dar por hecho que se cumplen los requisitos del IP Box sin verificarlo.
+- En materia fiscal, se adquiere la residencia a partir de 183 días de estancia o cuando el centro de intereses vitales se encuentra en Polonia.
 
 ## Sanidad y seguro médico
 

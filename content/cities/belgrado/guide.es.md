@@ -2,7 +2,7 @@
 
 - Los ciudadanos españoles pueden entrar y permanecer en Serbia sin visado durante un máximo de 90 días dentro de cualquier período de 180 días, ya sea con pasaporte o con DNI, según confirma el Ministerio de Asuntos Exteriores serbio.
 - Serbia no tiene un 'visado de nómada digital' oficial, pero existe una vía práctica y ampliamente utilizada por freelancers extranjeros: darse de alta como 'preduzetnik paušalac' (empresario individual con tributación a tanto alzado) ante la Agencia de Registros Comerciales (APR), lo que permite después solicitar un permiso de residencia temporal renovable anualmente (hasta 3 años de residencia continua antes de poder optar a la residencia permanente).
-- Quien pase la mayor parte del año en Serbia y rompa ambos vínculos puede dejar de ser residente fiscal en España, pero conviene analizar cada caso con un asesor fiscal antes de dar el paso, especialmente si se mantienen ingresos, inmuebles o vínculos familiares en España.
+- A efectos fiscales españoles, conviene recordar la regla general: se considera que una persona es residente fiscal en España si permanece más de 183 días dentro del año natural en territorio español, o si en España radica el núcleo principal o la base de sus actividades o intereses económicos, de forma directa o indirecta.
 
 ## Sanidad y seguro médico
 

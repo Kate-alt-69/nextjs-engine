@@ -6,13 +6,13 @@
 ## Sanidad y seguro médico
 
 - Entre los hospitales de referencia se encuentran el Hospital da Luz Lisboa, la red CUF (con centros como Descobertas y Tejo) y el Hospital Particular de Lisboa.
-- hospitalización, entre 300 y 800 €/noche (en CUF, entre 275 y 745 €).
+- Los precios de bolsillo orientativos son: consulta de médico general, entre 40 y 100 €; consulta con especialista, entre 65 y 180 € (en CUF, entre 89 y 125 €); urgencias, entre 80 y 200 €; hospitalización, entre 300 y 800 €/noche (en CUF, entre 275 y 745 €); y una noche en UCI, entre 880 y 1.765 €.
 
 ## Barrios y coworkings
 
 - Entre los barrios recomendados destacan: 1.
-- Mouraria/Intendente — de carácter local y auténtico, con alquileres de entre 1.000 y 1.300 €/mes.
-- céntrico.
+- Mouraria/Intendente — de carácter local y auténtico, con alquileres de entre 1.000 y 1.300 €/mes; céntrico.
+- 2.
 - Alfama — histórico y con calles empinadas, con pocos coworkings disponibles.
 
 ## Internet y datos móviles

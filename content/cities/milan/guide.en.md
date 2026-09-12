@@ -13,7 +13,7 @@
 
 - Navigli, with its iconic canals, is the most popular neighborhood among expats and digital nomads: quiet atmosphere by day, intense nightlife at dusk, terraces and antique market.
 - Studios of about 45 m² cost around €650-800/month plus expenses.
-- Isola is the creative and innovative hub of Milan, with boutiques, second-hand stores and the Santeria cultural space.
+- Isola is the creative and innovative hub of Milan, with boutiques, second-hand stores and the Santeria cultural space; rooms in a shared apartment from €500, studios from €690.
 
 ## Internet and mobile data
 

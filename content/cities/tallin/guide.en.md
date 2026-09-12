@@ -2,7 +2,7 @@
 
 - For a Spanish citizen, free movement in the European Union allows entry without procedures.
 - For citizens from outside the European Union there is the Digital Nomad Visa, a pioneer in Europe, which is processed at the Estonian embassies or directly at the PBGB.
-- Among the most common errors are miscounting the days of stay, confusing gross income with net income, operating an OÜ "without substance" (which entails a high risk of tax inspection), not submitting the declaration even if the result is 0 euros (with penalties of between 400 and 3,200 euros) and not registering for VAT purposes when billing exceeds 40,000 euros.
+- In tax matters, residency is acquired after 183 days of stay within any moving period of 12 months.
 
 ## Health and medical insurance
 
@@ -11,9 +11,8 @@
 
 ## Neighborhoods and coworkings
 
-- Among the areas of the city, the old town or Vanalinn stands out, medieval and traversable entirely on foot.
-- the modern Kesklinn, with a commercial profile.
-- Kalamaja, bohemian, in the middle of the gentrification process and favorite of digital nomads.
+- Among the areas of the city, the old town or Vanalinn stands out, medieval and traversable entirely on foot; the modern Kesklinn, with a commercial profile; Kalamaja, bohemian, in the midst of gentrification and a favorite of digital nomads; Kadriorg, green and family-oriented; the port area, practical due to its location; and Ülemiste, next to the airport and with a corporate profile.
+- As a reference, a room in the center costs about 707 euros per month, and outside the center about 509 euros per month, among the lowest figures among the 20 cities compared.
 - In terms of coworkings, Lift99 stands out (the cheapest, between 120 and 160 euros per month, aimed at startups), Spring Hub (between 180 and 250 euros per month), WorkHub Telliskivi (between 180 and 250 euros per month, in the creative district of Telliskivi), Ülemiste City Business Campus (between 270 and 350 euros per month, open 24/7, with gym and clinic), Tempt Coworking (between 270 and 350 euros per month, open 24/7) and Garden Hub (between 180 and 250 euros per month, the most flexible).
 
 ## Internet and mobile data

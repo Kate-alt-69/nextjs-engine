@@ -2,7 +2,6 @@
 
 - Para un ciudadano español, la Unión Europea permite la libre circulación durante 90 días.
 - Para los ciudadanos de fuera de la Unión Europea existe el permiso de estancia para nómada digital, tramitado ante el MUP.
-- Un error frecuente es creer que el estatus de nómada digital exime del pago de todo impuesto croata, cuando en realidad solo cubre la renta del trabajo por cuenta de un empleador extranjero.
 
 ## Sanidad y seguro médico
 
@@ -11,9 +10,8 @@
 
 ## Barrios y coworkings
 
-- Entre las zonas de la ciudad destacan el centro histórico, en torno al Palacio de Diocleciano y muy turístico.
-- Veli Varoš, de piedra tradicional y junto al centro.
-- Lučac, cerca de Bačvice.
+- Entre las zonas de la ciudad destacan el centro histórico, en torno al Palacio de Diocleciano y muy turístico; Veli Varoš, de piedra tradicional y junto al centro; Lučac, cerca de Bačvice; Bačvice, junto a la playa y de ambiente social; Meje, residencial y tranquilo; y Split 3/Spinut, de perfil universitario y asequible.
+- Como referencia, una habitación en el centro cuesta unos 920 euros al mes, y fuera del centro unos 665 euros al mes, con subidas notables entre junio y septiembre.
 - En cuanto a coworkings, destacan CoCreative (en Spinut, 11 euros al día o 99 euros al mes), Saltwater Workspace (en Riva, con equipo de audio y vídeo), Amosfera (en Split 3, cerrado los fines de semana) y TinkTank, The Works y Re.Split, todos ellos activos pero sin precio verificado, por lo que conviene confirmarlo directamente.
 
 ## Internet y datos móviles

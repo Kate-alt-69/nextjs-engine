@@ -1,7 +1,7 @@
 ## Visado y fiscalidad
 
 - El trámite para nómadas digitales en Hungría es el White Card, gestionado por la OIF (National Directorate-General for Aliens Policing).
-- Los errores más habituales son creer que el White Card exime automáticamente de tributar en Hungría, y no cerrar correctamente la residencia fiscal en España antes de trasladarse.
+- En materia fiscal, se considera residente a quien pasa 183 días en el país o tiene allí su vivienda o centro de intereses.
 
 ## Sanidad y seguro médico
 
@@ -9,9 +9,7 @@
 
 ## Barrios y coworkings
 
-- Entre los barrios más recomendados para nómadas digitales en Budapest se encuentra el Distrito VII, conocido por su vida nocturna, con alquileres de alrededor de 600 euros al mes para un piso de 45 m².
-- el Distrito V, elegante y junto al Danubio, desde 800 euros al mes.
-- el Distrito VIII, más auténtico y entre un 25% y un 30% más barato (desde unos 450 euros al mes).
+- Entre los barrios más recomendados para nómadas digitales en Budapest se encuentra el Distrito VII, conocido por su vida nocturna, con alquileres de alrededor de 600 euros al mes para un piso de 45 m²; el Distrito V, elegante y junto al Danubio, desde 800 euros al mes; el Distrito VIII, más auténtico y entre un 25% y un 30% más barato (desde unos 450 euros al mes); el Distrito II, en Buda, tranquilo y residencial; el Distrito IX, actualmente en proceso de renovación; y el Distrito XIII, moderno y situado junto al Danubio.
 - En cuanto a coworkings, destacan Kaptár (unos 8 euros el día o 100 euros al mes), KUBIK (unos 12 euros el día, con terraza), ClickOffice (oficinas privadas desde unos 15 euros la hora), Espresso Embassy (un café cuesta unos 2,50 euros), Kelet Café (con su "Remote Worker Menu" por unos 8 euros) y la Biblioteca Szabó Ervin (unos 5 euros al día).
 
 ## Internet y datos móviles

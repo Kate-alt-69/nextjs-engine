@@ -12,9 +12,8 @@
 ## Neighborhoods and coworkings
 
 - Le Marais (III and IV arrondissement): historic, elegant and very lively, with museums, art galleries, cafes and design shops.
-- High prices, but central and very well connected.
-- cosmopolitan atmosphere.
-- more affordable prices than the center, with coworkings like Le Tank.
+- High prices, but central and very well connected; cosmopolitan atmosphere.
+- Canal Saint-Martin (X and XI arrondissement): creative and less touristy neighborhood, with a bohemian atmosphere next to the canal, terraces and independent shops; More affordable prices than the center, with coworkings like Le Tank.
 
 ## Internet and mobile data
 

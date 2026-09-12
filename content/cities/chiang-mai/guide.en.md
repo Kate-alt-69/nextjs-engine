@@ -1,19 +1,19 @@
 ## Visa and taxation
 
 - Chiang Mai follows the same scheme as Bangkok for the DTV (Destination Thailand Visa), the fee of which is 10,000 THB.
-- The most frequent errors are mixing funds generated before and after 2024 without being able to prove it documentaryly, forgetting that refunds made with a foreign card also count as a remittance, and confusing the Thailand Elite program (which offers stay privileges) with a tax exemption, which it does not grant.
+- In tax matters, staying 180 days in the country makes the person a tax resident.
 
 ## Health and medical insurance
 
 - Among the reference hospitals in the city are the Bangkok Hospital Chiang Mai, which operates 24 hours a day, the Chiangmai Ram Hospital and the McCormick/Sriphat Medical Center, the latter linked to the university and valued for its good value for money.
-- no reliable data has been found on the cost of emergencies or hospitalization.
+- The out-of-pocket cost for a general consultation varies between 150 and 1,200 THB depending on the center chosen; No reliable data has been found on the cost of emergencies or hospitalization.
 
 ## Neighborhoods and coworkings
 
 - Nimman is the trendy neighborhood, with a studio between 400 and 650 euros per month and a one-bedroom apartment between 550 and 900 euros.
 - Old City is the historic area with a backpacker atmosphere, with rents between 300 and 700 euros.
 - Santitham is the cheapest option, between 200 and 400 euros, approximately 30% cheaper than the previous ones.
-- Among the coworking spaces, Yellow Coworking stands out, in Nimman, with 24-hour access for members.
+- Among the coworking spaces, Yellow Coworking, in Nimman, stands out, with 24-hour access for members; Punspace, with two headquarters and also 24-hour access for members; Alt_ChiangMai, with a day pass of 320 THB and a monthly fee of approximately 4,000 THB; Hub53, which combines coliving and coworking; Heartwork, an affordable option that is closed on Sundays; and CAMP at Maya Mall, open from 10 a.m. to 10 p.m.
 
 ## Internet and mobile data
 

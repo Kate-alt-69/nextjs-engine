@@ -11,9 +11,9 @@
 
 ## Neighborhoods and coworkings
 
-- Kreuzberg and Friedrichshain concentrate much of Berlin's nightlife and alternative culture and attract young professionals from all over Europe.
-- A one-bedroom apartment is between €1,000 and €1,400 per month.
+- Kreuzberg and Friedrichshain concentrate much of Berlin's nightlife and alternative culture and attract young professionals from all over Europe; A one-bedroom apartment is between €1,000 and €1,400 per month.
 - Neukölln, especially its northern area, has established itself as the most dynamic and affordable neighborhood for digital nomads, with one-bedroom rents between €500 and €900.
+- Prenzlauer Berg combines cafes with good wifi and quiet streets, with rents between €800 and €1,500 for a bedroom.
 - Among coworkings, betahaus, founded in 2009 in Kreuzberg, was one of the first coworking spaces in Berlin, with day passes from €35 and monthly memberships from €115.
 
 ## Internet and mobile data

@@ -12,8 +12,7 @@
 ## Neighborhoods and coworkings
 
 - For those who work remotely, the most recommended neighborhoods in Toronto combine good transportation connections, a young atmosphere and a range of cafes and coworking spaces.
-- The Annex, near the University of Toronto, offers slightly more affordable prices and great university life.
-- Queen West and Liberty Village are popular areas for young professionals, with old industrial buildings converted into lofts, bars and studios.
+- The Annex, near the University of Toronto, offers somewhat more affordable prices and great university life; Queen West and Liberty Village are popular areas for young professionals, with former industrial buildings converted into lofts, bars and studios; and Kensington Market provides a bohemian and multicultural atmosphere with markets and independent cafes ideal for working part-time.
 - In terms of coworkings, WeWork stands out (several locations, from about 370 CAD per month for a shared desk), East Room in Riverside (from 245 CAD/month) and WorkHaus, with flexible month-to-month memberships.
 
 ## Internet and mobile data

@@ -11,9 +11,10 @@
 
 ## Neighborhoods and coworkings
 
-- The most popular neighborhoods for digital nomads in Cape Town include Sea Point, a very walkable area next to the seafront with one-bedroom rentals between ZAR 8,000 and ZAR 10,000 per month.
-- the City Bowl/CBD, the central area with the highest concentration of coworking and nightlife, with one-bedroom apartments between ZAR 7,000 and 9,000 per month.
-- Woodstock, a more creative and local neighborhood with rents starting at around ZAR 8,000 per month for a bedroom.
+- Popular neighborhoods for digital nomads in Cape Town include Sea Point, a very walkable area along the seafront with one-bedroom rentals between ZAR 8,000 and ZAR 10,000 per month; the City Bowl/CBD, the central area with the highest concentration of coworking and nightlife, with one-bedroom apartments between ZAR 7,000 and 9,000 per month; Woodstock, a more creative and local neighborhood with rents from around ZAR 8,000 a month for a bedroom; and Green Point, near the Waterfront, with one-bedroom flats for around ZAR 8,500 a month.
+- Camps Bay and Clifton offer the most scenic seaside surroundings, albeit at higher prices and with a more touristy than practical approach.
+- As a general reference, Numbeo puts the average rent for a one-bedroom apartment in the city center at around ZAR 17,235 per month, and outside the center at around ZAR 11,788 per month.
+- As for coworking, the Workshop17 chain (with several locations, including V&A Waterfront and Kloof Street) offers positions from around ZAR 2,180 per month; Other options with similar prices are Cube Workspace (from ZAR 2,100/month), Craft+Graft (from ZAR 2,100/month) and Neighborgood Bree Street (from ZAR 3,000/month).
 
 ## Internet and mobile data
 

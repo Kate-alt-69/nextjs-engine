@@ -13,7 +13,7 @@
 
 - Navigli, con sus icónicos canales, es el barrio más popular entre expatriados y nómadas digitales: ambiente tranquilo de día, vida nocturna intensa al atardecer, terrazas y mercado de antigüedades.
 - Estudios de unos 45 m² rondan los 650-800 €/mes más gastos.
-- Isola es el polo creativo e innovador de Milán, con boutiques, tiendas de segunda mano y el espacio cultural Santeria.
+- Isola es el polo creativo e innovador de Milán, con boutiques, tiendas de segunda mano y el espacio cultural Santeria; habitaciones en piso compartido desde 500 €, estudios desde 690 €.
 
 ## Internet y datos móviles
 

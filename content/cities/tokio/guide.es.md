@@ -2,7 +2,7 @@
 
 - El trámite correspondiente es el Visado de Actividades Designadas para Nómadas Digitales, gestionado por el Ministerio de Asuntos Exteriores de Japón (MOFA) a través de sus embajadas y consulados.
 - Como el visado de nómada digital solo permite 6 meses, normalmente no se supera ese umbral, por lo que no se paga impuesto japonés sobre la renta obtenida en el extranjero.
-- El error más frecuente es creer que el visado exime automáticamente de tributar en Japón: en realidad, todo depende de no superar el año de estancia acumulada.
+- En materia fiscal, el umbral que determina la residencia fiscal en Japón es de un año de estancia acumulada, no los 183 días habituales en otros países.
 
 ## Sanidad y seguro médico
 

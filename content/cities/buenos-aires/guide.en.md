@@ -2,7 +2,7 @@
 
 - The specific procedure is the Transitional Residence as a Digital Nomad, managed by the National Directorate of Migration (DNM) under article 24h of Law 25,871, and is only available for nationalities that do not already have a tourist visa.
 - unlike digital nomad residence, it does contemplate family reunification (spouse, parents and children).
-- The most common errors are confusing immigration residence with tax residence, not properly closing the Spanish tax residence, and underestimating the exchange volatility between the official dollar and the blue dollar.
+- In tax matters, you are a resident if you have permanent immigration residence, if you have stayed more than 12 months in the country, or if you exceed 183 days with a center of interest in Argentina.
 
 ## Health and medical insurance
 

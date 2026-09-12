@@ -1,7 +1,7 @@
 ## Visado y fiscalidad
 
 - El trámite correspondiente es la Visa V — Nómada Digital, que se solicita a través de la plataforma SITAC y, una vez concedida, se formaliza con la cédula de extranjería ante Migración Colombia.
-- Los errores más comunes son creer que vivir fuera de Colombia elimina automáticamente la obligación tributaria cuando el centro de intereses económicos y vitales sigue estando en el país, y confundir el domicilio civil con el domicilio fiscal.
+- En materia fiscal, se adquiere la condición de residente al permanecer 183 días, no necesariamente consecutivos, dentro de un periodo de 365 días.
 
 ## Sanidad y seguro médico
 
@@ -13,7 +13,7 @@
 - El Poblado es el barrio más internacional y también el más caro, con alquileres entre 850 y 1.200 dólares al mes.
 - Laureles ofrece un ambiente más auténtico y universitario, con precios entre 540 y 730 dólares, entre un 30% y un 40% más barato que El Poblado.
 - Envigado es tranquilo y familiar, con rentas entre 560 y 855 dólares.
-- En cuanto a coworkings, Selina Medellín cobra 10 dólares el día y entre 75 y 120 dólares al mes.
+- En cuanto a coworkings, Selina Medellín cobra 10 dólares el día y entre 75 y 120 dólares al mes; WeWork cobra entre 25 y 35 dólares el día y entre 200 y 300 dólares al mes; Atomhouse, en Laureles, cuesta 12 dólares el día y entre 80 y 150 dólares al mes, con una conexión de más de 200 Mbps; Tinkko tiene planes mensuales de entre 51 y 169 dólares; y Casa Co cobra entre 10 y 15 dólares el día y entre 70 y 110 dólares al mes.
 
 ## Internet y datos móviles
 

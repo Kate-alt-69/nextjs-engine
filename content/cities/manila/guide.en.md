@@ -2,7 +2,7 @@
 
 - Spanish citizens can enter the Philippines without a visa and stay for 30 days, extendable at the Bureau of Immigration up to a cumulative maximum of approximately 36 months through successive extensions, with fees of between PHP 6,000-9,000 in the first extension.
 - Since 2025, the Philippines has an official digital nomad visa created by Executive Order (EO) 86 of 2025, aimed at remote workers with foreign income of at least USD 24,000/year (~USD 2,000/month).
-- Spain will continue to require declaration of worldwide income as long as the nomad maintains his Spanish tax residence.
+- In terms of taxation, the Philippines generally does not tax foreign source income unless the person stays for more than 183 days and becomes a Philippine tax resident.
 
 ## Health and medical insurance
 

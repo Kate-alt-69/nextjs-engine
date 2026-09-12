@@ -11,8 +11,7 @@
 
 ## Neighborhoods and coworkings
 
-- Shoreditch and Hoxton, in east London, are the historical epicenter of the creative and technological scene, with a very high density of cafes suitable for work and coworkings such as WeWork, Huckletree or Uncommon.
-- One-bedroom rents in the area typically range between GBP 1,600 and GBP 2,700 per month.
+- Shoreditch and Hoxton, in east London, are the historical epicenter of the creative and technological scene, with a very high density of cafes suitable for work and coworkings such as WeWork, Huckletree or Uncommon; One-bedroom rents in the area typically range between £1,600 and £2,700 per month.
 - Hackney, just to the north, offers a more residential and affordable environment while still being close to the nightlife and co-working spaces of East London.
 - Canary Wharf, the financial district, concentrates corporate offices and coworking spaces aimed at finance and consulting, with quick metro connections to the center, although the atmosphere is more corporate than bohemian.
 

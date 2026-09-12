@@ -11,8 +11,7 @@
 
 ## Barrios y coworkings
 
-- Shoreditch y Hoxton, en el este de Londres, son el epicentro histórico de la escena creativa y tecnológica, con una altísima densidad de cafeterías aptas para trabajar y coworkings como WeWork, Huckletree o Uncommon.
-- los alquileres de un dormitorio en la zona suelen moverse entre 1.600 y 2.700 GBP al mes.
+- Shoreditch y Hoxton, en el este de Londres, son el epicentro histórico de la escena creativa y tecnológica, con una altísima densidad de cafeterías aptas para trabajar y coworkings como WeWork, Huckletree o Uncommon; los alquileres de un dormitorio en la zona suelen moverse entre 1.600 y 2.700 GBP al mes.
 - Hackney, justo al norte, ofrece un ambiente más residencial y asequible sin perder la cercanía a la vida nocturna y los espacios de trabajo compartido del este londinense.
 - Canary Wharf, el distrito financiero, concentra oficinas corporativas y coworkings orientados a finanzas y consultoría, con conexiones rápidas en metro al centro, aunque el ambiente es más corporativo que bohemio.
 

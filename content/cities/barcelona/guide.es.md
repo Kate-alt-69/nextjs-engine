@@ -11,10 +11,10 @@
 
 ## Barrios y coworkings
 
-- Gràcia es el barrio bohemio favorito de la comunidad de nómadas digitales, con plazas peatonales y ambiente de pueblo dentro de la ciudad.
-- un alquiler de un dormitorio ronda entre 600 € y 1.200 €/mes.
+- Gràcia es el barrio bohemio favorito de la comunidad de nómadas digitales, con plazas peatonales y ambiente de pueblo dentro de la ciudad; un alquiler de un dormitorio ronda entre 600 € y 1.200 €/mes.
 - El Born, en el casco antiguo, combina arquitectura medieval con vida social intensa y precios similares o algo superiores.
-- Entre los coworkings destaca Betahaus Barcelona, pionero del sector desde 2010, ubicado en Gràcia, con puestos flexibles desde 150 €/mes.
+- El Eixample, con su trazado en cuadrícula y excelente conexión de metro, es la zona más versátil para vivir y trabajar, con alquileres de un dormitorio entre 750 € y 1.600 €/mes.
+- Entre los coworkings destaca Betahaus Barcelona, pionero del sector desde 2010, ubicado en Gràcia, con puestos flexibles desde 150 €/mes; Cloudworks, en Gran Vía, con terrazas y ambiente corporativo desde 250 €/mes; y Aticco Bogatell, cerca del Parque de la Ciutadella, con azotea y puestos desde 200 €/mes.
 
 ## Internet y datos móviles
 

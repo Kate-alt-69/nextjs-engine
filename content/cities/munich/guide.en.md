@@ -1,6 +1,6 @@
 ## Visa and taxation
 
-- As an EU citizen, a Spaniard can enter and reside in Germany without a visa, protected by community free movement.
+- As an EU citizen, a Spaniard can enter and reside in Germany without a visa, protected by community free movement; A valid ID or passport is enough.
 - Tax residents (more than 183 days/year) are taxed on worldwide income in the German personal income tax (Einkommensteuer), with progressive rates of up to 45%.
 
 ## Health and medical insurance
@@ -11,9 +11,9 @@
 
 ## Neighborhoods and coworkings
 
-- Schwabing: bohemian and university neighborhood north of the center, next to the Englischer Garten.
-- young atmosphere, many cafes with wifi and good moderate nightlife.
-- medium-high rents.
+- Schwabing: bohemian and university neighborhood north of the center, next to the Englischer Garten; young atmosphere, many cafes with wifi and good moderate nightlife; medium-high rents.
+- Maxvorstadt: the museum and university district (LMU, TU München); great density of libraries, cafes to work in and an active student and intellectual community; very central and well connected.
+- Glockenbachviertel: trendy area south of the center, with a creative atmosphere, specialty bars, markets and one of the liveliest gastronomic scenes in the city; popular with freelancers and designers; high prices but compensated by the social life.
 
 ## Internet and mobile data
 

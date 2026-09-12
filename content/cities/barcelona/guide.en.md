@@ -11,10 +11,10 @@
 
 ## Neighborhoods and coworkings
 
-- Gràcia is the favorite bohemian neighborhood of the digital nomad community, with pedestrian plazas and a village atmosphere within the city.
-- A one-bedroom rental is between €600 and €1,200/month.
+- Gràcia is the favorite bohemian neighborhood of the digital nomad community, with pedestrian plazas and a village atmosphere within the city; A one-bedroom rental is between €600 and €1,200/month.
 - El Born, in the old town, combines medieval architecture with intense social life and similar or slightly higher prices.
-- Among the coworkings, Betahaus Barcelona stands out, a pioneer in the sector since 2010, located in Gràcia, with flexible positions from €150/month.
+- The Eixample, with its grid layout and excellent metro connection, is the most versatile area to live and work, with one-bedroom rentals between €750 and €1,600/month.
+- Among the coworkings, Betahaus Barcelona stands out, a pioneer in the sector since 2010, located in Gràcia, with flexible positions from €150/month; Cloudworks, on Gran Vía, with terraces and corporate atmosphere from €250/month; and Aticco Bogatell, near the Ciutadella Park, with a roof terrace and stalls from €200/month.
 
 ## Internet and mobile data
 

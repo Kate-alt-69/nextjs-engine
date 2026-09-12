@@ -1,6 +1,6 @@
 ## Visado y fiscalidad
 
-- Como ciudadano de la UE, un español puede entrar y residir en Alemania sin visado, amparado por la libre circulación comunitaria.
+- Como ciudadano de la UE, un español puede entrar y residir en Alemania sin visado, amparado por la libre circulación comunitaria; basta con el DNI o pasaporte en vigor.
 - Los residentes fiscales (más de 183 días/año) tributan por renta mundial en el IRPF alemán (Einkommensteuer), con tipos progresivos de hasta el 45%.
 
 ## Sanidad y seguro médico
@@ -11,9 +11,9 @@
 
 ## Barrios y coworkings
 
-- Schwabing: barrio bohemio y universitario al norte del centro, junto al Englischer Garten.
-- ambiente joven, muchas cafeterías con wifi y buena vida nocturna moderada.
-- alquileres medio-altos.
+- Schwabing: barrio bohemio y universitario al norte del centro, junto al Englischer Garten; ambiente joven, muchas cafeterías con wifi y buena vida nocturna moderada; alquileres medio-altos.
+- Maxvorstadt: el distrito de los museos y la universidad (LMU, TU München); gran densidad de bibliotecas, cafés para trabajar y una comunidad estudiantil e intelectual activa; muy céntrico y bien conectado.
+- Glockenbachviertel: zona trendy al sur del centro, con ambiente creativo, bares de especialidad, mercados y una de las escenas gastronómicas más vivas de la ciudad; popular entre freelancers y diseñadores; precios altos pero compensados por la vida social.
 
 ## Internet y datos móviles
 

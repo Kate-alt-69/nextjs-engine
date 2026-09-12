@@ -2,7 +2,7 @@
 
 - There are two main ways to settle legally in Istanbul.
 - The first is the Digital Nomad Visa through GoTürkiye, which constitutes a pre-approval and not a direct residence: the applicant first obtains the visa at the corresponding Turkish consulate and, once in Turkey, must process the İkamet Tezkeresi (residence permit), which is the document that actually authorizes the stay in the country.
-- Among the most common errors are believing that the visa automatically exempts from paying taxes when the stay exceeds 183 days, confusing the residence permit with tax residence, and not updating the İkametgah (registered address) when changing residence.
+- In tax matters, tax residence is acquired after 183 days of stay in the country.
 
 ## Health and medical insurance
 
@@ -11,9 +11,9 @@
 
 ## Neighborhoods and coworkings
 
-- Among the most recommended neighborhoods for digital nomads are Kadıköy and Moda, with a bohemian atmosphere and located on the Asian side of the city.
-- Beşiktaş, dynamic and central.
-- Nişantaşı and Şişli, sophisticated but expensive.
+- Among the most recommended neighborhoods for digital nomads are Kadıköy and Moda, with a bohemian atmosphere and located on the Asian side of the city; Beşiktaş, dynamic and central; Nişantaşı and Şişli, sophisticated but expensive; Sarıyer, quiet, next to the forest and premium category; and Bomonti, in the midst of the gentrification process and with a creative profile.
+- The reference rent is between $974 and $979 per month in the center, and between $651 and $654 per month outside the center.
+- It is recommended to avoid areas such as Tarlabaşı, Esenler, Gaziosmanpaşa, Sultangazi, Zeytinburnu and Bağcılar.
 - In terms of coworking spaces, the highlights are Kolektif House (in Levent, open 24 hours a day, 7 days a week), Impact Hub (in Kâğıthane, from 200 lira per month), IDEA (in Kadıköy, open from 9 a.m. to 11 p.m., with sea views), Workinton (in Nişantaşı, from 1,425 lira per month, open 24/7), e-Ofis (in Pera, from 860 lira per month) and DAIRE (in Beşiktaş, from 50 lira per hour).
 
 ## Internet and mobile data

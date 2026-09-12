@@ -7,13 +7,13 @@
 ## Sanidad y seguro médico
 
 - Los residentes legales en Madrid tienen acceso al Sistema Nacional de Salud una vez formalizada su afiliación a la Seguridad Social o su empadronamiento, con una atención pública de amplia cobertura y coste muy bajo para el paciente.
-- Sin embargo, para tramitar el visado de teletrabajador es obligatorio presentar una póliza de seguro médico privado, contratada con una aseguradora autorizada por la Dirección General de Seguros y Fondos de Pensiones, que cubra asistencia sanitaria en España sin copagos ni carencias.
+- Sin embargo, para tramitar el visado de teletrabajador es obligatorio presentar una póliza de seguro médico privado, contratada con una aseguradora autorizada por la Dirección General de Seguros y Fondos de Pensiones, que cubra asistencia sanitaria en España sin copagos ni carencias; los seguros de viaje quedan expresamente excluidos.
 
 ## Barrios y coworkings
 
-- Malasaña es el barrio de referencia para nómadas digitales jóvenes por su ambiente alternativo, su vida nocturna y su alta densidad de cafeterías con wifi.
-- el alquiler ronda entre 1.200 € y 1.460 € al mes para un piso de 50-60 m².
+- Malasaña es el barrio de referencia para nómadas digitales jóvenes por su ambiente alternativo, su vida nocturna y su alta densidad de cafeterías con wifi; el alquiler ronda entre 1.200 € y 1.460 € al mes para un piso de 50-60 m².
 - Chueca, contiguo, destaca por su ambiente cosmopolita y precios similares.
+- Salamanca es el barrio más elegante y caro, con arquitectura señorial, en torno a 1.165 € a 1.400 € para un piso de ese tamaño.
 - Entre los coworkings, Impact Hub Madrid opera varios espacios en la ciudad, entre ellos Alameda (junto a Atocha) y Barceló (junto a Malasaña), con puestos flexibles y una comunidad activa de emprendedores.
 
 ## Internet y datos móviles

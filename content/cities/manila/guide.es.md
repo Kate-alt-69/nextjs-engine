@@ -2,7 +2,7 @@
 
 - Los ciudadanos españoles pueden entrar en Filipinas sin visado y permanecer 30 días, ampliables en la Bureau of Immigration hasta un máximo acumulado de aproximadamente 36 meses mediante extensiones sucesivas, con tasas de entre PHP 6.000-9.000 en la primera extensión.
 - Desde 2025, Filipinas cuenta con un visado de nómada digital oficial creado por la Orden Ejecutiva (EO) 86 de 2025, dirigido a trabajadores remotos con ingresos extranjeros de al menos 24.000 USD/año (~2.000 USD/mes).
-- España seguirá exigiendo declarar la renta mundial mientras el nómada mantenga su residencia fiscal española.
+- En cuanto a fiscalidad, Filipinas generalmente no grava los ingresos de fuente extranjera a menos que la persona supere los 183 días de estancia y se convierta en residente fiscal filipino.
 
 ## Sanidad y seguro médico
 

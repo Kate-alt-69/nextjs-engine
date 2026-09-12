@@ -1,7 +1,7 @@
 ## Visa and taxation
 
 - As a Spanish citizen, you do not need a visa to live in Bulgaria: both countries are members of the European Union and the right of free movement applies directly.
-- If you settle in Sofia stably and spend most of the year there, you must assess your tax situation in Bulgaria (where personal income tax is a fixed rate of 10%) and, where appropriate, communicate the change of residence to the Spanish Tax Agency, as well as review the double taxation agreement between Spain and Bulgaria.
+- In tax matters, the general rule for a Spanish citizen who moves to live abroad is that the Treasury considers a tax resident in Spain to be someone who stays more than 183 calendar days in Spanish territory during the calendar year, or someone who has the main core of their economic interests in Spain (directly or indirectly), unless they prove their tax residence in another country.
 
 ## Health and medical insurance
 

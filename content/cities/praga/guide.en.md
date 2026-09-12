@@ -1,12 +1,12 @@
 ## Visa and taxation
 
 - The Czech Republic does not have a specific visa for digital nomads, so there are two main routes.
-- Among the most frequent errors are not closing the Spanish tax residence when activating the živno, forgetting to register with Czech social security or insurance, and inadvertently exceeding the paušální daň billing limit.
+- For tax purposes, you are a resident if you have spent more than 183 days in the country or if you have a permanent home there.
 
 ## Health and medical insurance
 
 - Among the private clinics most used by foreigners in Prague are Canadian Medical Care (with 7 locations and its own hospitalization), UNICARE (care in 16 languages) and My Clinic.
-- In public hospitals, a deposit of between 5,000 and 10,000 CZK is usually required from foreigners who do not have insurance.
+- Paying out of pocket, a consultation costs between 22 and 35 dollars, and an emergency between 65 and 435 dollars; In public hospitals, a deposit of between 5,000 and 10,000 CZK is usually required from foreigners who do not prove insurance.
 
 ## Neighborhoods and coworkings
 

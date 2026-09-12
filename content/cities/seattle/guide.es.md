@@ -1,7 +1,7 @@
 ## Visado y fiscalidad
 
 - Estados Unidos no ofrece ningún visado de nómada digital, a diferencia de países como España o Portugal.
-- pueden activar el 'Substantial Presence Test' del IRS, generando una posible doble obligación tributaria que conviene consultar con un asesor fiscal antes de planificar estancias largas.
+- Además, quien pase largas temporadas en Estados Unidos debe vigilar su residencia fiscal en España: estancias prolongadas en EE.
 
 ## Sanidad y seguro médico
 
@@ -10,9 +10,9 @@
 
 ## Barrios y coworkings
 
-- Capitol Hill es el barrio favorito de la comunidad creativa y tecnológica joven, con una vida nocturna intensa, cafeterías con buen wifi y el coworking boutique The Cloud Room, con bonos de día desde unos 40 dólares y membresías mensuales entre 160 y 590 dólares.
-- el alquiler de un estudio en la zona ronda los 1.600 dólares al mes.
+- Capitol Hill es el barrio favorito de la comunidad creativa y tecnológica joven, con una vida nocturna intensa, cafeterías con buen wifi y el coworking boutique The Cloud Room, con bonos de día desde unos 40 dólares y membresías mensuales entre 160 y 590 dólares; el alquiler de un estudio en la zona ronda los 1.600 dólares al mes.
 - Fremont y Ballard, al norte del canal, ofrecen un ambiente más tranquilo y residencial con mercados de artesanos, cervecerías y el espacio comunitario Collective Chemistry en Fremont, orientado a autónomos y creativos.
+- Belltown y el centro concentran las opciones más profesionales, como el histórico The Pioneer Collective o el WeWork de Hawk Tower, con vistas al skyline; los alquileres de un apartamento de un dormitorio en el centro rondan los 2.200 dólares mensuales, cifra representativa del conjunto de la ciudad.
 - Para quienes buscan algo más económico, Wallingford ofrece el espacio cooperativo Works Progress Cooperative desde 225 dólares al mes, y Lake Union cuenta con Thinkspace, un coworking junto al lago muy popular entre startups.
 
 ## Internet y datos móviles

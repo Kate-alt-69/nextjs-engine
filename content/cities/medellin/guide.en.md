@@ -1,7 +1,7 @@
 ## Visa and taxation
 
 - The corresponding procedure is the Visa V — Digital Nomad, which is requested through the SITAC platform and, once granted, is formalized with the immigration card before Migration Colombia.
-- The most common errors are believing that living outside of Colombia automatically eliminates the tax obligation when the center of economic and vital interests continues to be in the country, and confusing the civil domicile with the tax domicile.
+- In tax matters, resident status is acquired by staying for 183 days, not necessarily consecutive, within a period of 365 days.
 
 ## Health and medical insurance
 
@@ -13,7 +13,7 @@
 - El Poblado is the most international neighborhood and also the most expensive, with rents between 850 and 1,200 dollars per month.
 - Laureles offers a more authentic and university atmosphere, with prices between $540 and $730, between 30% and 40% cheaper than El Poblado.
 - Envigado is quiet and familiar, with rents between 560 and 855 dollars.
-- As for coworkings, Selina Medellín charges 10 dollars a day and between 75 and 120 dollars a month.
+- As for coworkings, Selina Medellín charges 10 dollars a day and between 75 and 120 dollars a month; WeWork charges $25 to $35 a day and $200 to $300 a month; Atomhouse, in Laureles, costs $12 a day and between $80 and $150 a month, with a connection of more than 200 Mbps; Tinkko has monthly plans between $51 and $169; and Casa Co charges between 10 and 15 dollars a day and between 70 and 110 dollars a month.
 
 ## Internet and mobile data
 

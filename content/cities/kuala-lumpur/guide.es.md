@@ -2,7 +2,6 @@
 
 - El trámite principal es el DE Rantau Nomad Pass, gestionado por la Malaysia Digital Economic Corporation (MDEC).
 - Malasia no cuenta con un régimen fiscal especial para nómadas digitales.
-- Los errores más habituales son asumir que se aplica la escala fiscal de origen en lugar del tipo fijo del 30% como no residente, no regularizar el estatus fiscal ante la Lembaga Hasil Dalam Negeri Malaysia (LHDN), y no conservar los justificantes durante los 7 años exigidos.
 
 ## Sanidad y seguro médico
 
@@ -14,7 +13,7 @@
 - Entre los barrios más destacados de Kuala Lumpur se encuentra KLCC, el centro de negocios de la ciudad, con alquileres que van de RM 1.800-3.500 en la gama media a RM 4.500-8.000 en la gama premium.
 - Bukit Bintang, conocido por su intensa vida nocturna, tiene precios de RM 1.800-3.500.
 - Bangsar, popular entre expatriados y su ambiente de brunch, alcanza los RM 4.500-7.500.
-- En cuanto a espacios de coworking, Colony @ KLCC cuesta 9 dólares el día o 107 dólares al mes e incluye piscina.
+- En cuanto a espacios de coworking, Colony @ KLCC cuesta 9 dólares el día o 107 dólares al mes e incluye piscina; WORQ Bangsar ofrece pase diario a 9 dólares y mensual a 111 dólares, con acceso 24/7; WORQ Intermark cobra 16 dólares al día y 133 dólares al mes, también con acceso 24/7; Common Ground KL Eco City tiene un pase diario de 11 dólares y mensual de 178 dólares; WORQ KL Sentral ofrece 13 dólares al día y 133 dólares al mes con acceso 24/7; y Komune @ KLCC cuesta 11 dólares el día y 111 dólares al mes.
 
 ## Internet y datos móviles
 

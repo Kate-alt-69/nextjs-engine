@@ -2,7 +2,6 @@
 
 - The main procedure is the DE Rantau Nomad Pass, managed by the Malaysia Digital Economic Corporation (MDEC).
 - Malaysia does not have a special tax regime for digital nomads.
-- The most common errors are assuming that the original tax scale is applied instead of the fixed rate of 30% as a non-resident, not regularizing the tax status with the Lembaga Hasil Dalam Negeri Malaysia (LHDN), and not keeping the supporting documents for the required 7 years.
 
 ## Health and medical insurance
 
@@ -14,7 +13,7 @@
 - Among the most prominent neighborhoods in Kuala Lumpur is KLCC, the city's business center, with rents ranging from RM 1,800-3,500 in the mid-range to RM 4,500-8,000 in the premium range.
 - Bukit Bintang, known for its intense nightlife, has prices from RM 1,800-3,500.
 - Bangsar, popular with expats for its brunch atmosphere, fetches RM4,500-7,500.
-- As for coworking spaces, Colony @ KLCC costs $9 per day or $107 per month and includes a pool.
+- As for coworking spaces, Colony @ KLCC costs $9 per day or $107 per month and includes a pool; WORQ Bangsar offers a daily pass for $9 and a monthly pass for $111, with 24/7 access; WORQ Intermark charges $16 per day and $133 per month, also with 24/7 access; Common Ground KL Eco City has a daily pass of $11 and monthly pass of $178; WORQ KL Sentral offers $13 per day and $133 per month with 24/7 access; and Komune @ KLCC costs $11 per day and $111 per month.
 
 ## Internet and mobile data
 

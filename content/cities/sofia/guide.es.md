@@ -1,7 +1,7 @@
 ## Visado y fiscalidad
 
 - Como ciudadano español, no necesitas visado para vivir en Bulgaria: ambos países son miembros de la Unión Europea y el derecho de libre circulación se aplica directamente.
-- Si te instalas en Sofía de forma estable y pasas allí la mayor parte del año, deberás valorar tu situación fiscal en Bulgaria (donde el IRPF es un tipo fijo del 10%) y, en su caso, comunicar el cambio de residencia a la Agencia Tributaria española, así como revisar el convenio de doble imposición entre España y Bulgaria.
+- En materia fiscal, la regla general para un ciudadano español que se traslada a vivir al extranjero es que Hacienda considera residente fiscal en España a quien permanece más de 183 días naturales en territorio español durante el año natural, o a quien tiene en España el núcleo principal de sus intereses económicos (directa o indirectamente), salvo que acredite su residencia fiscal en otro país.
 
 ## Sanidad y seguro médico
 
