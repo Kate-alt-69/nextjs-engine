@@ -9,11 +9,11 @@ const retryLimit = Math.max(2, Number(process.env.ROAVIO_MEDIA_RETRIES || 5));
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// These are poor destination-card subjects even when the filename contains the city name.
-// Prefer failing a slot over shipping a stadium, food plate, biological specimen or diagram.
-const rejectMedia = /\b(flag|map|locator|location|seal|coat[ _-]?of[ _-]?arms|logo|icon|diagram|route|metro[ _-]?map|subway[ _-]?map|districts?|boroughs?|portrait|player|athlete|politician|mayor|president|football|soccer|rugby|cricket|baseball|basketball|tennis|golf|marathon|runner|race|team|jersey|medal|election|signature|stadium|arena|sports?|sporting|food|dish|meal|cuisine|soup|stew|noodles?|rice|soto|dessert|cake|sandwich|plate|drawing|sketch|illustration|painting|engraving|lithograph|poster|manuscript|stamp|coin|banknote|satellite|airport|runway|aircraft|airplane|helicopter|species|specimen|shell|mollusc|mollusk|insect|bird|fish|animal|plant|flower|fossil|herbarium|botanical|zoological|beetle|butterfly)\b/i;
+// Destination imagery must read as a place, not merely contain the city's name.
+const rejectMedia = /\b(flag|bandera|bandiera|drapeau|fahne|map|locator|location|seal|escudo|coat[ _-]?of[ _-]?arms|logo|icon|diagram|route|metro[ _-]?map|subway[ _-]?map|districts?|boroughs?|portrait|player|athlete|politician|mayor|president|football|soccer|rugby|cricket|baseball|basketball|tennis|golf|marathon|runner|race|team|jersey|medal|election|signature|stadium|estadi|estadio|stade|stadion|stadio|arena|olympic|olimpic|sports?|sporting|food|comida|dish|meal|cuisine|soup|stew|noodles?|rice|soto|dessert|cake|sandwich|plate|plato|drawing|dibujo|sketch|illustration|ilustracion|painting|engraving|grabado|lithograph|poster|manuscript|stamp|coin|banknote|satellite|airport|aeropuerto|runway|aircraft|airplane|helicopter|species|specimen|shell|mollusc|mollusk|insect|bird|fish|animal|plant|flower|fossil|herbarium|botanical|zoological|beetle|butterfly)\b/i;
 const weakMedia = /\b(bus|taxi|car|vehicle|parking|terminal|road[ _-]?sign|signage)\b/i;
-const primaryHint = /\b(skyline|cityscape|panorama|panoramic|aerial|downtown|waterfront|harbou?r|corniche|bay|city|urban|old[ _-]?town|historic[ _-]?centre|historic[ _-]?center)\b/i;
+const archivalHint = /(?:18|19)\d{2}|black[ _-]?and[ _-]?white|histor(?:ic|ical)[ _-]?(?:photo|photograph)|archiv(?:e|al)/i;
+const primaryHint = /\b(skyline|cityscape|panorama|panoramic|aerial|downtown|waterfront|harbou?r|corniche|bay|urban|old[ _-]?town|historic[ _-]?centre|historic[ _-]?center)\b/i;
 const secondaryHint = /\b(street|avenue|boulevard|architecture|landmark|monument|tower|mosque|cathedral|church|temple|palace|castle|fort|museum|square|plaza|bridge|gate|old[ _-]?town|historic|heritage|waterfront|marina|corniche|promenade|market|bazaar|garden|park|beach)\b/i;
 
 const aliases = {
@@ -213,6 +213,7 @@ function titleScore(item, city, slot) {
   if (slot === 1 && secondaryHint.test(normalized)) score += 22;
   if (slot === 1 && primaryHint.test(normalized)) score += 3;
   if (weakMedia.test(normalized)) score -= 28;
+  if (archivalHint.test(normalized)) score -= slot === 0 ? 38 : 12;
 
   const width = item.thumbwidth || item.width || 0;
   const height = item.thumbheight || item.height || 0;
@@ -295,8 +296,6 @@ async function buildPool(city, country) {
 
   let pool = uniqueMedia(media);
 
-  // Always add a small, deliberately city-shaped Commons set. This costs a little more
-  // during the one-time materialization pass but dramatically improves visual relevance.
   try {
     pool = uniqueMedia([
       ...pool,
@@ -329,7 +328,7 @@ const entries = (await readdir(root, { withFileTypes: true }))
 
 if (entries.length !== 90) throw new Error(`Expected exactly 90 city directories, found ${entries.length}`);
 
-const manifest = { version: 2, generatedAt: new Date().toISOString(), qualityPolicy: "destination-scenes-v2", cities: {} };
+const manifest = { version: 3, generatedAt: new Date().toISOString(), qualityPolicy: "destination-scenes-v3", cities: {} };
 const failures = [];
 
 for (let index = 0; index < entries.length; index += 1) {
