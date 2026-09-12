@@ -10,7 +10,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const [{ slug }, locale] = await Promise.all([params, getRoavioLocale()]);
-  const city = await loadCityContent(slug);
+  const city = await loadCityContent(slug, locale);
   if (!city) return {};
   return {
     title: locale === "es"
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function CityDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const [{ slug }, locale] = await Promise.all([params, getRoavioLocale()]);
-  const city = await loadCityContent(slug);
+  const city = await loadCityContent(slug, locale);
   if (!city) notFound();
   const CityDossier = createCityDossier(city, locale);
   return <CityDossier />;
