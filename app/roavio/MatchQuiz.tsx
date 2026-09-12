@@ -3,6 +3,7 @@
 import { EngineTransitionLink } from "@/engine";
 import { useMemo, useState, type ReactNode } from "react";
 import { catalogFitScore, catalogMetric, type CityCatalogEntry } from "./catalog";
+import { CityThumb } from "./CityThumb";
 import type { RoavioLocale } from "./i18n";
 
 type Priority = "balance" | "quality" | "safety" | "internet";
@@ -105,8 +106,12 @@ export function MatchQuiz({ catalog, locale }: { catalog: CityCatalogEntry[]; lo
           <div className="rv-result-grid">
             {matches.map(({ city }, index) => {
               const fit = catalogFitScore(city);
+              const cityHref = `/cities/${city.slug}`;
               return (
                 <article className="rv-result-card" key={city.slug}>
+                  <EngineTransitionLink href={cityHref} transition="portal" className="rv-result-card__visual" aria-label={`${es ? "Abrir" : "Open"} ${city.city}`}>
+                    <CityThumb slug={city.slug} city={city.city} country={city.country} eager={index < 3} />
+                  </EngineTransitionLink>
                   <div className="rv-result-card__body">
                     <div className="rv-result-head">
                       <div><h3>{index + 1}. {city.city}</h3><p>{city.country} · {regionLabel(city.continent, locale)}</p></div>
@@ -118,7 +123,7 @@ export function MatchQuiz({ catalog, locale }: { catalog: CityCatalogEntry[]; lo
                       <div><strong>{catalogMetric(city.quality, "/10")}</strong><span>{es ? "calidad" : "quality"}</span></div>
                     </div>
                     <div className="rv-card-actions">
-                      <EngineTransitionLink className="rv-primary" href={`/cities/${city.slug}`} transition="portal">{es ? "Abrir ciudad" : "Open city"} →</EngineTransitionLink>
+                      <EngineTransitionLink className="rv-primary" href={cityHref} transition="portal">{es ? "Abrir ciudad" : "Open city"} →</EngineTransitionLink>
                       <EngineTransitionLink className="rv-secondary" href={`/compare?cities=${city.slug}`} transition="depth">{es ? "Comparar" : "Compare"}</EngineTransitionLink>
                     </div>
                   </div>
