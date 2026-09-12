@@ -28,10 +28,7 @@ function splitSections(markdown) {
   return matches.map((match, index) => {
     const bodyStart = match.index + match[0].length;
     const bodyEnd = matches[index + 1]?.index ?? source.length;
-    return {
-      heading: match[1].trim(),
-      body: source.slice(bodyStart, bodyEnd).trim(),
-    };
+    return { heading: match[1].trim(), body: source.slice(bodyStart, bodyEnd).trim() };
   });
 }
 
@@ -99,18 +96,11 @@ function compactSection(heading, body) {
       firstMatching(sentences, /seguro.*priv|privad|hospital|cobertura/i, 1),
     ]);
   } else if (key.includes("barrios") || key.includes("cowork")) {
-    picked = unique([
-      sentences[0],
-      sentences[1],
-      sentences[2],
-      firstMatching(sentences, /cowork|hot desk|oficina/i, 1),
-    ]);
+    picked = unique([sentences[0], sentences[1], sentences[2], firstMatching(sentences, /cowork|hot desk|oficina/i, 1)]);
   } else if (key.includes("internet") || key.includes("datos moviles")) {
     picked = unique([sentences[0], sentences[1]]);
   } else if (key.includes("fuentes")) {
-    const sourceParagraphs = paragraphs.filter((paragraph) =>
-      /Numbeo|Speedtest|Ookla|coste|seguridad|calidad de vida|banda ancha/i.test(paragraph),
-    );
+    const sourceParagraphs = paragraphs.filter((paragraph) => /Numbeo|Speedtest|Ookla|coste|seguridad|calidad de vida|banda ancha/i.test(paragraph));
     picked = unique(sourceParagraphs.length ? sourceParagraphs.slice(0, 4) : sentences.slice(0, 4));
   } else {
     picked = unique(sentences.slice(0, 3));
@@ -153,18 +143,12 @@ async function translate(text) {
       endpoint.searchParams.set("tl", "en");
       endpoint.searchParams.set("dt", "t");
       endpoint.searchParams.set("q", value);
-
       const response = await fetch(endpoint, {
-        headers: {
-          Accept: "application/json,text/plain,*/*",
-          "User-Agent": "RoavioProposal/1.0 bilingual content materializer",
-        },
+        headers: { Accept: "application/json,text/plain,*/*", "User-Agent": "RoavioProposal/1.0 bilingual content materializer" },
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const payload = await response.json();
-      const translated = Array.isArray(payload?.[0])
-        ? payload[0].map((part) => part?.[0] ?? "").join("").trim()
-        : "";
+      const translated = Array.isArray(payload?.[0]) ? payload[0].map((part) => part?.[0] ?? "").join("").trim() : "";
       if (!translated) throw new Error("empty translation response");
       translationCache.set(value, translated);
       return translated;
@@ -173,7 +157,6 @@ async function translate(text) {
       await sleep(Math.min(7000, 650 * attempt * attempt));
     }
   }
-
   throw new Error(`translation failed after ${RETRIES} attempts: ${lastError?.message ?? lastError}`);
 }
 
@@ -182,14 +165,11 @@ async function translateMany(values) {
   const markers = cleanValues.map((_, index) => `__RV_FIELD_${index}__`);
   const packed = cleanValues.map((value, index) => `${markers[index]}\n${value}`).join("\n");
   const translated = await translate(packed);
-
   const output = [];
   for (let index = 0; index < markers.length; index += 1) {
     const start = translated.indexOf(markers[index]);
     const end = index + 1 < markers.length ? translated.indexOf(markers[index + 1]) : translated.length;
-    if (start < 0 || end < 0) {
-      return Promise.all(cleanValues.map((value) => translate(value)));
-    }
+    if (start < 0 || end < 0) return Promise.all(cleanValues.map((value) => translate(value)));
     output.push(translated.slice(start + markers[index].length, end).trim());
   }
   return output;
@@ -198,14 +178,7 @@ async function translateMany(values) {
 async function buildEnglishProfile(profile) {
   const strengths = Array.isArray(profile.strengths) ? profile.strengths : [];
   const considerations = Array.isArray(profile.considerations) ? profile.considerations : [];
-  const values = [
-    profile.name ?? "",
-    profile.country ?? "",
-    profile.continent ?? "",
-    profile.summary ?? "",
-    ...strengths,
-    ...considerations,
-  ];
+  const values = [profile.name ?? "", profile.country ?? "", profile.continent ?? "", profile.summary ?? "", ...strengths, ...considerations];
   const translated = await translateMany(values);
   let cursor = 0;
   const name = translated[cursor++];
@@ -214,16 +187,7 @@ async function buildEnglishProfile(profile) {
   const summary = translated[cursor++];
   const translatedStrengths = strengths.map(() => translated[cursor++]);
   const translatedConsiderations = considerations.map(() => translated[cursor++]);
-
-  return {
-    ...profile,
-    name,
-    country,
-    continent,
-    summary,
-    strengths: translatedStrengths,
-    considerations: translatedConsiderations,
-  };
+  return { ...profile, name, country, continent, summary, strengths: translatedStrengths, considerations: translatedConsiderations };
 }
 
 async function main() {
@@ -233,9 +197,7 @@ async function main() {
     .map((entry) => entry.name)
     .sort();
 
-  if (cityDirs.length !== 90) {
-    throw new Error(`expected 90 city directories, found ${cityDirs.length}`);
-  }
+  if (cityDirs.length !== 95) throw new Error(`expected 95 city directories, found ${cityDirs.length}`);
 
   let deepGuides = 0;
   for (const [index, slug] of cityDirs.entries()) {
@@ -248,21 +210,17 @@ async function main() {
     if (profile.hasDeepGuide === true) deepGuides += 1;
 
     const conciseEs = compactGuide(guideSource);
-    const [conciseEn, englishProfile] = await Promise.all([
-      translate(conciseEs),
-      buildEnglishProfile(profile),
-    ]);
+    const [conciseEn, englishProfile] = await Promise.all([translate(conciseEs), buildEnglishProfile(profile)]);
 
     await Promise.all([
       fs.writeFile(path.join(dir, "guide.es.md"), `${conciseEs.trim()}\n`, "utf8"),
       fs.writeFile(path.join(dir, "guide.en.md"), `${conciseEn.trim()}\n`, "utf8"),
       fs.writeFile(path.join(dir, "city.en.json"), `${JSON.stringify(englishProfile, null, 2)}\n`, "utf8"),
     ]);
-
-    console.log(`[${index + 1}/90] ${slug}: bilingual concise content generated`);
+    console.log(`[${index + 1}/95] ${slug}: bilingual concise content generated`);
   }
 
-  console.log(`Generated concise ES/EN content for 90 cities; deep guides: ${deepGuides}.`);
+  console.log(`Generated concise ES/EN content for 95 cities; deep guides: ${deepGuides}.`);
 }
 
 main().catch((error) => {
