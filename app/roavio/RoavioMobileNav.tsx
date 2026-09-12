@@ -1,9 +1,9 @@
 "use client";
 
-import { EngineDrawer, EngineManim, EngineTransitionLink } from "@/engine";
+import { EnginePopover, EngineTransitionLink } from "@/engine";
 import { EngineNavManimIcon } from "@/src/engine/components/EngineNavManimIcon";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { copyFor, type RoavioLocale } from "./i18n";
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
@@ -15,37 +15,6 @@ function writeCookie(name: string, value: string) {
 function routeIsActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function MenuGlyph() {
-  const config = useMemo(() => ({
-    manim: {
-      mobjects: [
-        { id: "route", type: "Path" as const, d: "M 8 34 C 48 6 94 62 142 28 C 170 8 194 18 214 31", strokeColor: "#c8f36b", strokeWidth: 2 },
-        { id: "start", type: "Circle" as const, radius: 5, x: 8, y: 34, strokeColor: "#eef7f2", fillColor: "#205f4a", strokeWidth: 2 },
-        { id: "mid", type: "Circle" as const, radius: 4, x: 142, y: 28, strokeColor: "#eef7f2", fillColor: "#86d7b1", strokeWidth: 2 },
-        { id: "end", type: "Circle" as const, radius: 6, x: 214, y: 31, strokeColor: "#eef7f2", fillColor: "#ffbb91", strokeWidth: 2 },
-      ],
-      timeline: [
-        { action: "Create" as const, target: "route", durationMs: 460, easing: "ease-out" as const },
-        { action: "FadeIn" as const, target: "start", durationMs: 150, easing: "ease-out" as const },
-        { action: "FadeIn" as const, target: "mid", durationMs: 150, easing: "ease-out" as const },
-        { action: "FadeIn" as const, target: "end", durationMs: 170, easing: "ease-out" as const },
-        { action: "Wait" as const, durationMs: 300 },
-      ],
-      settings: { loop: false, fpsLimit: 30 as const, background: "transparent" },
-    },
-  }), []);
-
-  return (
-    <EngineManim
-      cprop={config}
-      width={224}
-      height={66}
-      className="rv-mobile-nav-manim"
-      style={{ width: 224, height: 66, maxWidth: "100%", pointerEvents: "none" }}
-    />
-  );
 }
 
 export function RoavioMobileNav({ locale }: { locale: RoavioLocale }) {
@@ -69,6 +38,7 @@ export function RoavioMobileNav({ locale }: { locale: RoavioLocale }) {
       setOpen(false);
       return;
     }
+
     writeCookie("rv_lang", next);
     document.documentElement.lang = next;
     document.documentElement.dataset.rvLocale = next;
@@ -78,23 +48,35 @@ export function RoavioMobileNav({ locale }: { locale: RoavioLocale }) {
 
   return (
     <div className="rv-mobile-nav-root">
-      <EngineDrawer
+      {open ? (
+        <div
+          className="rv-mobile-nav-scrim"
+          aria-hidden="true"
+          onPointerDown={() => setOpen(false)}
+        />
+      ) : null}
+
+      <EnginePopover
         open={open}
-        onOpenChange={(next) => { setMenuTouched(true); setOpen(next); }}
-        side="right"
-        size="min(22rem, 88vw)"
-        duration={320}
-        lockScroll
-        trapFocus
-        closeOnBackdrop
+        onOpenChange={(next) => {
+          setMenuTouched(true);
+          setOpen(next);
+        }}
+        placement="bottom"
+        align="end"
+        offset={10}
+        viewportPadding={10}
+        duration={180}
         closeOnEscape
+        closeOnOutsideClick
         restoreFocus
-        zIndex={2200}
-        className="rv-mobile-nav-drawer"
-        overlayStyle={{ background: "rgba(2,10,7,.56)", backdropFilter: "blur(10px) saturate(.86)" }}
+        autoFocus={false}
+        trapFocus={false}
+        zIndex={2400}
+        className="rv-mobile-nav-popover"
         triggerClassName="rv-mobile-nav-trigger"
         triggerAriaLabel={locale === "es" ? "Abrir navegación" : "Open navigation"}
-        closeLabel={locale === "es" ? "Cerrar navegación" : "Close navigation"}
+        ariaLabel={locale === "es" ? "Navegación móvil" : "Mobile navigation"}
         trigger={(
           <span className="rv-mobile-nav-trigger__icon" aria-hidden="true">
             {menuTouched ? (
@@ -108,15 +90,20 @@ export function RoavioMobileNav({ locale }: { locale: RoavioLocale }) {
         )}
       >
         <div className="rv-mobile-nav-content">
-          <div className="rv-mobile-nav-brand-row">
-            <EngineTransitionLink href="/" transition="portal" className="rv-mobile-nav-brand" onClick={() => setOpen(false)} aria-label="Roavio home">
+          <div className="rv-mobile-nav-head">
+            <EngineTransitionLink
+              href="/"
+              transition="portal"
+              className="rv-mobile-nav-brand"
+              onClick={() => setOpen(false)}
+              aria-label="Roavio home"
+            >
               <img src="/roavio-wordmark.svg" alt="Roavio" draggable={false} />
             </EngineTransitionLink>
-            <span className="rv-mobile-nav-index">90 · 6</span>
-          </div>
-
-          <div className="rv-mobile-nav-route" aria-hidden="true">
-            <MenuGlyph />
+            <div className="rv-mobile-nav-meta" aria-hidden="true">
+              <span>90 {locale === "es" ? "ciudades" : "cities"}</span>
+              <span>6 {locale === "es" ? "continentes" : "continents"}</span>
+            </div>
           </div>
 
           <nav className="rv-mobile-nav-links" aria-label={locale === "es" ? "Navegación móvil" : "Mobile navigation"}>
@@ -151,10 +138,12 @@ export function RoavioMobileNav({ locale }: { locale: RoavioLocale }) {
           </div>
 
           <p className="rv-mobile-nav-footnote">
-            {locale === "es" ? "Elige una ciudad. Compara el contexto. Decide mejor." : "Choose a city. Compare the context. Decide better."}
+            {locale === "es"
+              ? "Elige una ciudad · compara el contexto · decide mejor"
+              : "Choose a city · compare the context · decide better"}
           </p>
         </div>
-      </EngineDrawer>
+      </EnginePopover>
     </div>
   );
 }
