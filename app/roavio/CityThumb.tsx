@@ -1,8 +1,8 @@
 "use client";
 
-import { EngineImage } from "@/engine";
+import { EngineImage, useEngineSchedule } from "@/engine";
 import type { ImageLoader } from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import { cityImage, cityInitials } from "./visuals";
 
 const CITY_PHOTO_VERSION = "12";
@@ -87,8 +87,13 @@ export function CityThumb({
   eager?: boolean;
 }) {
   const staticSource = slot === 0 ? cityImage(slug) : null;
-  const hostRef = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(eager);
+  const schedule = useEngineSchedule<HTMLDivElement>({
+    priority: eager,
+    nearMargin: "96px 0px",
+    visibleThreshold: 0.02,
+    releaseWhenFar: false,
+  });
+  const active = eager || schedule.near || schedule.visible;
   const source = useMemo(
     () => staticSource ?? cityProxySource(city, country, slot, 960),
     [city, country, slot, staticSource],
@@ -99,32 +104,9 @@ export function CityThumb({
     ? "(max-width: 700px) 44vw, 260px"
     : "(max-width: 700px) calc(100vw - 2rem), (max-width: 1100px) calc(50vw - 2rem), 400px";
 
-  useEffect(() => {
-    if (active) return;
-    const host = hostRef.current;
-    if (!host || typeof IntersectionObserver === "undefined") {
-      setActive(true);
-      return;
-    }
-
-    const mobile = window.matchMedia("(max-width: 700px)").matches;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        setActive(true);
-        observer.disconnect();
-      }
-    }, {
-      rootMargin: mobile ? "0px" : "64px 0px",
-      threshold: mobile ? 0.03 : 0.01,
-    });
-
-    observer.observe(host);
-    return () => observer.disconnect();
-  }, [active]);
-
   return (
     <div
-      ref={hostRef}
+      ref={schedule.ref}
       className={`rv-city-thumb${compact ? " rv-city-thumb--compact" : ""}`}
       aria-hidden
       onDragStart={(event) => event.preventDefault()}
