@@ -9,8 +9,11 @@ const retryLimit = Math.max(2, Number(process.env.ROAVIO_MEDIA_RETRIES || 5));
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const rejectMedia = /\b(flag|map|locator|location|seal|coat[ _-]?of[ _-]?arms|logo|icon|diagram|route|metro|subway|districts?|boroughs?|portrait|player|athlete|politician|mayor|president|football|rugby|cricket|marathon|runner|race|team|jersey|medal|election|signature)\b/i;
-const primaryHint = /\b(skyline|cityscape|panorama|panoramic|aerial|downtown|waterfront|harbou?r|corniche|bay|city|urban)\b/i;
+// These are poor destination-card subjects even when the filename contains the city name.
+// Prefer failing a slot over shipping a stadium, food plate, biological specimen or diagram.
+const rejectMedia = /\b(flag|map|locator|location|seal|coat[ _-]?of[ _-]?arms|logo|icon|diagram|route|metro[ _-]?map|subway[ _-]?map|districts?|boroughs?|portrait|player|athlete|politician|mayor|president|football|soccer|rugby|cricket|baseball|basketball|tennis|golf|marathon|runner|race|team|jersey|medal|election|signature|stadium|arena|sports?|sporting|food|dish|meal|cuisine|soup|stew|noodles?|rice|soto|dessert|cake|sandwich|plate|drawing|sketch|illustration|painting|engraving|lithograph|poster|manuscript|stamp|coin|banknote|satellite|airport|runway|aircraft|airplane|helicopter|species|specimen|shell|mollusc|mollusk|insect|bird|fish|animal|plant|flower|fossil|herbarium|botanical|zoological|beetle|butterfly)\b/i;
+const weakMedia = /\b(bus|taxi|car|vehicle|parking|terminal|road[ _-]?sign|signage)\b/i;
+const primaryHint = /\b(skyline|cityscape|panorama|panoramic|aerial|downtown|waterfront|harbou?r|corniche|bay|city|urban|old[ _-]?town|historic[ _-]?centre|historic[ _-]?center)\b/i;
 const secondaryHint = /\b(street|avenue|boulevard|architecture|landmark|monument|tower|mosque|cathedral|church|temple|palace|castle|fort|museum|square|plaza|bridge|gate|old[ _-]?town|historic|heritage|waterfront|marina|corniche|promenade|market|bazaar|garden|park|beach)\b/i;
 
 const aliases = {
@@ -209,6 +212,7 @@ function titleScore(item, city, slot) {
   if (slot === 0 && primaryHint.test(normalized)) score += 18;
   if (slot === 1 && secondaryHint.test(normalized)) score += 22;
   if (slot === 1 && primaryHint.test(normalized)) score += 3;
+  if (weakMedia.test(normalized)) score -= 28;
 
   const width = item.thumbwidth || item.width || 0;
   const height = item.thumbheight || item.height || 0;
@@ -234,7 +238,7 @@ function pick(items, city, slot, excluded = new Set()) {
   return items
     .filter((item) => !excluded.has(sourceOf(item)))
     .map((item) => ({ item, score: titleScore(item, city, slot) }))
-    .filter((entry) => entry.score > -100)
+    .filter((entry) => entry.score >= 8)
     .sort((a, b) => b.score - a.score)[0]?.item || null;
 }
 
@@ -290,10 +294,26 @@ async function buildPool(city, country) {
   }
 
   let pool = uniqueMedia(media);
-  if (pool.length < 8) {
-    try { pool = uniqueMedia([...pool, ...await commonsSearch(`${canonical} ${country} skyline cityscape architecture`)]) }
-    catch (error) { console.log(`    Commons city search failed: ${error.message}`); }
+
+  // Always add a small, deliberately city-shaped Commons set. This costs a little more
+  // during the one-time materialization pass but dramatically improves visual relevance.
+  try {
+    pool = uniqueMedia([
+      ...pool,
+      ...await commonsSearch(`${canonical} ${country} skyline panorama cityscape downtown waterfront`, 14),
+    ]);
+  } catch (error) {
+    console.log(`    Commons skyline search failed: ${error.message}`);
   }
+  try {
+    pool = uniqueMedia([
+      ...pool,
+      ...await commonsSearch(`${canonical} ${country} landmark architecture square street waterfront park`, 14),
+    ]);
+  } catch (error) {
+    console.log(`    Commons landmark search failed: ${error.message}`);
+  }
+
   if (pool.length < 2) {
     try { pool = uniqueMedia([...pool, ...await commonsSearch(`${canonical} ${country}`, 30)]) }
     catch (error) { console.log(`    Commons broad search failed: ${error.message}`); }
@@ -309,7 +329,7 @@ const entries = (await readdir(root, { withFileTypes: true }))
 
 if (entries.length !== 90) throw new Error(`Expected exactly 90 city directories, found ${entries.length}`);
 
-const manifest = { version: 1, generatedAt: new Date().toISOString(), cities: {} };
+const manifest = { version: 2, generatedAt: new Date().toISOString(), qualityPolicy: "destination-scenes-v2", cities: {} };
 const failures = [];
 
 for (let index = 0; index < entries.length; index += 1) {
@@ -325,7 +345,7 @@ for (let index = 0; index < entries.length; index += 1) {
 
   if (!primary || !secondary) {
     try {
-      const extra = await commonsSearch(`${canonical} ${country} landmark street waterfront panorama`, 30);
+      const extra = await commonsSearch(`${canonical} ${country} landmark street waterfront panorama historic architecture`, 30);
       const expanded = uniqueMedia([...pool, ...extra]);
       primary ||= pick(expanded, canonical, 0);
       secondary ||= pick(expanded, canonical, 1, new Set(primary ? [sourceOf(primary)] : []));
@@ -354,11 +374,11 @@ for (let index = 0; index < entries.length; index += 1) {
 }
 
 if (failures.length) {
-  console.error("\nUnable to materialize two distinct photos for every city:");
+  console.error("\nUnable to materialize two distinct destination photos for every city:");
   console.error(JSON.stringify(failures, null, 2));
   process.exit(1);
 }
 
 if (Object.keys(manifest.cities).length !== 90) throw new Error("Generated media manifest is incomplete");
 await writeFile(outPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-console.log(`\nMaterialized 90 cities / 180 distinct public photo slots into ${path.relative(process.cwd(), outPath)}. ✅`);
+console.log(`\nMaterialized 90 cities / 180 destination-photo slots into ${path.relative(process.cwd(), outPath)}. ✅`);
