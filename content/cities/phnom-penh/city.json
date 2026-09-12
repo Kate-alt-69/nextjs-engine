@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "phnom-penh",
+  "name": "Phnom Penh",
+  "country": "Camboya",
+  "continent": "Asia",
+  "summary": "Phnom Penh, capital de Camboya, se despliega en la confluencia de los ríos Mekong, Tonlé Sap y Bassac, con un paseo fluvial que concentra templos dorados como el Palacio Real y una vida urbana intensa pero mucho más asequible que Bangkok o Ho Chi Minh. El coste de vida es de los más bajos del sudeste asiático y el dólar estadounidense circula junto al riel local, lo que simplifica la vida cotidiana a los extranjeros. La infraestructura y la seguridad viaria son irregulares, y la ciudad carece del pulimento turístico de sus vecinas: Angkor Wat, de hecho, está en Siem Reap, a varias horas de distancia, no aquí.",
+  "strengths": ["Coste de vida bajoKHR 537/mes — 37% por debajo de la media de las 95 ciudades"],
+  "considerations": ["Internet por debajo de la media49 Mbps frente a una media de 173 Mbps","Seguridad por debajo de la mediaÍndice de seguridad 5.1/10 frente a una media de 5.9/10","Calidad de vida por debajo de la media3.6/10 frente a una media de 6.9/10"],
+  "sourceUrl": "https://www.roavio.es/cities/phnom-penh",
+  "sourceTitle": "Phnom Penh, Camboya para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {"cost":"KHR 537/mo","internet":49,"safety":5.1,"quality":3.6,"beach":null}
+}

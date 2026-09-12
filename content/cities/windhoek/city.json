@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "windhoek",
+  "name": "Windhoek",
+  "country": "Namibia",
+  "continent": "África",
+  "summary": "Windhoek es una capital atípica en África: limpia, ordenada y asentada a 1.650 metros de altitud en una meseta semiárida, con calles amplias y una marcada herencia arquitectónica alemana visible en edificios como la Christuskirche. La inseguridad es su gran contrapunto: Numbeo la sitúa entre las ciudades con percepción de criminalidad más alta del continente, con robos en vivienda y atracos como principal preocupación de los residentes, mientras que el coste de vida bajo y un clima seco y templado casi todo el año compensan parte de esa cifra. El nomadismo digital aquí es todavía incipiente: apenas hay coworkings formales y la velocidad de internet del país está entre las más lentas de África.",
+  "strengths": ["Coste de vida bajoNAD 686/mes — 20% por debajo de la media de las 95 ciudades","Alta calidad de vida7.8/10, por encima de la media (6.9/10)"],
+  "considerations": ["Internet por debajo de la media17 Mbps frente a una media de 173 Mbps","Seguridad por debajo de la mediaÍndice de seguridad 3.2/10 frente a una media de 5.9/10"],
+  "sourceUrl": "https://www.roavio.es/cities/windhoek",
+  "sourceTitle": "Windhoek, Namibia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {"cost":"NAD 686/mo","internet":17,"safety":3.2,"quality":7.8,"beach":null}
+}

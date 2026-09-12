@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "cartagena",
+  "name": "Cartagena",
+  "country": "Colombia",
+  "continent": "América",
+  "summary": "Cartagena de Indias combina un centro histórico amurallado declarado Patrimonio de la Humanidad por la UNESCO con playas caribeñas a pocos minutos, aunque el calor húmedo casi constante (30°C o más todo el año) y la masificación turística en temporada alta pueden pesar tanto como su encanto colonial. Es una de las ciudades con mejor percepción de seguridad del Caribe colombiano, pero su infraestructura sanitaria y de banda ancha aún va por detrás de Medellín o Bogotá. Sus murallas de piedra, construidas en el siglo XVI para repeler ataques piratas, siguen en pie casi cuatro siglos después.",
+  "strengths": ["Coste de vida bajoCOP 680/mes — 20% por debajo de la media de las 95 ciudades","Internet rápido207 Mbps — 20% por encima de la media (173 Mbps)","Acceso a playaLa ciudad cuenta con playa"],
+  "considerations": ["Seguridad por debajo de la mediaÍndice de seguridad 4.8/10 frente a una media de 5.9/10","Calidad de vida por debajo de la media4.5/10 frente a una media de 6.9/10"],
+  "sourceUrl": "https://www.roavio.es/cities/cartagena",
+  "sourceTitle": "Cartagena, Colombia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {"cost":"COP 680/mo","internet":207,"safety":4.8,"quality":4.5,"beach":true}
+}

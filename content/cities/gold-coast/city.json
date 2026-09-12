@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "gold-coast",
+  "name": "Gold Coast",
+  "country": "Australia",
+  "continent": "Oceanía",
+  "summary": "Gold Coast, al sur de Brisbane, es la ciudad de playa por excelencia de Australia: 57 km de costa dorada, el perfil de rascacielos de Surfers Paradise y un ambiente marcadamente más informal que Sídney o Melbourne. El coste de vida es algo menor que en las grandes metrópolis australianas y la seguridad es moderada, no excepcional. Su gran punto débil frente a otras ciudades del catálogo es la escena de coworking, todavía pequeña y concentrada en Burleigh Heads.",
+  "strengths": ["Alta calidad de vida9.6/10, por encima de la media (6.9/10)","Acceso a playaLa ciudad cuenta con playa"],
+  "considerations": ["Coste de vida altoAUD 995/mes — 17% por encima de la media"],
+  "sourceUrl": "https://www.roavio.es/cities/gold-coast",
+  "sourceTitle": "Gold Coast, Australia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {"cost":"AUD 995/mo","internet":null,"safety":null,"quality":9.6,"beach":true}
+}

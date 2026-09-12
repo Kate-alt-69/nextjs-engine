@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "zagreb",
+  "name": "Zagreb",
+  "country": "Croacia",
+  "continent": "Europa",
+  "summary": "Zagreb, la capital de Croacia, sorprende a quienes esperaban solo una escala hacia la costa dálmata: tiene un centro histórico austrohúngaro con tranvías centenarios, la llamativa techumbre de mosaico de la Iglesia de San Marcos y una vida de café en terraza que rivaliza con Viena, todo a precios notablemente más bajos. El coste de vida es bajo para estándares de la UE y el euro (desde 2023) facilita los cálculos, aunque la ciudad es de interior: no hay playa, y el Adriático queda a varias horas por carretera. El invierno es frío y gris, así que la mejor ventana para vivir y trabajar allí va de mayo a septiembre.",
+  "strengths": ["Alta seguridadÍndice de seguridad 7.9/10, por encima de la media (5.9/10)","Alta calidad de vida8.8/10, por encima de la media (6.9/10)"],
+  "considerations": ["Internet por debajo de la media113 Mbps frente a una media de 173 Mbps"],
+  "sourceUrl": "https://www.roavio.es/cities/zagreb",
+  "sourceTitle": "Zagreb, Croacia para nómadas digitales | Roavio",
+  "hasDeepGuide": false,
+  "scrapedMetrics": {"cost":null,"internet":113,"safety":7.9,"quality":8.8,"beach":false}
+}
