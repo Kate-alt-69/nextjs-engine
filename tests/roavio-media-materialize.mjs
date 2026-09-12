@@ -3,65 +3,16 @@ import path from "node:path";
 
 const root = path.resolve(process.cwd(), "content/cities");
 const outPath = path.resolve(process.cwd(), "app/roavio/city-media.generated.json");
-const userAgent = "RoavioProposal/1.0 (https://github.com/Kate-alt-69/nextjs-engine; public city media materializer)";
+const officialPath = path.resolve(process.cwd(), "app/roavio/official-city-images.generated.json");
 const pauseMs = Math.max(100, Number(process.env.ROAVIO_MEDIA_PAUSE_MS || 180));
 const retryLimit = Math.max(2, Number(process.env.ROAVIO_MEDIA_RETRIES || 5));
+const userAgent = "RoavioProposal/1.0 (secondary destination media resolver)";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// A destination card should read as the destination itself. Reject media that is
-// technically related to a city but visually represents an event, object, person,
-// diagram, disaster, vehicle, meal, or archival/documentary subject instead.
-const rejectMedia = /\b(flag|bandera|bandiera|drapeau|fahne|map|locator|location|seal|sello|escudo|coat[ _-]?of[ _-]?arms|logo|icon|diagram|route|metro[ _-]?map|subway[ _-]?map|districts?|boroughs?|portrait|player|athlete|politician|mayor|president|football|soccer|rugby|cricket|baseball|basketball|tennis|golf|marathon|runner|race|team|jersey|medal|election|signature|stadium|estadi|estadio|stade|stadion|stadio|arena|olympics?|olimpic|sports?|sporting|food|comida|dish|meal|cuisine|soup|stew|noodles?|rice|soto|dessert|cake|sandwich|plate|plato|drawing|dibujo|sketch|illustration|ilustracion|painting|engraving|grabado|lithograph|poster|manuscript|stamp|coin|banknote|satellite|airport|aeropuerto|runway|aircraft|airplane|helicopter|species|specimen|shell|mollusc|mollusk|insect|bird|fish|animal|plant|flower|fossil|herbarium|botanical|zoological|beetle|butterfly|war|battle|military|army|navy|air[ _-]?force|fighter|soldiers?|troops?|airshow|black[ _-]?knight|dead|death|outbreak|epidemic|pandemic|covid|riot|protest|disaster|wildfire|flood|earthquake|crash|accident|cruise[ _-]?ship|wildlife|giraffe)\b/i;
-const weakMedia = /\b(bus|taxi|car|vehicle|parking|terminal|road[ _-]?sign|signage|bike|bicycle|citybike|smog|dusty)\b/i;
-const archivalHint = /(?:18|19)\d{2}|black[ _-]?and[ _-]?white|histor(?:ic|ical)[ _-]?(?:photo|photograph)|archiv(?:e|al)?|bundesarchiv/i;
-const primaryHint = /\b(skyline|cityscape|panorama|panoramic|aerial|downtown|waterfront|harbou?r|corniche|bay|urban|old[ _-]?town|historic[ _-]?(?:centre|center)|river|canal|coast|beach|city[ _-]?view|view[ _-]?of)\b/i;
-const secondaryHint = /\b(street|avenue|boulevard|architecture|landmark|monument|tower|mosque|cathedral|church|temple|palace|castle|fort|museum|square|plaza|bridge|gate|old[ _-]?town|historic|heritage|waterfront|marina|corniche|promenade|market|bazaar|garden|park|beach)\b/i;
-
-const aliases = {
-  "abu dabi": "Abu Dhabi",
-  "addis abeba": "Addis Ababa",
-  aman: "Amman",
-  amsterdam: "Amsterdam",
-  atenas: "Athens",
-  belgrado: "Belgrade",
-  "ciudad de mexico": "Mexico City",
-  "ciudad del cabo": "Cape Town",
-  copenhague: "Copenhagen",
-  cracovia: "Kraków",
-  dubai: "Dubai",
-  dublin: "Dublin",
-  "el cairo": "Cairo",
-  estambul: "Istanbul",
-  florencia: "Florence",
-  hanoi: "Hanoi",
-  "ho chi minh": "Ho Chi Minh City",
-  liubliana: "Ljubljana",
-  londres: "London",
-  mascate: "Muscat",
-  milan: "Milan",
-  munich: "Munich",
-  oporto: "Porto",
-  panama: "Panama City",
-  pekin: "Beijing",
-  praga: "Prague",
-  "rio de janeiro": "Rio de Janeiro",
-  roma: "Rome",
-  seul: "Seoul",
-  sevilla: "Seville",
-  shanghai: "Shanghai",
-  sidney: "Sydney",
-  singapur: "Singapore",
-  sofia: "Sofia",
-  taipei: "Taipei",
-  tallin: "Tallinn",
-  tiflis: "Tbilisi",
-  tokio: "Tokyo",
-  varsovia: "Warsaw",
-  viena: "Vienna",
-  yakarta: "Jakarta",
-  zanzibar: "Zanzibar City",
-};
+const rejectMedia = /\b(flag|map|locator|seal|logo|icon|diagram|portrait|football|soccer|rugby|cricket|baseball|basketball|tennis|golf|stadium|arena|olympics?|sports?|food|dish|meal|cuisine|soup|stew|noodles?|rice|dessert|cake|sandwich|plate|drawing|sketch|illustration|painting|engraving|poster|manuscript|stamp|coin|banknote|satellite|airport|runway|aircraft|airplane|helicopter|species|specimen|shell|insect|bird|fish|animal|plant|flower|fossil|war|battle|military|army|navy|fighter|soldiers?|troops?|airshow|dead|death|outbreak|epidemic|pandemic|covid|riot|protest|disaster|wildfire|flood|earthquake|crash|accident|cruise[ _-]?ship|wildlife)\b/i;
+const weakMedia = /\b(bus|taxi|car|vehicle|parking|terminal|road[ _-]?sign|signage|bike|bicycle|smog|dusty)\b/i;
+const goodSecondary = /\b(skyline|cityscape|panorama|panoramic|aerial|downtown|waterfront|harbou?r|bay|urban|old[ _-]?town|historic|river|canal|coast|beach|street|avenue|architecture|landmark|monument|tower|mosque|cathedral|church|temple|palace|castle|fort|museum|square|plaza|bridge|gate|heritage|marina|promenade|market|bazaar|garden|park)\b/i;
 
 function folded(value) {
   return String(value || "")
@@ -72,50 +23,8 @@ function folded(value) {
     .trim();
 }
 
-function canonicalCity(city) {
-  return aliases[folded(city)] || city;
-}
-
-function mediaIdentity(item) {
-  return folded(item?.title || "")
-    .replace(/^file:\s*/, "")
-    .replace(/\.(?:jpe?g|png|webp|avif)$/i, "")
-    .replace(/\b(?:cropped?|copy|copie|edited?|edit)\b/g, "")
-    .replace(/[()[\]]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-async function fetchJson(url, attempt = 0) {
-  let response;
-  try {
-    response = await fetch(url, {
-      headers: { Accept: "application/json", "User-Agent": userAgent },
-    });
-  } catch (error) {
-    if (attempt >= retryLimit) throw error;
-    await sleep(Math.min(8000, 500 * (2 ** attempt)));
-    return fetchJson(url, attempt + 1);
-  }
-
-  if ((response.status === 429 || response.status >= 500) && attempt < retryLimit) {
-    const retryAfter = Number(response.headers.get("retry-after") || 0) * 1000;
-    const wait = Math.max(retryAfter, Math.min(8000, 500 * (2 ** attempt)));
-    console.log(`  upstream ${response.status}; retrying in ${wait}ms`);
-    await sleep(wait);
-    return fetchJson(url, attempt + 1);
-  }
-
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-  const json = await response.json();
-  await sleep(pauseMs);
-  return json;
-}
-
-function usefulAspect(width, height) {
-  if (!width || !height) return true;
-  const ratio = width / height;
-  return ratio >= 0.9 && ratio <= 3.4;
+function sourceOf(item) {
+  return item?.thumburl || item?.url || null;
 }
 
 function usableInfo(info) {
@@ -123,77 +32,37 @@ function usableInfo(info) {
   if (info.mime && !/^image\/(?:jpeg|png|webp|avif)$/i.test(info.mime)) return false;
   const width = info.thumbwidth || info.width || 0;
   const height = info.thumbheight || info.height || 0;
-  if (width && width < 480) return false;
-  if (height && height < 260) return false;
-  if (!usefulAspect(width, height)) return false;
+  if (width && width < 640) return false;
+  if (height && height < 320) return false;
+  if (width && height) {
+    const ratio = width / height;
+    if (ratio < 0.95 || ratio > 3.2) return false;
+  }
   return Boolean(info.thumburl || info.url);
 }
 
-function sourceOf(item) {
-  return item?.thumburl || item?.url || item?.source || null;
-}
-
-async function exactArticle(language, title) {
-  const params = new URLSearchParams({
-    action: "query",
-    titles: title,
-    redirects: "1",
-    prop: "pageimages|images",
-    piprop: "thumbnail|name",
-    pithumbsize: "1600",
-    imlimit: "100",
-    format: "json",
-    formatversion: "2",
-    origin: "*",
-  });
-  const data = await fetchJson(`https://${language}.wikipedia.org/w/api.php?${params}`);
-  return data.query?.pages?.find((page) => !page.missing && page.ns === 0) || null;
-}
-
-async function searchArticles(language, query) {
-  const params = new URLSearchParams({
-    action: "query",
-    generator: "search",
-    gsrsearch: query,
-    gsrnamespace: "0",
-    gsrlimit: "5",
-    prop: "pageimages|images",
-    piprop: "thumbnail|name",
-    pithumbsize: "1600",
-    imlimit: "80",
-    format: "json",
-    formatversion: "2",
-    origin: "*",
-  });
-  const data = await fetchJson(`https://${language}.wikipedia.org/w/api.php?${params}`);
-  return data.query?.pages || [];
-}
-
-async function commonsInfo(titles) {
-  const output = [];
-  const uniqueTitles = [...new Set(titles)].filter(Boolean);
-  for (let start = 0; start < uniqueTitles.length; start += 40) {
-    const batch = uniqueTitles.slice(start, start + 40);
-    const params = new URLSearchParams({
-      action: "query",
-      titles: batch.join("|"),
-      prop: "imageinfo",
-      iiprop: "url|mime|size",
-      iiurlwidth: "1600",
-      format: "json",
-      formatversion: "2",
-      origin: "*",
+async function fetchJson(url, attempt = 0) {
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: "application/json", "User-Agent": userAgent },
     });
-    const data = await fetchJson(`https://commons.wikimedia.org/w/api.php?${params}`);
-    for (const page of data.query?.pages || []) {
-      const info = page.imageinfo?.[0];
-      if (page.title && usableInfo(info)) output.push({ title: page.title, ...info });
+    if ((response.status === 429 || response.status >= 500) && attempt < retryLimit) {
+      const retryAfter = Number(response.headers.get("retry-after") || 0) * 1000;
+      await sleep(Math.max(retryAfter, Math.min(10_000, 600 * (2 ** attempt))));
+      return fetchJson(url, attempt + 1);
     }
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+    const json = await response.json();
+    await sleep(pauseMs);
+    return json;
+  } catch (error) {
+    if (attempt >= retryLimit) throw error;
+    await sleep(Math.min(10_000, 600 * (2 ** attempt)));
+    return fetchJson(url, attempt + 1);
   }
-  return output;
 }
 
-async function commonsSearch(query, limit = 18) {
+async function commonsSearch(query, limit = 24) {
   const params = new URLSearchParams({
     action: "query",
     generator: "search",
@@ -209,201 +78,105 @@ async function commonsSearch(query, limit = 18) {
   });
   const data = await fetchJson(`https://commons.wikimedia.org/w/api.php?${params}`);
   return (data.query?.pages || [])
-    .map((page) => ({ title: page.title, ...(page.imageinfo?.[0] || {}) }))
+    .map((page) => ({ title: page.title || "", ...(page.imageinfo?.[0] || {}) }))
     .filter((item) => usableInfo(item));
 }
 
-function titleScore(item, city, slot) {
+function score(item, city) {
   const title = item.title || "";
   if (rejectMedia.test(title) || /\.svg(?:$|\?)/i.test(title)) return -1000;
-
   const normalized = folded(title);
-  const normalizedCity = folded(city);
-  let score = 0;
-  if (normalized.includes(normalizedCity)) score += 24;
-  if (slot === 0 && primaryHint.test(normalized)) score += 20;
-  if (slot === 1 && secondaryHint.test(normalized)) score += 22;
-  if (slot === 1 && primaryHint.test(normalized)) score += 3;
-  if (slot === 0 && secondaryHint.test(normalized)) score += 4;
-  if (weakMedia.test(normalized)) score -= slot === 0 ? 38 : 24;
-  if (archivalHint.test(normalized)) score -= slot === 0 ? 52 : 24;
-
+  let value = 0;
+  if (normalized.includes(folded(city))) value += 30;
+  if (goodSecondary.test(normalized)) value += 20;
+  if (weakMedia.test(normalized)) value -= 32;
   const width = item.thumbwidth || item.width || 0;
   const height = item.thumbheight || item.height || 0;
-  if (width >= 1200) score += 4;
-  if (width && height && width / height >= 1.15 && width / height <= 2.5) score += 5;
-  return score;
+  if (width >= 1200) value += 5;
+  if (width && height && width / height >= 1.15 && width / height <= 2.5) value += 5;
+  return value;
 }
 
-function uniqueMedia(items) {
-  const output = [];
-  const seenSources = new Set();
-  const seenIdentities = new Set();
-  for (const item of items) {
-    const source = sourceOf(item);
-    const identity = mediaIdentity(item);
-    if (!source || seenSources.has(source)) continue;
-    if (identity && seenIdentities.has(identity)) continue;
-    if (rejectMedia.test(item.title || "") || /\.svg(?:$|\?)/i.test(item.title || "")) continue;
-    seenSources.add(source);
-    if (identity) seenIdentities.add(identity);
-    output.push(item);
-  }
-  return output;
-}
+async function resolveSecondary(city, country) {
+  const queries = [
+    `${city} ${country} skyline cityscape panorama waterfront architecture`,
+    `${city} ${country} landmark street square historic park`,
+    `${city} ${country}`,
+  ];
+  const seen = new Set();
+  const candidates = [];
 
-function pick(items, city, slot, excluded = new Set()) {
-  return items
-    .filter((item) => !excluded.has(sourceOf(item)))
-    .map((item) => ({ item, score: titleScore(item, city, slot) }))
-    .filter((entry) => entry.score >= 8)
-    .sort((a, b) => b.score - a.score)[0]?.item || null;
-}
-
-async function buildPool(city, country) {
-  const canonical = canonicalCity(city);
-  const pages = [];
-
-  for (const language of ["en", "es"]) {
-    for (const title of [...new Set([canonical, city])]) {
-      try {
-        const page = await exactArticle(language, title);
-        if (page) pages.push({ language, page });
-      } catch (error) {
-        console.log(`    ${language}:${title} exact lookup failed: ${error.message}`);
-      }
+  for (const query of queries) {
+    const items = await commonsSearch(query);
+    for (const item of items) {
+      const source = sourceOf(item);
+      if (!source || seen.has(source) || rejectMedia.test(item.title || "")) continue;
+      seen.add(source);
+      candidates.push(item);
     }
-    if (pages.some(({ page }) => page.thumbnail?.source)) break;
+    const best = candidates
+      .map((item) => ({ item, score: score(item, city) }))
+      .filter((entry) => entry.score >= 20)
+      .sort((a, b) => b.score - a.score)[0]?.item;
+    if (best) return best;
   }
-
-  if (!pages.length) {
-    for (const language of ["en", "es"]) {
-      try {
-        const found = await searchArticles(language, `${canonical} ${country}`);
-        pages.push(...found.map((page) => ({ language, page })));
-      } catch (error) {
-        console.log(`    ${language} article search failed: ${error.message}`);
-      }
-      if (pages.length) break;
-    }
-  }
-
-  const media = [];
-  for (const { page } of pages.slice(0, 4)) {
-    if (page.thumbnail?.source && page.pageimage && !rejectMedia.test(page.pageimage) && !/\.svg$/i.test(page.pageimage)) {
-      media.push({
-        title: page.pageimage,
-        source: page.thumbnail.source,
-        width: page.thumbnail.width,
-        height: page.thumbnail.height,
-      });
-    }
-  }
-
-  const imageTitles = pages
-    .slice(0, 3)
-    .flatMap(({ page }) => page.images || [])
-    .map((image) => image.title)
-    .filter(Boolean)
-    .filter((title) => !rejectMedia.test(title) && !/\.svg$/i.test(title));
-  if (imageTitles.length) {
-    try { media.push(...await commonsInfo(imageTitles.slice(0, 80))); }
-    catch (error) { console.log(`    Commons imageinfo failed: ${error.message}`); }
-  }
-
-  let pool = uniqueMedia(media);
-
-  try {
-    pool = uniqueMedia([
-      ...pool,
-      ...await commonsSearch(`${canonical} ${country} skyline panorama cityscape downtown waterfront`, 14),
-    ]);
-  } catch (error) {
-    console.log(`    Commons skyline search failed: ${error.message}`);
-  }
-  try {
-    pool = uniqueMedia([
-      ...pool,
-      ...await commonsSearch(`${canonical} ${country} landmark architecture square street waterfront park`, 14),
-    ]);
-  } catch (error) {
-    console.log(`    Commons landmark search failed: ${error.message}`);
-  }
-
-  if (pool.length < 2) {
-    try { pool = uniqueMedia([...pool, ...await commonsSearch(`${canonical} ${country}`, 30)]); }
-    catch (error) { console.log(`    Commons broad search failed: ${error.message}`); }
-  }
-
-  return { canonical, pool };
+  return null;
 }
+
+const [official, previous] = await Promise.all([
+  readFile(officialPath, "utf8").then(JSON.parse),
+  readFile(outPath, "utf8").then(JSON.parse).catch(() => ({ cities: {} })),
+]);
 
 const entries = (await readdir(root, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory() && entry.name !== "_template" && !entry.name.startsWith("."))
   .map((entry) => entry.name)
   .sort();
+const expected = Object.keys(official.cities || {}).length;
+if (!expected || entries.length !== expected) {
+  throw new Error(`Catalog/source mismatch: ${entries.length} city directories vs ${expected} official image entries`);
+}
 
-if (entries.length !== 90) throw new Error(`Expected exactly 90 city directories, found ${entries.length}`);
-
-const manifest = { version: 4, generatedAt: new Date().toISOString(), qualityPolicy: "destination-scenes-v4", cities: {} };
-const failures = [];
+const manifest = {
+  version: 5,
+  generatedAt: new Date().toISOString(),
+  qualityPolicy: "roavio-official-primary+audited-secondary-v2",
+  cities: {},
+};
 
 for (let index = 0; index < entries.length; index += 1) {
   const slug = entries[index];
-  const cityData = JSON.parse(await readFile(path.join(root, slug, "city.json"), "utf8"));
-  const city = cityData.name;
-  const country = cityData.country;
-
-  console.log(`${String(index + 1).padStart(2, "0")}/90 ${slug} (${city}, ${country})`);
-  const { canonical, pool } = await buildPool(city, country);
-  let primary = pick(pool, canonical, 0);
-  let secondary = pick(pool, canonical, 1, new Set(primary ? [sourceOf(primary)] : []));
-
-  if (!primary || !secondary) {
-    try {
-      const extra = await commonsSearch(`${canonical} ${country} landmark street waterfront panorama historic architecture`, 30);
-      const expanded = uniqueMedia([...pool, ...extra]);
-      primary ||= pick(expanded, canonical, 0);
-      secondary ||= pick(expanded, canonical, 1, new Set(primary ? [sourceOf(primary)] : []));
-    } catch (error) {
-      console.log(`    final Commons fallback failed: ${error.message}`);
-    }
+  const profile = JSON.parse(await readFile(path.join(root, slug, "city.json"), "utf8"));
+  const primary = official.cities?.[slug];
+  if (typeof primary !== "string" || !primary.startsWith("https://images.unsplash.com/")) {
+    throw new Error(`Missing official Roavio primary image for ${slug}`);
   }
 
-  const primarySource = sourceOf(primary);
-  const secondarySource = sourceOf(secondary);
-  const sameIdentity = primary && secondary && mediaIdentity(primary) === mediaIdentity(secondary);
-  if (!primarySource || !secondarySource || primarySource === secondarySource || sameIdentity) {
-    failures.push({
-      slug,
-      city,
-      country,
-      candidates: pool.length,
-      primary: Boolean(primarySource),
-      secondary: Boolean(secondarySource),
-      duplicateIdentity: Boolean(sameIdentity),
-    });
-    console.log(`    MISSING — ${pool.length} usable candidates`);
-    continue;
+  const old = previous.cities?.[slug];
+  let secondary = typeof old?.secondarySource === "string" && old.secondarySource.startsWith("https://")
+    ? { source: old.secondarySource, title: old.secondaryTitle || "Audited destination scene" }
+    : typeof old?.secondary === "string" && old.secondary.startsWith("https://")
+      ? { source: old.secondary, title: old.secondaryTitle || "Audited destination scene" }
+      : null;
+
+  if (!secondary) {
+    console.log(`${String(index + 1).padStart(2, "0")}/${expected} ${slug}: resolving secondary scene`);
+    const resolved = await resolveSecondary(profile.name, profile.country);
+    if (!resolved) throw new Error(`Unable to resolve secondary city scene for ${slug}`);
+    secondary = { source: sourceOf(resolved), title: resolved.title || "Destination scene" };
+  } else {
+    console.log(`${String(index + 1).padStart(2, "0")}/${expected} ${slug}: reusing audited secondary`);
   }
 
   manifest.cities[slug] = {
-    city,
-    country,
-    primary: primarySource,
-    secondary: secondarySource,
-    primaryTitle: primary.title || null,
-    secondaryTitle: secondary.title || null,
+    city: profile.name,
+    country: profile.country,
+    primary,
+    secondary: secondary.source,
+    primaryTitle: "Roavio official city image",
+    secondaryTitle: secondary.title,
   };
-  console.log(`    ok — ${primary.title || "primary"} / ${secondary.title || "secondary"}`);
 }
 
-if (failures.length) {
-  console.error("\nUnable to materialize two distinct destination photos for every city:");
-  console.error(JSON.stringify(failures, null, 2));
-  process.exit(1);
-}
-
-if (Object.keys(manifest.cities).length !== 90) throw new Error("Generated media manifest is incomplete");
 await writeFile(outPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-console.log(`\nMaterialized 90 cities / 180 destination-photo slots into ${path.relative(process.cwd(), outPath)}. ✅`);
+console.log(`\nMaterialized ${expected} cities / ${expected * 2} photo slots using Roavio primary images. ✅`);
