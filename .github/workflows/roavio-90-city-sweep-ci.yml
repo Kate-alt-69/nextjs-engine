@@ -11,7 +11,7 @@ permissions:
 jobs:
   sweep:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,6 +34,23 @@ jobs:
           git add app/roavio/city-media.generated.json
           if ! git diff --cached --quiet; then
             git commit -m "content: materialized Roavio city media"
+            git push origin HEAD:proposal/roavio-ne
+          fi
+      - name: Bundle selected city photos locally
+        if: contains(github.event.head_commit.message, 'bundle Roavio media')
+        env:
+          ROAVIO_BUNDLE_PAUSE_MS: "160"
+          ROAVIO_BUNDLE_RETRIES: "8"
+        run: node tests/roavio-media-bundle.mjs
+      - name: Commit bundled city media
+        if: contains(github.event.head_commit.message, 'bundle Roavio media')
+        shell: bash
+        run: |
+          git config user.name "Kate"
+          git config user.email "dhwanksh2000@gmail.com"
+          git add app/roavio/city-media.generated.json public/city-media
+          if ! git diff --cached --quiet; then
+            git commit -m "content: bundled Roavio city media"
             git push origin HEAD:proposal/roavio-ne
           fi
       - name: Install dependencies
