@@ -1,0 +1,45 @@
+name: Roavio 90-city sweep
+
+on:
+  push:
+    branches:
+      - proposal/roavio-ne
+
+jobs:
+  sweep:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: proposal/roavio-ne
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Type check
+        run: npm run type-check
+      - name: Production build
+        run: npx next build
+      - name: Start production server
+        shell: bash
+        run: |
+          (npm run start -- -p 3100 > /tmp/roavio-next.log 2>&1 & echo $! > /tmp/roavio-next.pid)
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3100/cities >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/roavio-next.log
+          exit 1
+      - name: Sweep all 90 city routes and both photo slots
+        env:
+          ROAVIO_BASE_URL: http://127.0.0.1:3100
+          ROAVIO_SWEEP_CONCURRENCY: "3"
+          ROAVIO_SWEEP_TIMEOUT_MS: "20000"
+        run: node tests/roavio-city-sweep.mjs
+      - name: Print server log on failure
+        if: failure()
+        run: cat /tmp/roavio-next.log || true
