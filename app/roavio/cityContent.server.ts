@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { cities, citySlug } from "./cities";
 import type { CityCatalogEntry } from "./catalog";
+import type { RoavioLocale } from "./i18n";
 
 export interface CityMetrics {
   cost: string | null;
@@ -66,14 +67,22 @@ async function readText(filePath: string): Promise<string | null> {
   }
 }
 
-async function readProfile(slug: string): Promise<ScrapedProfile | null> {
-  const source = await readText(path.join(contentRoot, slug, "city.json"));
+async function readProfileFile(slug: string, fileName: string): Promise<ScrapedProfile | null> {
+  const source = await readText(path.join(contentRoot, slug, fileName));
   if (!source) return null;
   try {
     return JSON.parse(source) as ScrapedProfile;
   } catch (error) {
-    throw new Error(`[roavio] invalid city.json for ${slug}: ${(error as Error).message}`);
+    throw new Error(`[roavio] invalid ${fileName} for ${slug}: ${(error as Error).message}`);
   }
+}
+
+async function readProfile(slug: string, locale: RoavioLocale = "es"): Promise<ScrapedProfile | null> {
+  if (locale === "en") {
+    const english = await readProfileFile(slug, "city.en.json");
+    if (english) return english;
+  }
+  return readProfileFile(slug, "city.json");
 }
 
 function mergeMetrics(profile: ScrapedProfile | null, slug: string): CityMetrics {
@@ -107,7 +116,7 @@ function catalogEntry(slug: string, profile: ScrapedProfile | null): CityCatalog
 }
 
 async function loadCatalogEntries(slugs: readonly string[]): Promise<CityCatalogEntry[]> {
-  const profiles = await Promise.all(slugs.map((slug) => readProfile(slug)));
+  const profiles = await Promise.all(slugs.map((slug) => readProfile(slug, "es")));
   return slugs
     .map((slug, index) => catalogEntry(slug, profiles[index] ?? null))
     .filter((city): city is CityCatalogEntry => city !== null)
@@ -119,12 +128,14 @@ export async function getCitySlugs(): Promise<string[]> {
   return Array.from(new Set([...contentSlugs, ...metricBySlug.keys()])).sort();
 }
 
-export async function loadCityContent(slug: string): Promise<CityContent | null> {
-  const profile = await readProfile(slug);
+export async function loadCityContent(slug: string, locale: RoavioLocale = "es"): Promise<CityContent | null> {
+  const profile = await readProfile(slug, locale);
   const metricCity = metricBySlug.get(slug);
   if (!profile && !metricCity) return null;
 
-  const guide = (await readText(path.join(contentRoot, slug, "guide.md")))?.trim() ?? "";
+  const localizedGuide = await readText(path.join(contentRoot, slug, `guide.${locale}.md`));
+  const fallbackGuide = localizedGuide ?? await readText(path.join(contentRoot, slug, "guide.md"));
+  const guide = fallbackGuide?.trim() ?? "";
   const metrics = mergeMetrics(profile, slug);
 
   return {
