@@ -2,106 +2,68 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const manifestPath = path.resolve(process.cwd(), "app/roavio/city-media.generated.json");
+const officialPath = path.resolve(process.cwd(), "app/roavio/official-city-images.generated.json");
 const outputDir = path.resolve(process.cwd(), "public/city-media");
-const userAgent = "RoavioProposal/1.0 (https://github.com/Kate-alt-69/nextjs-engine; city media bundler)";
+const userAgent = "RoavioProposal/1.0 (local city media bundler)";
 const pauseMs = Math.max(80, Number(process.env.ROAVIO_BUNDLE_PAUSE_MS || 140));
 const retryLimit = Math.max(3, Number(process.env.ROAVIO_BUNDLE_RETRIES || 7));
 const maxBytes = 6 * 1024 * 1024;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function resizedWikimediaUrl(source, width) {
+function preferredJpegUrl(source, width) {
   const url = new URL(source);
-  url.search = "";
-  const parts = url.pathname.split("/");
-  const last = parts.at(-1) || "";
 
-  if (url.pathname.includes("/thumb/") && /^\d+px-/.test(last)) {
-    parts[parts.length - 1] = last.replace(/^\d+px-/, `${width}px-`);
-    url.pathname = parts.join("/");
+  if (url.hostname === "images.unsplash.com") {
+    url.searchParams.set("w", String(width));
+    url.searchParams.set("q", "80");
+    url.searchParams.set("fm", "jpg");
+    url.searchParams.set("fit", "max");
     return url.toString();
   }
 
-  const commonsIndex = parts.indexOf("commons");
-  if (commonsIndex >= 0 && !url.pathname.includes("/thumb/") && parts.length >= commonsIndex + 4) {
-    const filename = parts.at(-1);
-    if (filename && !/\.svg$/i.test(filename)) {
-      const prefix = parts.slice(0, commonsIndex + 1);
-      const relative = parts.slice(commonsIndex + 1);
-      url.hostname = "upload.wikimedia.org";
-      url.pathname = [...prefix, "thumb", ...relative, `${width}px-${filename}`].join("/");
-      return url.toString();
-    }
+  url.search = "";
+  const parts = url.pathname.split("/");
+  const last = parts.at(-1) || "";
+  if (url.hostname.includes("wikimedia.org") && url.pathname.includes("/thumb/") && /^\d+px-/.test(last)) {
+    parts[parts.length - 1] = last.replace(/^\d+px-/, `${width}px-`);
+    url.pathname = parts.join("/");
   }
-
   return url.toString();
 }
 
-function extensionFor(type, source) {
-  const normalized = (type || "").split(";")[0].trim().toLowerCase();
-  if (normalized === "image/jpeg") return "jpg";
-  if (normalized === "image/png") return "png";
-  if (normalized === "image/webp") return "webp";
-  if (normalized === "image/avif") return "avif";
-  const pathname = new URL(source).pathname.toLowerCase();
-  if (/\.jpe?g$/.test(pathname)) return "jpg";
-  if (/\.png$/.test(pathname)) return "png";
-  if (/\.webp$/.test(pathname)) return "webp";
-  if (/\.avif$/.test(pathname)) return "avif";
-  return "jpg";
-}
-
 async function fetchImage(source, width, attempt = 0) {
-  const preferred = resizedWikimediaUrl(source, width);
-  const candidates = preferred === source ? [preferred] : [preferred, source];
+  const preferred = preferredJpegUrl(source, width);
   let lastError;
 
-  for (const candidate of candidates) {
-    try {
-      const response = await fetch(candidate, {
-        headers: {
-          Accept: "image/avif,image/webp,image/*,*/*;q=0.7",
-          "User-Agent": userAgent,
-        },
-        redirect: "follow",
-      });
+  try {
+    const response = await fetch(preferred, {
+      headers: {
+        Accept: "image/jpeg,image/*;q=0.8,*/*;q=0.5",
+        "User-Agent": userAgent,
+      },
+      redirect: "follow",
+    });
 
-      if (response.status === 429 || response.status >= 500) {
-        lastError = new Error(`HTTP ${response.status}`);
-        continue;
-      }
-      if (!response.ok) {
-        lastError = new Error(`HTTP ${response.status}`);
-        continue;
-      }
-
-      const type = response.headers.get("content-type") || "";
-      if (!type.startsWith("image/")) {
-        lastError = new Error(`invalid content-type ${type || "<missing>"}`);
-        continue;
-      }
-
-      const declared = Number(response.headers.get("content-length") || 0);
-      if (declared > maxBytes) {
-        lastError = new Error(`declared image too large: ${declared}`);
-        continue;
-      }
-
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      if (bytes.byteLength < 500) {
-        lastError = new Error(`image too small: ${bytes.byteLength}`);
-        continue;
-      }
-      if (bytes.byteLength > maxBytes) {
-        lastError = new Error(`image too large: ${bytes.byteLength}`);
-        continue;
-      }
-
-      await sleep(pauseMs);
-      return { bytes, type, source: candidate };
-    } catch (error) {
-      lastError = error;
+    if (response.status === 429 || response.status >= 500) {
+      throw new Error(`HTTP ${response.status}`);
     }
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const type = (response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+    if (type !== "image/jpeg") throw new Error(`expected image/jpeg, got ${type || "<missing>"}`);
+
+    const declared = Number(response.headers.get("content-length") || 0);
+    if (declared > maxBytes) throw new Error(`declared image too large: ${declared}`);
+
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength < 500) throw new Error(`image too small: ${bytes.byteLength}`);
+    if (bytes.byteLength > maxBytes) throw new Error(`image too large: ${bytes.byteLength}`);
+
+    await sleep(pauseMs);
+    return { bytes, source: preferred };
+  } catch (error) {
+    lastError = error;
   }
 
   if (attempt >= retryLimit) throw lastError || new Error("download failed");
@@ -111,16 +73,22 @@ async function fetchImage(source, width, attempt = 0) {
   return fetchImage(source, width, attempt + 1);
 }
 
-const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+const [manifest, official] = await Promise.all([
+  readFile(manifestPath, "utf8").then(JSON.parse),
+  readFile(officialPath, "utf8").then(JSON.parse),
+]);
 const entries = Object.entries(manifest.cities || {});
-if (entries.length !== 90) throw new Error(`Expected 90 media entries, found ${entries.length}`);
+const expected = Object.keys(official.cities || {}).length;
+if (!expected || entries.length !== expected) {
+  throw new Error(`Media/source mismatch: ${entries.length} manifest entries vs ${expected} official city images`);
+}
 
 await rm(outputDir, { recursive: true, force: true });
 await mkdir(outputDir, { recursive: true });
 
 for (let index = 0; index < entries.length; index += 1) {
   const [slug, entry] = entries[index];
-  console.log(`${String(index + 1).padStart(2, "0")}/90 ${slug}`);
+  console.log(`${String(index + 1).padStart(2, "0")}/${expected} ${slug}`);
 
   for (const [slot, key, width] of [[0, "primary", 1280], [1, "secondary", 960]]) {
     const remote = entry[key];
@@ -129,8 +97,7 @@ for (let index = 0; index < entries.length; index += 1) {
     }
 
     const image = await fetchImage(remote, width);
-    const extension = extensionFor(image.type, image.source);
-    const filename = `${slug}-${slot}.${extension}`;
+    const filename = `${slug}-${slot}.jpg`;
     await writeFile(path.join(outputDir, filename), image.bytes);
 
     entry[`${key}Source`] = remote;
@@ -141,6 +108,6 @@ for (let index = 0; index < entries.length; index += 1) {
 }
 
 manifest.bundledAt = new Date().toISOString();
-manifest.delivery = "local-static";
+manifest.delivery = "local-static-jpeg";
 await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-console.log(`\nBundled ${entries.length * 2} city images into public/city-media. ✅`);
+console.log(`\nBundled ${entries.length * 2} JPEG city images into public/city-media. ✅`);
