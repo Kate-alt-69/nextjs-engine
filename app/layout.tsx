@@ -51,6 +51,16 @@ const THEME_BOOT = `(() => {
     document.documentElement.dataset.rvThemeSource = saved === 'dark' || saved === 'light' ? 'user' : 'system';
     document.documentElement.style.colorScheme = mode;
 
+    // Mark entrance motion before body paint so SSR cards do not flash visible,
+    // disappear during hydration, then pop back in. If hydration/controller boot
+    // fails, release the marker automatically so content can never stay hidden.
+    document.documentElement.dataset.rvMotion = 'boot';
+    window.setTimeout(() => {
+      if (document.documentElement.dataset.rvMotion === 'boot') {
+        delete document.documentElement.dataset.rvMotion;
+      }
+    }, 1800);
+
     document.addEventListener('click', (event) => {
       const target = event.target && event.target.closest ? event.target.closest('.rv-theme-toggle') : null;
       if (!target) return;
