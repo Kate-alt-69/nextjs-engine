@@ -18,17 +18,23 @@ function availableBaseScore(city: CityCatalogEntry): number {
   return weight ? weighted / weight : 0;
 }
 
-function matchScore(city: CityCatalogEntry, priority: Priority, beach: BeachPreference, region: string, speed: Speed) {
+function matchScore(city: CityCatalogEntry, priority: Priority, beach: BeachPreference, region: string) {
   let score = availableBaseScore(city);
   if (priority === "quality") score += city.quality === null ? -1 : city.quality * 0.32;
   if (priority === "safety") score += city.safety === null ? -1 : city.safety * 0.34;
   if (priority === "internet") score += city.internet === null ? -1 : Math.min(city.internet / 45, 7);
   if (region !== "any") score += city.continent === region ? 2.2 : -4.5;
   if (beach === "prefer") score += city.beach === true ? 1.25 : 0;
-  if (beach === "must") score += city.beach === true ? 2 : city.beach === false ? -8 : -3;
-  const threshold = speed === "any" ? 0 : Number(speed);
-  if (threshold) score += city.internet === null ? -1.5 : city.internet < threshold ? -4 : 1;
   return score;
+}
+
+function eligible(city: CityCatalogEntry, beach: BeachPreference, speed: Speed): boolean {
+  if (beach === "must" && city.beach !== true) return false;
+  if (speed !== "any") {
+    const threshold = Number(speed);
+    if (city.internet === null || city.internet < threshold) return false;
+  }
+  return true;
 }
 
 function Choice<T extends string>({ value, active, onClick, children }: { value: T; active: boolean; onClick: (value: T) => void; children: ReactNode }) {
@@ -50,7 +56,8 @@ export function MatchQuiz({ catalog, locale }: { catalog: CityCatalogEntry[]; lo
   const regions = useMemo(() => Array.from(new Set(catalog.map((city) => city.continent))).sort((a, b) => a.localeCompare(b, "es")), [catalog]);
 
   const matches = useMemo(() => [...catalog]
-    .map((city) => ({ city, score: matchScore(city, priority, beach, region, speed) }))
+    .filter((city) => eligible(city, beach, speed))
+    .map((city) => ({ city, score: matchScore(city, priority, beach, region) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 6), [catalog, priority, beach, region, speed]);
 
@@ -63,7 +70,7 @@ export function MatchQuiz({ catalog, locale }: { catalog: CityCatalogEntry[]; lo
         <div style={gridStyle}>
           <Choice value="balance" active={priority === "balance"} onClick={setPriority}>⚖️ {es ? "Equilibrio general" : "Balanced overall"}</Choice>
           <Choice value="quality" active={priority === "quality"} onClick={setPriority}>✨ {es ? "Calidad de vida" : "Quality of life"}</Choice>
-          <Choice value="safety" active={priority === "safety"} onClick={setSafety => setPriority(setSafety)}>🛡 {es ? "Seguridad" : "Safety"}</Choice>
+          <Choice value="safety" active={priority === "safety"} onClick={setPriority}>🛡 {es ? "Seguridad" : "Safety"}</Choice>
           <Choice value="internet" active={priority === "internet"} onClick={setPriority}>⚡ {es ? "Velocidad de internet" : "Internet speed"}</Choice>
         </div>
       </section>
@@ -93,31 +100,38 @@ export function MatchQuiz({ catalog, locale }: { catalog: CityCatalogEntry[]; lo
       </section>
 
       <div>
-        <p style={{ margin: "0 0 .7rem", color: "var(--rv-muted)", fontSize: ".85rem" }}>{es ? `Ranking en vivo sobre los ${catalog.length} destinos mapeados. Los datos ausentes siguen ausentes en lugar de inventarse.` : `Live ranking across all ${catalog.length} mapped destinations. Missing source metrics stay missing instead of being invented.`}</p>
-        <div className="rv-result-grid">
-          {matches.map(({ city }, index) => {
-            const fit = catalogFitScore(city);
-            return (
-              <article className="rv-result-card" key={city.slug}>
-                <div className="rv-result-card__body">
-                  <div className="rv-result-head">
-                    <div><h3>{index + 1}. {city.city}</h3><p>{city.country} · {regionLabel(city.continent, locale)}</p></div>
-                    <div className="rv-result-score">{fit === null ? (es ? "parcial" : "partial") : fit.toFixed(1)}</div>
+        <p style={{ margin: "0 0 .7rem", color: "var(--rv-muted)", fontSize: ".85rem" }}>{es ? `Ranking en vivo sobre los ${catalog.length} destinos mapeados. Los requisitos mínimos filtran el catálogo; los datos ausentes no se inventan.` : `Live ranking across all ${catalog.length} mapped destinations. Minimum requirements filter the catalog; missing source metrics are never invented.`}</p>
+        {matches.length ? (
+          <div className="rv-result-grid">
+            {matches.map(({ city }, index) => {
+              const fit = catalogFitScore(city);
+              return (
+                <article className="rv-result-card" key={city.slug}>
+                  <div className="rv-result-card__body">
+                    <div className="rv-result-head">
+                      <div><h3>{index + 1}. {city.city}</h3><p>{city.country} · {regionLabel(city.continent, locale)}</p></div>
+                      <div className="rv-result-score">{fit === null ? (es ? "parcial" : "partial") : fit.toFixed(1)}</div>
+                    </div>
+                    <div className="rv-result-metrics">
+                      <div><strong>{catalogMetric(city.internet, " Mbps")}</strong><span>internet</span></div>
+                      <div><strong>{catalogMetric(city.safety, "/10")}</strong><span>{es ? "seguridad" : "safety"}</span></div>
+                      <div><strong>{catalogMetric(city.quality, "/10")}</strong><span>{es ? "calidad" : "quality"}</span></div>
+                    </div>
+                    <div className="rv-card-actions">
+                      <EngineTransitionLink className="rv-primary" href={`/cities/${city.slug}`} transition="portal">{es ? "Abrir ciudad" : "Open city"} →</EngineTransitionLink>
+                      <EngineTransitionLink className="rv-secondary" href={`/compare?cities=${city.slug}`} transition="depth">{es ? "Comparar" : "Compare"}</EngineTransitionLink>
+                    </div>
                   </div>
-                  <div className="rv-result-metrics">
-                    <div><strong>{catalogMetric(city.internet, " Mbps")}</strong><span>internet</span></div>
-                    <div><strong>{catalogMetric(city.safety, "/10")}</strong><span>{es ? "seguridad" : "safety"}</span></div>
-                    <div><strong>{catalogMetric(city.quality, "/10")}</strong><span>{es ? "calidad" : "quality"}</span></div>
-                  </div>
-                  <div className="rv-card-actions">
-                    <EngineTransitionLink className="rv-primary" href={`/cities/${city.slug}`} transition="portal">{es ? "Abrir ciudad" : "Open city"} →</EngineTransitionLink>
-                    <EngineTransitionLink className="rv-secondary" href={`/compare?cities=${city.slug}`} transition="depth">{es ? "Comparar" : "Compare"}</EngineTransitionLink>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rv-panel" style={{ padding: "1.4rem", textAlign: "center" }}>
+            <strong>{es ? "No hay destinos que cumplan esos mínimos." : "No destinations meet those minimum requirements."}</strong>
+            <p style={{ marginBottom: 0, color: "var(--rv-muted)", fontSize: ".84rem" }}>{es ? "Prueba a relajar el requisito de playa o de velocidad de internet." : "Try relaxing the beach or internet-speed requirement."}</p>
+          </div>
+        )}
       </div>
     </div>
   );
