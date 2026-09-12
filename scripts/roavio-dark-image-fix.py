@@ -57,3 +57,4 @@ if '&v=8`;' not in text:
 dossier.write_text(text.replace('&v=8`;', '&v=9`;', 1), encoding='utf-8')
 
 print('Roavio dark-mode contrast and city-image resolver fixes applied.')
+# workflow trigger
