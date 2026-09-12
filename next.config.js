@@ -34,34 +34,15 @@ const nextConfig = {
 
 	images: {
 		formats: ["image/avif", "image/webp"],
-		qualities: [58, 72, 75],
+		// Includes every quality used by EngineImage's presets plus Roavio's
+		// explicitly selected 58/72/75 values.
+		qualities: [58, 65, 72, 75, 78, 90],
 		minimumCacheTTL: 60 * 60 * 24 * 30,
-
-		// These are intentional same-origin image surfaces. City media carries a
-		// version query so immutable bundled files can be replaced safely without
-		// leaving year-long stale browser entries behind.
-		localPatterns: [
-			{ pathname: "/api/city-photo" },
-			{ pathname: "/api/city-image" },
-			{ pathname: "/city-media/**" },
-		],
-
 		remotePatterns: [
 			{ protocol: "https", hostname: "images.unsplash.com" },
 			{ protocol: "https", hostname: "upload.wikimedia.org" },
 			{ protocol: "https", hostname: "thumb.wikimedia.org" },
 		],
-	},
-
-	async headers() {
-		return [
-			{
-				source: "/city-media/:path*",
-				headers: [
-					{ key: "Cache-Control", value: "public, max-age=31536000, immutable" },
-				],
-			},
-		];
 	},
 
 	// ── Turbopack Compiler Configuration (Next.js 16 Stable) ──────────────────
