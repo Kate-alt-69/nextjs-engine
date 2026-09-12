@@ -1,8 +1,7 @@
-import { EngineImage, EngineTransitionLink } from "@/engine";
+import { EngineTransitionLink } from "@/engine";
 import { catalogFitScore, type CityCatalogEntry } from "./catalog";
-import { getRoavioCityImage } from "./cityImages";
 import type { RoavioLocale } from "./i18n";
-import { ROAVIO_MEDIA_VERSION } from "./mediaVersion";
+import { OfficialCityImage } from "./OfficialCityImage";
 
 const FEATURED = ["valencia", "lisboa", "bali", "bangkok", "dubai", "chiang-mai"];
 const gradients = [
@@ -14,11 +13,6 @@ const gradients = [
   "linear-gradient(145deg,#345f55,#c7c16c)",
 ];
 
-function cityPhoto(city: CityCatalogEntry): string {
-  return getRoavioCityImage(city.slug)
-    ?? `/city-media/${encodeURIComponent(city.slug)}-0.jpg?v=${ROAVIO_MEDIA_VERSION}`;
-}
-
 export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[]; locale: RoavioLocale }) {
   const featured = FEATURED.map((slug) => catalog.find((city) => city.slug === slug)).filter((city): city is CityCatalogEntry => Boolean(city));
   const es = locale === "es";
@@ -29,16 +23,12 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
         const score = catalogFitScore(city);
         return (
           <EngineTransitionLink key={city.slug} className="rv-city-card" href={`/cities/${city.slug}`} transition="portal" style={{ background: gradients[index % gradients.length] }}>
-            <EngineImage
+            <OfficialCityImage
+              slug={city.slug}
               className="rv-city-card__photo"
-              src={cityPhoto(city)}
-              alt=""
-              fill
+              priority={index < 2}
               sizes="(max-width: 700px) calc(100vw - 2rem), (max-width: 1100px) calc(50vw - 2rem), 390px"
-              qualityPreset="balanced"
-              qualityMobile={58}
-              qualityDesktop={72}
-              objectFit="cover"
+              style={{ position: "absolute", inset: 0 }}
             />
             <div className="rv-card-top">
               <span className="rv-score">Roavio fit {score === null ? "—" : score.toFixed(1)}</span>
