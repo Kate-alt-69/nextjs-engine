@@ -1,8 +1,10 @@
 "use client";
 
 import { EngineImage } from "@/engine";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import { getRoavioCityImage } from "./cityImages";
+
+type EngineImageProps = ComponentProps<typeof EngineImage>;
 
 /**
  * The only Roavio city-photo renderer.
@@ -26,8 +28,8 @@ export function OfficialCityImage({
   className?: string;
   priority?: boolean;
   sizes?: string;
-  objectFit?: CSSProperties["objectFit"];
-  style?: CSSProperties;
+  objectFit?: EngineImageProps["objectFit"];
+  style?: EngineImageProps["style"];
 }) {
   const [failed, setFailed] = useState(false);
 
