@@ -71,6 +71,14 @@ for (const type of ["dialog", "EngineDialog", "drawer", "EngineDrawer", "popover
 		defaultWorkClass: "visible",
 	});
 }
+for (const type of ["reveal", "EngineReveal"] as NodeType[]) {
+	setBuiltin(type, {
+		runtime: "client",
+		reason: "EngineReveal coordinates EngineScroll timeline activity, viewport release and compositor-only entrance motion in the browser.",
+		capabilities: ["dom", "request-animation-frame", "intersection-observer"],
+		defaultWorkClass: "near",
+	});
+}
 for (const type of ["form", "input", "textarea", "checkbox", "custom-select"] as NodeType[]) {
 	setBuiltin(type, {
 		runtime: "client",
