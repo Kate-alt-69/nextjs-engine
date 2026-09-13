@@ -12,6 +12,7 @@ export function CardEntranceController() {
     if (typeof window === "undefined") return;
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const compactMotion = window.matchMedia("(max-width: 819px), (pointer: coarse)");
     const subscriptions = new Map<Element, () => void>();
     const settleTimers = new Map<Element, number>();
     let scanRaf = 0;
@@ -27,18 +28,26 @@ export function CardEntranceController() {
     const bind = (element: Element, index: number) => {
       if (!(element instanceof HTMLElement) || element.hasAttribute(BOUND_ATTR)) return;
 
+      const compact = compactMotion.matches;
+      const delay = compact
+        ? Math.min(index % 3, 2) * 18
+        : Math.min(index % 5, 4) * 28;
+      const duration = compact ? 340 : 400;
+
       element.setAttribute(BOUND_ATTR, "true");
       element.setAttribute(ENTERED_ATTR, "false");
-      element.style.setProperty("--rv-enter-delay", `${Math.min(index % 6, 5) * 42}ms`);
+      element.style.setProperty("--rv-enter-delay", `${delay}ms`);
+      element.style.setProperty("--rv-enter-duration", `${duration}ms`);
 
       let stop: () => void = () => undefined;
       stop = EngineScheduler.observe(element, (snapshot) => {
-        if (!snapshot.visible || element.getAttribute(ENTERED_ATTR) === "true") return;
+        if ((!snapshot.near && !snapshot.visible) || element.getAttribute(ENTERED_ATTR) === "true") return;
 
         if (reducedMotion.matches || snapshot.underFramePressure) {
           element.dataset.rvMotionMode = "instant";
           element.setAttribute(ENTERED_ATTR, "true");
           element.style.removeProperty("--rv-enter-delay");
+          element.style.removeProperty("--rv-enter-duration");
           queueMicrotask(stop);
           subscriptions.delete(element);
           return;
@@ -46,21 +55,28 @@ export function CardEntranceController() {
 
         element.dataset.rvMotionMode = "animated";
         window.requestAnimationFrame(() => {
+          if (!element.isConnected) {
+            release(element);
+            return;
+          }
+
           element.setAttribute(ENTERED_ATTR, "true");
-          const delay = Math.min(index % 6, 5) * 42;
           const timer = window.setTimeout(() => {
             element.style.removeProperty("--rv-enter-delay");
+            element.style.removeProperty("--rv-enter-duration");
             element.dataset.rvMotionMode = "settled";
             settleTimers.delete(element);
-          }, 680 + delay);
+          }, duration + delay + 100);
           settleTimers.set(element, timer);
         });
 
         queueMicrotask(stop);
         subscriptions.delete(element);
       }, {
-        nearMargin: "220px 0px",
-        visibleThreshold: 0.04,
+        // Start just before the card reaches the viewport. Images are warmed much
+        // earlier by OfficialCityImage, so decoding does not fight the pop motion.
+        nearMargin: "96px 0px",
+        visibleThreshold: 0.01,
         releaseWhenFar: true,
       });
 
