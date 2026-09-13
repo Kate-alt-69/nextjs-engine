@@ -2,6 +2,8 @@
 
 > **Last updated:** 2026-09-13
 > **Changes in this update:**
+> - **Generation 3 fallback compiler and legacy rendering plan** — Phase D now compiles ordered native/runtime/rendering strategies for each actually used feature, resolves them against a browser support profile, and separately records the HTML/CSS/content that remains available without client enhancements.
+> - **Generation 3 used-feature manifest** — Phase D now emits a deterministic, frozen per-page compatibility manifest containing only features the compiled page actually uses and the exact Engine nodes that require each one.
 > - **Generation 3 private login/search proofs** — Added both a portable browser-to-backend example and a real Next.js device-bound login/private-search page using the generated single NENC endpoint, hashed HttpOnly sessions, origin/replay/rate/permission enforcement, server-only credentials, sanitized results, and copied-cookie rejection coverage. Phase C is complete.
 > - **Generation 3 backend proving flows** — NENC now selects credential-scoped `EngineAPIResolver` instances from a frozen, sanitized command context, forwards command `input` to ordinary HTTP request bodies, and proves that unauthorized calls cannot reach private backends or obtain their credentials.
 > - **Generation 3 NENC build plugin** — Added opt-in static command discovery, split frozen client/server manifests, protected generation of the single `app/%5Fstatic/command/route.ts` endpoint (served as `/_static/command`), safe artifact replacement, and debounced development recompilation.

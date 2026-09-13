@@ -4,6 +4,7 @@
 
 import type { PageSchema, SchemaNode } from "../schema/types";
 import { compileEngineUsedFeatureManifest } from "./EngineCompatibilityManifest";
+import { compileEngineFallbackPlan } from "./EngineFallbackCompiler";
 import { getEngineRuntimeProfile, resolveNodeRuntime } from "./runtimeRegistry";
 import type {
 	EngineCapability,
@@ -238,6 +239,7 @@ export function compilePage(schema: PageSchema, options: EngineCompileOptions = 
 
 	const root = compileNode(schema.root, "root", 0, state);
 	const featureManifest = compileEngineUsedFeatureManifest(pageId, root);
+	const fallbackPlan = compileEngineFallbackPlan(featureManifest, root);
 	state.summary.assetCount = state.assets.size;
 
 	if (options.strict && state.summary.clientNodes === state.summary.totalNodes && state.summary.totalNodes > 1) {
@@ -255,6 +257,7 @@ export function compilePage(schema: PageSchema, options: EngineCompileOptions = 
 		root,
 		summary: state.summary,
 		featureManifest,
+		fallbackPlan,
 		capabilities: featureManifest.uses.map(({ feature }) => feature),
 		assets: [...state.assets.values()],
 		diagnostics: state.diagnostics,
