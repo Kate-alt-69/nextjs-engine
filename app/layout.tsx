@@ -12,6 +12,7 @@ import "./roavio/city-hero.css";
 import "./roavio/mobile-nav.css";
 import "./roavio/like.css";
 import "./roavio/card-motion.css";
+import "./roavio/accent-surface.css";
 
 export const metadata: Metadata = {
   title: {
