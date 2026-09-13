@@ -1,7 +1,6 @@
 "use client";
 
 import { EngineAutoRail, EngineExpandLink, EngineTransitionLink } from "@/engine";
-import type { CSSProperties } from "react";
 import { catalogFitScore, type CityCatalogEntry } from "./catalog";
 import {
   CITY_EXPAND_DURATION,
@@ -31,7 +30,6 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
       resumeDelay={1800}
       direction="right"
       ariaLabel={es ? "Ciudades populares y con alta calidad de vida" : "Popular and high quality-of-life cities"}
-      style={{ "--e-rail-edge": "var(--rv-paper)" } as CSSProperties}
     >
       {cities.map((city, index) => {
         const score = catalogFitScore(city);
