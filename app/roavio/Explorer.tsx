@@ -1,11 +1,16 @@
 "use client";
 
-import { EngineReveal, EngineScroll, EngineTransitionLink } from "@/engine";
+import { EngineExpandLink, EngineReveal, EngineScroll, EngineTransitionLink } from "@/engine";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { AnimatedLikeButton } from "./AnimatedLikeButton";
 import { catalogFitScore, catalogMetric, type CityCatalogEntry } from "./catalog";
 import { peekRoavioCityAccent, type RoavioCityAccent } from "./cityAccent";
-import { cityExpandTransition, cityTransitionSurfaceId } from "./cityTransition";
+import {
+  CITY_EXPAND_DURATION,
+  CITY_HANDOFF_DURATION,
+  cityTransitionImageId,
+  cityTransitionSurfaceId,
+} from "./cityTransition";
 import { CityThumb } from "./CityThumb";
 import { copyFor, type RoavioLocale } from "./i18n";
 
@@ -108,7 +113,8 @@ function CityResultCard({
 }) {
   const copy = copyFor(locale).cities;
   const cityHref = `/cities/${city.slug}`;
-  const cityTransition = cityExpandTransition(city.slug);
+  const imageSurfaceId = cityTransitionImageId(city.slug);
+  const destinationSurfaceId = cityTransitionSurfaceId(city.slug);
   const [accent, setAccent] = useState<RoavioCityAccent | null>(null);
 
   useEffect(() => {
@@ -122,7 +128,6 @@ function CityResultCard({
 
   return (
     <EngineReveal
-      id={cityTransitionSurfaceId(city.slug)}
       className="rv-result-card-reveal"
       priority={eager}
       effect="pop"
@@ -141,9 +146,13 @@ function CityResultCard({
         style={accentStyle}
       >
         <div className="rv-result-card__visual-wrap">
-          <EngineTransitionLink
+          <EngineExpandLink
+            id={imageSurfaceId}
             href={cityHref}
-            transition={cityTransition}
+            targetId={destinationSurfaceId}
+            duration={CITY_EXPAND_DURATION}
+            handoffDuration={CITY_HANDOFF_DURATION}
+            transition="instant"
             className="rv-result-card__visual"
             aria-label={`${copy.open} ${city.city}`}
           >
@@ -170,7 +179,7 @@ function CityResultCard({
                 {scoreLabel(city)}
               </strong>
             </div>
-          </EngineTransitionLink>
+          </EngineExpandLink>
           <AnimatedLikeButton
             active={favorite}
             onToggle={onFavorite}
@@ -196,16 +205,20 @@ function CityResultCard({
               <span aria-hidden>{compared ? "✓" : "+"}</span>
               <span>{copy.compare}</span>
             </button>
-            <EngineTransitionLink
+            <EngineExpandLink
               className="rv-icon-btn rv-card-action rv-card-action--open"
               href={cityHref}
-              transition={cityTransition}
+              sourceId={imageSurfaceId}
+              targetId={destinationSurfaceId}
+              duration={CITY_EXPAND_DURATION}
+              handoffDuration={CITY_HANDOFF_DURATION}
+              transition="instant"
               aria-label={`${copy.open} ${city.city}`}
               style={{ textDecoration: "none" }}
             >
               <span>{copy.open}</span>
               <span aria-hidden>↗</span>
-            </EngineTransitionLink>
+            </EngineExpandLink>
           </div>
         </div>
       </article>
@@ -278,8 +291,6 @@ export function Explorer({
     if (bounded === safePage) return;
     setPage(bounded);
 
-    // Let React commit the new page, then use NE's own scroll runtime rather
-    // than creating a browser smooth-scroll path beside EngineScroll.
     window.requestAnimationFrame(() => {
       EngineScroll.move("#rv-city-results", {
         align: "start",
