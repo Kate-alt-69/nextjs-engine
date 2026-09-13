@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import React from "react";
-import { CardEntranceController } from "./roavio/CardEntranceController";
 import { PreferencesShell } from "./roavio/PreferencesShell";
 import { RoavioMobileNav } from "./roavio/RoavioMobileNav";
 import { getRoavioPreferences } from "./roavio/locale.server";
@@ -51,8 +50,6 @@ const THEME_BOOT = `(() => {
     document.documentElement.dataset.rvThemeSource = saved === 'dark' || saved === 'light' ? 'user' : 'system';
     document.documentElement.style.colorScheme = mode;
 
-    // Do not hide SSR cards before hydration. The old global boot marker could
-    // leave an entire page blank while waiting for IntersectionObserver.
     document.addEventListener('click', (event) => {
       const target = event.target && event.target.closest ? event.target.closest('.rv-footer-theme-dock button') : null;
       if (!target) return;
@@ -72,7 +69,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         {children}
-        <CardEntranceController />
         <RoavioMobileNav locale={preferences.locale} />
         <PreferencesShell
           initialTheme={preferences.theme}
