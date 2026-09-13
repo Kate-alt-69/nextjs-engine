@@ -1,5 +1,6 @@
 "use client";
 
+import { useEngineTransitions } from "@/engine";
 import { EngineCookies } from "@/src/engine/core/enginecookies/EngineCookies";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -11,10 +12,6 @@ type ConsentChoices = {
   necessary: true;
   analytics: boolean;
   personalization: boolean;
-};
-
-type ViewTransitionDocument = Document & {
-  startViewTransition?: (update: () => void) => { finished: Promise<void> };
 };
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
@@ -47,6 +44,7 @@ export function PreferencesShell({
   initialHasConsent: boolean;
 }) {
   const router = useRouter();
+  const transitions = useEngineTransitions();
   const [theme, setTheme] = useState<RoavioThemeMode>(initialTheme);
   const [locale, setLocale] = useState<RoavioLocale>(initialLocale);
   const [showConsent, setShowConsent] = useState(!initialHasConsent);
@@ -123,14 +121,15 @@ export function PreferencesShell({
       applyTheme(next);
       writeCookie("rv_theme", next);
     };
-    const doc = document as ViewTransitionDocument;
-    if (typeof doc.startViewTransition === "function") {
-      doc.startViewTransition(apply);
-    } else {
-      document.documentElement.classList.add("rv-theme-changing");
-      apply();
-      window.setTimeout(() => document.documentElement.classList.remove("rv-theme-changing"), 430);
-    }
+
+    // Theme changes now share NE's transition runtime with route navigation.
+    // This prevents a native theme ViewTransition from racing a route
+    // EngineTransitionLink and surfacing Chrome's intentional AbortError.
+    void transitions.run(apply, {
+      type: "layout",
+      duration: 280,
+      easing: "ease-out",
+    });
   };
 
   const saveConsent = (choices: ConsentChoices) => {
@@ -187,7 +186,7 @@ export function PreferencesShell({
               <input type="checkbox" checked={analytics} onChange={(event) => setAnalytics(event.target.checked)} />
             </label>
             <label className="rv-cookie-choice">
-              <span><strong>{spanish ? "Personalización" : "Personalization"}</strong><small>{spanish ? "Preferencias como tema e idioma para que Roavio se sienta tuyo." : "Preferences like theme and language so Roavio feels like yours."}</small></span>
+              <span><strong>{spanish ? "Personalización" : "Personalization"}</strong><small>{spanish ? "Preferencias como tema e idioma para que Roavio se sienta tuyo." : "Preferences like theme and language so Roavio feels yours."}</small></span>
               <input type="checkbox" checked={personalization} onChange={(event) => setPersonalization(event.target.checked)} />
             </label>
             <button type="button" className="rv-primary rv-cookie-save" onClick={() => saveConsent({ necessary: true, analytics, personalization })}>{spanish ? "Guardar selección" : "Save choices"}</button>
