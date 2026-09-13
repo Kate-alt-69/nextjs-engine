@@ -13,6 +13,7 @@ import "./roavio/mobile-nav.css";
 import "./roavio/like.css";
 import "./roavio/card-motion.css";
 import "./roavio/accent-surface.css";
+import "./roavio/footer-theme.css";
 
 export const metadata: Metadata = {
   title: {
