@@ -93,6 +93,29 @@ class EngineSchedulerRuntime {
 	private frameClock = new ECFrameClock(48);
 	private highestObservedRefreshRate = 60;
 
+	/**
+	 * Synchronously test physical visibility against the browser's visual
+	 * viewport when available. This is intentionally owned by EngineScheduler so
+	 * Engine Components do not need to hand-roll browser viewport geometry.
+	 */
+	isVisible(element: Element, marginPx = 0): boolean {
+		if (typeof window === "undefined" || !element?.getBoundingClientRect) return false;
+		const rect = element.getBoundingClientRect();
+		const margin = Number.isFinite(marginPx) ? Math.max(0, marginPx) : 0;
+		const visualViewport = window.visualViewport;
+		const viewportTop = visualViewport?.offsetTop ?? 0;
+		const viewportLeft = visualViewport?.offsetLeft ?? 0;
+		const viewportHeight = visualViewport?.height ?? window.innerHeight;
+		const viewportWidth = visualViewport?.width ?? window.innerWidth;
+		const viewportBottom = viewportTop + viewportHeight;
+		const viewportRight = viewportLeft + viewportWidth;
+
+		return rect.bottom > viewportTop - margin
+			&& rect.top < viewportBottom + margin
+			&& rect.right > viewportLeft - margin
+			&& rect.left < viewportRight + margin;
+	}
+
 	observe(
 		element: Element,
 		listener: EngineScheduleListener,
