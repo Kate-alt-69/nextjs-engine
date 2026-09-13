@@ -15,6 +15,7 @@ export type {
 // in `nextjs-engine/server`; this barrel only exposes browser/server-safe APIs.
 export {
 	compilePage,
+	compileEngineUsedFeatureManifest,
 	explainCompiledNode,
 	findCompiledNode,
 	getEngineRuntimeProfile,
@@ -34,6 +35,9 @@ export type {
 	EngineDeviceTarget,
 	EngineRuntimeKind,
 	EngineRuntimeProfile,
+	EngineUsedFeature,
+	EngineUsedFeatureManifest,
+	EngineUsedFeatureSource,
 	EngineWorkClass,
 } from "./compiler";
 export { compileAdaptiveSchema } from "./compiler/EngineAdaptiveCompiler";

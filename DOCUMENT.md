@@ -1,7 +1,8 @@
 # Next.js Engine — Technical Documentation
 
-> **Last updated:** 2026-09-11
+> **Last updated:** 2026-09-13
 > **Changes in this update:**
+> - **Generation 3 used-feature manifest** — Phase D now emits a deterministic, frozen per-page compatibility manifest containing only features the compiled page actually uses and the exact Engine nodes that require each one.
 > - **Generation 3 private login/search proof** — Added a complete browser-to-private-backend example using device-signed NENC commands, hashed device-bound sessions, server-only credentials, permission-authorized search, strict result sanitization, and CI coverage for replay, copied-cookie, origin-binding, and credential-leak failures. Phase C is complete.
 > - **Generation 3 backend proving flows** — NENC now selects credential-scoped `EngineAPIResolver` instances from a frozen, sanitized command context, forwards command `input` to ordinary HTTP request bodies, and proves that unauthorized calls cannot reach private backends or obtain their credentials.
 > - **Generation 3 NENC build plugin** — Added opt-in static command discovery, split frozen client/server manifests, protected generation of the single `app/_static/command/route.ts` endpoint, safe artifact replacement, and debounced development recompilation.

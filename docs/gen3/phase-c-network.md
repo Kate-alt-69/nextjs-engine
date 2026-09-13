@@ -306,4 +306,4 @@ session + EngineCookie + origin + trust + nonce + signature + rate policy
 
 ## Next implementation phase
 
-Phase C is complete. Phase D adds debug and security inspection surfaces that consume these artifacts without weakening the production protocol.
+Phase C is complete. Phase D now begins with the [used-feature compatibility manifest](./phase-d-hardening.md), followed by debug and security inspection surfaces that consume these artifacts without weakening the production protocol.
