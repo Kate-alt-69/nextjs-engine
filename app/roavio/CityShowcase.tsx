@@ -1,6 +1,7 @@
 "use client";
 
 import { EngineAutoRail, EngineExpandLink, EngineTransitionLink } from "@/engine";
+import type { CSSProperties } from "react";
 import { catalogFitScore, type CityCatalogEntry } from "./catalog";
 import {
   CITY_EXPAND_DURATION,
@@ -8,16 +9,9 @@ import {
   cityTransitionImageId,
   cityTransitionSurfaceId,
 } from "./cityTransition";
+import { HOME_RAIL_SLUGS } from "./homeCities";
 import type { RoavioLocale } from "./i18n";
 import { CityThumb } from "./CityThumb";
-
-export const HOME_RAIL_SLUGS = [
-  "singapur", "tokio", "copenhague", "amsterdam", "viena", "oslo",
-  "sidney", "melbourne", "auckland", "seattle", "vancouver", "toronto",
-  "madrid", "barcelona", "valencia", "lisboa", "oporto", "paris",
-  "berlin", "munich", "praga", "budapest", "dubai", "taipei", "seul",
-  "osaka", "bangkok", "chiang-mai", "bali", "kuala-lumpur",
-] as const;
 
 function metric(value: number | null, suffix = "") {
   return value === null ? "—" : `${value}${suffix}`;
@@ -37,7 +31,7 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
       resumeDelay={1800}
       direction="right"
       ariaLabel={es ? "Ciudades populares y con alta calidad de vida" : "Popular and high quality-of-life cities"}
-      style={{ "--e-rail-edge": "var(--rv-paper)" } as React.CSSProperties}
+      style={{ "--e-rail-edge": "var(--rv-paper)" } as CSSProperties}
     >
       {cities.map((city, index) => {
         const score = catalogFitScore(city);
