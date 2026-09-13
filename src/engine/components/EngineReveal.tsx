@@ -51,7 +51,6 @@ type RevealRegistration = {
 	motionTrack: string;
 	renderMargin: number;
 	motionMargin: number;
-	priority: boolean;
 	onRender(active: boolean): void;
 	onMotion(active: boolean, initial: boolean): void;
 };
@@ -99,7 +98,6 @@ class EngineRevealCoordinator {
 	private sizes = new WeakMap<HTMLElement, MeasuredSize>();
 	private director: EngineScrollDirector<EngineScrollDirectorConfig> | null = null;
 	private rebuildRaf = 0;
-	private hasBuiltOnce = false;
 	private resizeObserver: ResizeObserver | null = null;
 
 	register(registration: RevealRegistration): () => void {
@@ -180,18 +178,14 @@ class EngineRevealCoordinator {
 		for (const registration of this.registrations.values()) {
 			const renderFrame = this.director.snapshotTrack(registration.renderTrack);
 			const motionFrame = this.director.snapshotTrack(registration.motionTrack);
-			registration.onRender(renderFrame.active || registration.priority);
+			registration.onRender(renderFrame.active);
 			registration.onMotion(motionFrame.active, true);
 
 			this.director.onEnter(registration.renderTrack, () => registration.onRender(true));
-			this.director.onLeave(registration.renderTrack, () => {
-				if (!registration.priority) registration.onRender(false);
-			});
+			this.director.onLeave(registration.renderTrack, () => registration.onRender(false));
 			this.director.onEnter(registration.motionTrack, () => registration.onMotion(true, false));
 			this.director.onLeave(registration.motionTrack, () => registration.onMotion(false, false));
 		}
-
-		this.hasBuiltOnce = true;
 	};
 }
 
@@ -371,7 +365,6 @@ export const EngineReveal = memo(function EngineReveal({
 			motionTrack: `${resolvedId}__motion`,
 			renderMargin: finite(renderMargin, 1600),
 			motionMargin: finite(motionMargin, 150),
-			priority,
 			onRender(active) {
 				if (!mounted) return;
 				setRenderNear(active || !releaseWhenFar);
@@ -388,7 +381,7 @@ export const EngineReveal = memo(function EngineReveal({
 			clearPending();
 			stop();
 		};
-	}, [delay, duration, effect, motionMargin, overshoot, priority, releaseWhenFar, renderMargin, replay, resolvedId, scaleFrom, skipUnderFramePressure]);
+	}, [delay, duration, effect, motionMargin, priority, releaseWhenFar, renderMargin, replay, resolvedId, skipUnderFramePressure]);
 
 	const revealStyle = {
 		...style,
