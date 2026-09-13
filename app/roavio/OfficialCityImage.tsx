@@ -6,10 +6,11 @@ import { getRoavioCityImage } from "./cityImages";
 
 type EngineImageProps = ComponentProps<typeof EngineImage>;
 
-// These are only request/decode bookkeeping. The image bytes live in the
-// browser's normal HTTP memory/disk cache, not in cookies or React state.
 const warmedCityImages = new Set<string>();
 const warmingCityImages = new Map<string, HTMLImageElement>();
+const VISIBLE_DOM_MARGIN = 640;
+const WARM_MARGIN = 1600;
+const MAX_RETRIES = 2;
 
 function hasNecessaryConsent(): boolean {
   if (typeof document === "undefined") return false;
@@ -28,13 +29,15 @@ function hasNecessaryConsent(): boolean {
   }
 }
 
+function geometryNear(element: Element, margin: number) {
+  const rect = element.getBoundingClientRect();
+  return rect.bottom >= -margin && rect.top <= window.innerHeight + margin;
+}
+
 function warmOfficialCityImage(src: string) {
   if (typeof window === "undefined" || !hasNecessaryConsent()) return;
   if (warmedCityImages.has(src) || warmingCityImages.has(src)) return;
 
-  // A detached Image has no layout/paint cost, but still lets the browser fill
-  // its HTTP cache. OfficialCityImage later requests this exact URL through NE,
-  // so an unmount/remount can be served from cache instead of starting over.
   const image = new window.Image();
   image.decoding = "async";
   image.fetchPriority = "low";
@@ -45,24 +48,10 @@ function warmOfficialCityImage(src: string) {
     warmingCityImages.delete(src);
     void image.decode().catch(() => undefined);
   };
-  image.onerror = () => {
-    warmingCityImages.delete(src);
-  };
+  image.onerror = () => warmingCityImages.delete(src);
   image.src = src;
 }
 
-/**
- * The only Roavio city-photo renderer.
- *
- * `cityImages.ts` contains the exact Unsplash URLs copied from the official
- * Roavio scrape. We deliberately do not search for, generate, proxy, or guess
- * replacement photography here.
- *
- * The real EngineImage stays completely unmounted while the card is far away.
- * Once the user has recorded necessary-cookie consent, a detached low-priority
- * Image may warm the exact official URL farther ahead of the viewport. That
- * fills the browser cache without adding an image node to the card itself.
- */
 export function OfficialCityImage({
   slug,
   alt = "",
@@ -82,40 +71,73 @@ export function OfficialCityImage({
 }) {
   const probeRef = useRef<HTMLSpanElement | null>(null);
   const warmEligibleRef = useRef(priority);
+  const nearRef = useRef(priority);
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<number | null>(null);
   const [nearViewport, setNearViewport] = useState(priority);
   const [failed, setFailed] = useState(false);
   const src = getRoavioCityImage(slug);
 
+  const setNear = (next: boolean) => {
+    nearRef.current = next;
+    setNearViewport((current) => current === next ? current : next);
+    if (next && failed && retryCountRef.current <= MAX_RETRIES) setFailed(false);
+  };
+
   useEffect(() => {
+    retryCountRef.current = 0;
+    if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = null;
     setFailed(false);
-    setNearViewport(priority);
+    setNear(priority);
     warmEligibleRef.current = priority;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [priority, slug]);
+
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!src || priority) return;
     const probe = probeRef.current;
     if (!probe) return;
 
-    // Cache-warm well before we create the visible image node. This observer
-    // does not cause React state updates and therefore does not make scrolling
-    // do extra component work.
-    return EngineScheduler.observe(probe, (snapshot) => {
-      const eligible = snapshot.near || snapshot.visible;
+    const syncWarmGeometry = () => {
+      const eligible = geometryNear(probe, WARM_MARGIN);
+      warmEligibleRef.current = eligible;
+      if (eligible) warmOfficialCityImage(src);
+    };
+
+    // Do one synchronous geometry bootstrap before waiting for IntersectionObserver.
+    // This fixes Chromium/Firefox cases where an observer attached inside a
+    // content-visibility subtree did not deliver until a later reload/scroll.
+    syncWarmGeometry();
+
+    const stop = EngineScheduler.observe(probe, (snapshot) => {
+      const eligible = snapshot.near || snapshot.visible || geometryNear(probe, WARM_MARGIN);
       warmEligibleRef.current = eligible;
       if (eligible) warmOfficialCityImage(src);
     }, {
-      nearMargin: "1600px 0px",
+      nearMargin: `${WARM_MARGIN}px 0px`,
       visibleThreshold: 0.01,
       releaseWhenFar: false,
     });
+
+    window.addEventListener("pageshow", syncWarmGeometry);
+    window.addEventListener("resize", syncWarmGeometry, { passive: true });
+    return () => {
+      stop();
+      window.removeEventListener("pageshow", syncWarmGeometry);
+      window.removeEventListener("resize", syncWarmGeometry);
+    };
   }, [priority, src]);
 
   useEffect(() => {
     if (!src || priority) return;
     const handleConsentChanged = () => {
-      // If consent is accepted while a card is already in the warm zone, do
-      // not wait for another scroll/observer callback before priming its cache.
       if (warmEligibleRef.current) warmOfficialCityImage(src);
     };
     window.addEventListener("rv:consent-changed", handleConsentChanged);
@@ -127,15 +149,56 @@ export function OfficialCityImage({
     const probe = probeRef.current;
     if (!probe) return;
 
-    return EngineScheduler.observe(probe, (snapshot) => {
-      setNearViewport(snapshot.near || snapshot.visible);
+    const syncVisibleGeometry = () => setNear(geometryNear(probe, VISIBLE_DOM_MARGIN));
+
+    // Bootstrap the actual visible DOM immediately. This is the important part
+    // for home cards that previously stayed as placeholders until reload.
+    syncVisibleGeometry();
+
+    const stop = EngineScheduler.observe(probe, (snapshot) => {
+      setNear(snapshot.near || snapshot.visible || geometryNear(probe, VISIBLE_DOM_MARGIN));
     }, {
-      // Keep visible DOM substantially tighter than the cache-warm boundary.
-      nearMargin: "640px 0px",
+      nearMargin: `${VISIBLE_DOM_MARGIN}px 0px`,
       visibleThreshold: 0.01,
       releaseWhenFar: true,
     });
+
+    let scrollRaf = 0;
+    const onScroll = () => {
+      if (scrollRaf) return;
+      scrollRaf = window.requestAnimationFrame(() => {
+        scrollRaf = 0;
+        syncVisibleGeometry();
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    window.addEventListener("pageshow", syncVisibleGeometry);
+    return () => {
+      stop();
+      if (scrollRaf) window.cancelAnimationFrame(scrollRaf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("pageshow", syncVisibleGeometry);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [priority, slug]);
+
+  const handleError = () => {
+    if (!src) return;
+    setFailed(true);
+    warmingCityImages.delete(src);
+
+    if (!nearRef.current || retryCountRef.current >= MAX_RETRIES) return;
+    retryCountRef.current += 1;
+    const delay = retryCountRef.current === 1 ? 450 : 1100;
+    if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = window.setTimeout(() => {
+      retryTimerRef.current = null;
+      if (nearRef.current) setFailed(false);
+    }, delay);
+  };
 
   return (
     <>
@@ -156,12 +219,12 @@ export function OfficialCityImage({
           objectFit={objectFit}
           className={className}
           style={style}
-          // Roavio already supplies an explicitly sized/quality-tuned Unsplash
-          // URL. Keep it exact so the detached warmer and visible NE image hit
-          // the same browser-cache key instead of two different optimizer URLs.
           unoptimized
-          onLoad={() => warmedCityImages.add(src)}
-          onError={() => setFailed(true)}
+          onLoad={() => {
+            retryCountRef.current = 0;
+            warmedCityImages.add(src);
+          }}
+          onError={handleError}
         />
       ) : null}
     </>
