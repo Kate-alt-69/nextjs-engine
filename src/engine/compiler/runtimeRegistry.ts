@@ -25,6 +25,13 @@ for (const type of ["box", "stack", "grid", "text", "heading", "section", "card"
 	});
 }
 
+setBuiltin("grid", {
+	runtime: "static",
+	reason: "This built-in renders deterministic CSS Grid markup without browser state.",
+	capabilities: ["css-grid"],
+	defaultWorkClass: "visible",
+});
+
 setBuiltin("slot", {
 	runtime: "server",
 	reason: "Slots are resolved by the page/component owner and can remain in the server tree.",

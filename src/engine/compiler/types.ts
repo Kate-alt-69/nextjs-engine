@@ -67,6 +67,24 @@ export interface EngineCompiledNode {
 	source: SchemaNode;
 }
 
+export interface EngineUsedFeatureSource {
+	nodeId: string;
+	path: string;
+	nodeType: NodeType;
+	runtime: Exclude<EngineRuntimeKind, "auto">;
+}
+
+export interface EngineUsedFeature {
+	feature: EngineCapability;
+	requiredBy: readonly EngineUsedFeatureSource[];
+}
+
+export interface EngineUsedFeatureManifest {
+	version: 1;
+	pageId: string;
+	uses: readonly EngineUsedFeature[];
+}
+
 export interface EngineCompilerSummary {
 	totalNodes: number;
 	staticNodes: number;
@@ -83,6 +101,8 @@ export interface EngineCompiledPage {
 	schema: PageSchema;
 	root: EngineCompiledNode;
 	summary: EngineCompilerSummary;
+	featureManifest: EngineUsedFeatureManifest;
+	/** Compatibility alias for the feature names in featureManifest. */
 	capabilities: EngineCapability[];
 	assets: EngineCompiledAsset[];
 	diagnostics: EngineCompilerDiagnostic[];

@@ -3,6 +3,7 @@ export {
 	explainCompiledNode,
 	findCompiledNode,
 } from "./EngineCompiler";
+export { compileEngineUsedFeatureManifest } from "./EngineCompatibilityManifest";
 export {
 	getEngineRuntimeProfile,
 	registerEngineRuntimeProfile,
@@ -21,5 +22,8 @@ export type {
 	EngineDeviceTarget,
 	EngineRuntimeKind,
 	EngineRuntimeProfile,
+	EngineUsedFeature,
+	EngineUsedFeatureManifest,
+	EngineUsedFeatureSource,
 	EngineWorkClass,
 } from "./types";
