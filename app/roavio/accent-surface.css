@@ -1,0 +1,101 @@
+/*
+ * City accent surface layer
+ *
+ * The accent is not just chrome (borders/buttons): once OfficialCityImage has
+ * resolved a city palette, the color becomes part of the actual card surface.
+ * Imported after card-motion.css so this deliberately owns the final base fill.
+ */
+
+html[data-rv-theme='dark'] .rv-result-card[data-accent-ready='true']{
+  background:
+    linear-gradient(145deg,rgb(var(--rv-city-accent) / .20),rgb(var(--rv-city-accent) / .085)),
+    var(--rv-card)!important;
+}
+html:not([data-rv-theme='dark']) .rv-result-card[data-accent-ready='true']{
+  background:
+    linear-gradient(145deg,rgb(var(--rv-city-accent) / .115),rgb(var(--rv-city-accent) / .045)),
+    var(--rv-card)!important;
+}
+
+/* The data cards inside Explorer/Favorites should feel like the same destination,
+   rather than looking like neutral boxes sitting inside a colored outline. */
+html[data-rv-theme='dark'] .rv-result-card[data-accent-ready='true'] .rv-result-metrics>div{
+  background:
+    linear-gradient(145deg,rgb(var(--rv-city-accent) / .16),rgb(var(--rv-city-accent) / .055)),
+    var(--rv-card-soft)!important;
+}
+html:not([data-rv-theme='dark']) .rv-result-card[data-accent-ready='true'] .rv-result-metrics>div{
+  background:
+    linear-gradient(145deg,rgb(var(--rv-city-accent) / .10),rgb(var(--rv-city-accent) / .03)),
+    var(--rv-card-soft)!important;
+}
+
+/* Featured/home city cards are image-led, but their underlying surface and chips
+   still inherit the same palette so unloaded/partial states remain coherent. */
+html[data-rv-theme='dark'] .rv-city-card[data-accent-ready='true']{
+  background:
+    linear-gradient(145deg,rgb(var(--rv-city-accent) / .22),rgb(var(--rv-city-accent) / .085)),
+    var(--rv-card)!important;
+}
+html:not([data-rv-theme='dark']) .rv-city-card[data-accent-ready='true']{
+  background:
+    linear-gradient(145deg,rgb(var(--rv-city-accent) / .13),rgb(var(--rv-city-accent) / .045)),
+    var(--rv-card)!important;
+}
+
+html[data-rv-theme='dark'] .rv-compare-city-card[data-accent-ready='true']{
+  background:
+    linear-gradient(145deg,rgb(var(--rv-city-accent) / .19),rgb(var(--rv-city-accent) / .07)),
+    var(--rv-card)!important;
+}
+html:not([data-rv-theme='dark']) .rv-compare-city-card[data-accent-ready='true']{
+  background:
+    linear-gradient(145deg,rgb(var(--rv-city-accent) / .11),rgb(var(--rv-city-accent) / .035)),
+    var(--rv-card)!important;
+}
+.rv-compare-city-card[data-accent-ready='true'] .rv-compare-city-card__meta{
+  background:
+    linear-gradient(145deg,rgb(var(--rv-city-accent) / .12),rgb(var(--rv-city-accent) / .035)),
+    var(--rv-card-soft)!important;
+}
+
+/* City dossier panels use the exact same city variable. This keeps the accent
+   system global without tinting the entire document/body. */
+html[data-rv-theme='dark'] .rv-dossier-page[data-accent-ready='true'] :is(
+  .rv-dossier-metric,
+  .rv-dossier-summary,
+  .rv-dossier-section,
+  .rv-dossier-insight
+){
+  background:
+    linear-gradient(145deg,rgb(var(--rv-city-accent) / .13),rgb(var(--rv-city-accent) / .045)),
+    var(--rv-card)!important;
+}
+html:not([data-rv-theme='dark']) .rv-dossier-page[data-accent-ready='true'] :is(
+  .rv-dossier-metric,
+  .rv-dossier-summary,
+  .rv-dossier-section,
+  .rv-dossier-insight
+){
+  background:
+    linear-gradient(145deg,rgb(var(--rv-city-accent) / .075),rgb(var(--rv-city-accent) / .025)),
+    var(--rv-card)!important;
+}
+
+/* Keep mobile rendering cheap: base tint uses two composited solid gradients,
+   with no blur/backdrop-filter dependency. */
+@media(max-width:819px){
+  html[data-rv-theme='dark'] .rv-result-card[data-accent-ready='true']{
+    background:
+      linear-gradient(145deg,rgb(var(--rv-city-accent) / .18),rgb(var(--rv-city-accent) / .075)),
+      var(--rv-card)!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .rv-result-card[data-accent-ready='true'],
+  .rv-city-card[data-accent-ready='true'],
+  .rv-compare-city-card[data-accent-ready='true']{
+    transition:none!important;
+  }
+}
