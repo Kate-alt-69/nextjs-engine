@@ -8,6 +8,15 @@
 }
 .rv-dossier-page>:not(.rv-dossier-backdrop){position:relative;z-index:1}
 
+/* EngineExpandLink owns the source -> destination handoff. While its full-screen
+   source clone is still active, pause NE reveal timelines at their first frame.
+   When the handoff finishes and the engine clears this dataset, every reveal
+   resumes from the correct destination layout instead of completing invisibly
+   behind the transition overlay. */
+html[data-engine-expand-active='true'] .rv-dossier-page .e-reveal__content[data-engine-reveal-state='animating']{
+  animation-play-state:paused!important;
+}
+
 .rv-dossier-backdrop{
   position:fixed;
   inset:0;
