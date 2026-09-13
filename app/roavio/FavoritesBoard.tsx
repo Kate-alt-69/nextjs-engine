@@ -1,11 +1,16 @@
 "use client";
 
-import { EngineReveal, EngineTransitionLink } from "@/engine";
+import { EngineExpandLink, EngineReveal, EngineTransitionLink } from "@/engine";
 import { useEffect, useState, type CSSProperties } from "react";
 import { AnimatedLikeButton } from "./AnimatedLikeButton";
 import { catalogFitScore, catalogMetric, type CityCatalogEntry } from "./catalog";
 import { peekRoavioCityAccent, type RoavioCityAccent } from "./cityAccent";
-import { cityExpandTransition, cityTransitionSurfaceId } from "./cityTransition";
+import {
+  CITY_EXPAND_DURATION,
+  CITY_HANDOFF_DURATION,
+  cityTransitionImageId,
+  cityTransitionSurfaceId,
+} from "./cityTransition";
 import { CityThumb } from "./CityThumb";
 import { copyFor, type RoavioLocale } from "./i18n";
 
@@ -91,7 +96,8 @@ function FavoriteCityCard({
 }) {
   const copy = copyFor(locale).cities;
   const cityHref = `/cities/${city.slug}`;
-  const cityTransition = cityExpandTransition(city.slug);
+  const imageSurfaceId = cityTransitionImageId(city.slug);
+  const destinationSurfaceId = cityTransitionSurfaceId(city.slug);
   const [accent, setAccent] = useState<RoavioCityAccent | null>(null);
 
   useEffect(() => {
@@ -105,7 +111,6 @@ function FavoriteCityCard({
 
   return (
     <EngineReveal
-      id={cityTransitionSurfaceId(city.slug)}
       className="rv-result-card-reveal"
       effect="pop"
       replay
@@ -119,7 +124,16 @@ function FavoriteCityCard({
     >
       <article className="rv-result-card" data-accent-ready={accent ? "true" : "false"} style={accentStyle}>
         <div className="rv-result-card__visual-wrap">
-          <EngineTransitionLink href={cityHref} transition={cityTransition} className="rv-result-card__visual" aria-label={`${copy.open} ${city.city}`}>
+          <EngineExpandLink
+            id={imageSurfaceId}
+            href={cityHref}
+            targetId={destinationSurfaceId}
+            duration={CITY_EXPAND_DURATION}
+            handoffDuration={CITY_HANDOFF_DURATION}
+            transition="instant"
+            className="rv-result-card__visual"
+            aria-label={`${copy.open} ${city.city}`}
+          >
             <CityThumb
               slug={city.slug}
               city={city.city}
@@ -135,7 +149,7 @@ function FavoriteCityCard({
               </div>
               <strong className="rv-result-score" title={locale === "es" ? "Puntuación compuesta de la propuesta" : "Composite proposal score"}>{scoreLabel(city)}</strong>
             </div>
-          </EngineTransitionLink>
+          </EngineExpandLink>
           <AnimatedLikeButton active onToggle={onFavorite} locale={locale} city={city.city} />
         </div>
         <div className="rv-result-card__body">
@@ -148,9 +162,19 @@ function FavoriteCityCard({
             <EngineTransitionLink className="rv-icon-btn rv-card-action rv-card-action--compare" href={`/compare?cities=${city.slug}`} transition="depth" style={{ textDecoration: "none" }}>
               <span aria-hidden>+</span><span>{copy.compare}</span>
             </EngineTransitionLink>
-            <EngineTransitionLink className="rv-icon-btn rv-card-action rv-card-action--open" href={cityHref} transition={cityTransition} aria-label={`${copy.open} ${city.city}`} style={{ textDecoration: "none" }}>
+            <EngineExpandLink
+              className="rv-icon-btn rv-card-action rv-card-action--open"
+              href={cityHref}
+              sourceId={imageSurfaceId}
+              targetId={destinationSurfaceId}
+              duration={CITY_EXPAND_DURATION}
+              handoffDuration={CITY_HANDOFF_DURATION}
+              transition="instant"
+              aria-label={`${copy.open} ${city.city}`}
+              style={{ textDecoration: "none" }}
+            >
               <span>{copy.open}</span><span aria-hidden>↗</span>
-            </EngineTransitionLink>
+            </EngineExpandLink>
           </div>
         </div>
       </article>
