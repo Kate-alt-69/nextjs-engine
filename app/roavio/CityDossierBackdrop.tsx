@@ -1,10 +1,12 @@
 "use client";
 
+import { cityTransitionSurfaceId } from "./cityTransition";
 import { OfficialCityImage } from "./OfficialCityImage";
 
 export function CityDossierBackdrop({ slug }: { slug: string }) {
   return (
     <div
+      id={cityTransitionSurfaceId(slug)}
       className="rv-dossier-backdrop rv-dossier-backdrop--fallback"
       data-roavio-city-image
       aria-hidden="true"
