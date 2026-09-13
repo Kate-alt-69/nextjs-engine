@@ -66,125 +66,9 @@ html[data-rv-theme='dark'] .rv-result-metrics>div,
 html[data-rv-theme='dark'] .rv-compare-label{background:var(--rv-card-soft)!important}
 html[data-rv-theme='dark'] input,html[data-rv-theme='dark'] select{color:var(--rv-ink);background:var(--rv-card)}
 
-/* Celestial theme switch ---------------------------------------------------
-   The 40px NE canvas is the moving celestial body. Only transform/opacity
-   move during interaction, so the switch remains cheap on Firefox/Android. */
-.rv-theme-toggle{
-  position:fixed;
-  z-index:70;
-  left:4.75rem;
-  bottom:1rem;
-  width:148px;
-  height:48px;
-  padding:0;
-  overflow:hidden;
-  isolation:isolate;
-  border:1px solid color-mix(in srgb,var(--rv-line) 82%,transparent);
-  border-radius:999px;
-  background:
-    radial-gradient(circle at 76% 24%,rgba(255,255,255,.94) 0 1px,transparent 2px),
-    radial-gradient(circle at 86% 62%,rgba(255,255,255,.62) 0 1px,transparent 1.5px),
-    linear-gradient(135deg,#f7fbf5 0%,#dceee7 52%,#beddd4 100%);
-  color:#17362d;
-  box-shadow:0 10px 28px rgba(24,57,47,.16),inset 0 1px 0 rgba(255,255,255,.78);
-  cursor:pointer;
-  touch-action:manipulation;
-  -webkit-tap-highlight-color:transparent;
-  contain:layout paint style;
-  transform:translate3d(0,0,0);
-  transition:transform .18s ease,border-color .24s ease,background-color .24s ease;
-}
-.rv-theme-toggle::before{
-  content:'';
-  position:absolute;
-  z-index:1;
-  left:4px;
-  top:4px;
-  width:40px;
-  height:40px;
-  border-radius:50%;
-  background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(236,245,240,.82));
-  box-shadow:0 4px 14px rgba(24,57,47,.19),inset 0 0 0 1px rgba(255,255,255,.74);
-  transform:translate3d(0,0,0);
-  transition:transform .32s cubic-bezier(.2,.82,.2,1);
-  will-change:transform;
-}
-.rv-theme-toggle::after{
-  content:'';
-  position:absolute;
-  z-index:0;
-  inset:0;
-  pointer-events:none;
-  border-radius:inherit;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
-}
-.rv-theme-toggle canvas{
-  position:absolute!important;
-  z-index:2;
-  left:4px;
-  top:4px;
-  display:block;
-  border-radius:50%;
-  transform:translate3d(0,0,0);
-  transition:transform .32s cubic-bezier(.2,.82,.2,1),opacity .18s ease;
-  will-change:transform;
-}
-.rv-theme-toggle>span{
-  position:absolute;
-  z-index:2;
-  left:52px;
-  top:0;
-  width:88px;
-  height:48px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden;
-  padding:0 5px;
-  color:inherit;
-  font-family:'Manrope','DM Sans',sans-serif;
-  font-size:.66rem;
-  font-weight:850;
-  letter-spacing:.055em;
-  line-height:1;
-  text-transform:uppercase;
-  white-space:nowrap;
-  text-overflow:ellipsis;
-  opacity:.88;
-  transform:translate3d(0,0,0);
-  transition:transform .32s cubic-bezier(.2,.82,.2,1),opacity .18s ease;
-  will-change:transform;
-}
-html[data-rv-theme='dark'] .rv-theme-toggle{
-  border-color:rgba(167,204,191,.19);
-  background:
-    radial-gradient(circle at 14% 24%,rgba(221,242,235,.7) 0 1px,transparent 1.6px),
-    radial-gradient(circle at 27% 65%,rgba(221,242,235,.42) 0 1px,transparent 1.5px),
-    radial-gradient(circle at 46% 30%,rgba(221,242,235,.28) 0 1px,transparent 1.4px),
-    linear-gradient(135deg,#102820 0%,#163b30 54%,#0c201a 100%);
-  color:#e8f5ef;
-  box-shadow:0 11px 30px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.055);
-}
-html[data-rv-theme='dark'] .rv-theme-toggle::before{
-  background:linear-gradient(145deg,rgba(62,91,80,.9),rgba(24,54,44,.96));
-  box-shadow:0 5px 16px rgba(0,0,0,.34),inset 0 0 0 1px rgba(197,225,215,.13);
-  transform:translate3d(100px,0,0);
-}
-html[data-rv-theme='dark'] .rv-theme-toggle canvas{transform:translate3d(100px,0,0)}
-html[data-rv-theme='dark'] .rv-theme-toggle>span{transform:translate3d(-44px,0,0);opacity:.82}
-@media(hover:hover) and (pointer:fine){
-  .rv-theme-toggle:hover{transform:translate3d(0,-2px,0)}
-  .rv-theme-toggle:hover>span{opacity:1}
-}
-.rv-theme-toggle:active{transform:translate3d(0,0,0) scale(.97)}
-.rv-theme-toggle:focus-visible{outline:3px solid color-mix(in srgb,var(--rv-lime) 66%,white);outline-offset:3px}
-@supports(-moz-appearance:none){
-  .rv-theme-toggle{box-shadow:0 8px 24px rgba(24,57,47,.17),inset 0 1px 0 rgba(255,255,255,.62)}
-  html[data-rv-theme='dark'] .rv-theme-toggle{box-shadow:0 9px 25px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.05)}
-}
-@media(prefers-reduced-motion:reduce){
-  .rv-theme-toggle,.rv-theme-toggle::before,.rv-theme-toggle canvas,.rv-theme-toggle>span{transition-duration:.01ms!important}
-}
+/* The visual theme control now owns its drawing in ThemeManimToggle. Keep this
+   dock concerned only with placement so the Manim scene stays self-contained. */
+.rv-footer-theme-dock{position:fixed;z-index:70;left:4.75rem;bottom:1rem;width:112px;height:52px;isolation:isolate}
 
 .rv-cookie{position:fixed;z-index:80;right:1rem;bottom:1rem;width:min(420px,calc(100vw - 2rem));display:grid;grid-template-columns:auto 1fr;gap:.85rem;padding:1rem;border:1px solid var(--rv-line);border-radius:22px;background:color-mix(in srgb,var(--rv-card) 96%,transparent);box-shadow:0 24px 70px var(--rv-shadow);backdrop-filter:blur(20px)}
 .rv-cookie__mark{width:2.1rem;height:2.1rem;display:grid;place-items:center;border-radius:50%;background:var(--rv-lime);color:#10231f;font-weight:900}.rv-cookie strong{display:block}.rv-cookie p{margin:.28rem 0 0;color:var(--rv-muted);font-size:.78rem;line-height:1.5}.rv-cookie__actions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:.55rem}
@@ -203,5 +87,5 @@ html[data-rv-theme='dark'] .rv-theme-toggle>span{transform:translate3d(-44px,0,0
 .rv-dossier-metrics{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.55rem;margin-top:.7rem}.rv-dossier-metric{min-width:0;padding:.72rem .78rem;border:1px solid var(--rv-line);border-radius:15px;background:var(--rv-card)}.rv-dossier-metric span{display:block;color:var(--rv-muted);font-size:.67rem;line-height:1.25}.rv-dossier-metric strong{display:block;margin-top:.24rem;font-family:'Manrope';font-size:.94rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rv-dossier-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:1rem;align-items:start}.rv-dossier-main{display:grid;gap:.8rem}.rv-dossier-section{padding:1rem 1.05rem;border:1px solid var(--rv-line);border-radius:18px;background:var(--rv-card)}.rv-dossier-section h2,.rv-dossier-section h3{margin-top:0}.rv-dossier-summary{position:sticky;top:5.4rem;padding:1rem;border:1px solid var(--rv-line);border-radius:18px;background:var(--rv-card);box-shadow:0 14px 45px var(--rv-shadow)}.rv-dossier-summary__rows{display:grid;gap:.45rem;margin:.8rem 0}.rv-dossier-summary__row{display:flex;justify-content:space-between;gap:1rem;padding-bottom:.4rem;border-bottom:1px solid var(--rv-line);font-size:.78rem}.rv-dossier-summary__row span{color:var(--rv-muted)}.rv-dossier-summary__actions{display:grid;gap:.5rem}.rv-dossier-insights{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}.rv-dossier-insight{padding:.9rem;border-radius:15px;background:var(--rv-card-soft);border:1px solid var(--rv-line)}.rv-dossier-insight p{margin:.45rem 0 0;font-size:.8rem;line-height:1.5}.rv-prose{font-size:.92rem;line-height:1.72}.rv-prose h2{font-size:1.3rem;margin:1.6rem 0 .55rem}.rv-prose h3{font-size:1.02rem;margin:1.15rem 0 .4rem}.rv-prose p{margin:.5rem 0}.rv-prose ul,.rv-prose ol{margin:.45rem 0 .8rem;padding-left:1.25rem}
 
-@media(max-width:900px){.rv-dossier-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.rv-dossier-layout{grid-template-columns:1fr}.rv-dossier-summary{position:static}.rv-theme-toggle{left:1rem}}
-@media(max-width:700px){.rv-cookie{left:.65rem;right:.65rem;bottom:.65rem;width:auto;border-radius:20px}.rv-cookie__actions{grid-template-columns:1fr}.rv-theme-toggle{left:.65rem;bottom:.65rem}.rv-theme-toggle--consent{bottom:13.5rem}.rv-dossier-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.rv-dossier-insights{grid-template-columns:1fr}.rv-dossier-hero{min-height:210px}.rv-dossier-hero__copy{padding:1.1rem}.rv-prose{font-size:.9rem}}
+@media(max-width:900px){.rv-dossier-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.rv-dossier-layout{grid-template-columns:1fr}.rv-dossier-summary{position:static}.rv-footer-theme-dock{left:1rem}}
+@media(max-width:700px){.rv-cookie{left:.65rem;right:.65rem;bottom:.65rem;width:auto;border-radius:20px}.rv-cookie__actions{grid-template-columns:1fr}.rv-footer-theme-dock{left:.65rem;bottom:.65rem}.rv-footer-theme-dock--consent{bottom:13.75rem}.rv-dossier-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.rv-dossier-insights{grid-template-columns:1fr}.rv-dossier-hero{min-height:210px}.rv-dossier-hero__copy{padding:1.1rem}.rv-prose{font-size:.9rem}}
