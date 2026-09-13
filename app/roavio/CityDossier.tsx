@@ -45,6 +45,22 @@ function continentLabel(value: string, locale: RoavioLocale): string {
   return match ? match[locale === "es" ? 0 : 1] : value;
 }
 
+function revealNode(child: SchemaNode, props: Record<string, unknown> = {}): SchemaNode {
+  return {
+    type: "reveal",
+    props: {
+      effect: "fade",
+      replay: false,
+      duration: 420,
+      renderMargin: 1400,
+      motionMargin: 120,
+      releaseWhenFar: false,
+      ...props,
+    },
+    children: [child],
+  };
+}
+
 function insightColumn(title: string, tone: string, items: string[], fallback: string): SchemaNode {
   return {
     type: "box",
@@ -87,7 +103,7 @@ function officialCityFooter(locale: RoavioLocale): SchemaNode {
               lineHeight: 1.45,
             },
           },
-          { type: "link", props: { href: "https://www.roavio.es/feedback", target: "_blank", content: es ? "Feedback" : "Feedback", size: ".72rem", color: "var(--rv-muted)" } },
+          { type: "link", props: { href: "https://www.roavio.es/feedback", target: "_blank", content: "Feedback", size: ".72rem", color: "var(--rv-muted)" } },
         ],
       },
     ],
@@ -134,6 +150,111 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
     [labels.quality, metricValue(city.metrics.quality, locale, "/10")],
   ];
 
+  const heroCopy = revealNode({
+    type: "box",
+    props: { className: "rv-dossier-hero__copy" },
+    children: [
+      { type: "text", props: { content: `${city.country} · ${continentLabel(city.continent, locale)}`, variant: "overline", color: "var(--rv-lime)", weight: 800 } },
+      { type: "heading", props: { level: 1, content: city.name, size: { xs: "2.65rem", md: "4rem" }, color: "#fff", lineHeight: .96, style: { margin: ".3rem 0 0" } } },
+    ],
+  }, { priority: true, duration: 360, delay: 110 });
+
+  const metricCards = stats.map(([label, value], index) => revealNode({
+    type: "box",
+    key: label,
+    props: { className: "rv-dossier-metric" },
+    children: [
+      { type: "text", props: { content: label } },
+      { type: "text", props: { content: value, weight: 800 } },
+    ],
+  }, {
+    priority: true,
+    effect: "pop",
+    duration: 360,
+    delay: 150 + index * 42,
+    scaleFrom: .94,
+    overshoot: 1.012,
+  }));
+
+  const mainContent = revealNode({
+    type: "box",
+    props: { className: "rv-dossier-main" },
+    children: [
+      {
+        type: "box",
+        props: { className: "rv-dossier-section" },
+        children: [
+          { type: "heading", props: { level: 2, content: labels.about, size: "1.15rem", style: { margin: "0 0 .5rem" } } },
+          { type: "text", props: { content: city.summary || (es ? "Sin resumen disponible." : "No summary available."), size: ".88rem", lineHeight: 1.65, color: "var(--rv-muted)" } },
+        ],
+      },
+      {
+        type: "box",
+        props: { className: "rv-dossier-highlighted" },
+        children: [
+          { type: "heading", props: { level: 2, content: labels.highlighted, size: "1rem", style: { margin: "0 0 .55rem" } } },
+          {
+            type: "box",
+            props: { className: "rv-dossier-insights" },
+            children: [
+              insightColumn(labels.strengths, "var(--rv-green)", city.strengths, labels.noStrengths),
+              insightColumn(labels.cautions, "var(--rv-peach)", city.considerations, labels.noCautions),
+            ],
+          },
+        ],
+      },
+      ...(city.editorialAvailable
+        ? [{
+            type: "box",
+            props: { className: "rv-dossier-section" },
+            children: [
+              {
+                type: "markdown",
+                props: {
+                  className: "rv-prose",
+                  content: city.guide,
+                  headingColor: "var(--rv-ink)",
+                  textColor: "var(--rv-ink)",
+                  linkColor: "var(--rv-green)",
+                  bodyLineHeight: 1.72,
+                  headingIdPrefix: city.slug,
+                },
+              },
+            ],
+          } as SchemaNode]
+        : []),
+    ],
+  }, { effect: "slide-up", duration: 460, delay: 90 });
+
+  const summaryCard = revealNode({
+    type: "box",
+    props: { className: "rv-dossier-summary" },
+    children: [
+      { type: "heading", props: { level: 3, content: labels.summary, size: ".95rem", style: { margin: 0 } } },
+      {
+        type: "box",
+        props: { className: "rv-dossier-summary__rows" },
+        children: summaryRows.map(([label, value]) => ({
+          type: "box",
+          key: label,
+          props: { className: "rv-dossier-summary__row" },
+          children: [
+            { type: "text", props: { content: label } },
+            { type: "text", props: { content: value, weight: 800 } },
+          ],
+        })),
+      },
+      {
+        type: "box",
+        props: { className: "rv-dossier-summary__actions" },
+        children: [
+          { type: "button", props: { href: `/compare?cities=${city.slug}`, label: labels.compare, variant: "elevated", accentColor: "var(--rv-lime)", color: "#10231f" } },
+          { type: "button", props: { href: "/cities", label: labels.allCities, variant: "outline", accentColor: "var(--rv-ink)" } },
+        ],
+      },
+    ],
+  }, { effect: "slide-up", duration: 460, delay: 150 });
+
   const schema = defineSchema({
     meta: {
       title: es ? `${city.name}, ${city.country} para nómadas digitales · Roavio` : `${city.name}, ${city.country} for digital nomads · Roavio`,
@@ -163,29 +284,14 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
               type: "box",
               props: { className: "rv-dossier-hero" },
               children: [
-                {
-                  type: "box",
-                  props: { className: "rv-dossier-hero__copy" },
-                  children: [
-                    { type: "text", props: { content: `${city.country} · ${continentLabel(city.continent, locale)}`, variant: "overline", color: "var(--rv-lime)", weight: 800 } },
-                    { type: "heading", props: { level: 1, content: city.name, size: { xs: "2.65rem", md: "4rem" }, color: "#fff", lineHeight: .96, style: { margin: ".3rem 0 0" } } },
-                  ],
-                },
+                heroCopy,
                 { type: "slot", props: { name: "heroImage" } },
               ],
             },
             {
               type: "box",
               props: { className: "rv-dossier-metrics" },
-              children: stats.map(([label, value]) => ({
-                type: "box",
-                key: label,
-                props: { className: "rv-dossier-metric" },
-                children: [
-                  { type: "text", props: { content: label } },
-                  { type: "text", props: { content: value, weight: 800 } },
-                ],
-              })),
+              children: metricCards,
             },
           ],
         },
@@ -196,85 +302,7 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
             {
               type: "box",
               props: { className: "rv-dossier-layout" },
-              children: [
-                {
-                  type: "box",
-                  props: { className: "rv-dossier-main" },
-                  children: [
-                    {
-                      type: "box",
-                      props: { className: "rv-dossier-section" },
-                      children: [
-                        { type: "heading", props: { level: 2, content: labels.about, size: "1.15rem", style: { margin: "0 0 .5rem" } } },
-                        { type: "text", props: { content: city.summary || (es ? "Sin resumen disponible." : "No summary available."), size: ".88rem", lineHeight: 1.65, color: "var(--rv-muted)" } },
-                      ],
-                    },
-                    {
-                      type: "box",
-                      props: { className: "rv-dossier-highlighted" },
-                      children: [
-                        { type: "heading", props: { level: 2, content: labels.highlighted, size: "1rem", style: { margin: "0 0 .55rem" } } },
-                        {
-                          type: "box",
-                          props: { className: "rv-dossier-insights" },
-                          children: [
-                            insightColumn(labels.strengths, "var(--rv-green)", city.strengths, labels.noStrengths),
-                            insightColumn(labels.cautions, "var(--rv-peach)", city.considerations, labels.noCautions),
-                          ],
-                        },
-                      ],
-                    },
-                    ...(city.editorialAvailable
-                      ? [{
-                          type: "box",
-                          props: { className: "rv-dossier-section" },
-                          children: [
-                            {
-                              type: "markdown",
-                              props: {
-                                className: "rv-prose",
-                                content: city.guide,
-                                headingColor: "var(--rv-ink)",
-                                textColor: "var(--rv-ink)",
-                                linkColor: "var(--rv-green)",
-                                bodyLineHeight: 1.72,
-                                headingIdPrefix: city.slug,
-                              },
-                            },
-                          ],
-                        } as SchemaNode]
-                      : []),
-                  ],
-                },
-                {
-                  type: "box",
-                  props: { className: "rv-dossier-summary" },
-                  children: [
-                    { type: "heading", props: { level: 3, content: labels.summary, size: ".95rem", style: { margin: 0 } } },
-                    {
-                      type: "box",
-                      props: { className: "rv-dossier-summary__rows" },
-                      children: summaryRows.map(([label, value]) => ({
-                        type: "box",
-                        key: label,
-                        props: { className: "rv-dossier-summary__row" },
-                        children: [
-                          { type: "text", props: { content: label } },
-                          { type: "text", props: { content: value, weight: 800 } },
-                        ],
-                      })),
-                    },
-                    {
-                      type: "box",
-                      props: { className: "rv-dossier-summary__actions" },
-                      children: [
-                        { type: "button", props: { href: `/compare?cities=${city.slug}`, label: labels.compare, variant: "elevated", accentColor: "var(--rv-lime)", color: "#10231f" } },
-                        { type: "button", props: { href: "/cities", label: labels.allCities, variant: "outline", accentColor: "var(--rv-ink)" } },
-                      ],
-                    },
-                  ],
-                },
-              ],
+              children: [mainContent, summaryCard],
             },
           ],
         },
