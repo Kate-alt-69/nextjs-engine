@@ -11,6 +11,7 @@ export function CityDossierBackdrop({ slug }: { slug: string }) {
     >
       <OfficialCityImage
         slug={slug}
+        priority
         className="rv-dossier-backdrop__full"
         sizes="100vw"
         style={{ position: "absolute", inset: 0 }}
