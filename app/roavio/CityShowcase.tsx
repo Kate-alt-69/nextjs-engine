@@ -28,7 +28,7 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
       speed={24}
       gap={14}
       resumeDelay={1800}
-      direction="right"
+      motionDirection="right"
       ariaLabel={es ? "Ciudades populares y con alta calidad de vida" : "Popular and high quality-of-life cities"}
     >
       {cities.map((city, index) => {
