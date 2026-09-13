@@ -19,6 +19,16 @@ import { useCpropClass } from "../hooks/usePropStyles";
 import { usePrimitiveStyles } from "../hooks/usePrimitiveStyles";
 import { useHandler } from "../providers/EngineProvider";
 
+export interface EngineCustomSelectProps extends Omit<CustomSelectProps, "onChange"> {
+	/** Controlled value. Omit to keep the schema-friendly uncontrolled mode. */
+	value?: string;
+	/** Named Engine handler for schema use, or a direct callback for component use. */
+	onChange?: string | ((value: string, option: SelectOption | null) => void);
+	searchPlaceholder?: string;
+	emptyLabel?: string;
+	ariaLabel?: string;
+}
+
 const SIZE_CONFIG = {
 	sm: { fontSize: "0.8125rem", padding: "0.5rem 0.75rem", borderRadius: "6px", iconSize: 14 },
 	md: { fontSize: "0.9375rem", padding: "0.75rem 1rem", borderRadius: "8px", iconSize: 16 },
@@ -118,9 +128,13 @@ export const CustomSelect = memo(function CustomSelect({
 	options = [],
 	placeholder = "Select an option…",
 	defaultValue,
+	value,
 	onChange,
 	searchable = false,
 	clearable = false,
+	searchPlaceholder = "Search…",
+	emptyLabel = "No options found",
+	ariaLabel,
 	size = "md",
 	id: externalId,
 	point,
@@ -128,7 +142,7 @@ export const CustomSelect = memo(function CustomSelect({
 	className,
 	cprop,
 	...props
-}: CustomSelectProps) {
+}: EngineCustomSelectProps) {
 	const generatedId = useId();
 	const resolvedId = externalId ?? point;
 	const internalBaseId = resolvedId
@@ -136,14 +150,18 @@ export const CustomSelect = memo(function CustomSelect({
 		: `cs-${generatedId.replace(/:/g, "")}`;
 	const triggerId = `${internalBaseId}-trigger`;
 	const listboxId = `${internalBaseId}-listbox`;
-	const changeHandler = useHandler(onChange ?? "");
+	const namedChangeHandler = useHandler(typeof onChange === "string" ? onChange : "");
+	const controlled = value !== undefined;
 
 	const [isOpen, setIsOpen] = useState(false);
-	const [selected, setSelected] = useState<SelectOption | null>(() =>
+	const [internalSelected, setInternalSelected] = useState<SelectOption | null>(() =>
 		defaultValue !== undefined
 			? (options.find((option) => option.value === defaultValue) ?? null)
 			: null,
 	);
+	const selected = controlled
+		? (options.find((option) => option.value === value) ?? null)
+		: internalSelected;
 	const [search, setSearch] = useState("");
 	const [focusedIndex, setFocusedIndex] = useState(-1);
 
@@ -152,6 +170,11 @@ export const CustomSelect = memo(function CustomSelect({
 	const listRef = useRef<HTMLDivElement>(null);
 	const cfg = SIZE_CONFIG[size] ?? SIZE_CONFIG.md;
 
+	const emitChange = useCallback((nextValue: string, option: SelectOption | null) => {
+		if (typeof onChange === "function") onChange(nextValue, option);
+		else namedChangeHandler?.(nextValue, option);
+	}, [namedChangeHandler, onChange]);
+
 	const filteredOptions = useMemo(
 		() => filterOptions(options, searchable, search),
 		[options, searchable, search],
@@ -159,6 +182,7 @@ export const CustomSelect = memo(function CustomSelect({
 	const activeOptionId = isOpen && focusedIndex >= 0 && filteredOptions[focusedIndex]
 		? `${listboxId}-option-${focusedIndex}`
 		: undefined;
+	const accessibleLabel = ariaLabel ?? label ?? placeholder;
 
 	const open = useCallback((): void => {
 		setIsOpen(true);
@@ -182,17 +206,17 @@ export const CustomSelect = memo(function CustomSelect({
 
 	const selectOption = useCallback((option: SelectOption): void => {
 		if (option.disabled) return;
-		setSelected(option);
-		changeHandler?.(option.value, option);
+		if (!controlled) setInternalSelected(option);
+		emitChange(option.value, option);
 		close();
-	}, [changeHandler, close]);
+	}, [close, controlled, emitChange]);
 
 	const clearSelection = useCallback((event: React.MouseEvent<HTMLButtonElement>): void => {
 		event.preventDefault();
-		setSelected(null);
-		changeHandler?.("", null);
+		if (!controlled) setInternalSelected(null);
+		emitChange("", null);
 		close();
-	}, [changeHandler, close]);
+	}, [close, controlled, emitChange]);
 
 	const moveFocus = useCallback((direction: 1 | -1): void => {
 		setFocusedIndex((previousIndex) => {
@@ -414,7 +438,7 @@ export const CustomSelect = memo(function CustomSelect({
 					aria-expanded={isOpen}
 					aria-controls={listboxId}
 					aria-activedescendant={activeOptionId}
-					aria-label={label ?? placeholder}
+					aria-label={accessibleLabel}
 					onClick={toggle}
 					onKeyDown={handleTriggerKeyDown}
 					style={triggerStyle}
@@ -446,9 +470,9 @@ export const CustomSelect = memo(function CustomSelect({
 								<input
 									ref={searchRef}
 									type="text"
-									placeholder="Search…"
+									placeholder={searchPlaceholder}
 									value={search}
-									aria-label={`Search ${label ?? name}`}
+									aria-label={searchPlaceholder}
 									aria-controls={listboxId}
 									aria-activedescendant={activeOptionId}
 									onChange={(event) => {
@@ -467,7 +491,7 @@ export const CustomSelect = memo(function CustomSelect({
 						id={listboxId}
 						ref={listRef}
 						role="listbox"
-						aria-label={label ?? placeholder}
+						aria-label={accessibleLabel}
 						aria-activedescendant={activeOptionId}
 						className="e-select-scroll"
 						style={listStyle}
@@ -476,7 +500,7 @@ export const CustomSelect = memo(function CustomSelect({
 					>
 						{filteredOptions.length === 0 ? (
 							<div style={{ padding: "1rem", textAlign: "center", color: "var(--e-muted, #94a3b8)", fontSize: cfg.fontSize, userSelect: "none" }}>
-								No options found
+								{emptyLabel}
 							</div>
 						) : filteredOptions.map((option, index) => (
 							<div
