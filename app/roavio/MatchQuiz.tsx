@@ -3,6 +3,7 @@
 import { EngineReveal, EngineTransitionLink } from "@/engine";
 import { useMemo, useState, type ReactNode } from "react";
 import { catalogFitScore, catalogMetric, type CityCatalogEntry } from "./catalog";
+import { cityExpandTransition, cityTransitionSurfaceId } from "./cityTransition";
 import { CityThumb } from "./CityThumb";
 import type { RoavioLocale } from "./i18n";
 
@@ -107,9 +108,11 @@ export function MatchQuiz({ catalog, locale }: { catalog: CityCatalogEntry[]; lo
             {matches.map(({ city }, index) => {
               const fit = catalogFitScore(city);
               const cityHref = `/cities/${city.slug}`;
+              const cityTransition = cityExpandTransition(city.slug);
               return (
                 <EngineReveal
                   key={city.slug}
+                  id={cityTransitionSurfaceId(city.slug)}
                   className="rv-result-card-reveal"
                   priority={index < 3}
                   effect="pop"
@@ -123,7 +126,7 @@ export function MatchQuiz({ catalog, locale }: { catalog: CityCatalogEntry[]; lo
                   releaseWhenFar
                 >
                   <article className="rv-result-card">
-                    <EngineTransitionLink href={cityHref} transition="portal" className="rv-result-card__visual" aria-label={`${es ? "Abrir" : "Open"} ${city.city}`}>
+                    <EngineTransitionLink href={cityHref} transition={cityTransition} className="rv-result-card__visual" aria-label={`${es ? "Abrir" : "Open"} ${city.city}`}>
                       <CityThumb slug={city.slug} city={city.city} country={city.country} eager={index < 3} />
                     </EngineTransitionLink>
                     <div className="rv-result-card__body">
@@ -137,7 +140,7 @@ export function MatchQuiz({ catalog, locale }: { catalog: CityCatalogEntry[]; lo
                         <div><strong>{catalogMetric(city.quality, "/10")}</strong><span>{es ? "calidad" : "quality"}</span></div>
                       </div>
                       <div className="rv-card-actions">
-                        <EngineTransitionLink className="rv-primary" href={cityHref} transition="portal">{es ? "Abrir ciudad" : "Open city"} →</EngineTransitionLink>
+                        <EngineTransitionLink className="rv-primary" href={cityHref} transition={cityTransition}>{es ? "Abrir ciudad" : "Open city"} →</EngineTransitionLink>
                         <EngineTransitionLink className="rv-secondary" href={`/compare?cities=${city.slug}`} transition="depth">{es ? "Comparar" : "Compare"}</EngineTransitionLink>
                       </div>
                     </div>
