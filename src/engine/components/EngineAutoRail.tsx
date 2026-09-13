@@ -7,6 +7,7 @@ import React, {
 	useEffect,
 	useMemo,
 	useRef,
+	type CSSProperties,
 	type ReactNode,
 } from "react";
 import { EngineScheduler } from "../core/enginescheduler";
@@ -78,6 +79,7 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 	const rootRef = useRef<HTMLDivElement | null>(null);
 	const viewportRef = useRef<HTMLDivElement | null>(null);
 	const rafRef = useRef(0);
+	const frameStepRef = useRef<(now: number) => void>(() => undefined);
 	const lastFrameRef = useRef(0);
 	const visibleRef = useRef(true);
 	const pausedRef = useRef(false);
@@ -93,40 +95,54 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 	const safeSpeed = Math.max(0, Math.min(180, Number.isFinite(speed) ? speed : 26));
 
 	const stopFrame = useCallback(() => {
-		if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
+		if (rafRef.current && typeof window !== "undefined") window.cancelAnimationFrame(rafRef.current);
 		rafRef.current = 0;
 		lastFrameRef.current = 0;
 	}, []);
 
-	const frame = useCallback((now: number) => {
-		rafRef.current = 0;
-		const viewport = viewportRef.current;
-		if (!viewport || !autoplay || reducedRef.current || pausedRef.current || !visibleRef.current || document.hidden || safeSpeed <= 0) {
-			lastFrameRef.current = 0;
-			return;
-		}
+	const requestNextFrame = useCallback(() => {
+		if (
+			typeof window === "undefined"
+			|| rafRef.current
+			|| !autoplay
+			|| reducedRef.current
+			|| pausedRef.current
+			|| !visibleRef.current
+			|| document.hidden
+			|| safeSpeed <= 0
+		) return;
+		rafRef.current = window.requestAnimationFrame((now) => frameStepRef.current(now));
+	}, [autoplay, safeSpeed]);
 
-		const previous = lastFrameRef.current || now;
-		const dt = Math.min(34, Math.max(0, now - previous));
-		lastFrameRef.current = now;
-		const maxScroll = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
-		if (maxScroll <= 1) return;
+	useEffect(() => {
+		frameStepRef.current = (now: number) => {
+			rafRef.current = 0;
+			const viewport = viewportRef.current;
+			if (!viewport || reducedRef.current || pausedRef.current || !visibleRef.current || document.hidden || !autoplay || safeSpeed <= 0) {
+				lastFrameRef.current = 0;
+				return;
+			}
 
-		viewport.scrollLeft += directionRef.current * safeSpeed * (dt / 1000);
-		if (directionRef.current > 0 && viewport.scrollLeft >= maxScroll - 1) {
-			if (bounce) directionRef.current = -1;
-			else viewport.scrollLeft = 0;
-		} else if (directionRef.current < 0 && viewport.scrollLeft <= 1) {
-			if (bounce) directionRef.current = 1;
-			else viewport.scrollLeft = maxScroll;
-		}
-		rafRef.current = window.requestAnimationFrame(frame);
-	}, [autoplay, bounce, safeSpeed]);
+			const previous = lastFrameRef.current || now;
+			const dt = Math.min(34, Math.max(0, now - previous));
+			lastFrameRef.current = now;
+			const maxScroll = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+			if (maxScroll <= 1) {
+				lastFrameRef.current = 0;
+				return;
+			}
 
-	const startFrame = useCallback(() => {
-		if (typeof window === "undefined" || rafRef.current || !autoplay || pausedRef.current || !visibleRef.current || reducedRef.current) return;
-		rafRef.current = window.requestAnimationFrame(frame);
-	}, [autoplay, frame]);
+			viewport.scrollLeft += directionRef.current * safeSpeed * (dt / 1000);
+			if (directionRef.current > 0 && viewport.scrollLeft >= maxScroll - 1) {
+				if (bounce) directionRef.current = -1;
+				else viewport.scrollLeft = 0;
+			} else if (directionRef.current < 0 && viewport.scrollLeft <= 1) {
+				if (bounce) directionRef.current = 1;
+				else viewport.scrollLeft = maxScroll;
+			}
+			requestNextFrame();
+		};
+	}, [autoplay, bounce, requestNextFrame, safeSpeed]);
 
 	const pause = useCallback((resume = true) => {
 		pausedRef.current = true;
@@ -136,9 +152,9 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 		if (!resume) return;
 		resumeTimerRef.current = window.setTimeout(() => {
 			pausedRef.current = false;
-			startFrame();
+			requestNextFrame();
 		}, Math.max(250, resumeDelay));
-	}, [resumeDelay, startFrame, stopFrame]);
+	}, [requestNextFrame, resumeDelay, stopFrame]);
 
 	useEffect(() => {
 		injectRailCss();
@@ -146,21 +162,25 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 		directionRef.current = direction === "right" ? 1 : -1;
 		const root = rootRef.current;
 		if (!root) return;
+		const releaseFrameMonitor = autoplay && !reducedRef.current
+			? EngineScheduler.acquireFrameMonitor()
+			: () => undefined;
 		const stopObserve = EngineScheduler.observe(root, (snapshot) => {
 			visibleRef.current = snapshot.visible || snapshot.near;
-			if (visibleRef.current) startFrame();
+			if (visibleRef.current) requestNextFrame();
 			else stopFrame();
 		}, { nearMargin: "180px 0px", visibleThreshold: 0.01, releaseWhenFar: true });
-		const onVisibility = () => document.hidden ? stopFrame() : startFrame();
+		const onVisibility = () => document.hidden ? stopFrame() : requestNextFrame();
 		document.addEventListener("visibilitychange", onVisibility);
-		startFrame();
+		requestNextFrame();
 		return () => {
 			stopObserve();
+			releaseFrameMonitor();
 			document.removeEventListener("visibilitychange", onVisibility);
 			stopFrame();
 			if (resumeTimerRef.current !== null) window.clearTimeout(resumeTimerRef.current);
 		};
-	}, [direction, startFrame, stopFrame]);
+	}, [autoplay, direction, requestNextFrame, stopFrame]);
 
 	const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
 		if (event.button !== 0) return;
@@ -168,7 +188,7 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 		if (!viewport) return;
 		dragRef.current = { id: event.pointerId, startX: event.clientX, startScroll: viewport.scrollLeft, moved: false };
 		rootRef.current?.setAttribute("data-dragging", "true");
-		event.currentTarget.setPointerCapture?.(event.pointerId);
+		try { event.currentTarget.setPointerCapture?.(event.pointerId); } catch { /* optional */ }
 		pause(false);
 	};
 
@@ -186,7 +206,7 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 		if (!drag || drag.id !== event.pointerId) return;
 		dragRef.current = null;
 		rootRef.current?.removeAttribute("data-dragging");
-		event.currentTarget.releasePointerCapture?.(event.pointerId);
+		try { event.currentTarget.releasePointerCapture?.(event.pointerId); } catch { /* browser may already release */ }
 		if (drag.moved) suppressClickUntilRef.current = performance.now() + 180;
 		pause(true);
 	};
@@ -203,7 +223,7 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 			ref={rootRef}
 			id={resolvedId}
 			className={mergedClass}
-			style={{ ...resolvedStyle, "--e-rail-gap": cssGap(gap) } as React.CSSProperties}
+			style={{ ...resolvedStyle, "--e-rail-gap": cssGap(gap) } as CSSProperties}
 			role="region"
 			aria-label={ariaLabel}
 			onMouseEnter={() => pause(false)}
