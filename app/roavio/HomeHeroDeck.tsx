@@ -7,17 +7,16 @@ import {
   CITY_HANDOFF_DURATION,
   cityTransitionSurfaceId,
 } from "./cityTransition";
+import { HOME_HERO_DECK_SLUGS } from "./homeCities";
 import type { RoavioLocale } from "./i18n";
 import { OfficialCityImage } from "./OfficialCityImage";
-
-const HERO_DECK = ["valencia", "singapur", "tokio", "copenhague", "dubai"] as const;
 
 function metric(value: number | null, suffix = "") {
   return value === null ? "—" : `${value}${suffix}`;
 }
 
 export function HomeHeroDeck({ catalog, locale }: { catalog: CityCatalogEntry[]; locale: RoavioLocale }) {
-  const cities = HERO_DECK
+  const cities = HOME_HERO_DECK_SLUGS
     .map((slug) => catalog.find((city) => city.slug === slug))
     .filter((city): city is CityCatalogEntry => Boolean(city));
   const es = locale === "es";
