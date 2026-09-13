@@ -10,6 +10,10 @@ export interface EngineExpandLinkProps {
 	sourceId?: string;
 	/** Destination surface revealed during the final cross-fade. */
 	targetId?: string;
+	/** Optional media subtree that should stretch to cover the expanding surface. */
+	mediaSelector?: string;
+	/** Optional detail subtree that should fade away while the visual surface expands. */
+	fadeSelector?: string;
 	duration?: number;
 	handoffDuration?: number;
 	endRadius?: string;
@@ -60,6 +64,33 @@ function viewportRect() {
 	};
 }
 
+function pageBackground(): string {
+	const body = window.getComputedStyle(document.body).backgroundColor;
+	if (body && body !== "rgba(0, 0, 0, 0)" && body !== "transparent") return body;
+	const root = window.getComputedStyle(document.documentElement).backgroundColor;
+	return root && root !== "rgba(0, 0, 0, 0)" && root !== "transparent" ? root : "#07110e";
+}
+
+function prepareMediaCover(root: HTMLElement, selector?: string): void {
+	if (!selector) return;
+	root.querySelectorAll<HTMLElement>(selector).forEach((surface) => {
+		important(surface, "position", "absolute");
+		important(surface, "inset", "0");
+		important(surface, "width", "100%");
+		important(surface, "height", "100%");
+		important(surface, "aspect-ratio", "auto");
+		important(surface, "border-radius", "inherit");
+		surface.querySelectorAll<HTMLElement>("picture,.e-img-wrap,img,video").forEach((media) => {
+			important(media, "width", "100%");
+			important(media, "height", "100%");
+			important(media, "max-width", "none");
+			if (media instanceof HTMLImageElement || media instanceof HTMLVideoElement) {
+				important(media, "object-fit", "cover");
+			}
+		});
+	});
+}
+
 async function waitForTarget(id: string | undefined, timeoutMs = 1000): Promise<HTMLElement | null> {
 	if (!id) return null;
 	const existing = document.getElementById(id);
@@ -98,6 +129,8 @@ export const EngineExpandLink = memo(
 			href,
 			sourceId,
 			targetId,
+			mediaSelector,
+			fadeSelector,
 			duration = 460,
 			handoffDuration = 240,
 			endRadius = "0px",
@@ -133,6 +166,7 @@ export const EngineExpandLink = memo(
 			const previousVisibility = source.style.visibility;
 			const clone = source.cloneNode(true) as HTMLElement;
 			neutralizeClone(clone);
+			prepareMediaCover(clone, mediaSelector);
 
 			important(clone, "position", "fixed");
 			important(clone, "top", `${rect.top}px`);
@@ -157,7 +191,7 @@ export const EngineExpandLink = memo(
 			important(scrim, "inset", "0");
 			important(scrim, "z-index", "2147483000");
 			important(scrim, "pointer-events", "none");
-			important(scrim, "background", window.getComputedStyle(document.body).backgroundColor || "#07110e");
+			important(scrim, "background", pageBackground());
 			important(scrim, "opacity", "0");
 
 			document.body.append(scrim, clone);
@@ -194,10 +228,16 @@ export const EngineExpandLink = memo(
 			const oldPageFade = scrim.animate([{ opacity: 0 }, { opacity: 1 }], {
 				duration: Math.min(280, safeDuration), easing: "ease-in", fill: "forwards",
 			});
+			const detailFades = fadeSelector
+				? [...clone.querySelectorAll<HTMLElement>(fadeSelector)].map((detail) => detail.animate(
+					[{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(8px)" }],
+					{ duration: Math.min(220, safeDuration * .55), easing: "ease-in", fill: "forwards" },
+				))
+				: [];
 
 			void (async () => {
 				try {
-					await Promise.all([animationDone(expand), animationDone(oldPageFade)]);
+					await Promise.all([animationDone(expand), animationDone(oldPageFade), ...detailFades.map(animationDone)]);
 					await transitions.push(href, transition, { pointer });
 					const destination = await waitForTarget(targetId, 1100);
 					const destinationIn = destination?.animate([
