@@ -1,0 +1,79 @@
+/* Homepage motion surfaces powered by NE EngineSwipeDeck + EngineAutoRail. */
+.rv-hero-art{
+  min-height:450px!important;
+  padding:1.15rem!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:visible!important;
+  background:
+    radial-gradient(circle at 16% 16%,color-mix(in srgb,var(--rv-lime) 22%,transparent),transparent 24%),
+    radial-gradient(circle at 88% 80%,color-mix(in srgb,var(--rv-blue) 18%,transparent),transparent 29%),
+    linear-gradient(145deg,color-mix(in srgb,var(--rv-green) 78%,#07110e),color-mix(in srgb,var(--rv-green) 48%,#07110e))!important;
+  box-shadow:0 30px 80px var(--rv-shadow)!important;
+}
+.rv-hero-map,.rv-floating-card{display:none!important}
+
+.rv-home-deck-shell{width:min(540px,100%);height:420px;display:flex;flex-direction:column;gap:.65rem;position:relative}
+.rv-home-deck__eyebrow{display:flex;align-items:center;justify-content:space-between;gap:1rem;color:rgba(244,251,247,.88);padding:0 .2rem;font-family:'Manrope','DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.12em;font-size:.66rem;font-weight:800}
+.rv-home-deck__eyebrow small{font-family:'DM Sans',sans-serif;text-transform:none;letter-spacing:0;font-size:.72rem;font-weight:600;color:rgba(244,251,247,.58)}
+.rv-home-deck{flex:1;min-height:0!important}
+.rv-home-deck-card{position:absolute;inset:0;display:block;border-radius:28px;overflow:hidden;color:#fff;text-decoration:none;background:#102a22;border:1px solid rgba(255,255,255,.28);box-shadow:0 24px 54px rgba(0,0,0,.26);isolation:isolate}
+.rv-home-deck-card__media,.rv-home-deck-card__image{position:absolute!important;inset:0!important;width:100%!important;height:100%!important}
+.rv-home-deck-card__image img,.rv-home-deck-card__image picture{width:100%!important;height:100%!important;object-fit:cover!important}
+.rv-home-deck-card__shade{position:absolute;inset:0;z-index:2;background:linear-gradient(180deg,rgba(3,14,11,.08) 18%,rgba(3,14,11,.2) 46%,rgba(3,14,11,.88) 100%)}
+.rv-home-deck-card__top{position:absolute;z-index:3;top:1rem;left:1rem;right:1rem;display:flex;align-items:center;justify-content:space-between;gap:.75rem;font-family:'Manrope','DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.09em;font-size:.68rem;font-weight:800}
+.rv-home-deck-card__top span,.rv-home-deck-card__top strong{display:inline-flex;align-items:center;min-height:30px;padding:.35rem .58rem;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(5,20,15,.58)}
+.rv-home-deck-card__copy{position:absolute;z-index:3;left:1.15rem;right:1.15rem;bottom:1.1rem}
+.rv-home-deck-card__copy>p{margin:0 0 .18rem;color:rgba(255,255,255,.72);font-size:.82rem;font-family:'DM Sans',sans-serif}
+.rv-home-deck-card__copy h3{margin:0;font-family:'Instrument Serif',Georgia,serif;font-size:clamp(2.25rem,5vw,3.6rem);font-weight:400;letter-spacing:-.025em;line-height:.92;color:#fff}
+.rv-home-deck-card__metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem;margin-top:.9rem}
+.rv-home-deck-card__metrics span{padding:.58rem .62rem;border:1px solid rgba(255,255,255,.16);border-radius:13px;background:rgba(5,20,15,.65);font-family:'DM Sans',sans-serif;font-size:.67rem;color:rgba(255,255,255,.7)}
+.rv-home-deck-card__metrics strong{display:block;margin-bottom:.08rem;font-family:'Manrope','DM Sans',sans-serif;font-size:.86rem;color:#fff}
+
+.rv-home-city-rail{--e-rail-edge:var(--rv-paper);margin-inline:calc((100vw - min(1240px,100vw - 2rem)) / -2);padding-inline:max(1rem,calc((100vw - 1240px) / 2));}
+.rv-home-city-rail .e-auto-rail__viewport{padding-top:.6rem;padding-bottom:1.35rem}
+.rv-home-city-rail .e-auto-rail__item{width:clamp(286px,29vw,350px)}
+.rv-home-rail-card{display:flex;flex-direction:column;gap:.68rem;height:100%;padding:.52rem;background:var(--rv-card);border:1px solid var(--rv-line);border-radius:22px;box-shadow:0 12px 34px color-mix(in srgb,var(--rv-shadow) 72%,transparent);transition:transform .28s cubic-bezier(.16,1,.3,1),border-color .25s ease,box-shadow .28s ease}
+.rv-home-rail-card:hover{transform:translateY(-4px);border-color:color-mix(in srgb,var(--rv-green) 42%,var(--rv-line));box-shadow:0 20px 48px var(--rv-shadow)}
+.rv-home-rail-card__visual{position:relative;display:block;overflow:hidden;border-radius:16px;text-decoration:none;color:#fff;isolation:isolate}
+.rv-home-rail-card__visual .rv-city-thumb{aspect-ratio:16/9;border-radius:16px}
+.rv-home-rail-card__shade{position:absolute;inset:0;z-index:3;background:linear-gradient(180deg,transparent 35%,rgba(4,17,13,.82) 100%);pointer-events:none}
+.rv-home-rail-card__meta{position:absolute;z-index:4;left:.8rem;right:.75rem;bottom:.7rem;display:flex;align-items:flex-end;justify-content:space-between;gap:.7rem;color:#fff}
+.rv-home-rail-card__meta h3{margin:0;font-family:'Manrope','DM Sans',sans-serif;font-size:1.08rem;letter-spacing:-.025em;color:#fff}
+.rv-home-rail-card__meta p{margin:.08rem 0 0;font-family:'DM Sans',sans-serif;font-size:.7rem;color:rgba(255,255,255,.74)}
+.rv-home-rail-card__meta>strong{flex:0 0 auto;padding:.3rem .44rem;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:rgba(4,17,13,.6);font-family:'Manrope','DM Sans',sans-serif;font-size:.9rem}
+.rv-home-rail-card__metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.42rem}
+.rv-home-rail-card__metrics span{min-width:0;padding:.56rem .58rem;border-radius:11px;background:var(--rv-card-soft);font-family:'DM Sans',sans-serif;font-size:.64rem;color:var(--rv-muted)}
+.rv-home-rail-card__metrics strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:.08rem;font-family:'Manrope','DM Sans',sans-serif;font-size:.8rem;color:var(--rv-ink)}
+.rv-home-rail-card__actions{display:grid;grid-template-columns:1fr 1fr;gap:.42rem;margin-top:auto}
+.rv-home-rail-card__compare,.rv-home-rail-card__open{display:flex;align-items:center;justify-content:center;min-height:38px;border-radius:11px;border:1px solid var(--rv-line);font-family:'Manrope','DM Sans',sans-serif;font-size:.75rem;font-weight:750;text-decoration:none;color:var(--rv-ink);background:transparent;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+.rv-home-rail-card__compare:hover,.rv-home-rail-card__open:hover{background:color-mix(in srgb,var(--rv-green) 9%,var(--rv-card));border-color:color-mix(in srgb,var(--rv-green) 42%,var(--rv-line))}
+.rv-home-rail-card__compare:active,.rv-home-rail-card__open:active{transform:scale(.98)}
+
+/* Typography system: editorial display, interface hierarchy and readable data. */
+.rv-display-serif{font-family:'Instrument Serif',Georgia,serif!important;font-weight:400!important;font-feature-settings:'liga' 1,'kern' 1}
+.rv-kicker,.rv-overline,.rv-score,.rv-pill,.rv-primary,.rv-secondary,.rv-card-actions,.rv-result-score{font-family:'Manrope','DM Sans',sans-serif!important}
+.rv-result-card h3,.rv-city-card h3,.rv-compare-city-card strong{font-family:'Manrope','DM Sans',sans-serif!important}
+.rv-result-metrics strong,.rv-mini-metric strong,.rv-dossier-metric>:last-child{font-family:'Manrope','DM Sans',sans-serif!important;font-variant-numeric:tabular-nums}
+.rv-result-card p,.rv-result-metrics span,.rv-mini-metric span,.rv-dossier-section,.rv-prose{font-family:'DM Sans',system-ui,sans-serif}
+
+@media(max-width:900px){
+  .rv-hero-art{min-height:410px!important}
+  .rv-home-deck-shell{height:380px}
+  .rv-home-city-rail{margin-inline:-1rem;padding-inline:1rem}
+  .rv-home-city-rail .e-auto-rail__item{width:min(82vw,330px)}
+}
+@media(max-width:700px){
+  .rv-hero-art{min-height:370px!important;padding:.8rem!important;border-radius:24px!important}
+  .rv-home-deck-shell{height:345px}
+  .rv-home-deck-card{border-radius:22px}
+  .rv-home-deck-card__copy h3{font-size:2.4rem}
+  .rv-home-deck-card__metrics span:nth-child(3){display:none}
+  .rv-home-deck-card__metrics{grid-template-columns:1fr 1fr}
+  .rv-home-deck__eyebrow{font-size:.6rem}
+  .rv-home-city-rail .e-auto-rail__item{width:min(84vw,315px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .rv-home-rail-card,.rv-home-rail-card__compare,.rv-home-rail-card__open{transition:none!important}
+}
