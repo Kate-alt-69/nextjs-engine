@@ -34,6 +34,7 @@ export function CityThumb({
       className={`rv-city-thumb${compact ? " rv-city-thumb--compact" : ""}`}
       data-city-slug={slug}
       data-roavio-city-image
+      data-engine-expand-media
       aria-hidden
       onDragStart={(event) => event.preventDefault()}
     >
