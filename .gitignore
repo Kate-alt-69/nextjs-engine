@@ -12,3 +12,7 @@ app/asdf/**.tsx
 .nextjs-engine/nenc/manifest.json
 /public/_static/endpoint/
 /public/_static/shader/
+.next/
+test-results/
+playwright-report/
+certificates/

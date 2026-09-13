@@ -10,14 +10,14 @@ export default defineConfig({
 		timeout: 7_500,
 	},
 	use: {
-		// Browsers treat localhost as a trustworthy development origin, allowing
-		// the proving app to exercise its production-shaped Secure host cookie.
-		baseURL: "http://localhost:3100",
+		baseURL: "https://localhost:3100",
+		ignoreHTTPSErrors: true,
 		trace: "retain-on-failure",
 	},
 	webServer: {
-		command: "npm run dev -- --hostname 127.0.0.1 --port 3100",
-		url: "http://127.0.0.1:3100/",
+		command: "npm run dev -- --experimental-https --hostname localhost --port 3100",
+		url: "https://localhost:3100/",
+		ignoreHTTPSErrors: true,
 		reuseExistingServer: !process.env.CI,
 		timeout: 120_000,
 	},
