@@ -281,3 +281,113 @@ html:not([data-rv-theme='dark']) .rv-result-card{
     animation:none!important;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Automatic image-derived ambient accents
+
+   OfficialCityImage writes --rv-city-accent on the nearest city surface. Keep
+   the accent restrained: it should make each destination feel unique without
+   repainting the whole Roavio UI in the photograph's color.
+   -------------------------------------------------------------------------- */
+.rv-result-card,
+.rv-city-card,
+.rv-compare-city-card,
+.rv-dossier-page{
+  --rv-city-accent:32 95 74;
+}
+
+.rv-result-card[data-accent-ready='true']{
+  border-color:rgb(var(--rv-city-accent) / .38)!important;
+  box-shadow:0 16px 38px var(--rv-shadow),0 0 24px rgb(var(--rv-city-accent) / .08);
+}
+html[data-rv-theme='dark'] .rv-result-card[data-accent-ready='true']{
+  background:
+    radial-gradient(circle at 50% -10%,rgb(var(--rv-city-accent) / .24),transparent 47%),
+    var(--rv-card)!important;
+}
+html:not([data-rv-theme='dark']) .rv-result-card[data-accent-ready='true']{
+  background:
+    radial-gradient(circle at 50% -10%,rgb(var(--rv-city-accent) / .13),transparent 48%),
+    var(--rv-card)!important;
+}
+.rv-result-card[data-accent-ready='true'] .rv-result-metrics>div{
+  border:1px solid rgb(var(--rv-city-accent) / .17);
+  background:
+    linear-gradient(145deg,rgb(var(--rv-city-accent) / .11),transparent 70%),
+    var(--rv-card-soft);
+}
+.rv-result-card[data-accent-ready='true'] .rv-result-card__image-meta .rv-result-score{
+  border-color:rgb(var(--rv-city-accent) / .56);
+  box-shadow:0 7px 20px rgba(0,0,0,.17),0 0 18px rgb(var(--rv-city-accent) / .12);
+}
+.rv-result-card[data-accent-ready='true'] .rv-card-action--compare:not([data-active='true']){
+  border-color:rgb(var(--rv-city-accent) / .42);
+  background:rgb(var(--rv-city-accent) / .09);
+}
+.rv-result-card[data-accent-ready='true'] .rv-card-action--open{
+  border-color:rgb(var(--rv-city-accent) / .46);
+  background:linear-gradient(135deg,rgb(var(--rv-city-accent) / .13),transparent 74%);
+}
+
+.rv-city-card[data-accent-ready='true']{
+  border-color:rgb(var(--rv-city-accent) / .42)!important;
+  box-shadow:0 18px 46px var(--rv-shadow),0 0 30px rgb(var(--rv-city-accent) / .10)!important;
+}
+.rv-city-card[data-accent-ready='true'] .rv-score{
+  border-color:rgb(var(--rv-city-accent) / .48)!important;
+  background:
+    linear-gradient(145deg,rgb(var(--rv-city-accent) / .22),transparent 70%),
+    rgba(5,24,18,.64)!important;
+}
+.rv-city-card[data-accent-ready='true'] .rv-mini-metric{
+  border:1px solid rgb(var(--rv-city-accent) / .20)!important;
+  background:
+    linear-gradient(145deg,rgb(var(--rv-city-accent) / .14),transparent 70%),
+    rgba(8,33,25,.64)!important;
+}
+
+.rv-compare-city-card[data-accent-ready='true']{
+  border-color:rgb(var(--rv-city-accent) / .40)!important;
+  box-shadow:0 14px 36px var(--rv-shadow),0 0 24px rgb(var(--rv-city-accent) / .09)!important;
+  background:
+    radial-gradient(circle at 50% -22%,rgb(var(--rv-city-accent) / .19),transparent 58%),
+    var(--rv-card)!important;
+}
+.rv-compare-city-card[data-accent-ready='true'] .rv-compare-city-card__meta{
+  border-top-color:rgb(var(--rv-city-accent) / .18)!important;
+}
+.rv-compare-city-card[data-accent-ready='true'] .rv-compare-city-card__meta span{
+  color:color-mix(in srgb,rgb(var(--rv-city-accent)) 72%,var(--rv-ink))!important;
+  font-weight:800;
+}
+
+.rv-dossier-page[data-accent-ready='true'] .rv-dossier-hero{
+  box-shadow:0 24px 58px rgb(var(--rv-city-accent) / .09),inset 0 0 0 1px rgb(var(--rv-city-accent) / .28)!important;
+}
+.rv-dossier-page[data-accent-ready='true'] .rv-dossier-metric,
+.rv-dossier-page[data-accent-ready='true'] .rv-dossier-summary,
+.rv-dossier-page[data-accent-ready='true'] .rv-dossier-section,
+.rv-dossier-page[data-accent-ready='true'] .rv-dossier-insight{
+  border-color:rgb(var(--rv-city-accent) / .18)!important;
+}
+.rv-dossier-page[data-accent-ready='true'] .rv-dossier-metric{
+  background:
+    linear-gradient(145deg,rgb(var(--rv-city-accent) / .08),transparent 72%),
+    color-mix(in srgb,var(--rv-card) 96%,transparent)!important;
+}
+
+@media(hover:hover) and (pointer:fine){
+  .rv-city-card[data-accent-ready='true']:hover,
+  .rv-compare-city-card[data-accent-ready='true']:hover{
+    border-color:rgb(var(--rv-city-accent) / .62)!important;
+    box-shadow:0 22px 52px var(--rv-shadow),0 0 38px rgb(var(--rv-city-accent) / .16)!important;
+  }
+}
+
+@media(max-width:819px){
+  .rv-result-card[data-accent-ready='true'],
+  .rv-city-card[data-accent-ready='true'],
+  .rv-compare-city-card[data-accent-ready='true']{
+    box-shadow:0 12px 28px var(--rv-shadow),0 0 18px rgb(var(--rv-city-accent) / .075)!important;
+  }
+}
