@@ -9,7 +9,9 @@ export interface RoavioCityAccent {
   hex: string;
 }
 
-const ACCENT_CACHE_KEY = "roavio-proposal-city-accents-v1";
+// v2 deliberately invalidates v1: v1 could persist a fallback color after a
+// failed image sample, which meant that city would never try its real image again.
+const ACCENT_CACHE_KEY = "roavio-proposal-city-accents-v2";
 const SAMPLE_SIZE = 28;
 const memoryCache = new Map<string, RoavioCityAccent>();
 const inflight = new Map<string, Promise<RoavioCityAccent>>();
@@ -37,7 +39,9 @@ function readPersistentCache(): Record<string, RoavioCityAccent> {
   if (typeof window === "undefined" || !necessaryConsentEnabled()) return {};
   try {
     const parsed = JSON.parse(window.localStorage.getItem(ACCENT_CACHE_KEY) ?? "{}");
-    return parsed && typeof parsed === "object" ? parsed as Record<string, RoavioCityAccent> : {};
+    return parsed && typeof parsed === "object"
+      ? parsed as Record<string, RoavioCityAccent>
+      : {};
   } catch {
     return {};
   }
@@ -50,7 +54,7 @@ function persistAccent(slug: string, accent: RoavioCityAccent): void {
     cache[slug] = accent;
     window.localStorage.setItem(ACCENT_CACHE_KEY, JSON.stringify(cache));
   } catch {
-    // Accent persistence is an optimization only; rendering must never depend on storage.
+    // Persistence is an optimization only.
   }
 }
 
@@ -106,21 +110,26 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
 
 function toAccent(r: number, g: number, b: number): RoavioCityAccent {
   const [h, s, l] = rgbToHsl(r, g, b);
-  // Keep the hue from the photograph, but normalize saturation/lightness so the
-  // accent remains tasteful and readable in both Roavio themes.
-  const [rr, gg, bb] = hslToRgb(h, clamp(s * 1.08, 0.42, 0.76), clamp(l, 0.42, 0.62));
+  // Preserve the photo hue, but guarantee enough chroma to read as an accent.
+  const [rr, gg, bb] = hslToRgb(
+    h,
+    clamp(s * 1.18, 0.50, 0.82),
+    clamp(l, 0.44, 0.60),
+  );
   const hex = `#${[rr, gg, bb].map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
   return { rgb: `${rr} ${gg} ${bb}`, hex };
 }
 
-function fallbackAccent(slug: string): RoavioCityAccent {
+/** Immediate deterministic color used only until the photograph is sampled. */
+export function getRoavioFallbackAccent(slug: string): RoavioCityAccent {
   let hash = 2166136261;
   for (let index = 0; index < slug.length; index += 1) {
     hash ^= slug.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
-  const hue = ((hash >>> 0) % 96) + 142; // green → cyan → blue fallback family
-  const [r, g, b] = hslToRgb(hue, 0.48, 0.48);
+  // Use the full wheel so unloaded cards do not all look green/cyan.
+  const hue = (hash >>> 0) % 360;
+  const [r, g, b] = hslToRgb(hue, 0.58, 0.50);
   return toAccent(r, g, b);
 }
 
@@ -134,12 +143,10 @@ function analyzePixels(data: Uint8ClampedArray, slug: string): RoavioCityAccent 
     const g = data[index + 1];
     const b = data[index + 2];
     const [hue, saturation, lightness] = rgbToHsl(r, g, b);
-    if (saturation < 0.16 || lightness < 0.09 || lightness > 0.92) continue;
+    if (saturation < 0.14 || lightness < 0.08 || lightness > 0.93) continue;
 
-    // Saturated mid-tones make better UI accents than sky-white highlights,
-    // charcoal shadows, or large gray buildings.
     const midtone = 1 - Math.min(1, Math.abs(lightness - 0.5) / 0.5);
-    const weight = (0.25 + saturation * 1.8) * (0.45 + midtone * 0.9);
+    const weight = (0.22 + saturation * 2.05) * (0.42 + midtone);
     const bucket = buckets[Math.floor(hue / 15) % buckets.length];
     bucket.weight += weight;
     bucket.r += r * weight;
@@ -147,16 +154,17 @@ function analyzePixels(data: Uint8ClampedArray, slug: string): RoavioCityAccent 
     bucket.b += b * weight;
   }
 
-  const best = buckets.reduce((winner, candidate) => candidate.weight > winner.weight ? candidate : winner, buckets[0]);
-  if (!best || best.weight <= 0) return fallbackAccent(slug);
+  const best = buckets.reduce(
+    (winner, candidate) => candidate.weight > winner.weight ? candidate : winner,
+    buckets[0],
+  );
+  if (!best || best.weight <= 0) return getRoavioFallbackAccent(slug);
   return toAccent(best.r / best.weight, best.g / best.weight, best.b / best.weight);
 }
 
 function samplingUrl(src: string): string {
   try {
     const url = new URL(src);
-    // This is intentionally tiny. The full city image has already been requested
-    // by EngineImage; the palette probe only needs enough pixels to find a hue.
     url.searchParams.set("w", "72");
     url.searchParams.set("q", "45");
     url.searchParams.set("fm", "jpg");
@@ -216,26 +224,29 @@ function networkAllowsSampling(): boolean {
 export function resolveRoavioCityAccent(slug: string): Promise<RoavioCityAccent> {
   const cached = peekRoavioCityAccent(slug);
   if (cached) return Promise.resolve(cached);
+
   const existing = inflight.get(slug);
   if (existing) return existing;
 
   const src = getRoavioCityImage(slug);
   if (!src || typeof window === "undefined" || !networkAllowsSampling()) {
-    return Promise.resolve(fallbackAccent(slug));
+    // Never cache a fallback as if it came from the image. A later visit/load
+    // should still be allowed to obtain the real palette.
+    return Promise.resolve(getRoavioFallbackAccent(slug));
   }
 
   const promise = new Promise<RoavioCityAccent>((resolve) => {
     EngineScheduler.runWhenIdle(() => {
       void decodeToPixels(src)
-        .then((pixels) => analyzePixels(pixels, slug))
-        .catch(() => fallbackAccent(slug))
-        .then((accent) => {
+        .then((pixels) => {
+          const accent = analyzePixels(pixels, slug);
           memoryCache.set(slug, accent);
           persistAccent(slug, accent);
           resolve(accent);
         })
+        .catch(() => resolve(getRoavioFallbackAccent(slug)))
         .finally(() => inflight.delete(slug));
-    }, 900);
+    }, 550);
   });
 
   inflight.set(slug, promise);
