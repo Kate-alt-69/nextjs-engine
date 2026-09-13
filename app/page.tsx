@@ -2,11 +2,11 @@ import { createPage, defineSchema, type SchemaNode } from "@/engine";
 import { CityShowcase } from "./roavio/CityShowcase";
 import { HeroSearch } from "./roavio/ClientWidgets";
 import { loadCityCatalogForSlugs } from "./roavio/cityContent.server";
+import { HOME_CITY_SLUGS } from "./roavio/homeCities";
+import { HomeHeroDeck } from "./roavio/HomeHeroDeck";
 import { copyFor, type RoavioLocale } from "./roavio/i18n";
 import { getRoavioLocale } from "./roavio/locale.server";
 import { createFooterNode, createRoavioNav, roavioTheme } from "./roavio/theme";
-
-const HOME_FEATURED_SLUGS = ["valencia", "lisboa", "bali", "bangkok", "dubai", "chiang-mai"] as const;
 
 function revealProps(index: number) {
   return {
@@ -65,7 +65,7 @@ function decisionCards(locale: RoavioLocale): SchemaNode[] {
       props: { variant: "flat", innerPadding: "1rem", bg: "var(--rv-card)", border: "1px solid var(--rv-line)", borderRadius: "20px", style: { height: "100%" } },
       children: [
         { type: "text", props: { content: number, variant: "overline", color: "var(--rv-green)", weight: 800 } },
-        { type: "text", props: { content: title, size: "1.05rem", weight: 800, mt: ".65rem" } },
+        { type: "text", props: { content: title, size: "1.05rem", weight: 800, mt: ".65rem", fontFamily: "Manrope" } },
         { type: "text", props: { content: body, size: ".82rem", color: "var(--rv-muted)", lineHeight: 1.6, mt: ".4rem" } },
       ],
     }],
@@ -113,21 +113,7 @@ function createHomeSchema(locale: RoavioLocale) {
             {
               type: "box",
               props: { className: "rv-hero-art" },
-              children: [
-                { type: "box", props: { className: "rv-hero-map", "aria-hidden": true } },
-                { type: "box", props: { className: "rv-floating-card rv-float-a" }, children: [
-                  { type: "text", props: { content: "Valencia", weight: 800 } },
-                  { type: "text", props: { content: "9.1 quality · 263 Mbps" } },
-                ] },
-                { type: "box", props: { className: "rv-floating-card rv-float-b" }, children: [
-                  { type: "text", props: { content: "Chiang Mai", weight: 800 } },
-                  { type: "text", props: { content: "EUR 472/mo · 7.8 safety" } },
-                ] },
-                { type: "box", props: { className: "rv-floating-card rv-float-c" }, children: [
-                  { type: "text", props: { content: "Singapore", weight: 800 } },
-                  { type: "text", props: { content: "407 Mbps · top connectivity" } },
-                ] },
-              ],
+              children: [{ type: "slot", props: { name: "hero-deck" } }],
             },
           ],
         },
@@ -142,11 +128,11 @@ function createHomeSchema(locale: RoavioLocale) {
           children: [
             { type: "stack", props: { direction: { xs: "vertical", md: "horizontal" }, justify: "space-between", align: "flex-end", gap: "1rem", mb: "1.5rem" }, children: [
               { type: "stack", props: { direction: "vertical", gap: ".45rem" }, children: [
-                { type: "text", props: { content: es ? "PUNTOS DE PARTIDA" : "CURATED STARTING POINTS", variant: "overline", color: "var(--rv-green)", weight: 800 } },
-                { type: "heading", props: { level: 2, content: es ? "Ciudades que merece la pena abrir primero." : "Cities worth opening first.", size: { xs: "2rem", md: "3rem" }, style: { margin: 0 } } },
-                { type: "text", props: { content: es ? "Señales de decisión antes del clic, contexto después." : "Decision signals before the click, context after it.", color: "var(--rv-muted)" } },
+                { type: "text", props: { content: es ? "POPULAR + ALTA CALIDAD DE VIDA" : "POPULAR + HIGH-QOL PICKS", variant: "overline", color: "var(--rv-green)", weight: 800, fontFamily: "Manrope" } },
+                { type: "heading", props: { level: 2, content: es ? "Treinta ciudades en movimiento." : "Thirty cities, moving with you.", size: { xs: "2rem", md: "3rem" }, className: "rv-home-section-title", style: { margin: 0 } } },
+                { type: "text", props: { content: es ? "Déjala moverse o agárrala y desplázala tú. Al soltarla, la selección sigue viajando." : "Let it drift or grab the rail and scroll it yourself. Release it and the city stream keeps moving.", color: "var(--rv-muted)", maxW: "680px", lineHeight: 1.6 } },
               ] },
-              { type: "button", props: { href: "/cities", label: es ? "Ver todas las ciudades →" : "Explore all cities →", variant: "outline", accentColor: "var(--rv-ink)" } },
+              { type: "button", props: { href: "/cities", label: es ? "Ver las 95 ciudades →" : "Explore all 95 cities →", variant: "outline", accentColor: "var(--rv-ink)" } },
             ] },
             { type: "slot", props: { name: "city-showcase" } },
           ],
@@ -165,8 +151,8 @@ function createHomeSchema(locale: RoavioLocale) {
                   type: "card",
                   props: { variant: "flat", innerPadding: "1.5rem", bg: "var(--rv-ink)", color: "var(--rv-paper)", borderRadius: "26px", style: { minHeight: "320px", height: "100%" } },
                   children: [
-                    { type: "text", props: { content: "DECISION LAYER", variant: "overline", color: "var(--rv-lime)", weight: 800 } },
-                    { type: "heading", props: { level: 2, content: es ? "Los rankings explican por qué, no solo quién gana." : "Rankings explain why — not just who won.", size: { xs: "2rem", md: "2.8rem" }, color: "#f3faf6", style: { margin: ".8rem 0" } } },
+                    { type: "text", props: { content: "DECISION LAYER", variant: "overline", color: "var(--rv-lime)", weight: 800, fontFamily: "Manrope" } },
+                    { type: "heading", props: { level: 2, content: es ? "Los rankings explican por qué, no solo quién gana." : "Rankings explain why — not just who won.", size: { xs: "2rem", md: "2.8rem" }, color: "#f3faf6", className: "rv-display-serif", style: { margin: ".8rem 0" } } },
                     { type: "text", props: { content: es ? "El encaje Roavio combina señales útiles mientras las métricas originales siguen visibles y comparables." : "Roavio Fit combines useful signals while the original source metrics stay visible and comparable.", color: "var(--rv-muted)", lineHeight: 1.7 } },
                     { type: "button", props: { href: "/compare", label: es ? "Abrir comparación" : "Open comparison", variant: "elevated", accentColor: "var(--rv-lime)", color: "#10231f", mt: "1.4rem" } },
                   ],
@@ -183,11 +169,12 @@ function createHomeSchema(locale: RoavioLocale) {
 }
 
 export default async function HomePage() {
-  const [catalog, locale] = await Promise.all([loadCityCatalogForSlugs(HOME_FEATURED_SLUGS), getRoavioLocale()]);
+  const [catalog, locale] = await Promise.all([loadCityCatalogForSlugs(HOME_CITY_SLUGS), getRoavioLocale()]);
   const Page = createPage({
     schema: createHomeSchema(locale),
     slots: {
       "hero-search": <HeroSearch locale={locale} />,
+      "hero-deck": <HomeHeroDeck catalog={catalog} locale={locale} />,
       "city-showcase": <CityShowcase catalog={catalog} locale={locale} />,
     },
     compiler: { pageId: "roavio-home", serverFirst: true },
