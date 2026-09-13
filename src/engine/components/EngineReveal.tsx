@@ -17,6 +17,8 @@ import {
 } from "../core/enginescroll";
 import { EngineScheduler } from "../core/enginescheduler";
 import { EngineBrowser } from "../core/EngineBrowserSafe";
+import { useCpropClass } from "../hooks/usePropStyles";
+import { usePrimitiveStyles } from "../hooks/usePrimitiveStyles";
 
 export type EngineRevealEffect = "pop" | "fade" | "slide-up" | "none";
 
@@ -286,8 +288,10 @@ function injectRevealCss(): void {
 export const EngineReveal = memo(function EngineReveal({
 	children,
 	id,
+	point,
 	className,
 	style,
+	cprop,
 	priority = false,
 	effect = "pop",
 	replay = true,
@@ -299,14 +303,27 @@ export const EngineReveal = memo(function EngineReveal({
 	overshoot = 1.028,
 	skipUnderFramePressure = true,
 	releaseWhenFar = true,
+	...props
 }: EngineRevealProps) {
 	const generatedId = useId().replace(/:/g, "");
-	const resolvedId = id ?? `e-reveal-${generatedId}`;
+	const resolvedId = id ?? point ?? `e-reveal-${generatedId}`;
 	const elementRef = useRef<HTMLDivElement | null>(null);
 	const settleTimerRef = useRef<number | null>(null);
 	const enterRafRef = useRef<number | null>(null);
 	const [renderNear, setRenderNear] = useState(true);
 	const [motionState, setMotionState] = useState<"sleeping" | "armed" | "animating" | "settled" | "instant">("settled");
+	const stateClass = useCpropClass(cprop);
+	const mergedClass = ["e-reveal", className, stateClass].filter(Boolean).join(" ");
+	const timingStyle = {
+		"--e-reveal-duration": `${finite(duration, 380)}ms`,
+		"--e-reveal-delay": `${finite(delay, 0)}ms`,
+		"--e-reveal-scale-from": String(Math.min(1, Math.max(0.4, scaleFrom))),
+		"--e-reveal-overshoot": String(Math.max(1, overshoot)),
+	} as CSSProperties;
+	const resolvedStyle = usePrimitiveStyles(props as Record<string, unknown>, {
+		derived: timingStyle,
+		style,
+	});
 
 	useEffect(() => {
 		injectRevealCss();
@@ -383,23 +400,15 @@ export const EngineReveal = memo(function EngineReveal({
 		};
 	}, [delay, duration, effect, motionMargin, priority, releaseWhenFar, renderMargin, replay, resolvedId, skipUnderFramePressure]);
 
-	const revealStyle = {
-		...style,
-		"--e-reveal-duration": `${finite(duration, 380)}ms`,
-		"--e-reveal-delay": `${finite(delay, 0)}ms`,
-		"--e-reveal-scale-from": String(Math.min(1, Math.max(0.4, scaleFrom))),
-		"--e-reveal-overshoot": String(Math.max(1, overshoot)),
-	} as CSSProperties;
-
 	return (
 		<div
 			ref={elementRef}
 			id={resolvedId}
-			className={["e-reveal", className].filter(Boolean).join(" ")}
+			className={mergedClass}
 			data-engine-reveal-state={motionState}
 			data-engine-reveal-effect={effect}
 			data-engine-render-state={renderNear ? "near" : "far"}
-			style={revealStyle}
+			style={resolvedStyle}
 		>
 			{children}
 		</div>
