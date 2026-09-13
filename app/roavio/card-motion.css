@@ -38,9 +38,10 @@
   pointer-events:none;
 }
 
-/* Keep the card box in the grid, but let the browser completely skip the far
-   subtree. This avoids breaking React state while still removing descendant
-   layout/paint work until the card comes back near the viewport. */
+/* EngineScroll owns two ranges per card: a wider render range that wakes the
+   subtree early enough for image scheduling, and a tighter motion range that
+   triggers the visual pop. The remembered intrinsic size keeps the grid stable
+   when the far subtree is skipped. */
 .rv-result-card,
 .rv-city-card,
 .rv-compare-city-card{
@@ -48,13 +49,14 @@
   backface-visibility:hidden;
   -webkit-backface-visibility:hidden;
 }
-.rv-result-card{contain-intrinsic-size:440px}
-.rv-city-card{contain-intrinsic-size:340px}
-.rv-compare-city-card{contain-intrinsic-size:300px}
+.rv-result-card{contain-intrinsic-size:440px;contain-intrinsic-size:auto 440px}
+.rv-city-card{contain-intrinsic-size:340px;contain-intrinsic-size:auto 340px}
+.rv-compare-city-card{contain-intrinsic-size:300px;contain-intrinsic-size:auto 300px}
 
-.rv-result-card[data-rv-motion-mode='sleeping'],
-.rv-city-card[data-rv-motion-mode='sleeping'],
-.rv-compare-city-card[data-rv-motion-mode='sleeping']{
+/* Farther than the EngineScroll render range: retain only the card's grid box. */
+.rv-result-card[data-rv-render='sleeping'],
+.rv-city-card[data-rv-render='sleeping'],
+.rv-compare-city-card[data-rv-render='sleeping']{
   content-visibility:hidden;
   opacity:0;
   transform:translateZ(0) scale(.78);
@@ -63,6 +65,11 @@
   transition:none!important;
 }
 
+/* Inside the wide render range but outside the pop range: descendants can mount
+   and decode while the card itself stays visually collapsed. */
+.rv-result-card[data-rv-render='near'][data-rv-motion-mode='sleeping'],
+.rv-city-card[data-rv-render='near'][data-rv-motion-mode='sleeping'],
+.rv-compare-city-card[data-rv-render='near'][data-rv-motion-mode='sleeping'],
 .rv-result-card[data-rv-motion-mode='armed'],
 .rv-city-card[data-rv-motion-mode='armed'],
 .rv-compare-city-card[data-rv-motion-mode='armed']{
@@ -163,9 +170,12 @@
     --rv-radius-media:14px;
     --rv-radius-control:11px;
   }
-  .rv-result-card[data-rv-motion-mode='sleeping'],
-  .rv-city-card[data-rv-motion-mode='sleeping'],
-  .rv-compare-city-card[data-rv-motion-mode='sleeping'],
+  .rv-result-card[data-rv-render='sleeping'],
+  .rv-city-card[data-rv-render='sleeping'],
+  .rv-compare-city-card[data-rv-render='sleeping'],
+  .rv-result-card[data-rv-render='near'][data-rv-motion-mode='sleeping'],
+  .rv-city-card[data-rv-render='near'][data-rv-motion-mode='sleeping'],
+  .rv-compare-city-card[data-rv-render='near'][data-rv-motion-mode='sleeping'],
   .rv-result-card[data-rv-motion-mode='armed'],
   .rv-city-card[data-rv-motion-mode='armed'],
   .rv-compare-city-card[data-rv-motion-mode='armed']{
