@@ -22,9 +22,12 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
       gap={14}
       resumeDelay={900}
       motionDirection="right"
+      bounce={false}
       pauseOnHover={false}
       pauseOnFocus={false}
       respectReducedMotion={false}
+      fadeEdges
+      edgeFadeSize="clamp(42px, 7vw, 96px)"
       ariaLabel={es ? "Ciudades populares y con alta calidad de vida" : "Popular and high quality-of-life cities"}
     >
       {cities.map((city, index) => {

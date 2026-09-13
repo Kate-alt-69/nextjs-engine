@@ -26,6 +26,10 @@ export interface EngineAutoRailProps extends BaseNodeProps {
 	pauseOnFocus?: boolean;
 	/** Respect the OS/browser reduced-motion preference. Defaults to true. */
 	respectReducedMotion?: boolean;
+	/** Fade cards as they enter and leave the viewport edges. */
+	fadeEdges?: boolean;
+	/** Width of each edge fade. */
+	edgeFadeSize?: string | number;
 	ariaLabel?: string;
 }
 
@@ -36,6 +40,7 @@ const RAIL_CSS = `
 .e-auto-rail::before{left:0;background:linear-gradient(90deg,var(--e-rail-edge,transparent),transparent)}
 .e-auto-rail::after{right:0;background:linear-gradient(270deg,var(--e-rail-edge,transparent),transparent)}
 .e-auto-rail__viewport{display:flex;gap:var(--e-rail-gap,16px);overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior-x:contain;touch-action:pan-y;padding:8px 2px 18px;cursor:grab;scroll-behavior:auto}
+.e-auto-rail[data-fade-edges='true'] .e-auto-rail__viewport{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 var(--e-rail-fade,64px),#000 calc(100% - var(--e-rail-fade,64px)),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 var(--e-rail-fade,64px),#000 calc(100% - var(--e-rail-fade,64px)),transparent 100%);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
 .e-auto-rail__viewport::-webkit-scrollbar{display:none}
 .e-auto-rail[data-dragging='true'] .e-auto-rail__viewport{cursor:grabbing;scroll-snap-type:none}
 .e-auto-rail__item{flex:0 0 auto;min-width:0}
@@ -65,6 +70,8 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 	pauseOnHover = true,
 	pauseOnFocus = true,
 	respectReducedMotion = true,
+	fadeEdges = false,
+	edgeFadeSize = 64,
 	ariaLabel = "Scrollable cards",
 	className,
 	style,
@@ -217,10 +224,11 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 			ref={rootRef}
 			id={resolvedId}
 			className={mergedClass}
-			style={{ ...resolvedStyle, "--e-rail-gap": cssGap(gap) } as CSSProperties}
+			style={{ ...resolvedStyle, "--e-rail-gap": cssGap(gap), "--e-rail-fade": cssGap(edgeFadeSize) } as CSSProperties}
 			role="region"
 			aria-label={ariaLabel}
 			data-respect-reduced-motion={respectReducedMotion ? "true" : "false"}
+			data-fade-edges={fadeEdges ? "true" : "false"}
 			onMouseEnter={pauseOnHover ? () => pause(false) : undefined}
 			onMouseLeave={pauseOnHover ? () => pause(true) : undefined}
 			onFocusCapture={pauseOnFocus ? () => pause(false) : undefined}
