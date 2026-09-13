@@ -15,9 +15,6 @@ export type ComponentRegistry = Map<NodeType, EngineComponent>;
 
 const splitComponents = new WeakSet<object>();
 
-// Optional/heavier built-ins are real split points. The loader is not invoked
-// until React actually renders that node, so a primitive-only page does not
-// eagerly evaluate Markdown, Canvas, media, Nav, Forms, Manim, or overlays.
 function lazyEngineComponent(
 	loader: () => Promise<{ default: ComponentType<any> }>,
 ): EngineComponent {
@@ -26,113 +23,74 @@ function lazyEngineComponent(
 	return component;
 }
 
-const LazyEngineHero = lazyEngineComponent(() =>
-	import("../components/EngineHero").then((module) => ({ default: module.EngineHero })),
-);
-const LazyEngineImage = lazyEngineComponent(() =>
-	import("../components/EngineImage").then((module) => ({ default: module.EngineImage })),
-);
-const LazyEngineVideo = lazyEngineComponent(() =>
-	import("../components/EngineVideo").then((module) => ({ default: module.EngineVideo })),
-);
-const LazyEngineMarkdown = lazyEngineComponent(() =>
-	import("../components/EngineMarkdown").then((module) => ({ default: module.EngineMarkdown })),
-);
-const LazyEngineCanvas = lazyEngineComponent(() =>
-	import("../components/EngineCanvas").then((module) => ({ default: module.EngineCanvas })),
-);
-const LazyLegacyEngineScroll = lazyEngineComponent(() =>
-	import("../components/EngineScroll").then((module) => ({ default: module.EngineScroll })),
-);
-const LazyCustomSelect = lazyEngineComponent(() =>
-	import("../components/CustomSelect").then((module) => ({ default: module.CustomSelect })),
-);
-const LazyEngineSuspense = lazyEngineComponent(() =>
-	import("../components/EngineSuspense").then((module) => ({ default: module.EngineSuspense })),
-);
-const LazyEngineReveal = lazyEngineComponent(() =>
-	import("../components/EngineReveal").then((module) => ({ default: module.EngineReveal })),
-);
-const LazyEngineForm = lazyEngineComponent(() =>
-	import("../components/EngineForms").then((module) => ({ default: module.EngineForm })),
-);
-const LazyEngineInput = lazyEngineComponent(() =>
-	import("../components/EngineForms").then((module) => ({ default: module.EngineInput })),
-);
-const LazyEngineTextarea = lazyEngineComponent(() =>
-	import("../components/EngineForms").then((module) => ({ default: module.EngineTextarea })),
-);
-const LazyEngineCheckbox = lazyEngineComponent(() =>
-	import("../components/EngineForms").then((module) => ({ default: module.EngineCheckbox })),
-);
-const LazyEngineLabel = lazyEngineComponent(() =>
-	import("../components/EngineForms").then((module) => ({ default: module.EngineLabel })),
-);
-const LazyEngineLink = lazyEngineComponent(() =>
-	import("../components/EngineLink").then((module) => ({ default: module.EngineLink })),
-);
-const LazyEngineNav = lazyEngineComponent(() =>
-	import("../components/EngineNav").then((module) => ({ default: module.EngineNav })),
-);
-const LazyEngineManim = lazyEngineComponent(() =>
-	import("../components/EngineManim/EngineManim").then((module) => ({ default: module.EngineManim })),
-);
-const LazyEngineManim3D = lazyEngineComponent(() =>
-	import("../components/EngineManim/EngineManim3D").then((module) => ({ default: module.EngineManim3D })),
-);
-const LazyEngineDialog = lazyEngineComponent(() =>
-	import("../components/EngineOverlay/EngineDialog").then((module) => ({ default: module.EngineDialog })),
-);
-const LazyEngineDrawer = lazyEngineComponent(() =>
-	import("../components/EngineOverlay/EngineDrawer").then((module) => ({ default: module.EngineDrawer })),
-);
-const LazyEnginePopover = lazyEngineComponent(() =>
-	import("../components/EngineOverlay/EnginePopover").then((module) => ({ default: module.EnginePopover })),
-);
+const LazyEngineHero = lazyEngineComponent(() => import("../components/EngineHero").then((module) => ({ default: module.EngineHero })));
+const LazyEngineImage = lazyEngineComponent(() => import("../components/EngineImage").then((module) => ({ default: module.EngineImage })));
+const LazyEngineVideo = lazyEngineComponent(() => import("../components/EngineVideo").then((module) => ({ default: module.EngineVideo })));
+const LazyEngineMarkdown = lazyEngineComponent(() => import("../components/EngineMarkdown").then((module) => ({ default: module.EngineMarkdown })));
+const LazyEngineCanvas = lazyEngineComponent(() => import("../components/EngineCanvas").then((module) => ({ default: module.EngineCanvas })));
+const LazyLegacyEngineScroll = lazyEngineComponent(() => import("../components/EngineScroll").then((module) => ({ default: module.EngineScroll })));
+const LazyCustomSelect = lazyEngineComponent(() => import("../components/CustomSelect").then((module) => ({ default: module.CustomSelect })));
+const LazyEngineSuspense = lazyEngineComponent(() => import("../components/EngineSuspense").then((module) => ({ default: module.EngineSuspense })));
+const LazyEngineReveal = lazyEngineComponent(() => import("../components/EngineReveal").then((module) => ({ default: module.EngineReveal })));
+const LazyEngineForm = lazyEngineComponent(() => import("../components/EngineForms").then((module) => ({ default: module.EngineForm })));
+const LazyEngineInput = lazyEngineComponent(() => import("../components/EngineForms").then((module) => ({ default: module.EngineInput })));
+const LazyEngineTextarea = lazyEngineComponent(() => import("../components/EngineForms").then((module) => ({ default: module.EngineTextarea })));
+const LazyEngineCheckbox = lazyEngineComponent(() => import("../components/EngineForms").then((module) => ({ default: module.EngineCheckbox })));
+const LazyEngineLabel = lazyEngineComponent(() => import("../components/EngineForms").then((module) => ({ default: module.EngineLabel })));
+const LazyEngineLink = lazyEngineComponent(() => import("../components/EngineLink").then((module) => ({ default: module.EngineLink })));
+const LazyEngineExpandLink = lazyEngineComponent(() => import("../components/EngineExpandLink").then((module) => ({ default: module.EngineExpandLink })));
+const LazyEngineNav = lazyEngineComponent(() => import("../components/EngineNav").then((module) => ({ default: module.EngineNav })));
+const LazyEngineManim = lazyEngineComponent(() => import("../components/EngineManim/EngineManim").then((module) => ({ default: module.EngineManim })));
+const LazyEngineManim3D = lazyEngineComponent(() => import("../components/EngineManim/EngineManim3D").then((module) => ({ default: module.EngineManim3D })));
+const LazyEngineDialog = lazyEngineComponent(() => import("../components/EngineOverlay/EngineDialog").then((module) => ({ default: module.EngineDialog })));
+const LazyEngineDrawer = lazyEngineComponent(() => import("../components/EngineOverlay/EngineDrawer").then((module) => ({ default: module.EngineDrawer })));
+const LazyEnginePopover = lazyEngineComponent(() => import("../components/EngineOverlay/EnginePopover").then((module) => ({ default: module.EnginePopover })));
 
 function buildDefaultRegistry(): ComponentRegistry {
 	const registry: ComponentRegistry = new Map();
-	registry.set("box",           EngineBox as EngineComponent);
-	registry.set("stack",         EngineStack as EngineComponent);
-	registry.set("grid",          EngineGrid as EngineComponent);
-	registry.set("section",       EngineSection as EngineComponent);
-	registry.set("hero",          LazyEngineHero);
-	registry.set("text",          EngineText as EngineComponent);
-	registry.set("heading",       EngineHeading as EngineComponent);
-	registry.set("markdown",      LazyEngineMarkdown);
-	registry.set("card",          EngineCard as EngineComponent);
-	registry.set("image",         LazyEngineImage);
-	registry.set("video",         LazyEngineVideo);
-	registry.set("canvas",        LazyEngineCanvas);
-	registry.set("scroll",        LazyLegacyEngineScroll);
-	registry.set("button",        EngineButton as EngineComponent);
-	registry.set("spacer",        EngineSpacer as EngineComponent);
-	registry.set("divider",       EngineDivider as EngineComponent);
+	registry.set("box", EngineBox as EngineComponent);
+	registry.set("stack", EngineStack as EngineComponent);
+	registry.set("grid", EngineGrid as EngineComponent);
+	registry.set("section", EngineSection as EngineComponent);
+	registry.set("hero", LazyEngineHero);
+	registry.set("text", EngineText as EngineComponent);
+	registry.set("heading", EngineHeading as EngineComponent);
+	registry.set("markdown", LazyEngineMarkdown);
+	registry.set("card", EngineCard as EngineComponent);
+	registry.set("image", LazyEngineImage);
+	registry.set("video", LazyEngineVideo);
+	registry.set("canvas", LazyEngineCanvas);
+	registry.set("scroll", LazyLegacyEngineScroll);
+	registry.set("button", EngineButton as EngineComponent);
+	registry.set("spacer", EngineSpacer as EngineComponent);
+	registry.set("divider", EngineDivider as EngineComponent);
 	registry.set("custom-select", LazyCustomSelect);
-	registry.set("suspense",      LazyEngineSuspense);
-	registry.set("reveal",        LazyEngineReveal);
-	registry.set("EngineReveal",  LazyEngineReveal);
-	registry.set("slot",          EngineSlot as unknown as EngineComponent);
-	registry.set("option",        EngineOption as unknown as EngineComponent);
-	registry.set("optgroup",      EngineOptGroup as unknown as EngineComponent);
-	registry.set("form",          LazyEngineForm);
-	registry.set("input",         LazyEngineInput);
-	registry.set("textarea",      LazyEngineTextarea);
-	registry.set("checkbox",      LazyEngineCheckbox);
-	registry.set("label",         LazyEngineLabel);
-	registry.set("link",          LazyEngineLink);
-	registry.set("EngineLink",    LazyEngineLink);
-	registry.set("nav",           LazyEngineNav);
-	registry.set("EngineNav",     LazyEngineNav);
-	registry.set("manim",         LazyEngineManim);
-	registry.set("EngineManim",   LazyEngineManim);
-	registry.set("manim3d",       LazyEngineManim3D);
+	registry.set("suspense", LazyEngineSuspense);
+	registry.set("reveal", LazyEngineReveal);
+	registry.set("EngineReveal", LazyEngineReveal);
+	registry.set("slot", EngineSlot as unknown as EngineComponent);
+	registry.set("option", EngineOption as unknown as EngineComponent);
+	registry.set("optgroup", EngineOptGroup as unknown as EngineComponent);
+	registry.set("form", LazyEngineForm);
+	registry.set("input", LazyEngineInput);
+	registry.set("textarea", LazyEngineTextarea);
+	registry.set("checkbox", LazyEngineCheckbox);
+	registry.set("label", LazyEngineLabel);
+	registry.set("link", LazyEngineLink);
+	registry.set("EngineLink", LazyEngineLink);
+	registry.set("expand-link", LazyEngineExpandLink);
+	registry.set("EngineExpandLink", LazyEngineExpandLink);
+	registry.set("nav", LazyEngineNav);
+	registry.set("EngineNav", LazyEngineNav);
+	registry.set("manim", LazyEngineManim);
+	registry.set("EngineManim", LazyEngineManim);
+	registry.set("manim3d", LazyEngineManim3D);
 	registry.set("EngineManim3D", LazyEngineManim3D);
-	registry.set("dialog",        LazyEngineDialog);
-	registry.set("EngineDialog",  LazyEngineDialog);
-	registry.set("drawer",        LazyEngineDrawer);
-	registry.set("EngineDrawer",  LazyEngineDrawer);
-	registry.set("popover",       LazyEnginePopover);
+	registry.set("dialog", LazyEngineDialog);
+	registry.set("EngineDialog", LazyEngineDialog);
+	registry.set("drawer", LazyEngineDrawer);
+	registry.set("EngineDrawer", LazyEngineDrawer);
+	registry.set("popover", LazyEnginePopover);
 	registry.set("EnginePopover", LazyEnginePopover);
 	return registry;
 }
