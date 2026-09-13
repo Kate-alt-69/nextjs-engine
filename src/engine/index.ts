@@ -92,6 +92,10 @@ export { EngineTransitionLink } from "./components/EngineTransitionLink";
 export type { EngineTransitionLinkProps } from "./components/EngineTransitionLink";
 export { EngineExpandLink } from "./components/EngineExpandLink";
 export type { EngineExpandLinkProps } from "./components/EngineExpandLink";
+export { EngineSwipeDeck } from "./components/EngineSwipeDeck";
+export type { EngineSwipeDeckProps } from "./components/EngineSwipeDeck";
+export { EngineAutoRail } from "./components/EngineAutoRail";
+export type { EngineAutoRailProps } from "./components/EngineAutoRail";
 export {
 	ENGINE_TRANSITIONS,
 	isKnownEngineTransition,
