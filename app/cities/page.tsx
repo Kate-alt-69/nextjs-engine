@@ -1,5 +1,5 @@
 import { createPage, defineSchema } from "@/engine";
-import { Explorer } from "../roavio/ClientWidgets";
+import { Explorer } from "../roavio/Explorer";
 import { loadCityCatalog } from "../roavio/cityContent.server";
 import { copyFor, type RoavioLocale } from "../roavio/i18n";
 import { getRoavioLocale } from "../roavio/locale.server";
@@ -20,8 +20,22 @@ function createCitiesSchema(locale: RoavioLocale) {
   });
 }
 
-export default async function CitiesPage() {
-  const [catalog, locale] = await Promise.all([loadCityCatalog(), getRoavioLocale()]);
-  const Page = createPage({ schema: createCitiesSchema(locale), slots: { explorer: <Explorer catalog={catalog} locale={locale} /> }, compiler: { pageId: "roavio-cities", serverFirst: true } });
+export default async function CitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ search?: string | string[] }>;
+}) {
+  const [catalog, locale, params] = await Promise.all([
+    loadCityCatalog(),
+    getRoavioLocale(),
+    searchParams,
+  ]);
+  const rawSearch = params.search;
+  const initialSearch = Array.isArray(rawSearch) ? (rawSearch[0] ?? "") : (rawSearch ?? "");
+  const Page = createPage({
+    schema: createCitiesSchema(locale),
+    slots: { explorer: <Explorer catalog={catalog} locale={locale} initialSearch={initialSearch} /> },
+    compiler: { pageId: "roavio-cities", serverFirst: true },
+  });
   return <Page />;
 }
