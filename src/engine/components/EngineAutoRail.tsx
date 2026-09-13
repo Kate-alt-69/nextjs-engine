@@ -23,8 +23,8 @@ export interface EngineAutoRailProps extends BaseNodeProps {
 	gap?: string | number;
 	/** Delay before automatic motion resumes after a user grabs/wheels the rail. */
 	resumeDelay?: number;
-	/** Direction of automatic travel. */
-	direction?: "right" | "left";
+	/** Direction of automatic rail travel; intentionally distinct from CSS `direction`. */
+	motionDirection?: "right" | "left";
 	/** Bounce at the ends instead of jumping back to the beginning. */
 	bounce?: boolean;
 	/** Disable automatic movement while keeping the interactive native rail. */
@@ -64,7 +64,7 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 	speed = 26,
 	gap = 16,
 	resumeDelay = 1600,
-	direction = "right",
+	motionDirection = "right",
 	bounce = false,
 	autoplay = true,
 	ariaLabel = "Scrollable cards",
@@ -84,7 +84,7 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 	const visibleRef = useRef(true);
 	const pausedRef = useRef(false);
 	const reducedRef = useRef(false);
-	const directionRef = useRef(direction === "right" ? 1 : -1);
+	const directionRef = useRef(motionDirection === "right" ? 1 : -1);
 	const resumeTimerRef = useRef<number | null>(null);
 	const dragRef = useRef<{ id: number; startX: number; startScroll: number; moved: boolean } | null>(null);
 	const suppressClickUntilRef = useRef(0);
@@ -159,7 +159,7 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 	useEffect(() => {
 		injectRailCss();
 		reducedRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-		directionRef.current = direction === "right" ? 1 : -1;
+		directionRef.current = motionDirection === "right" ? 1 : -1;
 		const root = rootRef.current;
 		if (!root) return;
 		const releaseFrameMonitor = autoplay && !reducedRef.current
@@ -180,7 +180,7 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 			stopFrame();
 			if (resumeTimerRef.current !== null) window.clearTimeout(resumeTimerRef.current);
 		};
-	}, [autoplay, direction, requestNextFrame, stopFrame]);
+	}, [autoplay, motionDirection, requestNextFrame, stopFrame]);
 
 	const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
 		if (event.button !== 0) return;
