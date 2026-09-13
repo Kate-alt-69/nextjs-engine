@@ -48,6 +48,7 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
               className="rv-city-card"
               href={`/cities/${city.slug}`}
               targetId={cityTransitionSurfaceId(city.slug)}
+              mediaSelector=".rv-city-card__photo"
               duration={CITY_EXPAND_DURATION}
               handoffDuration={CITY_HANDOFF_DURATION}
               transition="instant"
@@ -60,11 +61,11 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
                 sizes="(max-width: 700px) calc(100vw - 2rem), (max-width: 1100px) calc(50vw - 2rem), 390px"
                 style={{ position: "absolute", inset: 0 }}
               />
-              <div className="rv-card-top">
+              <div className="rv-card-top" data-engine-expand-detail>
                 <span className="rv-score">Roavio fit {score === null ? "—" : score.toFixed(1)}</span>
                 <span className="rv-score">{city.beach ? (es ? "Playa ✓" : "Beach ✓") : city.continent}</span>
               </div>
-              <div className="rv-card-bottom">
+              <div className="rv-card-bottom" data-engine-expand-detail>
                 <h3>{city.city}</h3>
                 <p>{city.country} · {city.cost ?? "—"}</p>
                 <div className="rv-mini-metrics">
