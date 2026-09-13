@@ -12,7 +12,7 @@ export interface EngineExpandLinkProps {
 	targetId?: string;
 	/** Optional media subtree that should stretch to cover the expanding surface. */
 	mediaSelector?: string;
-	/** Optional detail subtree that should fade away while the visual surface expands. */
+	/** Optional explicit detail subtree to fade. Without one, non-media top-level details fade automatically. */
 	fadeSelector?: string;
 	duration?: number;
 	handoffDuration?: number;
@@ -91,6 +91,15 @@ function prepareMediaCover(root: HTMLElement, selector?: string): void {
 	});
 }
 
+function detailTargets(root: HTMLElement, mediaSelector?: string, fadeSelector?: string): HTMLElement[] {
+	if (fadeSelector) return [...root.querySelectorAll<HTMLElement>(fadeSelector)];
+	return [...root.children].filter((node): node is HTMLElement => {
+		if (!(node instanceof HTMLElement) || node.getAttribute("aria-hidden") === "true") return false;
+		if (!mediaSelector) return true;
+		return !node.matches(mediaSelector) && !node.querySelector(mediaSelector);
+	});
+}
+
 async function waitForTarget(id: string | undefined, timeoutMs = 1000): Promise<HTMLElement | null> {
 	if (!id) return null;
 	const existing = document.getElementById(id);
@@ -130,7 +139,7 @@ export const EngineExpandLink = memo(
 			sourceId,
 			targetId,
 			mediaSelector = "[data-engine-expand-media]",
-			fadeSelector = "[data-engine-expand-detail]",
+			fadeSelector,
 			duration = 460,
 			handoffDuration = 240,
 			endRadius = "0px",
@@ -228,12 +237,10 @@ export const EngineExpandLink = memo(
 			const oldPageFade = scrim.animate([{ opacity: 0 }, { opacity: 1 }], {
 				duration: Math.min(280, safeDuration), easing: "ease-in", fill: "forwards",
 			});
-			const detailFades = fadeSelector
-				? [...clone.querySelectorAll<HTMLElement>(fadeSelector)].map((detail) => detail.animate(
-					[{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(8px)" }],
-					{ duration: Math.min(220, safeDuration * .55), easing: "ease-in", fill: "forwards" },
-				))
-				: [];
+			const detailFades = detailTargets(clone, mediaSelector, fadeSelector).map((detail) => detail.animate(
+				[{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(8px)" }],
+				{ duration: Math.min(220, safeDuration * .55), easing: "ease-in", fill: "forwards" },
+			));
 
 			void (async () => {
 				try {
