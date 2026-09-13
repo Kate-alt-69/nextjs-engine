@@ -9,9 +9,10 @@ export interface RoavioCityAccent {
   hex: string;
 }
 
-// v2 deliberately invalidates v1: v1 could persist a fallback color after a
-// failed image sample, which meant that city would never try its real image again.
-const ACCENT_CACHE_KEY = "roavio-proposal-city-accents-v2";
+// v3 invalidates the first photo-sampling pass. v2 could still over-select large
+// bright sky regions, which made architecture-heavy cities (Amsterdam especially)
+// inherit a cool accent that did not match the visual weight of the photograph.
+const ACCENT_CACHE_KEY = "roavio-proposal-city-accents-v3";
 const SAMPLE_SIZE = 28;
 const memoryCache = new Map<string, RoavioCityAccent>();
 const inflight = new Map<string, Promise<RoavioCityAccent>>();
@@ -110,11 +111,10 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
 
 function toAccent(r: number, g: number, b: number): RoavioCityAccent {
   const [h, s, l] = rgbToHsl(r, g, b);
-  // Preserve the photo hue, but guarantee enough chroma to read as an accent.
   const [rr, gg, bb] = hslToRgb(
     h,
-    clamp(s * 1.18, 0.50, 0.82),
-    clamp(l, 0.44, 0.60),
+    clamp(s * 1.15, 0.46, 0.80),
+    clamp(l, 0.42, 0.58),
   );
   const hex = `#${[rr, gg, bb].map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
   return { rgb: `${rr} ${gg} ${bb}`, hex };
@@ -127,7 +127,6 @@ export function getRoavioFallbackAccent(slug: string): RoavioCityAccent {
     hash ^= slug.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
-  // Use the full wheel so unloaded cards do not all look green/cyan.
   const hue = (hash >>> 0) % 360;
   const [r, g, b] = hslToRgb(hue, 0.58, 0.50);
   return toAccent(r, g, b);
@@ -135,18 +134,50 @@ export function getRoavioFallbackAccent(slug: string): RoavioCityAccent {
 
 function analyzePixels(data: Uint8ClampedArray, slug: string): RoavioCityAccent {
   const buckets = Array.from({ length: 24 }, () => ({ weight: 0, r: 0, g: 0, b: 0 }));
+  const maxCoordinate = Math.max(1, SAMPLE_SIZE - 1);
 
   for (let index = 0; index < data.length; index += 4) {
     const alpha = data[index + 3];
     if (alpha < 210) continue;
+
+    const pixelIndex = index / 4;
+    const x = pixelIndex % SAMPLE_SIZE;
+    const y = Math.floor(pixelIndex / SAMPLE_SIZE);
+    const xNorm = x / maxCoordinate;
+    const yNorm = y / maxCoordinate;
+
     const r = data[index];
     const g = data[index + 1];
     const b = data[index + 2];
     const [hue, saturation, lightness] = rgbToHsl(r, g, b);
-    if (saturation < 0.14 || lightness < 0.08 || lightness > 0.93) continue;
 
-    const midtone = 1 - Math.min(1, Math.abs(lightness - 0.5) / 0.5);
-    const weight = (0.22 + saturation * 2.05) * (0.42 + midtone);
+    // We still reject near-monochrome pixels because their hue is unstable, but
+    // the threshold is deliberately low enough for brick/stone/architecture.
+    if (saturation < 0.055 || lightness < 0.06 || lightness > 0.94) continue;
+
+    const midtone = 1 - Math.min(1, Math.abs(lightness - 0.48) / 0.48);
+    const lowerFrameBias = 0.58 + yNorm * 1.42;
+    const centerBias = 0.86 + (1 - Math.abs(xNorm - 0.5) * 2) * 0.24;
+    const chromaWeight = 0.30 + saturation * 2.2;
+    const tonalWeight = 0.42 + midtone * 0.94;
+
+    // Most city images place bright blue/white sky in the upper half. It is useful
+    // context but should not overpower the actual destination architecture below.
+    const isUpperCoolSky = yNorm < 0.50
+      && hue >= 175
+      && hue <= 255
+      && lightness > 0.45;
+    const skyPenalty = isUpperCoolSky ? 0.22 : 1;
+
+    // Very bright highlights should contribute less than streets/buildings/foliage.
+    const highlightPenalty = lightness > 0.82 ? 0.55 : 1;
+    const weight = lowerFrameBias
+      * centerBias
+      * chromaWeight
+      * tonalWeight
+      * skyPenalty
+      * highlightPenalty;
+
     const bucket = buckets[Math.floor(hue / 15) % buckets.length];
     bucket.weight += weight;
     bucket.r += r * weight;
@@ -230,8 +261,6 @@ export function resolveRoavioCityAccent(slug: string): Promise<RoavioCityAccent>
 
   const src = getRoavioCityImage(slug);
   if (!src || typeof window === "undefined" || !networkAllowsSampling()) {
-    // Never cache a fallback as if it came from the image. A later visit/load
-    // should still be allowed to obtain the real palette.
     return Promise.resolve(getRoavioFallbackAccent(slug));
   }
 
