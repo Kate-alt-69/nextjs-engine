@@ -25,6 +25,12 @@
       "@/engine": [
         "./src/engine/index.ts"
       ],
+      "nextjs-engine/network": [
+        "./src/engine/network.ts"
+      ],
+      "nextjs-engine/server": [
+        "./src/engine/server.ts"
+      ],
       "@/*": [
         "./*"
       ],

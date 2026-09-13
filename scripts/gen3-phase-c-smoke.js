@@ -30,6 +30,7 @@ const requiredFiles = [
 	"src/engine/core/nenc/NENCManifest.ts",
 	"src/engine/core/nenc/NENCClient.ts",
 	"src/engine/core/nenc/NENCDeviceProof.ts",
+	"src/engine/core/nenc/NENCOrigin.ts",
 	"src/engine/core/nenc/NENCSessionAuth.ts",
 	"src/engine/core/nenc/NENCCommandSecurity.ts",
 	"src/engine/core/nenc/NENCCommandAPI.ts",
@@ -108,7 +109,8 @@ check(compiler.includes('createHmac("sha256"'), "wire ids are build-derived with
 check(!compiler.includes("/_static/command/"), "NENC compiler does not emit per-command routes");
 
 const nencPlugin = read("src/engine/plugins/nencPlugin.js");
-check(nencPlugin.includes('"_static", "command", "route.ts"'), "NENC plugin owns exactly one App Router command route");
+check(nencPlugin.includes('NEXT_APP_ENDPOINT_SEGMENT, "command", "route.ts"'), "NENC plugin owns exactly one App Router command route");
+check(nencPlugin.includes('NEXT_APP_ENDPOINT_SEGMENT = "%5Fstatic"'), "NENC route escapes Next.js private-folder syntax");
 check(nencPlugin.includes("Refusing to overwrite the existing route"), "NENC plugin preserves hand-written routes");
 check(nencPlugin.includes("outputDir cannot be inside public/"), "server manifest cannot be emitted into public assets");
 

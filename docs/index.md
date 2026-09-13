@@ -23,6 +23,7 @@ These docs are maintained against the current `src/engine` implementation.
 | Build layouts and controls | [`engine-components/primitives.md`](./engine-components/primitives.md) |
 | Build in-house static APIs | [`engine-components/apistatic.md`](./engine-components/apistatic.md) |
 | Configure/call external APIs | [`engine-components/engineapi.md`](./engine-components/engineapi.md) |
+| Run the Gen 3 private-search security proof | [`gen3/private-search-example.md`](./gen3/private-search-example.md) |
 | Understand current runtime/performance behavior | [`runtime-performance.md`](./runtime-performance.md) |
 
 ---

@@ -7,6 +7,7 @@ const path = require("node:path");
 const ts = require("typescript");
 const {
 	GENERATED_MARKER,
+	NEXT_APP_ENDPOINT_SEGMENT,
 	compileNENCProject,
 } = require("../src/engine/plugins/nencPlugin");
 const { discoverNENCCommands } = require("../src/engine/plugins/nencCompiler");
@@ -76,6 +77,11 @@ function run() {
 		assert.equal(fs.existsSync(result.clientFile), true);
 		assert.equal(fs.existsSync(result.serverFile), true);
 		assert.equal(fs.existsSync(result.routeFile), true);
+		assert.equal(
+			path.relative(projectRoot, result.routeFile),
+			path.join("app", NEXT_APP_ENDPOINT_SEGMENT, "command", "route.ts"),
+			"the escaped App Router segment must expose the literal /_static URL",
+		);
 
 		const clientSource = fs.readFileSync(result.clientFile, "utf8");
 		const serverSource = fs.readFileSync(result.serverFile, "utf8");

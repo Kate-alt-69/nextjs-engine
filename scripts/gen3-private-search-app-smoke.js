@@ -4,7 +4,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
-const { compileNENCProject } = require("../src/engine/plugins/nencPlugin");
+const {
+	NEXT_APP_ENDPOINT_SEGMENT,
+	compileNENCProject,
+} = require("../src/engine/plugins/nencPlugin");
 
 const repoRoot = path.resolve(__dirname, "..");
 const outDir = path.join(repoRoot, ".gen3-private-search-app-smoke");
@@ -75,7 +78,7 @@ async function run() {
 		packageName: "nextjs-engine",
 	});
 	assert.equal(compiled.commands.length, 2);
-	assert.equal(compiled.routeFile, path.join(generatedApp, "_static", "command", "route.ts"));
+	assert.equal(compiled.routeFile, path.join(generatedApp, NEXT_APP_ENDPOINT_SEGMENT, "command", "route.ts"));
 	const routeFiles = fs.readdirSync(path.dirname(compiled.routeFile)).filter((file) => file === "route.ts");
 	assert.deepEqual(routeFiles, ["route.ts"], "the plugin must generate exactly one command route");
 	for (const [name, command] of Object.entries(compiled.manifest.client.commands)) {

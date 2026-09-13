@@ -37,11 +37,12 @@ jobs:
         run: |
           node scripts/engine-transitions-smoke.js
           node scripts/engine-transitions-compat-smoke.js
-      - name: Test EngineScroll core
+      - name: Test EngineScroll core and mobile stability
         run: |
           node scripts/engine-scroll-smoke.js
           node scripts/engine-scroll-progress-smoke.js
           node scripts/engine-scroll-262-smoke.js
+          node scripts/engine-mobile-scroll-smoke.js
       - name: Test EngineOverlay runtime
         run: node scripts/engine-overlay-smoke.js
       - name: Test style compiler and primitive precedence
@@ -67,6 +68,7 @@ jobs:
           node scripts/gen3-nenc-plugin-smoke.js
           node scripts/gen3-nenc-backend-proving-smoke.js
           node scripts/gen3-private-search-app-smoke.js
+          node scripts/gen3-private-search-next-app-smoke.js
           node scripts/gen3-enginecookie-vault-smoke.js
       - name: Test Generation 3 phase D compatibility contracts
         if: github.ref_name == 'main-3' || github.base_ref == 'main-3'

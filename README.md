@@ -213,7 +213,7 @@ module.exports = withEngine({}, {
 })
 ```
 
-The complete [`examples/gen3-private-search`](./examples/gen3-private-search) proof connects browser login, device-signed NENC transport, a hashed device-bound session, a server-only private backend resolver, permission-authorized search, and response sanitization. CI also rejects request replay, copied cookies used by another device key, and proofs signed for another origin.
+The portable [`examples/gen3-private-search`](./examples/gen3-private-search) proof and runnable `/engine-private-search` workspace route connect browser login, device-signed NENC transport, a hashed device-bound session, a server-only private backend resolver, permission-authorized search, and response sanitization. CI also rejects request replay, copied cookies used by another device key, and proofs signed for another origin.
 
 See [`docs/gen3/phase-c-network.md`](./docs/gen3/phase-c-network.md) for the completed Phase C security model and invariants.
 

@@ -59,4 +59,11 @@ const nextConfig = {
 	},
 };
 
-module.exports = withEngine(nextConfig);
+module.exports = withEngine(nextConfig, {
+	nenc: {
+		commandFiles: ["src/example/private-search/commands.ts"],
+		handlerModule: "src/example/private-search/nenc.server.ts",
+		seed: process.env.ENGINE_NENC_SEED || "nextjs-engine-phase-c-private-search",
+		buildId: process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || "phase-c-local",
+	},
+});

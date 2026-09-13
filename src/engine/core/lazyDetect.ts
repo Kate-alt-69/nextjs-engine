@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Engine — Auto Lazy Detection
+//  Engine — Auto Lazy Detection
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { SchemaNode } from "../schema/types";
@@ -9,22 +9,6 @@ export interface LazyDecision {
 	contentVisibility: boolean;
 	rootMargin: string;
 	placeholderHeight: string;
-}
-
-const descendantCountCache = new WeakMap<object, number>();
-
-function countDescendants(node: SchemaNode): number {
-	const cached = descendantCountCache.get(node as object);
-	if (cached !== undefined) return cached;
-
-	const count = !node.children || typeof node.children === "string"
-		? 0
-		: node.children.reduce(
-			(total, child) => total + 1 + countDescendants(child),
-			0,
-		);
-	descendantCountCache.set(node as object, count);
-	return count;
 }
 
 function numericDimension(props: Record<string, unknown>, key: "width" | "height"): number {
@@ -63,9 +47,8 @@ export function decideLazy(node: SchemaNode, depth: number): LazyDecision {
 		};
 	}
 
-	// Media has expensive network/decode work. The outer lazy boundary also
-	// delays loading the split component module; the media component then owns
-	// its own fine-grained network loading once mounted.
+	// Media has expensive network/decode work and normally carries enough
+	// geometry to reserve stable space while its split module is deferred.
 	if (node.type === "video") {
 		return {
 			lazy: true,
@@ -91,8 +74,7 @@ export function decideLazy(node: SchemaNode, depth: number): LazyDecision {
 	}
 
 	// Canvas/Manim nodes are expensive enough to justify code-split lazy mount
-	// when nested. rootMargin makes an above-fold nested node mount immediately,
-	// while genuinely off-screen graphics avoid context/GPU allocation.
+	// when nested. Callers can still force eager mounting with priority/eager.
 	if (
 		node.type === "canvas"
 		|| node.type === "manim"
@@ -111,51 +93,11 @@ export function decideLazy(node: SchemaNode, depth: number): LazyDecision {
 		return eagerDecision();
 	}
 
-	// Tree depth describes schema nesting, not physical viewport position.
-	// Ordinary sections therefore use content-visibility instead of being
-	// removed from the React tree solely because they are nested.
-	if (node.type === "section" || node.type === "hero") {
-		if (depth > 0) {
-			const descendants = countDescendants(node);
-			return {
-				lazy: false,
-				contentVisibility: descendants > 3,
-				rootMargin: "0px",
-				placeholderHeight: placeholderHeight(props, descendants > 10 ? "500px" : "400px"),
-			};
-		}
-		return eagerDecision();
-	}
-
-	if (node.type === "markdown" && depth > 1) {
-		return {
-			lazy: true,
-			contentVisibility: true,
-			rootMargin: "400px 0px",
-			placeholderHeight: placeholderHeight(props, "200px"),
-		};
-	}
-
-	if (node.type === "grid" || node.type === "stack") {
-		const itemCount = Array.isArray(node.children) ? node.children.length : 0;
-		if (depth > 2 && itemCount > 8) {
-			return {
-				lazy: true,
-				contentVisibility: true,
-				rootMargin: "400px 0px",
-				placeholderHeight: placeholderHeight(props, "300px"),
-			};
-		}
-	}
-
-	if (node.type === "card" && depth > 3) {
-		return {
-			lazy: true,
-			contentVisibility: false,
-			rootMargin: "300px 0px",
-			placeholderHeight: placeholderHeight(props, "200px"),
-		};
-	}
-
+	// Structural/content nodes stay mounted by default. Schema depth is not a
+	// viewport position, and substituting guessed 200–500px placeholders for a
+	// section/card/grid/markdown tree can change document height during a fast
+	// mobile fling. That produces visible flicker and can make the browser appear
+	// to teleport backwards. Use `lazy: true` explicitly when stable geometry is
+	// known and the deferral is worth the layout trade-off.
 	return eagerDecision();
 }

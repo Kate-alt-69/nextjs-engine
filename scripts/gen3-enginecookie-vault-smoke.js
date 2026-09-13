@@ -165,7 +165,10 @@ async function run() {
 		},
 	});
 	const signatureContext = {
-		request: new Request("https://api.example.com/_static/command", { method: "POST" }),
+		request: new Request("https://internal-next.invalid/_static/command", {
+			method: "POST",
+			headers: { Host: "api.example.com" },
+		}),
 		origin: "https://app.example.com",
 		command: { name: "privateSearch" },
 		input: { search: "minecraft" },

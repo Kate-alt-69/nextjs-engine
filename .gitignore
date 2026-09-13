@@ -9,5 +9,10 @@ tsconfig.tsbuildinfo
 app/gemini/**.tsx
 app/asdf/**.tsx
 .engine-api-compiled.json
+.nextjs-engine/nenc/manifest.json
 /public/_static/endpoint/
 /public/_static/shader/
+.next/
+test-results/
+playwright-report/
+certificates/
