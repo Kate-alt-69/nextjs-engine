@@ -76,9 +76,8 @@ function warmOfficialCityImage(src: string) {
  * - This NE scheduler probe opens the cache-warm window at ~1600px.
  * - EngineImage owns the real image DOM at ~640px, cached-image recovery,
  *   frame-pressure policy and LCP priority behavior.
- * - The same probe automatically carries the official image palette up to the
- *   nearest Roavio city surface, so every consumer gets accents without each
- *   card implementing its own color-analysis lifecycle.
+ * - The accent probe automatically carries the official image palette up to the
+ *   nearest Roavio city surface, so every consumer gets the same behavior.
  */
 export function OfficialCityImage({
   slug,
@@ -129,9 +128,6 @@ export function OfficialCityImage({
     retryTimerRef.current = null;
     setFailed(false);
 
-    // Never make every card wait on image decode before it has its own identity.
-    // A cached photo-derived accent wins; otherwise use a deterministic temporary
-    // hue and replace it as soon as the official image sample resolves.
     const cached = peekRoavioCityAccent(slug);
     applyAccent(cached ?? getRoavioFallbackAccent(slug), cached ? "image" : "fallback");
   }, [applyAccent, slug]);
@@ -189,10 +185,12 @@ export function OfficialCityImage({
   return (
     <>
       <span
-        ref={(node) => {
-          accentProbeRef.current = node;
-          warmSchedule.ref(node);
-        }}
+        ref={accentProbeRef}
+        aria-hidden="true"
+        style={{ position: "absolute", inset: 0, opacity: 0, pointerEvents: "none" }}
+      />
+      <span
+        ref={warmSchedule.ref}
         aria-hidden="true"
         style={{ position: "absolute", inset: 0, opacity: 0, pointerEvents: "none" }}
       />
