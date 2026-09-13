@@ -14,6 +14,7 @@ import "./roavio/like.css";
 import "./roavio/card-motion.css";
 import "./roavio/accent-surface.css";
 import "./roavio/footer-theme.css";
+import "./roavio/homepage-motion.css";
 
 export const metadata: Metadata = {
   title: {
