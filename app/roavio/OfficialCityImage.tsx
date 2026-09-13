@@ -81,6 +81,7 @@ export function OfficialCityImage({
   style?: EngineImageProps["style"];
 }) {
   const probeRef = useRef<HTMLSpanElement | null>(null);
+  const warmEligibleRef = useRef(priority);
   const [nearViewport, setNearViewport] = useState(priority);
   const [failed, setFailed] = useState(false);
   const src = getRoavioCityImage(slug);
@@ -88,6 +89,7 @@ export function OfficialCityImage({
   useEffect(() => {
     setFailed(false);
     setNearViewport(priority);
+    warmEligibleRef.current = priority;
   }, [priority, slug]);
 
   useEffect(() => {
@@ -99,12 +101,25 @@ export function OfficialCityImage({
     // does not cause React state updates and therefore does not make scrolling
     // do extra component work.
     return EngineScheduler.observe(probe, (snapshot) => {
-      if (snapshot.near || snapshot.visible) warmOfficialCityImage(src);
+      const eligible = snapshot.near || snapshot.visible;
+      warmEligibleRef.current = eligible;
+      if (eligible) warmOfficialCityImage(src);
     }, {
       nearMargin: "1600px 0px",
       visibleThreshold: 0.01,
       releaseWhenFar: false,
     });
+  }, [priority, src]);
+
+  useEffect(() => {
+    if (!src || priority) return;
+    const handleConsentChanged = () => {
+      // If consent is accepted while a card is already in the warm zone, do
+      // not wait for another scroll/observer callback before priming its cache.
+      if (warmEligibleRef.current) warmOfficialCityImage(src);
+    };
+    window.addEventListener("rv:consent-changed", handleConsentChanged);
+    return () => window.removeEventListener("rv:consent-changed", handleConsentChanged);
   }, [priority, src]);
 
   useEffect(() => {
