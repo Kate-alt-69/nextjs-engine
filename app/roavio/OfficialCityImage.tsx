@@ -72,6 +72,7 @@ export function OfficialCityImage({
   sizes = "100vw",
   objectFit = "cover",
   style,
+  onLoad,
 }: {
   slug: string;
   alt?: string;
@@ -80,6 +81,7 @@ export function OfficialCityImage({
   sizes?: string;
   objectFit?: EngineImageProps["objectFit"];
   style?: EngineImageProps["style"];
+  onLoad?: () => void;
 }) {
   const retryCountRef = useRef(0);
   const retryTimerRef = useRef<number | null>(null);
@@ -172,6 +174,7 @@ export function OfficialCityImage({
         onLoad={() => {
           retryCountRef.current = 0;
           warmedCityImages.add(src);
+          onLoad?.();
         }}
         onError={handleError}
       />
