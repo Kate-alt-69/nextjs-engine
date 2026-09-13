@@ -4,7 +4,6 @@
   --rv-radius-control:12px;
 }
 
-/* Keep card geometry concentric instead of mixing unrelated radii. */
 .rv-result-card{
   border-radius:var(--rv-radius-card)!important;
   transform-origin:center center;
@@ -27,18 +26,10 @@
   overflow:hidden;
   transform-origin:center center;
 }
-.rv-compare-city-card .rv-city-thumb{
-  border-radius:14px!important;
-}
-.rv-city-card{
-  transform-origin:center center;
-}
+.rv-compare-city-card .rv-city-thumb{border-radius:14px!important}
+.rv-city-card{transform-origin:center center}
 
-/*
- * OfficialCityImage keeps only this zero-paint probe alive while a media box is
- * far away. The actual EngineImage (and therefore its Next image node) does not
- * exist until the shared NE scheduler says the viewport is getting close.
- */
+/* OfficialCityImage keeps only this zero-paint probe alive while media sleeps. */
 .rv-city-image-probe{
   position:absolute;
   inset:0;
@@ -47,7 +38,9 @@
   pointer-events:none;
 }
 
-/* Let the browser skip offscreen card paint/layout work while preserving size. */
+/* Keep the card box in the grid, but let the browser completely skip the far
+   subtree. This avoids breaking React state while still removing descendant
+   layout/paint work until the card comes back near the viewport. */
 .rv-result-card,
 .rv-city-card,
 .rv-compare-city-card{
@@ -59,7 +52,65 @@
 .rv-city-card{contain-intrinsic-size:340px}
 .rv-compare-city-card{contain-intrinsic-size:300px}
 
-/* Local/native and EngineImage photos must behave identically once mounted. */
+.rv-result-card[data-rv-motion-mode='sleeping'],
+.rv-city-card[data-rv-motion-mode='sleeping'],
+.rv-compare-city-card[data-rv-motion-mode='sleeping']{
+  content-visibility:hidden;
+  opacity:0;
+  transform:translateZ(0) scale(.78);
+  pointer-events:none;
+  animation:none!important;
+  transition:none!important;
+}
+
+.rv-result-card[data-rv-motion-mode='armed'],
+.rv-city-card[data-rv-motion-mode='armed'],
+.rv-compare-city-card[data-rv-motion-mode='armed']{
+  content-visibility:visible;
+  opacity:0;
+  transform:translateZ(0) scale(.78);
+  pointer-events:none;
+  animation:none!important;
+  transition:none!important;
+}
+
+.rv-result-card[data-rv-motion-mode='animated'][data-rv-entered='true'],
+.rv-city-card[data-rv-motion-mode='animated'][data-rv-entered='true'],
+.rv-compare-city-card[data-rv-motion-mode='animated'][data-rv-entered='true']{
+  content-visibility:visible;
+  pointer-events:auto;
+  animation:rv-card-pop var(--rv-enter-duration,380ms) cubic-bezier(.16,1,.3,1) var(--rv-enter-delay,0ms) both!important;
+  transition:none!important;
+  will-change:transform,opacity;
+}
+
+@keyframes rv-card-pop{
+  0%{opacity:0;transform:translateZ(0) scale(.78)}
+  66%{opacity:1;transform:translateZ(0) scale(1.032)}
+  100%{opacity:1;transform:translateZ(0) scale(1)}
+}
+
+.rv-result-card[data-rv-motion-mode='settled'],
+.rv-city-card[data-rv-motion-mode='settled'],
+.rv-compare-city-card[data-rv-motion-mode='settled']{
+  content-visibility:auto;
+  opacity:1;
+  transform:translateZ(0) scale(1);
+  pointer-events:auto;
+  will-change:auto;
+}
+
+.rv-result-card[data-rv-motion-mode='instant'],
+.rv-city-card[data-rv-motion-mode='instant'],
+.rv-compare-city-card[data-rv-motion-mode='instant']{
+  content-visibility:auto;
+  opacity:1!important;
+  transform:none!important;
+  pointer-events:auto;
+  animation:none!important;
+  transition:none!important;
+}
+
 .rv-city-thumb__native{
   position:relative;
   z-index:2;
@@ -73,69 +124,12 @@
   transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s ease;
 }
 
-/*
- * The head boot script marks motion before body paint. SSR cards therefore start
- * in the same centered, collapsed pose that the scheduler expects instead of
- * flashing visible for a frame during hydration.
- */
-html[data-rv-motion='boot'] .rv-result-card:not([data-rv-entered='true']),
-html[data-rv-motion='boot'] .rv-city-card:not([data-rv-entered='true']),
-html[data-rv-motion='boot'] .rv-compare-city-card:not([data-rv-entered='true']),
-html[data-rv-motion='ready'] .rv-result-card:not([data-rv-entered='true']),
-html[data-rv-motion='ready'] .rv-city-card:not([data-rv-entered='true']),
-html[data-rv-motion='ready'] .rv-compare-city-card:not([data-rv-entered='true']),
-.rv-result-card[data-rv-motion-bound='true'][data-rv-entered='false'],
-.rv-city-card[data-rv-motion-bound='true'][data-rv-entered='false'],
-.rv-compare-city-card[data-rv-motion-bound='true'][data-rv-entered='false']{
-  opacity:0;
-  transform:translateZ(0) scale(.76);
-}
-
-/*
- * Entry uses only transform + opacity so the compositor can keep the animation
- * on the GPU. It grows from its own center, overshoots once, then settles back
- * to normal size — no translate animation, blur animation, or shadow animation.
- */
-.rv-result-card[data-rv-motion-mode='animated'][data-rv-entered='true'],
-.rv-city-card[data-rv-motion-mode='animated'][data-rv-entered='true'],
-.rv-compare-city-card[data-rv-motion-mode='animated'][data-rv-entered='true']{
-  animation:rv-card-pop var(--rv-enter-duration,400ms) cubic-bezier(.16,1,.3,1) var(--rv-enter-delay,0ms) both!important;
-  transition:none!important;
-  will-change:transform,opacity;
-}
-
-@keyframes rv-card-pop{
-  0%{opacity:0;transform:translateZ(0) scale(.76)}
-  68%{opacity:1;transform:translateZ(0) scale(1.035)}
-  100%{opacity:1;transform:translateZ(0) scale(1)}
-}
-
-.rv-result-card[data-rv-motion-mode='settled'],
-.rv-city-card[data-rv-motion-mode='settled'],
-.rv-compare-city-card[data-rv-motion-mode='settled']{
-  opacity:1;
-  transform:translateZ(0) scale(1);
-  will-change:auto;
-}
-
-.rv-result-card[data-rv-motion-mode='instant'],
-.rv-city-card[data-rv-motion-mode='instant'],
-.rv-compare-city-card[data-rv-motion-mode='instant']{
-  opacity:1!important;
-  transform:none!important;
-  animation:none!important;
-  transition:none!important;
-}
-
-/* Helpful interaction feedback without fighting the entrance animation. */
 .rv-result-card a,
 .rv-result-card button,
 .rv-city-card a,
 .rv-city-card button,
 .rv-compare-city-card a,
-.rv-compare-city-card button{
-  touch-action:manipulation;
-}
+.rv-compare-city-card button{touch-action:manipulation}
 
 .rv-result-card :focus-visible,
 .rv-city-card :focus-visible,
@@ -145,21 +139,13 @@ html[data-rv-motion='ready'] .rv-compare-city-card:not([data-rv-entered='true'])
 }
 
 @media(hover:hover) and (pointer:fine){
-  .rv-result-card[data-rv-motion-mode='settled']:hover{
-    transform:translateY(-5px) scale(1.005);
-  }
-  .rv-city-card[data-rv-motion-mode='settled']:hover{
-    transform:translateY(-4px) scale(1.004);
-  }
-  .rv-compare-city-card[data-rv-motion-mode='settled']:hover{
-    transform:translateY(-4px) scale(1.006);
-  }
+  .rv-result-card[data-rv-motion-mode='settled']:hover{transform:translateY(-5px) scale(1.005)}
+  .rv-city-card[data-rv-motion-mode='settled']:hover{transform:translateY(-4px) scale(1.004)}
+  .rv-compare-city-card[data-rv-motion-mode='settled']:hover{transform:translateY(-4px) scale(1.006)}
   .rv-result-card:hover .rv-city-thumb__native,
   .rv-result-card:focus-within .rv-city-thumb__native,
   .rv-compare-city-card:hover .rv-city-thumb__native,
-  .rv-compare-city-card:focus-within .rv-city-thumb__native{
-    transform:scale(1.045);
-  }
+  .rv-compare-city-card:focus-within .rv-city-thumb__native{transform:scale(1.045)}
 }
 
 @media(pointer:coarse){
@@ -177,25 +163,21 @@ html[data-rv-motion='ready'] .rv-compare-city-card:not([data-rv-entered='true'])
     --rv-radius-media:14px;
     --rv-radius-control:11px;
   }
-  html[data-rv-motion='boot'] .rv-result-card:not([data-rv-entered='true']),
-  html[data-rv-motion='boot'] .rv-city-card:not([data-rv-entered='true']),
-  html[data-rv-motion='boot'] .rv-compare-city-card:not([data-rv-entered='true']),
-  html[data-rv-motion='ready'] .rv-result-card:not([data-rv-entered='true']),
-  html[data-rv-motion='ready'] .rv-city-card:not([data-rv-entered='true']),
-  html[data-rv-motion='ready'] .rv-compare-city-card:not([data-rv-entered='true']),
-  .rv-result-card[data-rv-motion-bound='true'][data-rv-entered='false'],
-  .rv-city-card[data-rv-motion-bound='true'][data-rv-entered='false'],
-  .rv-compare-city-card[data-rv-motion-bound='true'][data-rv-entered='false']{
-    transform:translateZ(0) scale(.8);
+  .rv-result-card[data-rv-motion-mode='sleeping'],
+  .rv-city-card[data-rv-motion-mode='sleeping'],
+  .rv-compare-city-card[data-rv-motion-mode='sleeping'],
+  .rv-result-card[data-rv-motion-mode='armed'],
+  .rv-city-card[data-rv-motion-mode='armed'],
+  .rv-compare-city-card[data-rv-motion-mode='armed']{
+    transform:translateZ(0) scale(.82);
   }
   @keyframes rv-card-pop{
-    0%{opacity:0;transform:translateZ(0) scale(.8)}
-    72%{opacity:1;transform:translateZ(0) scale(1.022)}
+    0%{opacity:0;transform:translateZ(0) scale(.82)}
+    72%{opacity:1;transform:translateZ(0) scale(1.02)}
     100%{opacity:1;transform:translateZ(0) scale(1)}
   }
 }
 
-/* Firefox benefits from an explicitly flat compositor surface during card pop. */
 @supports(-moz-appearance:none){
   .rv-result-card[data-rv-motion-mode='animated'],
   .rv-city-card[data-rv-motion-mode='animated'],
