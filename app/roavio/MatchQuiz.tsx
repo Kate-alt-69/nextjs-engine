@@ -1,9 +1,14 @@
 "use client";
 
-import { EngineReveal, EngineTransitionLink } from "@/engine";
+import { EngineExpandLink, EngineReveal, EngineTransitionLink } from "@/engine";
 import { useMemo, useState, type ReactNode } from "react";
 import { catalogFitScore, catalogMetric, type CityCatalogEntry } from "./catalog";
-import { cityExpandTransition, cityTransitionSurfaceId } from "./cityTransition";
+import {
+  CITY_EXPAND_DURATION,
+  CITY_HANDOFF_DURATION,
+  cityTransitionImageId,
+  cityTransitionSurfaceId,
+} from "./cityTransition";
 import { CityThumb } from "./CityThumb";
 import type { RoavioLocale } from "./i18n";
 
@@ -108,11 +113,11 @@ export function MatchQuiz({ catalog, locale }: { catalog: CityCatalogEntry[]; lo
             {matches.map(({ city }, index) => {
               const fit = catalogFitScore(city);
               const cityHref = `/cities/${city.slug}`;
-              const cityTransition = cityExpandTransition(city.slug);
+              const imageSurfaceId = cityTransitionImageId(city.slug);
+              const destinationSurfaceId = cityTransitionSurfaceId(city.slug);
               return (
                 <EngineReveal
                   key={city.slug}
-                  id={cityTransitionSurfaceId(city.slug)}
                   className="rv-result-card-reveal"
                   priority={index < 3}
                   effect="pop"
@@ -126,9 +131,18 @@ export function MatchQuiz({ catalog, locale }: { catalog: CityCatalogEntry[]; lo
                   releaseWhenFar
                 >
                   <article className="rv-result-card">
-                    <EngineTransitionLink href={cityHref} transition={cityTransition} className="rv-result-card__visual" aria-label={`${es ? "Abrir" : "Open"} ${city.city}`}>
+                    <EngineExpandLink
+                      id={imageSurfaceId}
+                      href={cityHref}
+                      targetId={destinationSurfaceId}
+                      duration={CITY_EXPAND_DURATION}
+                      handoffDuration={CITY_HANDOFF_DURATION}
+                      transition="instant"
+                      className="rv-result-card__visual"
+                      aria-label={`${es ? "Abrir" : "Open"} ${city.city}`}
+                    >
                       <CityThumb slug={city.slug} city={city.city} country={city.country} eager={index < 3} />
-                    </EngineTransitionLink>
+                    </EngineExpandLink>
                     <div className="rv-result-card__body">
                       <div className="rv-result-head">
                         <div><h3>{index + 1}. {city.city}</h3><p>{city.country} · {regionLabel(city.continent, locale)}</p></div>
@@ -140,7 +154,17 @@ export function MatchQuiz({ catalog, locale }: { catalog: CityCatalogEntry[]; lo
                         <div><strong>{catalogMetric(city.quality, "/10")}</strong><span>{es ? "calidad" : "quality"}</span></div>
                       </div>
                       <div className="rv-card-actions">
-                        <EngineTransitionLink className="rv-primary" href={cityHref} transition={cityTransition}>{es ? "Abrir ciudad" : "Open city"} →</EngineTransitionLink>
+                        <EngineExpandLink
+                          className="rv-primary"
+                          href={cityHref}
+                          sourceId={imageSurfaceId}
+                          targetId={destinationSurfaceId}
+                          duration={CITY_EXPAND_DURATION}
+                          handoffDuration={CITY_HANDOFF_DURATION}
+                          transition="instant"
+                        >
+                          {es ? "Abrir ciudad" : "Open city"} →
+                        </EngineExpandLink>
                         <EngineTransitionLink className="rv-secondary" href={`/compare?cities=${city.slug}`} transition="depth">{es ? "Comparar" : "Compare"}</EngineTransitionLink>
                       </div>
                     </div>
