@@ -4,9 +4,10 @@
   --rv-radius-control:12px;
 }
 
-/* EngineReveal is now the viewport/motion owner. These wrappers are the grid
-   items; the Roavio card remains a normal interactive child so hover/touch
-   polish never fights the scroll animation transform. */
+/* EngineReveal is now the viewport/motion owner. Its OUTER element is a stable
+   geometry anchor and the inner .e-reveal__content owns animation. Keeping the
+   actual card stretched inside that inner layer avoids grid-height collapse on
+   mobile while the reveal state changes. */
 .rv-result-card-reveal,
 .rv-city-card-reveal,
 .rv-compare-city-reveal{
@@ -14,9 +15,17 @@
   width:100%;
 }
 
-.rv-result-card-reveal>.rv-result-card,
-.rv-city-card-reveal>.rv-city-card,
-.rv-compare-city-reveal>.rv-compare-city-card{
+.rv-result-card-reveal>.e-reveal__content,
+.rv-city-card-reveal>.e-reveal__content,
+.rv-compare-city-reveal>.e-reveal__content{
+  width:100%;
+  height:100%;
+  min-width:0;
+}
+
+.rv-result-card-reveal>.e-reveal__content>.rv-result-card,
+.rv-city-card-reveal>.e-reveal__content>.rv-city-card,
+.rv-compare-city-reveal>.e-reveal__content>.rv-compare-city-card{
   width:100%;
   height:100%;
 }
