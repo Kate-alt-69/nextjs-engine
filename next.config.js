@@ -25,7 +25,11 @@ if (!fs.existsSync(turbopackStub)) {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
 	reactStrictMode: true,
-	distDir: "dist",
+	// NE uses ./dist locally so its generated output is easy to distinguish from
+	// source/package artifacts. Vercel's Next.js runtime, however, expects the
+	// framework build output at .next when it collects routes/functions after
+	// `next build`. Keep the local convention without breaking Vercel deploys.
+	distDir: process.env.VERCEL ? ".next" : "dist",
 
 	// Allow phones/tablets on the local LAN to use the Next dev client, HMR,
 	// RSC requests, and client-side navigation without cross-origin dev blocking.
