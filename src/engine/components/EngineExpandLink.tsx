@@ -16,7 +16,11 @@ export interface EngineExpandLinkProps {
 	fadeSelector?: string;
 	duration?: number;
 	handoffDuration?: number;
+	/** How long the expanded source may stay on screen while the destination route finishes rendering. */
+	targetTimeout?: number;
 	endRadius?: string;
+	/** Ask Next to warm the destination route before activation. */
+	prefetch?: boolean;
 	/** NE still owns navigation; instant is best when the expand animation owns the route change. */
 	transition?: EngineTransitionInput;
 	target?: string;
@@ -100,7 +104,7 @@ function detailTargets(root: HTMLElement, mediaSelector?: string, fadeSelector?:
 	});
 }
 
-async function waitForTarget(id: string | undefined, timeoutMs = 1000): Promise<HTMLElement | null> {
+async function waitForTarget(id: string | undefined, timeoutMs: number): Promise<HTMLElement | null> {
 	if (!id) return null;
 	const existing = document.getElementById(id);
 	if (existing instanceof HTMLElement) return existing;
@@ -125,12 +129,43 @@ async function waitForTarget(id: string | undefined, timeoutMs = 1000): Promise<
 	});
 }
 
+async function waitForDestinationMedia(root: HTMLElement, timeoutMs: number): Promise<void> {
+	const image = root.querySelector("img");
+	if (!(image instanceof HTMLImageElement)) {
+		await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+		return;
+	}
+	if (image.complete && image.naturalWidth > 0) return;
+
+	await new Promise<void>((resolve) => {
+		let settled = false;
+		const finish = () => {
+			if (settled) return;
+			settled = true;
+			image.removeEventListener("load", finish);
+			image.removeEventListener("error", finish);
+			window.clearTimeout(timeout);
+			resolve();
+		};
+		image.addEventListener("load", finish, { once: true });
+		image.addEventListener("error", finish, { once: true });
+		const timeout = window.setTimeout(finish, timeoutMs);
+	});
+}
+
+function nextPaint(): Promise<void> {
+	return new Promise((resolve) => {
+		window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+	});
+}
+
 /**
  * Cross-browser card -> page expansion.
  *
  * A visual clone survives the React route swap, so Firefox gets the same
  * spatial handoff as Chromium without depending on the native View Transition
- * API. NE still owns navigation and reduced-motion fallback.
+ * API. The expanded source remains above route-level loading UI until the real
+ * destination surface exists, then cross-fades into that surface.
  */
 export const EngineExpandLink = memo(
 	forwardRef<HTMLAnchorElement, EngineExpandLinkProps>((props, ref) => {
@@ -142,7 +177,9 @@ export const EngineExpandLink = memo(
 			fadeSelector,
 			duration = 460,
 			handoffDuration = 240,
+			targetTimeout = 8000,
 			endRadius = "0px",
+			prefetch = true,
 			transition = "instant",
 			target,
 			className,
@@ -205,6 +242,7 @@ export const EngineExpandLink = memo(
 
 			document.body.append(scrim, clone);
 			source.style.visibility = "hidden";
+			document.documentElement.dataset.engineExpandActive = "true";
 
 			let cleaned = false;
 			const cleanup = () => {
@@ -213,6 +251,7 @@ export const EngineExpandLink = memo(
 				clone.remove();
 				scrim.remove();
 				if (source.isConnected) source.style.visibility = previousVisibility;
+				delete document.documentElement.dataset.engineExpandActive;
 				running.current = false;
 				if (activeCleanup === cleanup) activeCleanup = null;
 			};
@@ -221,6 +260,7 @@ export const EngineExpandLink = memo(
 			const view = viewportRect();
 			const safeDuration = Math.max(260, Math.min(900, Number.isFinite(duration) ? duration : 460));
 			const safeHandoff = Math.max(120, Math.min(500, Number.isFinite(handoffDuration) ? handoffDuration : 240));
+			const safeTargetTimeout = Math.max(1200, Math.min(20000, Number.isFinite(targetTimeout) ? targetTimeout : 8000));
 			const pointer = { x: event.clientX, y: event.clientY };
 			const easing = "cubic-bezier(.16,1,.3,1)";
 
@@ -246,9 +286,13 @@ export const EngineExpandLink = memo(
 				try {
 					await Promise.all([animationDone(expand), animationDone(oldPageFade), ...detailFades.map(animationDone)]);
 					await transitions.push(href, transition, { pointer });
-					const destination = await waitForTarget(targetId, 1100);
+					const destination = await waitForTarget(targetId, safeTargetTimeout);
+					if (destination) {
+						await waitForDestinationMedia(destination, Math.min(2200, Math.max(600, safeTargetTimeout / 3)));
+						await nextPaint();
+					}
 					const destinationIn = destination?.animate([
-						{ opacity: .3, transform: "scale(1.012)" },
+						{ opacity: .16, transform: "scale(1.018)" },
 						{ opacity: 1, transform: "scale(1)" },
 					], { duration: safeHandoff, easing: "cubic-bezier(.22,.8,.25,1)", fill: "both" }) ?? null;
 					const cloneOut = clone.animate([{ opacity: 1 }, { opacity: 0 }], {
@@ -269,6 +313,7 @@ export const EngineExpandLink = memo(
 				ref={ref}
 				id={id}
 				href={href}
+				prefetch={prefetch}
 				target={target}
 				className={className}
 				style={style}
