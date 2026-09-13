@@ -5,27 +5,13 @@
 import { EngineScrollRuntime } from "./EngineScrollRuntime";
 
 export class EngineScrollObserver {
-
 	public static update(): void {
-
-		const runtime =
-			EngineScrollRuntime.get();
-
-		const cache =
-			runtime.getCache();
-
+		const cache = EngineScrollRuntime.get().getCache();
 		if (
-			cache.isUserScrolling &&
-			performance.now() -
-			cache.lastUserScrollTime >
-			120
+			cache.isUserScrolling
+			&& performance.now() >= cache.userScrollIdleUntil
 		) {
-
-			cache.isUserScrolling =
-				false;
-
+			cache.isUserScrolling = false;
 		}
-
 	}
-
 }

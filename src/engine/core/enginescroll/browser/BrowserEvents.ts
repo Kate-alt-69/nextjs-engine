@@ -18,9 +18,13 @@ const SCROLL_KEYS = new Set([
 
 export class BrowserEvents {
 	private static readonly USER_SCROLL_IDLE_MS = 130;
+	private static readonly TOUCH_SCROLL_IDLE_MS = 280;
+	private static readonly TOUCH_MOMENTUM_GRACE_MS = 1200;
 	private static initialized = false;
 	private static hiddenAt: number | null = null;
 	private static scrollIdleTimer: ReturnType<typeof setTimeout> | null = null;
+	private static touchActive = false;
+	private static lastTouchEndTime = Number.NEGATIVE_INFINITY;
 
 	public static initialize(update: () => void): void {
 		BrowserScheduler.setUpdate(update);
@@ -31,7 +35,9 @@ export class BrowserEvents {
 		window.addEventListener("resize", () => this.onResize(update), { passive: true });
 		window.addEventListener("orientationchange", () => this.onResize(update), { passive: true });
 		window.addEventListener("wheel", this.onUserScrollIntent, { passive: true });
-		window.addEventListener("touchstart", this.onUserScrollIntent, { passive: true });
+		window.addEventListener("touchstart", () => this.onTouchStart(update), { passive: true });
+		window.addEventListener("touchend", () => this.onTouchEnd(update), { passive: true });
+		window.addEventListener("touchcancel", () => this.onTouchEnd(update), { passive: true });
 		window.addEventListener("keydown", this.onKeyDown);
 		document.addEventListener("visibilitychange", () => this.onVisibility(update));
 	}
@@ -39,6 +45,32 @@ export class BrowserEvents {
 	private static onUserScrollIntent = (): void => {
 		EngineScrollAnimation.interrupt();
 	};
+
+	private static onTouchStart(update: () => void): void {
+		EngineScrollAnimation.interrupt();
+		this.touchActive = true;
+		if (this.scrollIdleTimer !== null) {
+			clearTimeout(this.scrollIdleTimer);
+			this.scrollIdleTimer = null;
+		}
+
+		const cache = EngineScrollRuntime.get().getCache();
+		if (cache.isUserScrolling) {
+			cache.userScrollIdleUntil = Number.POSITIVE_INFINITY;
+			BrowserScheduler.request(update);
+		}
+	}
+
+	private static onTouchEnd(update: () => void): void {
+		this.touchActive = false;
+		const now = performance.now();
+		this.lastTouchEndTime = now;
+		const cache = EngineScrollRuntime.get().getCache();
+		if (!cache.isUserScrolling) return;
+
+		cache.userScrollIdleUntil = now + this.TOUCH_SCROLL_IDLE_MS;
+		this.scheduleScrollIdleCheck(update, this.TOUCH_SCROLL_IDLE_MS);
+	}
 
 	private static onKeyDown = (event: KeyboardEvent): void => {
 		const target = event.target;
@@ -56,12 +88,19 @@ export class BrowserEvents {
 		if (SCROLL_KEYS.has(event.key)) EngineScrollAnimation.interrupt();
 	};
 
-	private static scheduleScrollIdleCheck(update: () => void): void {
+	private static scrollIdleDelay(now: number): number {
+		return this.touchActive
+			|| now - this.lastTouchEndTime <= this.TOUCH_MOMENTUM_GRACE_MS
+			? this.TOUCH_SCROLL_IDLE_MS
+			: this.USER_SCROLL_IDLE_MS;
+	}
+
+	private static scheduleScrollIdleCheck(update: () => void, delay: number): void {
 		if (this.scrollIdleTimer !== null) clearTimeout(this.scrollIdleTimer);
 		this.scrollIdleTimer = setTimeout(() => {
 			this.scrollIdleTimer = null;
 			BrowserScheduler.request(update);
-		}, this.USER_SCROLL_IDLE_MS);
+		}, Math.max(0, delay));
 	}
 
 	private static onScroll(update: () => void): void {
@@ -72,9 +111,13 @@ export class BrowserEvents {
 
 		const programmatic = cache.isAnimating || now <= cache.programmaticScrollUntil;
 		if (!programmatic) {
+			const idleDelay = this.scrollIdleDelay(now);
 			cache.lastUserScrollTime = now;
+			cache.userScrollIdleUntil = this.touchActive
+				? Number.POSITIVE_INFINITY
+				: now + idleDelay;
 			cache.isUserScrolling = true;
-			this.scheduleScrollIdleCheck(update);
+			if (!this.touchActive) this.scheduleScrollIdleCheck(update, idleDelay);
 		}
 		BrowserScheduler.request(update);
 	}
@@ -105,13 +148,21 @@ export class BrowserEvents {
 			const hiddenDuration = Math.max(0, now - this.hiddenAt);
 			const animation = runtime.getMutableState().animation;
 			if (animation.active) animation.startTime += hiddenDuration;
+			if (Number.isFinite(cache.userScrollIdleUntil)) {
+				cache.userScrollIdleUntil += hiddenDuration;
+			}
 			this.hiddenAt = null;
 		}
 
 		cache.lastTimestamp = 0;
 		cache.scrollX = window.scrollX;
 		cache.scrollY = window.scrollY;
-		if (cache.isUserScrolling) this.scheduleScrollIdleCheck(update);
+		if (cache.isUserScrolling && !this.touchActive) {
+			this.scheduleScrollIdleCheck(
+				update,
+				Math.max(0, cache.userScrollIdleUntil - now),
+			);
+		}
 		BrowserScheduler.request(update);
 	}
 }
