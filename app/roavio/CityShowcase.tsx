@@ -1,4 +1,4 @@
-import { EngineTransitionLink } from "@/engine";
+import { EngineReveal, EngineTransitionLink } from "@/engine";
 import { catalogFitScore, type CityCatalogEntry } from "./catalog";
 import type { RoavioLocale } from "./i18n";
 import { OfficialCityImage } from "./OfficialCityImage";
@@ -22,28 +22,43 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
       {featured.map((city, index) => {
         const score = catalogFitScore(city);
         return (
-          <EngineTransitionLink key={city.slug} className="rv-city-card" href={`/cities/${city.slug}`} transition="portal" style={{ background: gradients[index % gradients.length] }}>
-            <OfficialCityImage
-              slug={city.slug}
-              className="rv-city-card__photo"
-              priority={index < 2}
-              sizes="(max-width: 700px) calc(100vw - 2rem), (max-width: 1100px) calc(50vw - 2rem), 390px"
-              style={{ position: "absolute", inset: 0 }}
-            />
-            <div className="rv-card-top">
-              <span className="rv-score">Roavio fit {score === null ? "—" : score.toFixed(1)}</span>
-              <span className="rv-score">{city.beach ? (es ? "Playa ✓" : "Beach ✓") : city.continent}</span>
-            </div>
-            <div className="rv-card-bottom">
-              <h3>{city.city}</h3>
-              <p>{city.country} · {city.cost ?? "—"}</p>
-              <div className="rv-mini-metrics">
-                <div className="rv-mini-metric"><strong>{city.quality === null ? "—" : `${city.quality}/10`}</strong><span>{es ? "calidad" : "quality"}</span></div>
-                <div className="rv-mini-metric"><strong>{city.safety === null ? "—" : `${city.safety}/10`}</strong><span>{es ? "seguridad" : "safety"}</span></div>
-                <div className="rv-mini-metric"><strong>{city.internet === null ? "—" : `${city.internet}M`}</strong><span>internet</span></div>
+          <EngineReveal
+            key={city.slug}
+            className="rv-city-card-reveal"
+            priority={index < 2}
+            effect="pop"
+            replay
+            renderMargin={1600}
+            motionMargin={150}
+            duration={340}
+            delay={Math.min(index % 3, 2) * 18}
+            scaleFrom={0.82}
+            overshoot={1.022}
+            releaseWhenFar
+          >
+            <EngineTransitionLink className="rv-city-card" href={`/cities/${city.slug}`} transition="portal" style={{ background: gradients[index % gradients.length] }}>
+              <OfficialCityImage
+                slug={city.slug}
+                className="rv-city-card__photo"
+                priority={index < 2}
+                sizes="(max-width: 700px) calc(100vw - 2rem), (max-width: 1100px) calc(50vw - 2rem), 390px"
+                style={{ position: "absolute", inset: 0 }}
+              />
+              <div className="rv-card-top">
+                <span className="rv-score">Roavio fit {score === null ? "—" : score.toFixed(1)}</span>
+                <span className="rv-score">{city.beach ? (es ? "Playa ✓" : "Beach ✓") : city.continent}</span>
               </div>
-            </div>
-          </EngineTransitionLink>
+              <div className="rv-card-bottom">
+                <h3>{city.city}</h3>
+                <p>{city.country} · {city.cost ?? "—"}</p>
+                <div className="rv-mini-metrics">
+                  <div className="rv-mini-metric"><strong>{city.quality === null ? "—" : `${city.quality}/10`}</strong><span>{es ? "calidad" : "quality"}</span></div>
+                  <div className="rv-mini-metric"><strong>{city.safety === null ? "—" : `${city.safety}/10`}</strong><span>{es ? "seguridad" : "safety"}</span></div>
+                  <div className="rv-mini-metric"><strong>{city.internet === null ? "—" : `${city.internet}M`}</strong><span>internet</span></div>
+                </div>
+              </div>
+            </EngineTransitionLink>
+          </EngineReveal>
         );
       })}
     </div>
