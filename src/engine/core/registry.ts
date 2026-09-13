@@ -50,6 +50,9 @@ const LazyCustomSelect = lazyEngineComponent(() =>
 const LazyEngineSuspense = lazyEngineComponent(() =>
 	import("../components/EngineSuspense").then((module) => ({ default: module.EngineSuspense })),
 );
+const LazyEngineReveal = lazyEngineComponent(() =>
+	import("../components/EngineReveal").then((module) => ({ default: module.EngineReveal })),
+);
 const LazyEngineForm = lazyEngineComponent(() =>
 	import("../components/EngineForms").then((module) => ({ default: module.EngineForm })),
 );
@@ -107,6 +110,8 @@ function buildDefaultRegistry(): ComponentRegistry {
 	registry.set("divider",       EngineDivider as EngineComponent);
 	registry.set("custom-select", LazyCustomSelect);
 	registry.set("suspense",      LazyEngineSuspense);
+	registry.set("reveal",        LazyEngineReveal);
+	registry.set("EngineReveal",  LazyEngineReveal);
 	registry.set("slot",          EngineSlot as unknown as EngineComponent);
 	registry.set("option",        EngineOption as unknown as EngineComponent);
 	registry.set("optgroup",      EngineOptGroup as unknown as EngineComponent);
