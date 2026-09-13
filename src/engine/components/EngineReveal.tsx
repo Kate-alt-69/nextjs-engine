@@ -12,12 +12,10 @@ import React, {
 import type { BaseNodeProps } from "../schema/types";
 import {
 	EngineScroll,
-	type EngineScrollDirector,
-	type EngineScrollDirectorConfig,
+	type EngineScrollTimeline,
 	type EngineScrollTimelineFrame,
 } from "../core/enginescroll";
 import { EngineScheduler } from "../core/enginescheduler";
-import { EngineBrowser } from "../core/EngineBrowserSafe";
 import { useCpropClass } from "../hooks/usePropStyles";
 import { usePrimitiveStyles } from "../hooks/usePrimitiveStyles";
 
@@ -25,45 +23,38 @@ export type EngineRevealEffect = "pop" | "fade" | "slide-up" | "none";
 
 export interface EngineRevealProps extends BaseNodeProps {
 	children?: ReactNode;
-	/** Entrance animation. `pop` scales from the element's own center. */
+	/** Entrance animation. Pop scales from the element's own center. */
 	effect?: EngineRevealEffect;
-	/** Re-arm the reveal after the element returns to the pre-entry side. */
+	/** Re-arm after the element leaves the motion range. */
 	replay?: boolean;
-	/** Distance in CSS pixels used for the EngineScroll render-state window. */
+	/** Distance in CSS pixels where the subtree is forced ready for paint. */
 	renderMargin?: number;
-	/** Distance in CSS pixels at which the entrance animation becomes active. */
+	/** Distance in CSS pixels where entrance motion becomes active. */
 	motionMargin?: number;
 	/** Entrance duration in milliseconds. */
 	duration?: number;
 	/** Optional entrance delay in milliseconds. */
 	delay?: number;
-	/** Starting scale for the pop effect. */
+	/** Starting scale for pop. */
 	scaleFrom?: number;
 	/** Pop overshoot scale. */
 	overshoot?: number;
-	/** Skip animated entrance while NE reports frame pressure. */
+	/** Settle instantly while NE reports frame pressure. */
 	skipUnderFramePressure?: boolean;
-	/** Allow browser-managed offscreen paint skipping without changing layout geometry. */
+	/** Let the browser skip far-off paint while preserving layout geometry. */
 	releaseWhenFar?: boolean;
 }
 
 type RevealRegion = "before" | "active" | "after";
-
-type RevealRegistration = {
-	id: string;
-	element: HTMLElement;
-	renderTrack: string;
-	motionTrack: string;
-	renderMargin: number;
-	motionMargin: number;
-	onRender(frame: Readonly<EngineScrollTimelineFrame>): void;
-	onMotion(frame: Readonly<EngineScrollTimelineFrame>): void;
-};
-
-type MeasuredSize = { width: number; height: number };
+type RevealState = "sleeping" | "armed" | "animating" | "settled" | "instant";
 
 function finite(value: number | undefined, fallback: number): number {
 	return Number.isFinite(value) ? Math.max(0, value!) : fallback;
+}
+
+function regionOf(frame: Readonly<EngineScrollTimelineFrame>): RevealRegion {
+	if (frame.active) return "active";
+	return frame.after ? "after" : "before";
 }
 
 function pointSpacing(): number {
@@ -71,157 +62,28 @@ function pointSpacing(): number {
 	return Number.isFinite(spacing) && spacing > 0 ? spacing : 1;
 }
 
-function layoutSize(element: HTMLElement): MeasuredSize {
-	// offsetWidth/offsetHeight are layout dimensions and deliberately ignore CSS
-	// transforms. EngineReveal animates a child layer, but keeping this helper
-	// transform-independent also protects custom styles on the anchor itself.
-	const width = element.offsetWidth;
-	const height = element.offsetHeight;
-	if (width > 0 || height > 0) return { width, height };
-	const rect = element.getBoundingClientRect();
-	return { width: rect.width, height: rect.height };
-}
-
-function timelineRange(
+function timelineFor(
 	id: string,
 	heightPx: number,
 	marginPx: number,
-	spacing: number,
-) {
+): EngineScrollTimeline {
+	const spacing = pointSpacing();
 	const target = `#${id}` as `#${string}`;
-	const safeHeight = Math.max(1, heightPx);
-	const safeSpacing = Math.max(1, spacing);
-	return {
+	const height = Math.max(1, heightPx);
+	const margin = Math.max(0, marginPx);
+
+	return EngineScroll.timeline({
 		start: target,
 		end: target,
-		source: "top" as const,
-		startAlign: "end" as const,
-		endAlign: "start" as const,
-		startOffset: -marginPx / safeSpacing,
-		endOffset: (safeHeight + marginPx) / safeSpacing,
-		easing: "linear" as const,
-	};
+		source: "top",
+		startAlign: "end",
+		endAlign: "start",
+		startOffset: -margin / spacing,
+		endOffset: (height + margin) / spacing,
+		easing: "linear",
+	});
 }
 
-function frameRegion(frame: Readonly<EngineScrollTimelineFrame>): RevealRegion {
-	if (frame.active) return "active";
-	return frame.after ? "after" : "before";
-}
-
-/**
- * One coordinator backs every EngineReveal instance on the page. Components
- * explicitly register themselves; there is no selector scan, MutationObserver,
- * or per-card scroll listener. EngineScrollDirector then multiplexes every
- * render/motion track through one EngineScroll runtime subscription.
- *
- * Important invariant: the registered element is a geometry anchor and is
- * never scaled/faded by the reveal animation. Motion is applied to an inner
- * visual layer so timeline measurement cannot feed back into its own state.
- */
-class EngineRevealCoordinator {
-	private registrations = new Map<HTMLElement, RevealRegistration>();
-	private sizes = new WeakMap<HTMLElement, MeasuredSize>();
-	private director: EngineScrollDirector<EngineScrollDirectorConfig> | null = null;
-	private rebuildRaf = 0;
-	private resizeObserver: ResizeObserver | null = null;
-
-	register(registration: RevealRegistration): () => void {
-		this.registrations.set(registration.element, registration);
-		this.ensureResizeObserver();
-		this.resizeObserver?.observe(registration.element);
-		this.measure(registration.element);
-		this.scheduleRebuild();
-
-		return () => {
-			this.registrations.delete(registration.element);
-			this.resizeObserver?.unobserve(registration.element);
-			this.scheduleRebuild();
-		};
-	}
-
-	private ensureResizeObserver(): void {
-		if (this.resizeObserver || typeof ResizeObserver === "undefined") return;
-		this.resizeObserver = new ResizeObserver((entries) => {
-			let changed = false;
-			for (const entry of entries) {
-				if (!(entry.target instanceof HTMLElement) || !this.registrations.has(entry.target)) continue;
-				changed = this.measure(entry.target) || changed;
-			}
-			if (changed) this.scheduleRebuild();
-		});
-	}
-
-	private measure(element: HTMLElement): boolean {
-		const next = layoutSize(element);
-		const previous = this.sizes.get(element);
-		this.sizes.set(element, next);
-		if (next.height > 0) {
-			element.style.setProperty("--e-reveal-intrinsic-height", `${Math.ceil(next.height)}px`);
-		}
-		return !previous
-			|| Math.abs(previous.width - next.width) > 1
-			|| Math.abs(previous.height - next.height) > 1;
-	}
-
-	private scheduleRebuild = (): void => {
-		if (typeof window === "undefined" || this.rebuildRaf) return;
-		this.rebuildRaf = window.requestAnimationFrame(this.rebuild);
-	};
-
-	private rebuild = (): void => {
-		this.rebuildRaf = 0;
-		this.director?.dispose();
-		this.director = null;
-		if (this.registrations.size === 0) return;
-
-		EngineScroll.initialize();
-		const spacing = pointSpacing();
-		const config: Record<string, ReturnType<typeof timelineRange>> = {};
-
-		for (const registration of this.registrations.values()) {
-			const size = layoutSize(registration.element);
-			this.sizes.set(registration.element, size);
-			if (size.height > 0) {
-				registration.element.style.setProperty("--e-reveal-intrinsic-height", `${Math.ceil(size.height)}px`);
-			}
-			config[registration.renderTrack] = timelineRange(
-				registration.id,
-				size.height,
-				registration.renderMargin,
-				spacing,
-			);
-			config[registration.motionTrack] = timelineRange(
-				registration.id,
-				size.height,
-				registration.motionMargin,
-				spacing,
-			);
-		}
-
-		this.director = EngineScroll.direct(config);
-		for (const registration of this.registrations.values()) {
-			registration.onRender(this.director.snapshotTrack(registration.renderTrack));
-			registration.onMotion(this.director.snapshotTrack(registration.motionTrack));
-
-			// Track snapshots rather than only enter/leave events. A fast mobile
-			// fling can jump from `before` to `after` in one frame and never produce
-			// an active frame. Snapshot subscribers still observe that region change,
-			// so cards cannot remain stuck invisible after the user yeets the page.
-			this.director.subscribeTrack(
-				registration.renderTrack,
-				(frame) => registration.onRender(frame),
-				false,
-			);
-			this.director.subscribeTrack(
-				registration.motionTrack,
-				(frame) => registration.onMotion(frame),
-				false,
-			);
-		}
-	};
-}
-
-const revealCoordinator = new EngineRevealCoordinator();
 let revealCssInjected = false;
 
 const REVEAL_CSS = `
@@ -230,20 +92,21 @@ const REVEAL_CSS = `
   --e-reveal-delay:0ms;
   --e-reveal-scale-from:.8;
   --e-reveal-overshoot:1.028;
+  --e-reveal-intrinsic-height:320px;
   min-width:0;
 }
-/* Never use content-visibility:hidden here. Hiding a scroll-tracked geometry
-   anchor changes layout height and lets browser scroll anchoring fight the
-   user's fling. `auto` is browser-managed and preserves stable geometry. */
 .e-reveal[data-engine-release="true"]{
+  contain-intrinsic-size:auto var(--e-reveal-intrinsic-height);
+}
+.e-reveal[data-engine-release="true"][data-engine-render-near="false"]{
   content-visibility:auto;
-  contain-intrinsic-size:auto var(--e-reveal-intrinsic-height,320px);
+}
+.e-reveal[data-engine-release="true"][data-engine-render-near="true"]{
+  content-visibility:visible;
 }
 .e-reveal__content{
   width:100%;
-  height:100%;
   min-width:0;
-  min-height:0;
   transform-origin:center center;
   backface-visibility:hidden;
   -webkit-backface-visibility:hidden;
@@ -280,7 +143,7 @@ const REVEAL_CSS = `
 .e-reveal__content[data-engine-reveal-effect="fade"][data-engine-reveal-state="animating"]{
   animation:e-reveal-fade var(--e-reveal-duration) ease-out var(--e-reveal-delay) both!important;
 }
-.e-reveal__content[data-engine-reveal-effect="none"][data-engine-reveal-state="animating"],
+.e-reveal__content[data-engine-reveal-effect="none"],
 .e-reveal__content[data-engine-reveal-state="instant"],
 .e-reveal__content[data-engine-reveal-state="settled"]{
   opacity:1;
@@ -350,15 +213,18 @@ export const EngineReveal = memo(function EngineReveal({
 	const elementRef = useRef<HTMLDivElement | null>(null);
 	const settleTimerRef = useRef<number | null>(null);
 	const enterRafRef = useRef<number | null>(null);
-	const motionRegionRef = useRef<RevealRegion | null>(null);
 	const revealedRef = useRef(priority);
+	const motionRegionRef = useRef<RevealRegion | null>(null);
+	const renderRegionRef = useRef<RevealRegion | null>(null);
+	const [motionState, setMotionState] = useState<RevealState>("settled");
 	const [renderNear, setRenderNear] = useState(true);
-	const [motionState, setMotionState] = useState<"sleeping" | "armed" | "animating" | "settled" | "instant">("settled");
 	const stateClass = useCpropClass(cprop);
 	const mergedClass = ["e-reveal", className, stateClass].filter(Boolean).join(" ");
+	const safeDuration = finite(duration, 380);
+	const safeDelay = finite(delay, 0);
 	const timingStyle = {
-		"--e-reveal-duration": `${finite(duration, 380)}ms`,
-		"--e-reveal-delay": `${finite(delay, 0)}ms`,
+		"--e-reveal-duration": `${safeDuration}ms`,
+		"--e-reveal-delay": `${safeDelay}ms`,
 		"--e-reveal-scale-from": String(Math.min(1, Math.max(0.4, scaleFrom))),
 		"--e-reveal-overshoot": String(Math.max(1, overshoot)),
 	} as CSSProperties;
@@ -375,6 +241,11 @@ export const EngineReveal = memo(function EngineReveal({
 		const element = elementRef.current;
 		if (!element) return;
 		let mounted = true;
+		let renderTimeline: EngineScrollTimeline | null = null;
+		let motionTimeline: EngineScrollTimeline | null = null;
+		let stopRender: (() => void) | null = null;
+		let stopMotion: (() => void) | null = null;
+		let rebuildRaf = 0;
 
 		const clearPending = () => {
 			if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current);
@@ -390,114 +261,130 @@ export const EngineReveal = memo(function EngineReveal({
 			setMotionState(instant ? "instant" : "settled");
 		};
 
-		const sleep = () => {
+		const animateIn = () => {
 			if (!mounted) return;
-			if (!replay && revealedRef.current) {
-				settle();
-				return;
-			}
 			clearPending();
-			setMotionState("sleeping");
-		};
-
-		const enter = () => {
-			if (!mounted) return;
-			setRenderNear(true);
-			clearPending();
+			const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 			if (
-				effect === "none"
-				|| EngineBrowser.supports.reducedMotion
+				priority
+				|| effect === "none"
+				|| reducedMotion
 				|| (skipUnderFramePressure && EngineScheduler.isUnderFramePressure())
 			) {
 				settle(true);
 				return;
 			}
+
 			setMotionState("armed");
 			enterRafRef.current = window.requestAnimationFrame(() => {
 				enterRafRef.current = null;
 				if (!mounted) return;
-				revealedRef.current = true;
 				setMotionState("animating");
-				settleTimerRef.current = window.setTimeout(() => {
-					settleTimerRef.current = null;
-					if (mounted) setMotionState("settled");
-				}, finite(duration, 380) + finite(delay, 0) + 80);
+				settleTimerRef.current = window.setTimeout(
+					() => settle(false),
+					safeDuration + safeDelay + 90,
+				);
 			});
 		};
 
-		const stop = revealCoordinator.register({
-			id: resolvedId,
-			element,
-			renderTrack: `${resolvedId}__render`,
-			motionTrack: `${resolvedId}__motion`,
-			renderMargin: finite(renderMargin, 1600),
-			motionMargin: finite(motionMargin, 150),
-			onRender(frame) {
-				if (!mounted) return;
-				// This flag is informational/lifecycle state only. It must never alter
-				// the anchor's layout size while the user is scrolling.
-				setRenderNear(!releaseWhenFar || frame.active);
-			},
-			onMotion(frame) {
-				if (!mounted) return;
-				const nextRegion = frameRegion(frame);
-				const previousRegion = motionRegionRef.current;
-				motionRegionRef.current = nextRegion;
+		const handleRender = (frame: Readonly<EngineScrollTimelineFrame>) => {
+			const region = regionOf(frame);
+			if (region === renderRegionRef.current) return;
+			renderRegionRef.current = region;
+			setRenderNear(region === "active");
+		};
 
-				// First sampled frame should never hide and then re-show content that is
-				// already on screen after hydration. Offscreen-before content can arm.
-				if (previousRegion === null) {
-					if (nextRegion === "before") sleep();
-					else settle();
-					return;
-				}
+		const handleMotion = (frame: Readonly<EngineScrollTimelineFrame>) => {
+			const region = regionOf(frame);
+			if (region === motionRegionRef.current) return;
+			motionRegionRef.current = region;
 
-				if (nextRegion === "after") {
-					// A high-velocity fling may jump straight before -> after. Settling here
-					// guarantees the card cannot remain invisible after a skipped range.
-					settle();
-					return;
-				}
+			if (region === "active") {
+				if (!revealedRef.current || replay) animateIn();
+				else settle(false);
+				return;
+			}
 
-				if (nextRegion === "before") {
-					sleep();
-					return;
-				}
+			clearPending();
+			if (replay || !revealedRef.current) setMotionState("sleeping");
+		};
 
-				if (previousRegion === "active") return;
-				if (!replay && revealedRef.current) {
-					settle();
-					return;
-				}
-				enter();
-			},
-		});
+		const disposeTimelines = () => {
+			stopRender?.();
+			stopMotion?.();
+			stopRender = null;
+			stopMotion = null;
+			renderTimeline?.dispose();
+			motionTimeline?.dispose();
+			renderTimeline = null;
+			motionTimeline = null;
+		};
+
+		const buildTimelines = () => {
+			if (!mounted) return;
+			disposeTimelines();
+			EngineScroll.initialize();
+			const height = Math.max(1, element.offsetHeight || element.getBoundingClientRect().height || 1);
+			element.style.setProperty("--e-reveal-intrinsic-height", `${Math.ceil(height)}px`);
+			renderTimeline = timelineFor(resolvedId, height, finite(renderMargin, 1600));
+			motionTimeline = timelineFor(resolvedId, height, finite(motionMargin, 150));
+			stopRender = renderTimeline.subscribe(handleRender, true);
+			stopMotion = motionTimeline.subscribe(handleMotion, true);
+		};
+
+		const scheduleRebuild = () => {
+			if (rebuildRaf) return;
+			rebuildRaf = window.requestAnimationFrame(() => {
+				rebuildRaf = 0;
+				buildTimelines();
+			});
+		};
+
+		buildTimelines();
+		const resizeObserver = typeof ResizeObserver === "undefined"
+			? null
+			: new ResizeObserver(scheduleRebuild);
+		resizeObserver?.observe(element);
 
 		return () => {
 			mounted = false;
 			clearPending();
-			stop();
+			if (rebuildRaf) window.cancelAnimationFrame(rebuildRaf);
+			resizeObserver?.disconnect();
+			disposeTimelines();
 		};
-	}, [delay, duration, effect, motionMargin, priority, releaseWhenFar, renderMargin, replay, resolvedId, skipUnderFramePressure]);
+	}, [
+		effect,
+		motionMargin,
+		priority,
+		renderMargin,
+		replay,
+		resolvedId,
+		safeDelay,
+		safeDuration,
+		skipUnderFramePressure,
+	]);
 
 	return (
 		<div
 			ref={elementRef}
 			id={resolvedId}
 			className={mergedClass}
-			data-engine-reveal-state={motionState}
-			data-engine-reveal-effect={effect}
-			data-engine-render-state={renderNear ? "near" : "far"}
-			data-engine-release={releaseWhenFar ? "true" : "false"}
 			style={resolvedStyle}
+			data-engine-release={releaseWhenFar ? "true" : "false"}
+			data-engine-render-near={renderNear ? "true" : "false"}
 		>
 			<div
 				className="e-reveal__content"
-				data-engine-reveal-state={motionState}
 				data-engine-reveal-effect={effect}
+				data-engine-reveal-state={motionState}
 			>
 				{children}
 			</div>
 		</div>
 	);
 });
+
+EngineReveal.displayName = "EngineReveal";
+
+export default EngineReveal;
