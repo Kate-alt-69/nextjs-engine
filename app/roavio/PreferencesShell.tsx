@@ -143,7 +143,9 @@ function CelestialGlyph({ mode, moon }: { mode: RoavioThemeMode; moon: MoonPhase
     if (!(context instanceof CanvasRenderingContext2D)) return false;
     if (!startedAt.current) startedAt.current = performance.now();
     const elapsed = performance.now() - startedAt.current;
-    const progress = Math.min(1, elapsed / 620);
+    // Keep the canvas morph aligned with the compositor-only sliding pill.
+    // 320ms feels responsive on touch while still reading as a deliberate motion.
+    const progress = Math.min(1, elapsed / 320);
     const eased = 1 - Math.pow(1 - progress, 3);
     context.clearRect(0, 0, canvas.width, canvas.height);
     if (mode === "dark") drawMoon(context, canvas.width, canvas.height, moon.phaseFraction, eased);
@@ -268,12 +270,13 @@ export function PreferencesShell({
     } else {
       document.documentElement.classList.add("rv-theme-changing");
       apply();
-      window.setTimeout(() => document.documentElement.classList.remove("rv-theme-changing"), 480);
+      window.setTimeout(() => document.documentElement.classList.remove("rv-theme-changing"), 320);
     }
   };
 
   const saveConsent = (choices: ConsentChoices) => {
     writeCookie("rv_consent", JSON.stringify(choices));
+    window.dispatchEvent(new CustomEvent("rv:consent-changed", { detail: choices }));
     setShowConsent(false);
     setCustomOpen(false);
   };
@@ -284,8 +287,9 @@ export function PreferencesShell({
       type="button"
       className="rv-theme-toggle"
       onClick={chooseTheme}
+      aria-pressed={theme === "dark"}
       aria-label={theme === "dark" ? (spanish ? "Cambiar a modo claro" : "Switch to light mode") : (spanish ? "Cambiar a modo oscuro" : "Switch to dark mode")}
-      title={theme === "dark" ? `${moon.phase} · ${Math.round(moon.illumination)}%` : (spanish ? "Modo claro · sol" : "Light mode · sun")}
+      title={theme === "dark" ? (spanish ? "Modo oscuro · luna" : "Dark mode · moon") : (spanish ? "Modo claro · sol" : "Light mode · sun")}
     >
       <CelestialGlyph mode={theme} moon={moon} />
       <span>{phaseLabel}</span>
