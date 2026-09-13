@@ -132,7 +132,23 @@ export class EngineScrollTimeline {
 
 	private sourcePoint(state: Readonly<EngineScrollState>): number {
 		const source = this.config.source ?? "current";
-		return state.viewport[source];
+		const point = state.viewport[source];
+
+		// The physical top scroll edge can transiently report past the reachable
+		// document range on mobile browsers while browser chrome/visual viewport
+		// geometry is settling at the top or bottom. Range targets are already
+		// bounded to page.totalPoints, so letting a top-sourced timeline consume
+		// that transient overshoot can incorrectly flip a still-visible element
+		// into `after`. Clamp only the top edge; current/bottom intentionally live
+		// inside the viewport and may legitimately be greater than totalPoints.
+		if (source === "top") {
+			const maximum = Number.isFinite(state.page.totalPoints)
+				? Math.max(0, state.page.totalPoints)
+				: 0;
+			return Math.max(0, Math.min(point, maximum));
+		}
+
+		return point;
 	}
 
 	private createFrame(state: Readonly<EngineScrollState>): EngineScrollTimelineFrame {
@@ -233,7 +249,7 @@ export class EngineScrollTimeline {
 				frame,
 				previousFrame,
 			};
-			for (const subscriber of this.leaveSubscribers) subscriber(event);
+			for (const subscriber of subscribers) subscriber(event);
 		}
 	}
 
