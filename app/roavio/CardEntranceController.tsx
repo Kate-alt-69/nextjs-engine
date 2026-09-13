@@ -1,34 +1,84 @@
 "use client";
 
-import { EngineScheduler } from "@/engine";
+import {
+  EngineScheduler,
+  EngineScroll,
+  type EngineScrollDirector,
+  type EngineScrollDirectorConfig,
+} from "@/engine";
 import { useEffect } from "react";
 
 const CARD_SELECTOR = ".rv-result-card,.rv-city-card,.rv-compare-city-card";
 const BOUND_ATTR = "data-rv-motion-bound";
 const ENTERED_ATTR = "data-rv-entered";
-const NEAR_PX = 150;
+const RENDER_MARGIN_PX = 760;
+const MOTION_MARGIN_PX = 150;
 
 type CardState = {
   index: number;
-  stop: () => void;
+  id: string;
+  renderTrack: string;
+  motionTrack: string;
+  generatedId: boolean;
   settleTimer?: number;
   enterRaf?: number;
 };
 
-function geometryNear(element: Element, margin = NEAR_PX) {
-  const rect = element.getBoundingClientRect();
-  return rect.bottom >= -margin && rect.top <= window.innerHeight + margin;
+type CardSize = { width: number; height: number };
+
+let nextGeneratedCardId = 0;
+
+function pointSpacing(): number {
+  const spacing = EngineScroll.state().page.pointSpacing;
+  return Number.isFinite(spacing) && spacing > 0 ? spacing : 1;
+}
+
+function ensureCardId(element: HTMLElement): { id: string; generated: boolean } {
+  if (element.id) return { id: element.id, generated: false };
+  nextGeneratedCardId += 1;
+  const id = `rv-scroll-card-${nextGeneratedCardId}`;
+  element.id = id;
+  return { id, generated: true };
+}
+
+function timelineRangeForCard(
+  id: string,
+  heightPx: number,
+  marginPx: number,
+  spacing: number,
+) {
+  const target = `#${id}` as `#${string}`;
+  const safeHeight = Math.max(1, heightPx);
+  const safeSpacing = Math.max(1, spacing);
+
+  return {
+    start: target,
+    end: target,
+    source: "top" as const,
+    startAlign: "end" as const,
+    endAlign: "start" as const,
+    // EngineScroll offsets are measured in EngineScroll points rather than CSS
+    // pixels. Start before the card reaches the viewport and end after its
+    // bottom has fully passed the viewport top.
+    startOffset: -marginPx / safeSpacing,
+    endOffset: (safeHeight + marginPx) / safeSpacing,
+    easing: "linear" as const,
+  };
 }
 
 export function CardEntranceController() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    EngineScroll.initialize();
+
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const compactMotion = window.matchMedia("(max-width: 819px), (pointer: coarse)");
     const cards = new Map<HTMLElement, CardState>();
-    let scanRaf = 0;
-    let geometryRaf = 0;
+    const sizes = new WeakMap<HTMLElement, CardSize>();
+    let director: EngineScrollDirector<EngineScrollDirectorConfig> | null = null;
+    let rebuildRaf = 0;
+    let hasBuiltOnce = false;
 
     const clearPending = (element: HTMLElement) => {
       const state = cards.get(element);
@@ -50,7 +100,18 @@ export function CardEntranceController() {
       return { delay, duration };
     };
 
-    const sleep = (element: HTMLElement) => {
+    const setRenderNear = (element: HTMLElement, near: boolean) => {
+      element.dataset.rvRender = near ? "near" : "sleeping";
+      if (!near) {
+        clearPending(element);
+        element.dataset.rvMotionMode = "sleeping";
+        element.setAttribute(ENTERED_ATTR, "false");
+        element.style.removeProperty("--rv-enter-delay");
+        element.style.removeProperty("--rv-enter-duration");
+      }
+    };
+
+    const sleepMotion = (element: HTMLElement) => {
       clearPending(element);
       element.dataset.rvMotionMode = "sleeping";
       element.setAttribute(ENTERED_ATTR, "false");
@@ -58,15 +119,24 @@ export function CardEntranceController() {
       element.style.removeProperty("--rv-enter-duration");
     };
 
-    const enter = (element: HTMLElement, underFramePressure = false) => {
+    const settleMotion = (element: HTMLElement) => {
+      clearPending(element);
+      element.dataset.rvMotionMode = "settled";
+      element.setAttribute(ENTERED_ATTR, "true");
+      element.style.removeProperty("--rv-enter-delay");
+      element.style.removeProperty("--rv-enter-duration");
+    };
+
+    const enterMotion = (element: HTMLElement) => {
       if (element.getAttribute(ENTERED_ATTR) === "true") return;
       const state = cards.get(element);
       if (!state) return;
 
+      setRenderNear(element, true);
       clearPending(element);
       const { delay, duration } = setTimingVars(element, state.index);
 
-      if (reducedMotion.matches || underFramePressure) {
+      if (reducedMotion.matches || EngineScheduler.isUnderFramePressure()) {
         element.dataset.rvMotionMode = "instant";
         element.setAttribute(ENTERED_ATTR, "true");
         element.style.removeProperty("--rv-enter-delay");
@@ -74,17 +144,14 @@ export function CardEntranceController() {
         return;
       }
 
-      // Force a distinct sleeping -> armed -> animated sequence. Firefox in
-      // particular is much more reliable about restarting the keyframe when the
-      // animation-name is absent for one frame before it is re-applied.
+      // Timeline activity is the scroll trigger. One compositor-frame gap is
+      // deliberate so Firefox sees animation-name disappear before it is
+      // re-applied, which makes reverse/re-entry pops deterministic.
       element.dataset.rvMotionMode = "armed";
       element.setAttribute(ENTERED_ATTR, "false");
       state.enterRaf = window.requestAnimationFrame(() => {
         state.enterRaf = undefined;
-        if (!element.isConnected || !geometryNear(element)) {
-          sleep(element);
-          return;
-        }
+        if (!element.isConnected || element.dataset.rvRender !== "near") return;
 
         element.dataset.rvMotionMode = "animated";
         element.setAttribute(ENTERED_ATTR, "true");
@@ -98,96 +165,141 @@ export function CardEntranceController() {
       });
     };
 
-    const evaluateGeometry = (element: HTMLElement, pressure = false) => {
-      if (geometryNear(element)) enter(element, pressure);
-      else sleep(element);
-    };
-
-    const release = (element: HTMLElement) => {
+    const cleanupCard = (element: HTMLElement) => {
+      const state = cards.get(element);
+      if (!state) return;
       clearPending(element);
-      cards.get(element)?.stop();
-      cards.delete(element);
       element.removeAttribute(BOUND_ATTR);
+      element.removeAttribute(ENTERED_ATTR);
+      delete element.dataset.rvMotionMode;
+      delete element.dataset.rvRender;
+      delete element.dataset.rvMotionEngine;
+      element.style.removeProperty("--rv-enter-delay");
+      element.style.removeProperty("--rv-enter-duration");
+      if (state.generatedId && element.id === state.id) element.removeAttribute("id");
+      cards.delete(element);
     };
 
-    const bind = (element: Element, index: number) => {
-      if (!(element instanceof HTMLElement) || cards.has(element)) return;
+    const resizeObserver = typeof ResizeObserver !== "undefined"
+      ? new ResizeObserver((entries) => {
+          let materiallyChanged = false;
+          for (const entry of entries) {
+            if (!(entry.target instanceof HTMLElement) || !cards.has(entry.target)) continue;
+            const rect = entry.target.getBoundingClientRect();
+            const previous = sizes.get(entry.target);
+            const next = { width: rect.width, height: rect.height };
+            sizes.set(entry.target, next);
+            if (!previous || Math.abs(previous.width - next.width) > 1 || Math.abs(previous.height - next.height) > 1) {
+              materiallyChanged = true;
+            }
+          }
+          if (materiallyChanged) scheduleRebuild();
+        })
+      : null;
 
-      element.setAttribute(BOUND_ATTR, "true");
+    const rebuild = () => {
+      rebuildRaf = 0;
+      director?.dispose();
+      director = null;
 
-      // Never hide something already on/near the first viewport. This removes
-      // the SSR -> hidden -> observer callback race that produced a blank
-      // Explorer in Firefox and occasionally Chromium.
-      if (geometryNear(element)) {
-        element.setAttribute(ENTERED_ATTR, "true");
-        element.dataset.rvMotionMode = "settled";
-      } else {
-        element.setAttribute(ENTERED_ATTR, "false");
-        element.dataset.rvMotionMode = "sleeping";
-      }
-
-      const state: CardState = { index, stop: () => undefined };
-      cards.set(element, state);
-
-      state.stop = EngineScheduler.observe(element, (snapshot) => {
-        // EngineScheduler supplies the cheap pooled IO path. Geometry is checked
-        // too because Firefox has had edge cases when an observed subtree also
-        // uses content-visibility.
-        if (snapshot.near || snapshot.visible || geometryNear(element)) {
-          enter(element, snapshot.underFramePressure);
-        } else {
-          sleep(element);
-        }
-      }, {
-        nearMargin: `${NEAR_PX}px 0px`,
-        visibleThreshold: 0.01,
-        releaseWhenFar: true,
-      });
-    };
-
-    const scan = () => {
-      scanRaf = 0;
+      const found = Array.from(document.querySelectorAll(CARD_SELECTOR))
+        .filter((element): element is HTMLElement => element instanceof HTMLElement);
+      const foundSet = new Set(found);
 
       for (const element of [...cards.keys()]) {
-        if (!element.isConnected) release(element);
+        if (!foundSet.has(element)) cleanupCard(element);
       }
 
-      const found = Array.from(document.querySelectorAll(CARD_SELECTOR));
-      found.forEach((element, index) => bind(element, index));
-    };
+      resizeObserver?.disconnect();
+      const spacing = pointSpacing();
+      const config: Record<string, ReturnType<typeof timelineRangeForCard>> = {};
+      const newlyBound = new Set<HTMLElement>();
 
-    const scheduleScan = () => {
-      if (scanRaf) return;
-      scanRaf = window.requestAnimationFrame(scan);
-    };
+      found.forEach((element, index) => {
+        let state = cards.get(element);
+        if (!state) {
+          const identity = ensureCardId(element);
+          state = {
+            index,
+            id: identity.id,
+            generatedId: identity.generated,
+            renderTrack: `${identity.id}__render`,
+            motionTrack: `${identity.id}__motion`,
+          };
+          cards.set(element, state);
+          newlyBound.add(element);
+        } else {
+          state.index = index;
+        }
 
-    // Shared Firefox/Chromium safety net. At 18 Explorer cards this is tiny,
-    // and it is throttled to one geometry pass per animation frame.
-    const scheduleGeometryPass = () => {
-      if (geometryRaf) return;
-      geometryRaf = window.requestAnimationFrame(() => {
-        geometryRaf = 0;
-        const pressure = EngineScheduler.isUnderFramePressure();
-        for (const element of cards.keys()) evaluateGeometry(element, pressure);
+        element.setAttribute(BOUND_ATTR, "true");
+        element.dataset.rvMotionEngine = "engine-scroll-timeline";
+
+        const rect = element.getBoundingClientRect();
+        sizes.set(element, { width: rect.width, height: rect.height });
+        resizeObserver?.observe(element);
+
+        config[state.renderTrack] = timelineRangeForCard(
+          state.id,
+          rect.height,
+          RENDER_MARGIN_PX,
+          spacing,
+        );
+        config[state.motionTrack] = timelineRangeForCard(
+          state.id,
+          rect.height,
+          MOTION_MARGIN_PX,
+          spacing,
+        );
       });
+
+      if (Object.keys(config).length === 0) {
+        hasBuiltOnce = true;
+        return;
+      }
+
+      director = EngineScroll.direct(config);
+
+      for (const [element, state] of cards) {
+        const renderFrame = director.snapshotTrack(state.renderTrack);
+        const motionFrame = director.snapshotTrack(state.motionTrack);
+
+        setRenderNear(element, renderFrame.active);
+        if (renderFrame.active && motionFrame.active) {
+          if (hasBuiltOnce && newlyBound.has(element)) enterMotion(element);
+          else settleMotion(element);
+        } else {
+          sleepMotion(element);
+        }
+
+        director.onEnter(state.renderTrack, () => setRenderNear(element, true));
+        director.onLeave(state.renderTrack, () => setRenderNear(element, false));
+        director.onEnter(state.motionTrack, () => enterMotion(element));
+        director.onLeave(state.motionTrack, () => sleepMotion(element));
+      }
+
+      hasBuiltOnce = true;
     };
 
-    scan();
+    function scheduleRebuild() {
+      if (rebuildRaf) return;
+      rebuildRaf = window.requestAnimationFrame(rebuild);
+    }
 
-    const observer = new MutationObserver(scheduleScan);
-    observer.observe(document.body, { childList: true, subtree: true });
-    window.addEventListener("scroll", scheduleGeometryPass, { passive: true });
-    window.addEventListener("resize", scheduleGeometryPass, { passive: true });
-    window.addEventListener("pageshow", scheduleGeometryPass);
+    rebuild();
+
+    // React can replace/filter/paginate cards. MutationObserver only rebuilds
+    // the timeline directory when the card set changes; it is not part of the
+    // scroll hot path.
+    const mutationObserver = new MutationObserver(scheduleRebuild);
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
 
     return () => {
-      observer.disconnect();
-      window.removeEventListener("scroll", scheduleGeometryPass);
-      window.removeEventListener("resize", scheduleGeometryPass);
-      window.removeEventListener("pageshow", scheduleGeometryPass);
-      if (scanRaf) window.cancelAnimationFrame(scanRaf);
-      if (geometryRaf) window.cancelAnimationFrame(geometryRaf);
-      for (const element of [...cards.keys()]) release(element);
+      mutationObserver.disconnect();
+      resizeObserver?.disconnect();
+      director?.dispose();
+      if (rebuildRaf) window.cancelAnimationFrame(rebuildRaf);
+      for (const element of [...cards.keys()]) cleanupCard(element);
     };
   }, []);
 
