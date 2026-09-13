@@ -6,9 +6,14 @@ import { useEngineTransitions, type EngineTransitionInput } from "../core/engine
 
 export interface EngineExpandLinkProps {
 	href: string;
+	/** Existing DOM surface to visually expand. Defaults to this link. */
 	sourceId?: string;
+	/** Destination surface revealed during the final cross-fade. */
+	targetId?: string;
 	duration?: number;
+	handoffDuration?: number;
 	endRadius?: string;
+	/** NE still owns navigation; instant is best when the expand animation owns the route change. */
 	transition?: EngineTransitionInput;
 	target?: string;
 	className?: string;
@@ -20,29 +25,83 @@ export interface EngineExpandLinkProps {
 	id?: string;
 }
 
+let activeCleanup: (() => void) | null = null;
+
 function shouldKeepNativeClick(event: React.MouseEvent<HTMLAnchorElement>, target?: string): boolean {
 	return event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
 		|| (target !== undefined && target !== "_self");
 }
 
-function animationDone(animation: Animation): Promise<void> {
-	return animation.finished.then(() => undefined).catch(() => undefined);
+function animationDone(animation: Animation | null): Promise<void> {
+	return animation ? animation.finished.then(() => undefined).catch(() => undefined) : Promise.resolve();
+}
+
+function important(element: HTMLElement, property: string, value: string): void {
+	element.style.setProperty(property, value, "important");
+}
+
+function neutralizeClone(root: HTMLElement): void {
+	root.removeAttribute("id");
+	root.setAttribute("aria-hidden", "true");
+	root.querySelectorAll<HTMLElement>("[id]").forEach((node) => node.removeAttribute("id"));
+	root.querySelectorAll<HTMLElement>("a,button,input,select,textarea,[tabindex]").forEach((node) => {
+		node.setAttribute("tabindex", "-1");
+		node.style.pointerEvents = "none";
+	});
+}
+
+function viewportRect() {
+	const viewport = window.visualViewport;
+	return {
+		top: viewport?.offsetTop ?? 0,
+		left: viewport?.offsetLeft ?? 0,
+		width: viewport?.width ?? window.innerWidth,
+		height: viewport?.height ?? window.innerHeight,
+	};
+}
+
+async function waitForTarget(id: string | undefined, timeoutMs = 1000): Promise<HTMLElement | null> {
+	if (!id) return null;
+	const existing = document.getElementById(id);
+	if (existing instanceof HTMLElement) return existing;
+	return new Promise((resolve) => {
+		let settled = false;
+		const finish = (element: HTMLElement | null) => {
+			if (settled) return;
+			settled = true;
+			observer.disconnect();
+			window.clearTimeout(timeout);
+			resolve(element);
+		};
+		const observer = new MutationObserver(() => {
+			const next = document.getElementById(id);
+			if (next instanceof HTMLElement) finish(next);
+		});
+		observer.observe(document.documentElement, { childList: true, subtree: true });
+		const timeout = window.setTimeout(() => {
+			const next = document.getElementById(id);
+			finish(next instanceof HTMLElement ? next : null);
+		}, timeoutMs);
+	});
 }
 
 /**
- * Expands an existing visual surface to the viewport before handing navigation
- * to EngineTransitions. This gives card/detail interfaces a deterministic
- * cross-browser "open into page" motion without depending on shared-element
- * ViewTransition support.
+ * Cross-browser card -> page expansion.
+ *
+ * A visual clone survives the React route swap, so Firefox gets the same
+ * spatial handoff as Chromium without depending on the native View Transition
+ * API. NE still owns navigation and reduced-motion fallback.
  */
 export const EngineExpandLink = memo(
 	forwardRef<HTMLAnchorElement, EngineExpandLinkProps>((props, ref) => {
 		const {
 			href,
 			sourceId,
-			duration = 420,
+			targetId,
+			duration = 460,
+			handoffDuration = 240,
 			endRadius = "0px",
-			transition = { type: "fade", duration: 220, easing: "ease-out" },
+			transition = "instant",
 			target,
 			className,
 			children,
@@ -68,55 +127,92 @@ export const EngineExpandLink = memo(
 			}
 
 			running.current = true;
+			activeCleanup?.();
 			const rect = source.getBoundingClientRect();
 			const computed = window.getComputedStyle(source);
-			const placeholder = document.createElement("div");
-			placeholder.setAttribute("aria-hidden", "true");
-			placeholder.style.width = `${rect.width}px`;
-			placeholder.style.height = `${rect.height}px`;
-			placeholder.style.visibility = "hidden";
-			source.parentNode?.insertBefore(placeholder, source);
+			const previousVisibility = source.style.visibility;
+			const clone = source.cloneNode(true) as HTMLElement;
+			neutralizeClone(clone);
 
-			const previous = source.getAttribute("style") ?? "";
-			source.style.setProperty("position", "fixed", "important");
-			source.style.setProperty("top", `${rect.top}px`, "important");
-			source.style.setProperty("left", `${rect.left}px`, "important");
-			source.style.setProperty("width", `${rect.width}px`, "important");
-			source.style.setProperty("height", `${rect.height}px`, "important");
-			source.style.setProperty("margin", "0", "important");
-			source.style.setProperty("z-index", "2147483000", "important");
-			source.style.setProperty("transform", "translateZ(0)", "important");
-			source.style.setProperty("transform-origin", "center center", "important");
-			source.style.setProperty("transition", "none", "important");
-			source.style.setProperty("overflow", "hidden", "important");
-			source.style.setProperty("will-change", "top,left,width,height,border-radius,box-shadow", "important");
+			important(clone, "position", "fixed");
+			important(clone, "top", `${rect.top}px`);
+			important(clone, "left", `${rect.left}px`);
+			important(clone, "width", `${rect.width}px`);
+			important(clone, "height", `${rect.height}px`);
+			important(clone, "margin", "0");
+			important(clone, "z-index", "2147483001");
+			important(clone, "pointer-events", "none");
+			important(clone, "overflow", "hidden");
+			important(clone, "box-sizing", "border-box");
+			important(clone, "transform", "translateZ(0)");
+			important(clone, "transform-origin", "center center");
+			important(clone, "transition", "none");
+			important(clone, "animation", "none");
+			important(clone, "border-radius", computed.borderRadius || "0px");
+			important(clone, "will-change", "top,left,width,height,border-radius,opacity,transform");
 
-			const viewport = window.visualViewport;
-			const top = viewport?.offsetTop ?? 0;
-			const left = viewport?.offsetLeft ?? 0;
-			const width = viewport?.width ?? window.innerWidth;
-			const height = viewport?.height ?? window.innerHeight;
-			const safeDuration = Math.max(240, Math.min(900, Number.isFinite(duration) ? duration : 420));
+			const scrim = document.createElement("div");
+			scrim.setAttribute("aria-hidden", "true");
+			important(scrim, "position", "fixed");
+			important(scrim, "inset", "0");
+			important(scrim, "z-index", "2147483000");
+			important(scrim, "pointer-events", "none");
+			important(scrim, "background", window.getComputedStyle(document.body).backgroundColor || "#07110e");
+			important(scrim, "opacity", "0");
 
-			const expand = source.animate([
+			document.body.append(scrim, clone);
+			source.style.visibility = "hidden";
+
+			let cleaned = false;
+			const cleanup = () => {
+				if (cleaned) return;
+				cleaned = true;
+				clone.remove();
+				scrim.remove();
+				if (source.isConnected) source.style.visibility = previousVisibility;
+				running.current = false;
+				if (activeCleanup === cleanup) activeCleanup = null;
+			};
+			activeCleanup = cleanup;
+
+			const view = viewportRect();
+			const safeDuration = Math.max(260, Math.min(900, Number.isFinite(duration) ? duration : 460));
+			const safeHandoff = Math.max(120, Math.min(500, Number.isFinite(handoffDuration) ? handoffDuration : 240));
+			const pointer = { x: event.clientX, y: event.clientY };
+			const easing = "cubic-bezier(.16,1,.3,1)";
+
+			const expand = clone.animate([
 				{
 					top: `${rect.top}px`, left: `${rect.left}px`, width: `${rect.width}px`, height: `${rect.height}px`,
-					borderRadius: computed.borderRadius || "0px", boxShadow: computed.boxShadow,
+					borderRadius: computed.borderRadius || "0px", transform: "translateZ(0) scale(1)",
 				},
 				{
-					top: `${top}px`, left: `${left}px`, width: `${width}px`, height: `${height}px`,
-					borderRadius: endRadius, boxShadow: "0 32px 96px rgb(0 0 0 / .20)",
+					top: `${view.top}px`, left: `${view.left}px`, width: `${view.width}px`, height: `${view.height}px`,
+					borderRadius: endRadius, transform: "translateZ(0) scale(1)",
 				},
-			], { duration: safeDuration, easing: "cubic-bezier(.16,1,.3,1)", fill: "forwards" });
+			], { duration: safeDuration, easing, fill: "forwards" });
+			const oldPageFade = scrim.animate([{ opacity: 0 }, { opacity: 1 }], {
+				duration: Math.min(280, safeDuration), easing: "ease-in", fill: "forwards",
+			});
 
 			void (async () => {
 				try {
-					await animationDone(expand);
-					await transitions.push(href, transition, { pointer: { x: event.clientX, y: event.clientY } });
+					await Promise.all([animationDone(expand), animationDone(oldPageFade)]);
+					await transitions.push(href, transition, { pointer });
+					const destination = await waitForTarget(targetId, 1100);
+					const destinationIn = destination?.animate([
+						{ opacity: .3, transform: "scale(1.012)" },
+						{ opacity: 1, transform: "scale(1)" },
+					], { duration: safeHandoff, easing: "cubic-bezier(.22,.8,.25,1)", fill: "both" }) ?? null;
+					const cloneOut = clone.animate([{ opacity: 1 }, { opacity: 0 }], {
+						duration: safeHandoff, easing: "ease-in-out", fill: "forwards",
+					});
+					const scrimOut = scrim.animate([{ opacity: 1 }, { opacity: 0 }], {
+						duration: safeHandoff, easing: "ease-in-out", fill: "forwards",
+					});
+					await Promise.all([animationDone(destinationIn), animationDone(cloneOut), animationDone(scrimOut)]);
 				} finally {
-					placeholder.remove();
-					if (source.isConnected) source.setAttribute("style", previous);
-					running.current = false;
+					cleanup();
 				}
 			})();
 		};
