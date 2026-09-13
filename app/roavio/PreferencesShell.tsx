@@ -1,6 +1,6 @@
 "use client";
 
-import { useEngineTransitions } from "@/engine";
+import { EngineDialog, useEngineTransitions } from "@/engine";
 import { EngineCookies } from "@/src/engine/core/enginecookies/EngineCookies";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -122,9 +122,8 @@ export function PreferencesShell({
       writeCookie("rv_theme", next);
     };
 
-    // Theme changes now share NE's transition runtime with route navigation.
-    // This prevents a native theme ViewTransition from racing a route
-    // EngineTransitionLink and surfacing Chrome's intentional AbortError.
+    // Theme changes share NE's transition runtime with route navigation, so a
+    // theme animation cannot race an EngineTransitionLink native transition.
     void transitions.run(apply, {
       type: "layout",
       duration: 280,
@@ -170,29 +169,44 @@ export function PreferencesShell({
         </aside>
       ) : null}
 
-      {customOpen ? (
-        <div className="rv-cookie-modal" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setCustomOpen(false); }}>
-          <section className="rv-cookie-custom" role="dialog" aria-modal="true" aria-label={spanish ? "Personalizar cookies" : "Customize cookies"}>
-            <div className="rv-cookie-custom__head">
-              <div><span className="rv-overline">CONTROL</span><h2>{spanish ? "Elige qué guardar" : "Choose what we store"}</h2></div>
-              <button type="button" className="rv-icon-btn" onClick={() => setCustomOpen(false)} aria-label={spanish ? "Cerrar" : "Close"}>×</button>
-            </div>
-            <label className="rv-cookie-choice">
-              <span><strong>{spanish ? "Necesarias" : "Necessary"}</strong><small>{spanish ? "Consentimiento y funcionamiento básico. Siempre activas." : "Consent and basic functionality. Always on."}</small></span>
-              <input type="checkbox" checked disabled />
-            </label>
-            <label className="rv-cookie-choice">
-              <span><strong>{spanish ? "Analítica" : "Analytics"}</strong><small>{spanish ? "Medición agregada para entender qué partes ayudan de verdad." : "Aggregated measurement to understand what actually helps."}</small></span>
-              <input type="checkbox" checked={analytics} onChange={(event) => setAnalytics(event.target.checked)} />
-            </label>
-            <label className="rv-cookie-choice">
-              <span><strong>{spanish ? "Personalización" : "Personalization"}</strong><small>{spanish ? "Preferencias como tema e idioma para que Roavio se sienta tuyo." : "Preferences like theme and language so Roavio feels yours."}</small></span>
-              <input type="checkbox" checked={personalization} onChange={(event) => setPersonalization(event.target.checked)} />
-            </label>
-            <button type="button" className="rv-primary rv-cookie-save" onClick={() => saveConsent({ necessary: true, analytics, personalization })}>{spanish ? "Guardar selección" : "Save choices"}</button>
-          </section>
-        </div>
-      ) : null}
+      <EngineDialog
+        open={customOpen}
+        onOpenChange={setCustomOpen}
+        title={spanish ? "Elige qué guardar" : "Choose what we store"}
+        ariaLabel={spanish ? "Personalizar cookies" : "Customize cookies"}
+        closeLabel={spanish ? "Cerrar" : "Close"}
+        duration={180}
+        className="rv-cookie-custom"
+        overlayStyle={{
+          background: "rgba(4,12,10,.46)",
+          backdropFilter: "blur(6px)",
+        }}
+        style={{
+          width: "min(520px, calc(100vw - 2rem))",
+          maxHeight: "min(86svh, 46rem)",
+          padding: "1.15rem",
+          border: "1px solid var(--rv-line)",
+          borderRadius: "24px",
+          background: "var(--rv-card)",
+          color: "var(--rv-ink)",
+          boxShadow: "0 30px 90px rgba(0,0,0,.28)",
+        }}
+      >
+        <span className="rv-overline">CONTROL</span>
+        <label className="rv-cookie-choice">
+          <span><strong>{spanish ? "Necesarias" : "Necessary"}</strong><small>{spanish ? "Consentimiento y funcionamiento básico. Siempre activas." : "Consent and basic functionality. Always on."}</small></span>
+          <input type="checkbox" checked disabled />
+        </label>
+        <label className="rv-cookie-choice">
+          <span><strong>{spanish ? "Analítica" : "Analytics"}</strong><small>{spanish ? "Medición agregada para entender qué partes ayudan de verdad." : "Aggregated measurement to understand what actually helps."}</small></span>
+          <input type="checkbox" checked={analytics} onChange={(event) => setAnalytics(event.target.checked)} />
+        </label>
+        <label className="rv-cookie-choice">
+          <span><strong>{spanish ? "Personalización" : "Personalization"}</strong><small>{spanish ? "Preferencias como tema e idioma para que Roavio se sienta tuyo." : "Preferences like theme and language so Roavio feels yours."}</small></span>
+          <input type="checkbox" checked={personalization} onChange={(event) => setPersonalization(event.target.checked)} />
+        </label>
+        <button type="button" className="rv-primary rv-cookie-save" onClick={() => saveConsent({ necessary: true, analytics, personalization })}>{spanish ? "Guardar selección" : "Save choices"}</button>
+      </EngineDialog>
     </>
   );
 }
