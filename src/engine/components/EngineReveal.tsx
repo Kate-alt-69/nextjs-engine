@@ -27,9 +27,9 @@ export interface EngineRevealProps extends BaseNodeProps {
 	effect?: EngineRevealEffect;
 	/** Re-arm after the element leaves the motion range. */
 	replay?: boolean;
-	/** Distance in CSS pixels where the subtree is forced ready for paint. */
+	/** Distance in CSS pixels where the subtree is considered render-near. */
 	renderMargin?: number;
-	/** Distance in CSS pixels where entrance motion becomes active. */
+	/** Distance in CSS pixels outside the viewport where entrance motion becomes active. */
 	motionMargin?: number;
 	/** Entrance duration in milliseconds. */
 	duration?: number;
@@ -39,9 +39,9 @@ export interface EngineRevealProps extends BaseNodeProps {
 	scaleFrom?: number;
 	/** Pop overshoot scale. */
 	overshoot?: number;
-	/** Settle instantly while NE reports frame pressure. */
+	/** Explicit opt-in to settling instantly while NE reports frame pressure. */
 	skipUnderFramePressure?: boolean;
-	/** Let the browser skip far-off paint while preserving layout geometry. */
+	/** Allow desktop paint virtualization while preserving geometry. */
 	releaseWhenFar?: boolean;
 }
 
@@ -62,6 +62,15 @@ function pointSpacing(): number {
 	return Number.isFinite(spacing) && spacing > 0 ? spacing : 1;
 }
 
+/**
+ * Build a viewport-intersection timeline in EngineScroll points.
+ *
+ * `startAlign: "end"` resolves where the element BOTTOM meets the viewport
+ * bottom. To begin while the element TOP is still `marginPx` below the
+ * viewport, the start offset must subtract the element height as well as the
+ * margin. The old `-margin` formula delayed tall mobile cards until most of
+ * them were already onscreen, causing blank gaps and late/no-looking reveals.
+ */
 function timelineFor(
 	id: string,
 	heightPx: number,
@@ -78,7 +87,7 @@ function timelineFor(
 		source: "top",
 		startAlign: "end",
 		endAlign: "start",
-		startOffset: -margin / spacing,
+		startOffset: -(height + margin) / spacing,
 		endOffset: (height + margin) / spacing,
 		easing: "linear",
 	});
@@ -94,15 +103,22 @@ const REVEAL_CSS = `
   --e-reveal-overshoot:1.028;
   --e-reveal-intrinsic-height:320px;
   min-width:0;
+  overflow-anchor:none;
 }
 .e-reveal[data-engine-release="true"]{
   contain-intrinsic-size:auto var(--e-reveal-intrinsic-height);
 }
-.e-reveal[data-engine-release="true"][data-engine-render-near="false"]{
-  content-visibility:auto;
-}
-.e-reveal[data-engine-release="true"][data-engine-render-near="true"]{
-  content-visibility:visible;
+/* Forced content-visibility changes during mobile momentum scrolling can make
+   Chrome adjust scroll anchoring while the address bar/viewport is also moving.
+   Keep the mobile layout shell fully real. Expensive descendants such as
+   EngineImage still release themselves independently through EngineScheduler. */
+@media(min-width:820px){
+  .e-reveal[data-engine-release="true"][data-engine-render-near="false"]{
+    content-visibility:auto;
+  }
+  .e-reveal[data-engine-release="true"][data-engine-render-near="true"]{
+    content-visibility:visible;
+  }
 }
 .e-reveal__content{
   width:100%;
@@ -204,7 +220,7 @@ export const EngineReveal = memo(function EngineReveal({
 	delay = 0,
 	scaleFrom = 0.8,
 	overshoot = 1.028,
-	skipUnderFramePressure = true,
+	skipUnderFramePressure = false,
 	releaseWhenFar = true,
 	...props
 }: EngineRevealProps) {
@@ -213,7 +229,7 @@ export const EngineReveal = memo(function EngineReveal({
 	const elementRef = useRef<HTMLDivElement | null>(null);
 	const settleTimerRef = useRef<number | null>(null);
 	const enterRafRef = useRef<number | null>(null);
-	const revealedRef = useRef(priority);
+	const revealedRef = useRef(false);
 	const motionRegionRef = useRef<RevealRegion | null>(null);
 	const renderRegionRef = useRef<RevealRegion | null>(null);
 	const [motionState, setMotionState] = useState<RevealState>("settled");
@@ -266,8 +282,7 @@ export const EngineReveal = memo(function EngineReveal({
 			clearPending();
 			const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 			if (
-				priority
-				|| effect === "none"
+				effect === "none"
 				|| reducedMotion
 				|| (skipUnderFramePressure && EngineScheduler.isUnderFramePressure())
 			) {
@@ -291,7 +306,7 @@ export const EngineReveal = memo(function EngineReveal({
 			const region = regionOf(frame);
 			if (region === renderRegionRef.current) return;
 			renderRegionRef.current = region;
-			setRenderNear(region === "active");
+			setRenderNear(region === "active" || priority);
 		};
 
 		const handleMotion = (frame: Readonly<EngineScrollTimelineFrame>) => {
