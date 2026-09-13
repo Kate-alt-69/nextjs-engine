@@ -22,6 +22,10 @@ export interface EngineAutoRailProps extends BaseNodeProps {
 	autoplay?: boolean;
 	/** Pause automatic movement merely because the pointer is hovering the rail. */
 	pauseOnHover?: boolean;
+	/** Pause while focus is inside the rail. */
+	pauseOnFocus?: boolean;
+	/** Respect the OS/browser reduced-motion preference. Defaults to true. */
+	respectReducedMotion?: boolean;
 	ariaLabel?: string;
 }
 
@@ -31,7 +35,7 @@ const RAIL_CSS = `
 .e-auto-rail::before,.e-auto-rail::after{content:'';position:absolute;top:0;bottom:0;width:clamp(16px,4vw,58px);z-index:3;pointer-events:none}
 .e-auto-rail::before{left:0;background:linear-gradient(90deg,var(--e-rail-edge,transparent),transparent)}
 .e-auto-rail::after{right:0;background:linear-gradient(270deg,var(--e-rail-edge,transparent),transparent)}
-.e-auto-rail__viewport{display:flex;gap:var(--e-rail-gap,16px);overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior-x:contain;touch-action:pan-x pan-y;padding:8px 2px 18px;cursor:grab;scroll-behavior:auto}
+.e-auto-rail__viewport{display:flex;gap:var(--e-rail-gap,16px);overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior-x:contain;touch-action:pan-y;padding:8px 2px 18px;cursor:grab;scroll-behavior:auto}
 .e-auto-rail__viewport::-webkit-scrollbar{display:none}
 .e-auto-rail[data-dragging='true'] .e-auto-rail__viewport{cursor:grabbing;scroll-snap-type:none}
 .e-auto-rail__item{flex:0 0 auto;min-width:0}
@@ -59,6 +63,8 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 	bounce = false,
 	autoplay = true,
 	pauseOnHover = true,
+	pauseOnFocus = true,
+	respectReducedMotion = true,
 	ariaLabel = "Scrollable cards",
 	className,
 	style,
@@ -105,11 +111,20 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 				lastFrameRef.current = 0;
 				return;
 			}
+
 			const previous = lastFrameRef.current || now;
 			const dt = Math.min(34, Math.max(0, now - previous));
 			lastFrameRef.current = now;
 			const maxScroll = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
-			if (maxScroll <= 1) { lastFrameRef.current = 0; return; }
+
+			// Layout/images can settle after the first frame. Keep the RAF alive instead of
+			// permanently stopping when the rail is briefly not scrollable yet.
+			if (maxScroll <= 1) {
+				lastFrameRef.current = 0;
+				requestNextFrame();
+				return;
+			}
+
 			viewport.scrollLeft += directionRef.current * safeSpeed * (dt / 1000);
 			if (directionRef.current > 0 && viewport.scrollLeft >= maxScroll - 1) {
 				if (bounce) directionRef.current = -1;
@@ -136,10 +151,20 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 
 	useEffect(() => {
 		injectRailCss();
-		reducedRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+		const syncReducedMotion = () => {
+			reducedRef.current = respectReducedMotion && media.matches;
+			if (reducedRef.current) stopFrame(); else requestNextFrame();
+		};
+		syncReducedMotion();
+		media.addEventListener?.("change", syncReducedMotion);
+
 		directionRef.current = motionDirection === "right" ? 1 : -1;
 		const root = rootRef.current;
-		if (!root) return;
+		if (!root) {
+			media.removeEventListener?.("change", syncReducedMotion);
+			return;
+		}
 		const releaseFrameMonitor = autoplay && !reducedRef.current ? EngineScheduler.acquireFrameMonitor() : () => undefined;
 		const stopObserve = EngineScheduler.observe(root, (snapshot) => {
 			visibleRef.current = snapshot.visible || snapshot.near;
@@ -151,11 +176,12 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 		return () => {
 			stopObserve();
 			releaseFrameMonitor();
+			media.removeEventListener?.("change", syncReducedMotion);
 			document.removeEventListener("visibilitychange", onVisibility);
 			stopFrame();
 			if (resumeTimerRef.current !== null) window.clearTimeout(resumeTimerRef.current);
 		};
-	}, [autoplay, motionDirection, requestNextFrame, stopFrame]);
+	}, [autoplay, motionDirection, requestNextFrame, respectReducedMotion, stopFrame]);
 
 	const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
 		if (event.button !== 0) return;
@@ -194,10 +220,11 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 			style={{ ...resolvedStyle, "--e-rail-gap": cssGap(gap) } as CSSProperties}
 			role="region"
 			aria-label={ariaLabel}
+			data-respect-reduced-motion={respectReducedMotion ? "true" : "false"}
 			onMouseEnter={pauseOnHover ? () => pause(false) : undefined}
 			onMouseLeave={pauseOnHover ? () => pause(true) : undefined}
-			onFocusCapture={() => pause(false)}
-			onBlurCapture={() => pause(true)}
+			onFocusCapture={pauseOnFocus ? () => pause(false) : undefined}
+			onBlurCapture={pauseOnFocus ? () => pause(true) : undefined}
 			onWheel={() => pause(true)}
 			onClickCapture={(event) => {
 				if (performance.now() < suppressClickUntilRef.current) { event.preventDefault(); event.stopPropagation(); }

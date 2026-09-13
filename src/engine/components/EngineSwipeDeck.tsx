@@ -20,6 +20,8 @@ export interface EngineSwipeDeckProps extends BaseNodeProps {
 	autoplayMs?: number;
 	/** Pause autoplay after direct interaction. */
 	resumeDelay?: number;
+	/** Respect the OS/browser reduced-motion preference. Defaults to true. */
+	respectReducedMotion?: boolean;
 	ariaLabel?: string;
 	onIndexChange?: (index: number) => void;
 }
@@ -38,7 +40,7 @@ const DECK_CSS = `
 .e-swipe-deck__card[data-depth='4']{z-index:0;opacity:.2;transform:translate3d(0,50px,-4px) scale(.84);filter:saturate(.5)}
 .e-swipe-deck__card[data-hidden='true']{opacity:0;visibility:hidden}
 .e-swipe-deck:focus-visible{outline:3px solid var(--e-accent,#205f4a);outline-offset:5px;border-radius:inherit}
-@media(prefers-reduced-motion:reduce){.e-swipe-deck__card{transition:none!important}.e-swipe-deck__card[data-depth='0']{transform:none!important}}
+@media(prefers-reduced-motion:reduce){.e-swipe-deck[data-respect-reduced-motion='true'] .e-swipe-deck__card{transition:none!important}.e-swipe-deck[data-respect-reduced-motion='true'] .e-swipe-deck__card[data-depth='0']{transform:none!important}}
 `.trim();
 
 function injectDeckCss() {
@@ -60,6 +62,7 @@ export const EngineSwipeDeck = memo(function EngineSwipeDeck({
 	swipeThreshold = 58,
 	autoplayMs = 0,
 	resumeDelay = 1800,
+	respectReducedMotion = true,
 	ariaLabel = "Swipeable card deck",
 	onIndexChange,
 	className,
@@ -71,6 +74,7 @@ export const EngineSwipeDeck = memo(function EngineSwipeDeck({
 }: EngineSwipeDeckProps) {
 	const items = useMemo(() => Children.toArray(children), [children]);
 	const [active, setActive] = useState(0);
+	const activeRef = useRef(0);
 	const rootRef = useRef<HTMLDivElement | null>(null);
 	const draggingRef = useRef(false);
 	const animatingRef = useRef(false);
@@ -110,45 +114,64 @@ export const EngineSwipeDeck = memo(function EngineSwipeDeck({
 		delete root.dataset.dragging;
 	}, []);
 
+	const motionReduced = useCallback(() => {
+		return respectReducedMotion && typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+	}, [respectReducedMotion]);
+
+	const commitIndex = useCallback((next: number) => {
+		activeRef.current = next;
+		setActive(next);
+		// Important: parent callbacks must not run from inside a React state updater.
+		onIndexChange?.(next);
+	}, [onIndexChange]);
+
 	const advance = useCallback(async (direction: 1 | -1) => {
 		if (items.length < 2 || animatingRef.current) return;
+		const next = loop(activeRef.current + direction, items.length);
 		const activeCard = rootRef.current?.querySelector<HTMLElement>(".e-swipe-deck__card[data-depth='0']");
 		animatingRef.current = true;
-		resetDrag();
-		if (activeCard?.animate && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-			const sign = direction > 0 ? -1 : 1;
-			const exit = axis === "y"
-				? `translate3d(0,${sign * 118}%,0) rotate(${sign * 2.5}deg) scale(.96)`
-				: `translate3d(${sign * 118}%,8px,0) rotate(${sign * 8}deg) scale(.96)`;
-			const animation = activeCard.animate([
-				{ opacity: 1, transform: "translate3d(0,0,0) rotate(0deg) scale(1)" },
-				{ opacity: 0, transform: exit },
-			], { duration: 240, easing: "cubic-bezier(.22,.8,.24,1)", fill: "forwards" });
-			await animation.finished.catch(() => undefined);
-			animation.cancel();
+
+		try {
+			if (activeCard?.animate && !motionReduced()) {
+				const sign = direction > 0 ? -1 : 1;
+				const exit = axis === "y"
+					? `translate3d(0,${sign * 118}%,0) rotate(${sign * 2.5}deg) scale(.96)`
+					: `translate3d(${sign * 118}%,8px,0) rotate(${sign * 8}deg) scale(.96)`;
+				const computed = window.getComputedStyle(activeCard);
+				const startTransform = computed.transform === "none" ? "translate3d(0,0,0) rotate(0deg) scale(1)" : computed.transform;
+				const startOpacity = Number.parseFloat(computed.opacity) || 1;
+				const animation = activeCard.animate([
+					{ opacity: startOpacity, transform: startTransform },
+					{ opacity: 0, transform: exit },
+				], { duration: 260, easing: "cubic-bezier(.22,.8,.24,1)", fill: "forwards" });
+				await animation.finished.catch(() => undefined);
+				animation.cancel();
+			}
+		} finally {
+			resetDrag();
+			commitIndex(next);
+			animatingRef.current = false;
 		}
-		setActive((current) => {
-			const next = loop(current + direction, items.length);
-			onIndexChange?.(next);
-			return next;
-		});
-		animatingRef.current = false;
-	}, [axis, items.length, onIndexChange, resetDrag]);
+	}, [axis, commitIndex, items.length, motionReduced, resetDrag]);
 
 	const scheduleAutoplay = useCallback(() => {
 		clearAutoplay();
 		if (autoplayMs <= 0 || items.length < 2 || !viewportActiveRef.current || typeof window === "undefined") return;
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		if (motionReduced()) return;
 		autoplayTimerRef.current = window.setInterval(() => {
 			if (!draggingRef.current && !animatingRef.current && viewportActiveRef.current) void advance(1);
 		}, Math.max(1600, autoplayMs));
-	}, [advance, autoplayMs, clearAutoplay, items.length]);
+	}, [advance, autoplayMs, clearAutoplay, items.length, motionReduced]);
 
 	const pauseThenResume = useCallback(() => {
 		clearAutoplay();
 		if (resumeTimerRef.current !== null) window.clearTimeout(resumeTimerRef.current);
 		resumeTimerRef.current = window.setTimeout(scheduleAutoplay, Math.max(300, resumeDelay));
 	}, [clearAutoplay, resumeDelay, scheduleAutoplay]);
+
+	useEffect(() => {
+		activeRef.current = active;
+	}, [active]);
 
 	useEffect(() => {
 		injectDeckCss();
@@ -170,9 +193,8 @@ export const EngineSwipeDeck = memo(function EngineSwipeDeck({
 
 	useEffect(() => {
 		if (active < items.length || items.length === 0) return;
-		setActive(0);
-		onIndexChange?.(0);
-	}, [active, items.length, onIndexChange]);
+		commitIndex(0);
+	}, [active, commitIndex, items.length]);
 
 	const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
 		if (event.button !== 0 || items.length < 2 || animatingRef.current) return;
@@ -204,12 +226,16 @@ export const EngineSwipeDeck = memo(function EngineSwipeDeck({
 		const delta = axis === "y" ? event.clientY - pointer.startY : event.clientX - pointer.startX;
 		const elapsed = Math.max(1, performance.now() - pointer.startedAt);
 		const moved = pointer.moved || Math.abs(delta) > 6;
+		const shouldAdvance = Math.abs(delta) >= threshold || (Math.abs(delta) >= 24 && Math.abs(delta) / elapsed > .55);
 		pointerRef.current = null;
 		draggingRef.current = false;
 		try { event.currentTarget.releasePointerCapture?.(event.pointerId); } catch { /* optional */ }
-		resetDrag();
 		if (moved) suppressClickUntilRef.current = performance.now() + 220;
-		if (Math.abs(delta) >= threshold || (Math.abs(delta) >= 24 && Math.abs(delta) / elapsed > .55)) void advance(delta < 0 ? 1 : -1);
+		if (shouldAdvance) {
+			void advance(delta < 0 ? 1 : -1);
+		} else {
+			resetDrag();
+		}
 		pauseThenResume();
 	};
 
@@ -230,6 +256,7 @@ export const EngineSwipeDeck = memo(function EngineSwipeDeck({
 			className={mergedClass}
 			style={resolvedStyle}
 			data-axis={axis}
+			data-respect-reduced-motion={respectReducedMotion ? "true" : "false"}
 			role="group"
 			aria-roledescription="carousel"
 			aria-orientation={axis === "y" ? "vertical" : "horizontal"}

@@ -18,11 +18,13 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
   return (
     <EngineAutoRail
       className="rv-home-city-rail"
-      speed={30}
+      speed={42}
       gap={14}
-      resumeDelay={1500}
+      resumeDelay={900}
       motionDirection="right"
       pauseOnHover={false}
+      pauseOnFocus={false}
+      respectReducedMotion={false}
       ariaLabel={es ? "Ciudades populares y con alta calidad de vida" : "Popular and high quality-of-life cities"}
     >
       {cities.map((city, index) => {

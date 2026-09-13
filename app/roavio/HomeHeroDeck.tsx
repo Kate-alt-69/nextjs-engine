@@ -7,6 +7,31 @@ import { CITY_EXPAND_DURATION, CITY_HANDOFF_DURATION, cityTransitionSurfaceId } 
 import type { RoavioLocale } from "./i18n";
 import { OfficialCityImage } from "./OfficialCityImage";
 
+let homeDeckInflight: Promise<CityCatalogEntry[]> | null = null;
+
+function loadHomeDeckCities() {
+  if (homeDeckInflight) return homeDeckInflight;
+
+  const resolver = new EngineAPIResolver({
+    endpoint: `/api/home-city-deck?limit=30&index=${Date.now()}`,
+    method: "GET",
+    cache: "no-store",
+    headers: { Accept: "application/json" },
+  });
+
+  const request = resolver.resolveRequest()
+    .then(async (response) => {
+      if (!response.ok) throw new Error(`home city deck returned ${response.status}`);
+      return response.json() as Promise<{ cities?: CityCatalogEntry[] }>;
+    })
+    .then((payload) => Array.isArray(payload.cities) ? payload.cities.slice(0, 30) : []);
+
+  homeDeckInflight = request;
+  const clear = () => { if (homeDeckInflight === request) homeDeckInflight = null; };
+  void request.then(clear, clear);
+  return request;
+}
+
 function metric(value: number | null, suffix = "") {
   return value === null ? "—" : `${value}${suffix}`;
 }
@@ -63,21 +88,10 @@ export function HomeHeroDeck({ locale }: { locale: RoavioLocale }) {
   useEffect(() => {
     let cancelled = false;
     setFailed(false);
-    const resolver = new EngineAPIResolver({
-      endpoint: `/api/home-city-deck?limit=30&index=${Date.now()}`,
-      method: "GET",
-      cache: "no-store",
-      headers: { Accept: "application/json" },
-    });
 
-    void resolver.resolveRequest()
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`home city deck returned ${response.status}`);
-        return response.json() as Promise<{ cities?: CityCatalogEntry[] }>;
-      })
-      .then((payload) => {
+    void loadHomeDeckCities()
+      .then((next) => {
         if (cancelled) return;
-        const next = Array.isArray(payload.cities) ? payload.cities.slice(0, 30) : [];
         setCities(next);
         setActiveIndex(0);
         setFailed(next.length < 3);
@@ -102,6 +116,7 @@ export function HomeHeroDeck({ locale }: { locale: RoavioLocale }) {
           autoplayMs={5200}
           resumeDelay={2200}
           swipeThreshold={48}
+          respectReducedMotion={false}
           onIndexChange={setActiveIndex}
           ariaLabel={es ? "30 ciudades destacadas" : "30 featured cities"}
         >
