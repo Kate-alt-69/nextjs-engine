@@ -6,7 +6,7 @@ function watchBrowserFailures(page: Page) {
 	page.on("console", (message) => {
 		if (message.type() !== "error" && message.type() !== "warning") return;
 		const text = message.text();
-		if (/hydration|hydrated|didn't match|recoverable|flushSync was called from inside a lifecycle method/i.test(text)) {
+		if (/hydration|hydrated|didn't match|recoverable|flushSync was called from inside a lifecycle method|AbortError|Skipped ViewTransition|unhandledRejection/i.test(text)) {
 			failures.push(`console: ${text}`);
 		}
 	});
@@ -39,6 +39,22 @@ test("Transitions+, overlays, Nav and generated styles survive real hydration", 
 	await page.getByRole("link", { name: "Target page" }).click();
 	await expect(page).toHaveURL(/\/engine-compat-test\/target$/);
 	await expect(page.getByTestId("target-title")).toBeVisible();
+
+	expect(failures, failures.join("\n")).toEqual([]);
+});
+
+test("theme updates and navigation share one native View Transition owner", async ({ page }) => {
+	const failures = watchBrowserFailures(page);
+	await page.goto("/engine-compat-test");
+
+	await expect(page.getByTestId("effect-transition-status")).toHaveText("done");
+	await closeCompatibilityDialog(page);
+	await page.waitForTimeout(650);
+	await page.getByTestId("coordinated-theme").click();
+	await page.getByRole("link", { name: "Target page" }).click();
+	await expect(page).toHaveURL(/\/engine-compat-test\/target$/);
+	await expect(page.getByTestId("target-title")).toBeVisible();
+	await expect(page.locator("html")).toHaveAttribute("data-engine-compat-theme", "night");
 
 	expect(failures, failures.join("\n")).toEqual([]);
 });

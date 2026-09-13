@@ -37,6 +37,7 @@ jobs:
         run: |
           node scripts/engine-transitions-smoke.js
           node scripts/engine-transitions-compat-smoke.js
+          node scripts/engine-view-transition-coordinator-smoke.js
       - name: Test EngineScroll core and mobile stability
         run: |
           node scripts/engine-scroll-smoke.js

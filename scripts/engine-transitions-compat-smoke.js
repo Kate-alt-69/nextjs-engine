@@ -67,6 +67,7 @@ function main() {
 		assert.match(runtimeSource, /runLegacyTransition/, "older browsers should retain an animated fallback path");
 		assert.match(runtimeSource, /isExactTransitionLocation/, "same-URL navigation should bypass transition waiting");
 		assert.match(runtimeSource, /safeSharedTransitionName/, "shared transition ids should use collision-safe names");
+		assert.match(runtimeSource, /runCoordinatedEngineViewTransition/, "native transitions should use NE's shared coordinator");
 		assert.match(
 			runtimeSource,
 			/await Promise\.resolve\(\);[\s\S]*flushSync/,

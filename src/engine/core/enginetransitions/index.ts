@@ -22,6 +22,14 @@ export {
 } from "./TransitionPresets";
 export type { ResolvedEngineTransition } from "./TransitionPresets";
 export {
+	coordinateEngineViewTransition,
+} from "./ViewTransitionCoordinator";
+export type {
+	EngineViewTransitionConflict,
+	EngineViewTransitionOptions,
+	EngineViewTransitionStatus,
+} from "./ViewTransitionCoordinator";
+export {
 	navigateWithEngineTransition,
 	runEngineTransition,
 	useEngineTransitions,
