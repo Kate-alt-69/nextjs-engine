@@ -249,7 +249,7 @@ export class EngineScrollTimeline {
 				frame,
 				previousFrame,
 			};
-			for (const subscriber of subscribers) subscriber(event);
+			for (const subscriber of this.leaveSubscribers) subscriber(event);
 		}
 	}
 
