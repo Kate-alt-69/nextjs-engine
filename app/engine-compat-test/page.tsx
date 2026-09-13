@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { EngineDialog } from "../../src/engine/components/EngineOverlay";
 import { EngineNav } from "../../src/engine/components/EngineNav";
 import { EngineTransitionLink } from "../../src/engine/components/EngineTransitionLink";
-import { useEngineTransitions } from "../../src/engine/core/enginetransitions";
+import { coordinateEngineViewTransition, useEngineTransitions } from "../../src/engine/core/enginetransitions";
 import { EngineCollectedStyles, EngineProvider } from "../../src/engine/providers/EngineProvider";
 
 export default function EngineCompatibilityPage() {
@@ -27,6 +27,13 @@ export default function EngineCompatibilityPage() {
 		setSameUrlStatus("done");
 	};
 
+	const toggleTheme = () => {
+		void coordinateEngineViewTransition(() => {
+			const root = document.documentElement;
+			root.dataset.engineCompatTheme = root.dataset.engineCompatTheme === "night" ? "day" : "night";
+		});
+	};
+
 	return (
 		<EngineProvider>
 			<main style={{ minHeight: "140vh", padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
@@ -45,6 +52,9 @@ export default function EngineCompatibilityPage() {
 				</button>
 				<button data-testid="same-url" type="button" onClick={() => void runSameUrl()}>
 					Same URL
+				</button>
+				<button data-testid="coordinated-theme" type="button" onClick={toggleTheme}>
+					Toggle coordinated theme
 				</button>
 				<p data-testid="same-url-status">{sameUrlStatus}</p>
 

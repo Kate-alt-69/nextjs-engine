@@ -2,6 +2,7 @@
 
 > **Last updated:** 2026-09-13
 > **Changes in this update:**
+> - **EngineTransitions+ native coordinator** — Page navigation and app-level theme/visual updates can now share one `coordinateEngineViewTransition()` owner for the browser View Transitions API. Conflicting app-level animations skip their extra visual transition while still applying the update, newer NE navigation can replace an older visual transition, native cancellation is handled as a normal result, and real update-callback failures still propagate.
 > - **Generation 3 private login/search proofs** — Added both a portable browser-to-backend example and a real Next.js device-bound login/private-search page using the generated single NENC endpoint, hashed HttpOnly sessions, origin/replay/rate/permission enforcement, server-only credentials, sanitized results, and copied-cookie rejection coverage. Phase C is complete.
 > - **Generation 3 backend proving flows** — NENC now selects credential-scoped `EngineAPIResolver` instances from a frozen, sanitized command context, forwards command `input` to ordinary HTTP request bodies, and proves that unauthorized calls cannot reach private backends or obtain their credentials.
 > - **Generation 3 NENC build plugin** — Added opt-in static command discovery, split frozen client/server manifests, protected generation of the single `app/%5Fstatic/command/route.ts` endpoint (served as `/_static/command`), safe artifact replacement, and debounced development recompilation.
@@ -687,6 +688,8 @@ The primary routing primitive. It handles external URLs automatically and integr
 **Transition Pipeline:**
 - `page-to-page`: Uses the View Transitions API for seamless full-page animations.
 - `instant`: Standard high-speed client-side navigation.
+
+Native View Transition ownership is centralized in EngineTransitions+. App-level theme, class, and attribute changes that would otherwise call `document.startViewTransition()` directly should call `coordinateEngineViewTransition(update)` instead. Its default conflict policy always applies the requested update but skips starting another native visual transition while NE navigation is active. Superseded native animations resolve as normal cancellation instead of leaking `AbortError` rejections.
 
 **Routing pipeline:** `EngineLink` delegates all anchor rendering to `renderEngineAnchor` exported from `EngineNav`. The three-strategy routing (external / animated / native) lives in one place.
 

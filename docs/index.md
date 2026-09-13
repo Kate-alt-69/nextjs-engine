@@ -79,6 +79,8 @@ cprop: {
 
 It currently ships 20 named presets and shared-element morph support.
 
+Use `coordinateEngineViewTransition()` for theme or other imperative visual updates that must share native View Transition ownership with animated navigation.
+
 Read: [`enginetransitions.md`](./engine-components/enginetransitions.md).
 
 ### If you want a GPU effect/background

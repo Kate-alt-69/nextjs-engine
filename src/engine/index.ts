@@ -96,6 +96,7 @@ export { EngineTransitionLink } from "./components/EngineTransitionLink";
 export type { EngineTransitionLinkProps } from "./components/EngineTransitionLink";
 export {
 	ENGINE_TRANSITIONS,
+	coordinateEngineViewTransition,
 	isKnownEngineTransition,
 	navigateWithEngineTransition,
 	normalizeEngineTransitionType,
@@ -116,6 +117,9 @@ export type {
 	EngineTransitionRunContext,
 	EngineTransitionShape,
 	EngineTransitionsController,
+	EngineViewTransitionConflict,
+	EngineViewTransitionOptions,
+	EngineViewTransitionStatus,
 	ResolvedEngineTransition,
 } from "./core/enginetransitions";
 export { EngineManim, EngineManim3D } from "./components/EngineManim";

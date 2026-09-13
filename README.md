@@ -59,6 +59,8 @@ page-turn   spring      scatter     rgb         portal
 
 Use them from schema links/Nav or programmatically through `useEngineTransitions()`.
 
+Theme and other imperative visual updates can use `coordinateEngineViewTransition()` so they share the browser's single native View Transition owner with NE navigation. Overlapping visual work is cancelled or skipped safely without leaking native `AbortError` rejections.
+
 Read [`docs/engine-components/enginetransitions.md`](./docs/engine-components/enginetransitions.md).
 
 ### EngineShader + `.shed`
