@@ -155,7 +155,7 @@ export function PreferencesShell({
 
   return (
     <>
-      <div className="rv-footer-theme-dock">{themeControl}</div>
+      <div className={`rv-footer-theme-dock${showConsent ? " rv-footer-theme-dock--consent" : ""}`}>{themeControl}</div>
 
       {showConsent ? (
         <aside className="rv-cookie" aria-label={spanish ? "Preferencias de cookies" : "Cookie preferences"}>
