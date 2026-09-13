@@ -1,6 +1,6 @@
 "use client";
 
-import { EngineBrowser, EngineImage, EngineScheduler } from "@/engine";
+import { EngineBrowser, EngineImage, EngineScheduler, useEngineSchedule } from "@/engine";
 import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { getRoavioCityImage } from "./cityImages";
 
@@ -9,6 +9,7 @@ type EngineImageProps = ComponentProps<typeof EngineImage>;
 const warmedCityImages = new Set<string>();
 const warmingCityImages = new Map<string, HTMLImageElement>();
 const MAX_RETRIES = 2;
+const WARM_NEAR_MARGIN = "1600px 0px";
 const IMAGE_NEAR_MARGIN = "640px 0px";
 
 function hasNecessaryConsent(): boolean {
@@ -56,13 +57,12 @@ function warmOfficialCityImage(src: string) {
 }
 
 /**
- * Thin Roavio adapter around NE's EngineImage.
+ * Thin Roavio adapter around NE's image/runtime systems.
  *
- * EngineReveal owns the wide card render window. Once this component exists,
- * consented users on a reasonable connection can warm the exact official
- * Unsplash URL during NE idle time. EngineImage independently owns the tighter
- * 640px media DOM lifecycle, cached-image recovery, frame-pressure policy and
- * LCP priority behavior.
+ * - EngineReveal owns the wide card render window.
+ * - This NE scheduler probe opens the cache-warm window at ~1600px.
+ * - EngineImage owns the real image DOM at ~640px, cached-image recovery,
+ *   frame-pressure policy and LCP priority behavior.
  */
 export function OfficialCityImage({
   slug,
@@ -85,6 +85,11 @@ export function OfficialCityImage({
   const retryTimerRef = useRef<number | null>(null);
   const [failed, setFailed] = useState(false);
   const src = getRoavioCityImage(slug);
+  const warmSchedule = useEngineSchedule<HTMLSpanElement>({
+    priority,
+    nearMargin: WARM_NEAR_MARGIN,
+    releaseWhenFar: true,
+  });
 
   useEffect(() => {
     retryCountRef.current = 0;
@@ -98,9 +103,14 @@ export function OfficialCityImage({
   }, []);
 
   useEffect(() => {
-    if (!src || priority) return;
-    let cancelIdle: (() => void) | null = null;
+    if (
+      !src
+      || priority
+      || !warmSchedule.near
+      || warmSchedule.underFramePressure
+    ) return;
 
+    let cancelIdle: (() => void) | null = null;
     const scheduleWarm = () => {
       cancelIdle?.();
       if (!hasNecessaryConsent() || !networkAllowsWarmup()) return;
@@ -116,7 +126,7 @@ export function OfficialCityImage({
       stopNetwork();
       window.removeEventListener("rv:consent-changed", scheduleWarm);
     };
-  }, [priority, src]);
+  }, [priority, src, warmSchedule.near, warmSchedule.underFramePressure]);
 
   const handleError = () => {
     if (!src) return;
@@ -139,25 +149,32 @@ export function OfficialCityImage({
   if (!src || failed) return null;
 
   return (
-    <EngineImage
-      src={src}
-      alt={alt}
-      fill
-      priority={priority}
-      loading={priority ? "eager" : "lazy"}
-      nearMargin={IMAGE_NEAR_MARGIN}
-      releaseWhenFar
-      sizes={sizes}
-      quality={72}
-      objectFit={objectFit}
-      className={className}
-      style={style}
-      unoptimized
-      onLoad={() => {
-        retryCountRef.current = 0;
-        warmedCityImages.add(src);
-      }}
-      onError={handleError}
-    />
+    <>
+      <span
+        ref={warmSchedule.ref}
+        aria-hidden="true"
+        style={{ position: "absolute", inset: 0, opacity: 0, pointerEvents: "none" }}
+      />
+      <EngineImage
+        src={src}
+        alt={alt}
+        fill
+        priority={priority}
+        loading={priority ? "eager" : "lazy"}
+        nearMargin={IMAGE_NEAR_MARGIN}
+        releaseWhenFar
+        sizes={sizes}
+        quality={72}
+        objectFit={objectFit}
+        className={className}
+        style={style}
+        unoptimized
+        onLoad={() => {
+          retryCountRef.current = 0;
+          warmedCityImages.add(src);
+        }}
+        onError={handleError}
+      />
+    </>
   );
 }
