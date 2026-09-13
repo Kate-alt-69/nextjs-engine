@@ -1,5 +1,5 @@
 import { createPage, defineSchema } from "@/engine";
-import { FavoritesBoard } from "../roavio/ClientWidgets";
+import { FavoritesBoard } from "../roavio/FavoritesBoard";
 import { loadCityCatalog } from "../roavio/cityContent.server";
 import { copyFor, type RoavioLocale } from "../roavio/i18n";
 import { getRoavioLocale } from "../roavio/locale.server";
