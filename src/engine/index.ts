@@ -157,6 +157,8 @@ export type {
 export { EngineMarkdown } from "./components/EngineMarkdown";
 export { EngineHero } from "./components/EngineHero";
 export { LazyMount, LazySection } from "./components/LazyMount";
+export { EngineReveal } from "./components/EngineReveal";
+export type { EngineRevealEffect, EngineRevealProps } from "./components/EngineReveal";
 export { CustomSelect } from "./components/CustomSelect";
 export { EngineSuspense } from "./components/EngineSuspense";
 export { EngineForm, EngineInput, EngineTextarea, EngineCheckbox, EngineLabel } from "./components/EngineForms";
