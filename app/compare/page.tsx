@@ -1,5 +1,5 @@
 import { createPage, defineSchema } from "@/engine";
-import { CompareBoard } from "../roavio/ClientWidgets";
+import { CompareBoard } from "../roavio/CompareBoard";
 import { loadCityCatalog } from "../roavio/cityContent.server";
 import { type RoavioLocale } from "../roavio/i18n";
 import { getRoavioLocale } from "../roavio/locale.server";
