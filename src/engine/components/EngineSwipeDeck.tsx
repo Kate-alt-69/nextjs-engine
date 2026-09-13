@@ -80,7 +80,8 @@ export const EngineSwipeDeck = memo(function EngineSwipeDeck({
 	const rootRef = useRef<HTMLDivElement | null>(null);
 	const draggingRef = useRef(false);
 	const animatingRef = useRef(false);
-	const pointerRef = useRef<{ id: number; startX: number; startY: number; startedAt: number } | null>(null);
+	const pointerRef = useRef<{ id: number; startX: number; startY: number; startedAt: number; moved: boolean } | null>(null);
+	const suppressClickUntilRef = useRef(0);
 	const resumeTimerRef = useRef<number | null>(null);
 	const autoplayTimerRef = useRef<number | null>(null);
 	const viewportActiveRef = useRef(true);
@@ -170,9 +171,9 @@ export const EngineSwipeDeck = memo(function EngineSwipeDeck({
 
 	const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
 		if (event.button !== 0 || items.length < 2 || animatingRef.current) return;
-		pointerRef.current = { id: event.pointerId, startX: event.clientX, startY: event.clientY, startedAt: performance.now() };
+		pointerRef.current = { id: event.pointerId, startX: event.clientX, startY: event.clientY, startedAt: performance.now(), moved: false };
 		draggingRef.current = true;
-		event.currentTarget.setPointerCapture?.(event.pointerId);
+		try { event.currentTarget.setPointerCapture?.(event.pointerId); } catch { /* capture is optional */ }
 		pauseThenResume();
 	};
 
@@ -183,6 +184,7 @@ export const EngineSwipeDeck = memo(function EngineSwipeDeck({
 		const dx = event.clientX - pointer.startX;
 		const dy = event.clientY - pointer.startY;
 		if (Math.abs(dy) > Math.abs(dx) * 1.35 && Math.abs(dy) > 10) return;
+		if (Math.abs(dx) > 6) pointer.moved = true;
 		root.dataset.dragging = "true";
 		root.style.setProperty("--e-deck-drag-x", `${dx}px`);
 		root.style.setProperty("--e-deck-drag-y", `${Math.min(10, Math.abs(dx) * .025)}px`);
@@ -195,10 +197,12 @@ export const EngineSwipeDeck = memo(function EngineSwipeDeck({
 		const dx = event.clientX - pointer.startX;
 		const elapsed = Math.max(1, performance.now() - pointer.startedAt);
 		const velocity = Math.abs(dx) / elapsed;
+		const moved = pointer.moved || Math.abs(dx) > 6;
 		pointerRef.current = null;
 		draggingRef.current = false;
-		event.currentTarget.releasePointerCapture?.(event.pointerId);
+		try { event.currentTarget.releasePointerCapture?.(event.pointerId); } catch { /* browser may already release */ }
 		resetDragVars();
+		if (moved) suppressClickUntilRef.current = performance.now() + 220;
 		if (Math.abs(dx) >= threshold || (Math.abs(dx) >= 24 && velocity > .55)) {
 			void advance(dx < 0 ? 1 : -1);
 		}
@@ -208,6 +212,12 @@ export const EngineSwipeDeck = memo(function EngineSwipeDeck({
 	const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
 		if (event.key === "ArrowRight") { event.preventDefault(); void advance(1); pauseThenResume(); }
 		if (event.key === "ArrowLeft") { event.preventDefault(); void advance(-1); pauseThenResume(); }
+	};
+
+	const onClickCapture = (event: React.MouseEvent<HTMLDivElement>) => {
+		if (performance.now() >= suppressClickUntilRef.current) return;
+		event.preventDefault();
+		event.stopPropagation();
 	};
 
 	return (
@@ -225,6 +235,7 @@ export const EngineSwipeDeck = memo(function EngineSwipeDeck({
 			onPointerUp={finishPointer}
 			onPointerCancel={finishPointer}
 			onKeyDown={onKeyDown}
+			onClickCapture={onClickCapture}
 			onMouseEnter={clearAutoplay}
 			onMouseLeave={pauseThenResume}
 		>
