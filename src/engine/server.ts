@@ -23,6 +23,10 @@ export {
 } from "./core/nenc/EngineCommand";
 export { createNENCDispatcher } from "./core/nenc/NENCDispatcher";
 export { createNENCDeviceSignatureVerifier } from "./core/nenc/NENCDeviceProof";
+export {
+	resolveNENCRequestDestinationOrigin,
+	resolveNENCRequestOrigin,
+} from "./core/nenc/NENCOrigin";
 export { createNENCAccountSessionPolicy, hashNENCSessionToken } from "./core/nenc/NENCSessionAuth";
 export { createNENCCommandAPIResolverFactory } from "./core/nenc/NENCCommandAPI";
 export type {

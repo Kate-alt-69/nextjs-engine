@@ -1,7 +1,7 @@
 # Generation 3 Phase C — Network and credential runtime
 
 > Branch: `main-3`  
-> Status: complete — secure dispatcher, NENC build integration, and private application proof
+> Status: complete — secure dispatcher, portable proof, real Next.js application, and security regressions
 
 Phase C owns the secure application/network layer described by the Gen 3 master plan: EngineCookies, NENC, EngineCORS, command authorization, replay protection, device binding, and the EngineAPIResolver bridge.
 
@@ -75,7 +75,7 @@ module.exports = withEngine({}, {
 });
 ```
 
-The generated artifacts are `.nextjs-engine/nenc/client.ts`, `.nextjs-engine/nenc/server.ts`, a non-public `manifest.json`, and `app/_static/command/route.ts`. The handler module default export receives the frozen server manifest and returns the dispatcher route handler:
+The generated artifacts are `.nextjs-engine/nenc/client.ts`, `.nextjs-engine/nenc/server.ts`, a non-public `manifest.json`, and `app/%5Fstatic/command/route.ts`. Next.js decodes the escaped segment into the public `/_static/command` URL; an `app/_static` folder would instead be treated as a private folder and omitted from routing. The handler module default export receives the frozen server manifest and returns the dispatcher route handler:
 
 ```ts
 export default function createHandler(manifest: NENCServerManifest) {
@@ -100,7 +100,7 @@ Replay windows and rate limits deliberately stay out of generated declarations a
 
 ## Single dispatcher
 
-`createNENCDispatcher()` is the server route-handler factory. Applications can bind the same handler to `POST` and `OPTIONS` at `app/_static/command/route.ts`; no per-command routes are created.
+`createNENCDispatcher()` is the server route-handler factory. Applications can bind the same handler to `POST` and `OPTIONS` at `app/%5Fstatic/command/route.ts`; no per-command routes are created.
 
 The dispatcher currently enforces this order:
 
@@ -284,6 +284,14 @@ The end-to-end CI proof verifies:
 
 The included store and rate limiters are intentionally in-memory for a focused proof. Production multi-instance deployments must replace them with shared persistent and atomic stores. The sample keeps its non-exportable `CryptoKey` for the page lifetime; production clients should persist it through a browser store supporting structured cloning or require a new login after reload.
 
+## Real private-search application
+
+The `/engine-private-search` proving application closes the Phase C integration gate. Its login route registers a browser-created public device identity, stores only the session-token hash, and issues a host-only `Secure`, `HttpOnly`, `SameSite=Strict` cookie. The browser then signs `EngineCommand.run("privateSearch")` with its non-exportable key and sends one opaque `/_static/command` request.
+
+The dispatcher verifies origin, replay data, device proof, account session, `catalog.read`, and the command rate policy before creating the private backend resolver. The ordinary HTTP backend receives a server-only bearer credential. The command returns only `id`, `title`, and `category`; database ranking, partition, host, query-plan, and credential-echo fields are discarded.
+
+Automated browser coverage copies the cookie into a second browser context and proves that it fails without the original device key. It also verifies wrong-origin rejection, opaque wire ids, an HttpOnly cookie, and absence of backend credentials/internals from the browser response. See [`private-search-example.md`](./private-search-example.md) for the runnable flow and production substitutions.
+
 ## EngineCORS
 
 The server-only CORS helper provides exact-origin handling, preflight responses, `Vary: Origin`, allowed method/header configuration, and rejects credentialed wildcard CORS.
@@ -306,4 +314,4 @@ session + EngineCookie + origin + trust + nonce + signature + rate policy
 
 ## Next implementation phase
 
-Phase C is complete. Phase D adds debug and security inspection surfaces that consume these artifacts without weakening the production protocol.
+Phase C is complete. Phase D begins with the used-feature manifest, compatibility fallback compiler, older-browser rendering path, compatibility dialog, and development-only `/_engine/debug` inspection surface.

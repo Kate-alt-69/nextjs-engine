@@ -67,6 +67,7 @@ jobs:
           node scripts/gen3-nenc-plugin-smoke.js
           node scripts/gen3-nenc-backend-proving-smoke.js
           node scripts/gen3-private-search-app-smoke.js
+          node scripts/gen3-private-search-next-app-smoke.js
           node scripts/gen3-enginecookie-vault-smoke.js
       - name: Type-check engine
         run: npm run type-check

@@ -41,7 +41,8 @@ function wireRequest(manifest, commandName, input, options = {}) {
 	});
 	if (options.cookie) headers.set("Cookie", options.cookie);
 	if (options.origin) headers.set("Origin", options.origin);
-	return new Request("https://app.example.com/_static/command", {
+	if (options.host) headers.set("Host", options.host);
+	return new Request(options.target || "https://app.example.com/_static/command", {
 		method: "POST",
 		headers,
 		body: JSON.stringify(body),
@@ -267,6 +268,17 @@ async function run() {
 			() => createNENCCommandAPIResolverFactory({}),
 			/resolve\(\) is required/,
 		);
+
+		response = await dispatcher(wireRequest(manifest, "catalog.publicSearch", {
+			search: "proxy-host",
+		}, {
+			now,
+			nonce: "backend_proving_nonce_0006",
+			origin: "https://app.example.com",
+			target: "https://internal-next.invalid/_static/command",
+			host: "app.example.com",
+		}));
+		assert.equal(response.status, 200, "the public Host must win over an internal framework URL host");
 
 		console.log("Generation 3 NENC backend proving flows smoke: ok");
 	} finally {

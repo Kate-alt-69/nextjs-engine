@@ -5,6 +5,10 @@
 import { EngineAPIResolver } from "../EngineAPIResolver";
 import { executeRegisteredEngineCommand } from "./EngineCommand";
 import { NENCReplayGuard } from "./NENCReplay";
+import {
+	resolveNENCRequestDestinationOrigin,
+	resolveNENCRequestOrigin,
+} from "./NENCOrigin";
 import type { NENCServerCommand } from "./NENCManifest";
 import type {
 	NENCDispatcherOptions,
@@ -24,29 +28,9 @@ function rateLimited(retryAfterMs: number): Response {
 	return Response.json({ error: "invalid_request" }, { status: 429, headers });
 }
 
-function requestOrigin(request: Request): string {
-	const headerOrigin = request.headers.get("Origin");
-	if (headerOrigin) {
-		try {
-			return new URL(headerOrigin).origin;
-		} catch {
-			return "";
-		}
-	}
-	try {
-		return new URL(request.url).origin;
-	} catch {
-		return "";
-	}
-}
-
 function isCrossOrigin(request: Request, origin: string): boolean {
-	if (!origin) return true;
-	try {
-		return origin !== new URL(request.url).origin;
-	} catch {
-		return true;
-	}
+	const destinationOrigin = resolveNENCRequestDestinationOrigin(request);
+	return !origin || !destinationOrigin || origin !== destinationOrigin;
 }
 
 function mergeCors(response: Response, headers: Headers | null): Response {
@@ -144,7 +128,7 @@ export function createNENCDispatcher(options: NENCDispatcherOptions): NENCReques
 	const maxBodyBytes = Math.max(1_024, Math.floor(options.maxBodyBytes ?? DEFAULT_MAX_BODY));
 
 	return async function handleNENCRequest(request: Request): Promise<Response> {
-		const origin = requestOrigin(request);
+		const origin = resolveNENCRequestOrigin(request);
 		const crossOrigin = isCrossOrigin(request, origin);
 		const corsHeaders = options.cors?.headersFor(origin) ?? null;
 		const finalize = (response: Response) => mergeCors(response, crossOrigin ? corsHeaders : null);

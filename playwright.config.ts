@@ -10,7 +10,9 @@ export default defineConfig({
 		timeout: 7_500,
 	},
 	use: {
-		baseURL: "http://127.0.0.1:3100",
+		// Browsers treat localhost as a trustworthy development origin, allowing
+		// the proving app to exercise its production-shaped Secure host cookie.
+		baseURL: "http://localhost:3100",
 		trace: "retain-on-failure",
 	},
 	webServer: {
