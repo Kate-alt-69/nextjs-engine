@@ -71,6 +71,10 @@ export interface EngineImageProps extends Omit<ImageNodeProps, "type" | "objectF
 	loader?: ImageLoader;
 	/** Explicit browser loading policy. Priority images default to eager. */
 	loading?: "eager" | "lazy";
+	/** Override EngineScheduler's automatic media pre-mount distance. */
+	nearMargin?: string;
+	/** Classify far-away media as sleeping so the image DOM can be released. */
+	releaseWhenFar?: boolean;
 	/** Bypass the Next image optimizer and request `src` exactly as supplied. */
 	unoptimized?: boolean;
 	onLoad?: () => void;
@@ -96,6 +100,8 @@ export const EngineImage = memo(function EngineImage({
 	blurDataURL,
 	loader,
 	loading,
+	nearMargin,
+	releaseWhenFar = true,
 	unoptimized = false,
 	onLoad,
 	onError,
@@ -107,7 +113,8 @@ export const EngineImage = memo(function EngineImage({
 	const loaded = loadedSrc === src;
 	const schedule = useEngineSchedule<HTMLDivElement>({
 		priority,
-		nearMargin: getRootMargin(width, height),
+		nearMargin: nearMargin ?? getRootMargin(width, height),
+		releaseWhenFar,
 	});
 	const shouldLoad = priority
 		|| schedule.visible
