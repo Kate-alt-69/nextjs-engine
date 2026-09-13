@@ -1,11 +1,11 @@
 "use client";
 
-import { EngineCanvas } from "@/engine";
 import { EngineCookies } from "@/src/engine/core/enginecookies/EngineCookies";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { RoavioLocale } from "./i18n";
 import type { RoavioThemeMode } from "./locale.server";
+import { ThemeManimToggle } from "./ThemeManimToggle";
 
 type ConsentChoices = {
   necessary: true;
@@ -13,20 +13,11 @@ type ConsentChoices = {
   personalization: boolean;
 };
 
-type MoonPhaseData = {
-  phase: string;
-  illumination: number;
-  age: number;
-  phaseFraction: number;
-  source: string;
-};
-
 type ViewTransitionDocument = Document & {
   startViewTransition?: (update: () => void) => { finished: Promise<void> };
 };
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
-const SYNODIC_MONTH = 29.530588853;
 
 function writeCookie(name: string, value: string, maxAge = ONE_YEAR) {
   document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
@@ -46,128 +37,6 @@ function applyTheme(mode: RoavioThemeMode) {
   document.documentElement.style.colorScheme = mode;
 }
 
-function fallbackMoon(): MoonPhaseData {
-  const knownNewMoon = Date.UTC(2000, 0, 6, 18, 14, 0);
-  const days = (Date.now() - knownNewMoon) / 86_400_000;
-  const age = ((days % SYNODIC_MONTH) + SYNODIC_MONTH) % SYNODIC_MONTH;
-  const phaseFraction = age / SYNODIC_MONTH;
-  return {
-    phase: "Moon",
-    illumination: (1 - Math.cos(phaseFraction * Math.PI * 2)) * 50,
-    age,
-    phaseFraction,
-    source: "fallback",
-  };
-}
-
-function drawSun(ctx: CanvasRenderingContext2D, w: number, h: number, progress: number) {
-  const cx = w / 2;
-  const cy = h / 2;
-  const r = Math.min(w, h) * 0.19;
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate((1 - progress) * -0.18 + progress * 0.08);
-  ctx.lineCap = "round";
-  ctx.strokeStyle = "#f4b53f";
-  ctx.lineWidth = Math.max(1.5, w * 0.045);
-  for (let i = 0; i < 8; i += 1) {
-    const angle = i * Math.PI / 4;
-    const inner = r * (1.42 + (1 - progress) * 0.12);
-    const outer = r * (1.82 + progress * 0.12);
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
-    ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
-    ctx.stroke();
-  }
-  const glow = ctx.createRadialGradient(0, 0, r * 0.12, 0, 0, r * 1.2);
-  glow.addColorStop(0, "#fff7c5");
-  glow.addColorStop(0.64, "#ffd65a");
-  glow.addColorStop(1, "#f3a62b");
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawMoon(ctx: CanvasRenderingContext2D, w: number, h: number, phaseFraction: number, progress: number) {
-  const cx = w / 2;
-  const cy = h / 2;
-  const r = Math.min(w, h) * 0.32;
-  const angle = phaseFraction * Math.PI * 2;
-  const lightX = Math.sin(angle);
-  const lightZ = -Math.cos(angle);
-  const image = ctx.createImageData(Math.max(1, Math.floor(w)), Math.max(1, Math.floor(h)));
-  const pixels = image.data;
-
-  for (let y = 0; y < image.height; y += 1) {
-    for (let x = 0; x < image.width; x += 1) {
-      const nx = (x + 0.5 - cx) / r;
-      const ny = (y + 0.5 - cy) / r;
-      const radiusSq = nx * nx + ny * ny;
-      if (radiusSq > 1) continue;
-      const nz = Math.sqrt(Math.max(0, 1 - radiusSq));
-      const direct = Math.max(0, nx * lightX + nz * lightZ);
-      const edge = Math.min(1, Math.max(0, (1 - radiusSq) * 11));
-      const ambient = 0.11;
-      const brightness = ambient + direct * 0.89;
-      const crater = 1 - 0.055 * (
-        Math.exp(-((nx + 0.31) ** 2 + (ny + 0.2) ** 2) / 0.018)
-        + Math.exp(-((nx - 0.25) ** 2 + (ny - 0.04) ** 2) / 0.012)
-        + Math.exp(-((nx - 0.06) ** 2 + (ny - 0.31) ** 2) / 0.016)
-      );
-      const value = Math.max(0, Math.min(1, brightness * crater * (0.92 + progress * 0.08)));
-      const offset = (y * image.width + x) * 4;
-      pixels[offset] = Math.round(214 * value + 12);
-      pixels[offset + 1] = Math.round(226 * value + 14);
-      pixels[offset + 2] = Math.round(222 * value + 15);
-      pixels[offset + 3] = Math.round(255 * edge);
-    }
-  }
-
-  ctx.putImageData(image, 0, 0);
-  ctx.save();
-  ctx.strokeStyle = "rgba(224,238,232,.34)";
-  ctx.lineWidth = Math.max(1, w * 0.025);
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
-}
-
-function CelestialGlyph({ mode, moon }: { mode: RoavioThemeMode; moon: MoonPhaseData }) {
-  const startedAt = useRef(0);
-  useEffect(() => { startedAt.current = performance.now(); }, [mode, moon.phaseFraction]);
-
-  const draw = useCallback((context: CanvasRenderingContext2D | WebGLRenderingContext | WebGL2RenderingContext, canvas: HTMLCanvasElement) => {
-    if (!(context instanceof CanvasRenderingContext2D)) return false;
-    if (!startedAt.current) startedAt.current = performance.now();
-    const elapsed = performance.now() - startedAt.current;
-    // Keep the canvas morph aligned with the compositor-only sliding pill.
-    // 320ms feels responsive on touch while still reading as a deliberate motion.
-    const progress = Math.min(1, elapsed / 320);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    if (mode === "dark") drawMoon(context, canvas.width, canvas.height, moon.phaseFraction, eased);
-    else drawSun(context, canvas.width, canvas.height, eased);
-    return progress >= 1 ? false : undefined;
-  }, [mode, moon.phaseFraction]);
-
-  return (
-    <EngineCanvas
-      mode="2d"
-      width={40}
-      height={40}
-      maxDpr={1.5}
-      adaptive={false}
-      pauseWhenHidden
-      pauseWhenOffscreen
-      onDraw={draw}
-      style={{ width: 40, height: 40, pointerEvents: "none" }}
-    />
-  );
-}
-
 export function PreferencesShell({
   initialTheme,
   initialLocale,
@@ -180,7 +49,6 @@ export function PreferencesShell({
   const router = useRouter();
   const [theme, setTheme] = useState<RoavioThemeMode>(initialTheme);
   const [locale, setLocale] = useState<RoavioLocale>(initialLocale);
-  const [moon, setMoon] = useState<MoonPhaseData>(() => fallbackMoon());
   const [showConsent, setShowConsent] = useState(!initialHasConsent);
   const [customOpen, setCustomOpen] = useState(false);
   const [analytics, setAnalytics] = useState(false);
@@ -211,15 +79,6 @@ export function PreferencesShell({
     media.addEventListener?.("change", followSystem);
     return () => media.removeEventListener?.("change", followSystem);
   }, [initialTheme]);
-
-  useEffect(() => {
-    fetch("/api/moon-phase", { headers: { Accept: "application/json" } })
-      .then((response) => response.ok ? response.json() : Promise.reject())
-      .then((data: MoonPhaseData) => {
-        if (Number.isFinite(data.phaseFraction)) setMoon(data);
-      })
-      .catch(() => undefined);
-  }, []);
 
   useEffect(() => {
     const index = EngineCookies.createIndex();
@@ -270,7 +129,7 @@ export function PreferencesShell({
     } else {
       document.documentElement.classList.add("rv-theme-changing");
       apply();
-      window.setTimeout(() => document.documentElement.classList.remove("rv-theme-changing"), 320);
+      window.setTimeout(() => document.documentElement.classList.remove("rv-theme-changing"), 430);
     }
   };
 
@@ -281,19 +140,17 @@ export function PreferencesShell({
     setCustomOpen(false);
   };
 
-  const phaseLabel = modeLabel(theme, moon.phase, spanish);
   const themeControl = (
-    <button
-      type="button"
-      className="rv-theme-toggle"
-      onClick={chooseTheme}
-      aria-pressed={theme === "dark"}
-      aria-label={theme === "dark" ? (spanish ? "Cambiar a modo claro" : "Switch to light mode") : (spanish ? "Cambiar a modo oscuro" : "Switch to dark mode")}
-      title={theme === "dark" ? (spanish ? "Modo oscuro · luna" : "Dark mode · moon") : (spanish ? "Modo claro · sol" : "Light mode · sun")}
-    >
-      <CelestialGlyph mode={theme} moon={moon} />
-      <span>{phaseLabel}</span>
-    </button>
+    <ThemeManimToggle
+      theme={theme}
+      onToggle={chooseTheme}
+      ariaLabel={theme === "dark"
+        ? (spanish ? "Cambiar a modo claro" : "Switch to light mode")
+        : (spanish ? "Cambiar a modo oscuro" : "Switch to dark mode")}
+      title={theme === "dark"
+        ? (spanish ? "Cambiar al cielo diurno" : "Switch to daylight")
+        : (spanish ? "Cambiar al cielo nocturno" : "Switch to night sky")}
+    />
   );
 
   return (
@@ -339,19 +196,4 @@ export function PreferencesShell({
       ) : null}
     </>
   );
-}
-
-function modeLabel(theme: RoavioThemeMode, phase: string, spanish: boolean) {
-  if (theme === "light") return spanish ? "Claro" : "Light";
-  const translated: Record<string, string> = {
-    "New Moon": "Luna nueva",
-    "Waxing Crescent": "Creciente",
-    "First Quarter": "Cuarto creciente",
-    "Waxing Gibbous": "Gibosa creciente",
-    "Full Moon": "Luna llena",
-    "Waning Gibbous": "Gibosa menguante",
-    "Last Quarter": "Cuarto menguante",
-    "Waning Crescent": "Menguante",
-  };
-  return spanish ? (translated[phase] ?? "Oscuro") : phase;
 }
