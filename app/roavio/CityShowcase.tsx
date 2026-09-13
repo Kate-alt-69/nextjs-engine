@@ -1,6 +1,11 @@
-import { EngineReveal, EngineTransitionLink } from "@/engine";
+import { EngineExpandLink, EngineReveal } from "@/engine";
 import { catalogFitScore, type CityCatalogEntry } from "./catalog";
-import { cityExpandTransition, cityTransitionSurfaceId } from "./cityTransition";
+import {
+  CITY_EXPAND_DURATION,
+  CITY_HANDOFF_DURATION,
+  cityTransitionImageId,
+  cityTransitionSurfaceId,
+} from "./cityTransition";
 import type { RoavioLocale } from "./i18n";
 import { OfficialCityImage } from "./OfficialCityImage";
 
@@ -22,11 +27,10 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
     <div className="rv-city-grid">
       {featured.map((city, index) => {
         const score = catalogFitScore(city);
-        const surfaceId = cityTransitionSurfaceId(city.slug);
+        const imageSurfaceId = cityTransitionImageId(city.slug);
         return (
           <EngineReveal
             key={city.slug}
-            id={surfaceId}
             className="rv-city-card-reveal"
             priority={index < 2}
             effect="pop"
@@ -39,10 +43,14 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
             overshoot={1.022}
             releaseWhenFar
           >
-            <EngineTransitionLink
+            <EngineExpandLink
+              id={imageSurfaceId}
               className="rv-city-card"
               href={`/cities/${city.slug}`}
-              transition={cityExpandTransition(city.slug)}
+              targetId={cityTransitionSurfaceId(city.slug)}
+              duration={CITY_EXPAND_DURATION}
+              handoffDuration={CITY_HANDOFF_DURATION}
+              transition="instant"
               style={{ background: gradients[index % gradients.length] }}
             >
               <OfficialCityImage
@@ -65,7 +73,7 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
                   <div className="rv-mini-metric"><strong>{city.internet === null ? "—" : `${city.internet}M`}</strong><span>internet</span></div>
                 </div>
               </div>
-            </EngineTransitionLink>
+            </EngineExpandLink>
           </EngineReveal>
         );
       })}
