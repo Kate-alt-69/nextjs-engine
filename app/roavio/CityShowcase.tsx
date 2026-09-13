@@ -1,4 +1,6 @@
-import { EngineExpandLink, EngineReveal } from "@/engine";
+"use client";
+
+import { EngineAutoRail, EngineExpandLink, EngineTransitionLink } from "@/engine";
 import { catalogFitScore, type CityCatalogEntry } from "./catalog";
 import {
   CITY_EXPAND_DURATION,
@@ -7,77 +9,98 @@ import {
   cityTransitionSurfaceId,
 } from "./cityTransition";
 import type { RoavioLocale } from "./i18n";
-import { OfficialCityImage } from "./OfficialCityImage";
+import { CityThumb } from "./CityThumb";
 
-const FEATURED = ["valencia", "lisboa", "bali", "bangkok", "dubai", "chiang-mai"];
-const gradients = [
-  "linear-gradient(145deg,#244b3f,#789f75)",
-  "linear-gradient(145deg,#764637,#d8956d)",
-  "linear-gradient(145deg,#21444d,#8ec7bc)",
-  "linear-gradient(145deg,#4f2740,#ce6b55)",
-  "linear-gradient(145deg,#473a61,#d5a35f)",
-  "linear-gradient(145deg,#345f55,#c7c16c)",
-];
+export const HOME_RAIL_SLUGS = [
+  "singapur", "tokio", "copenhague", "amsterdam", "viena", "oslo",
+  "sidney", "melbourne", "auckland", "seattle", "vancouver", "toronto",
+  "madrid", "barcelona", "valencia", "lisboa", "oporto", "paris",
+  "berlin", "munich", "praga", "budapest", "dubai", "taipei", "seul",
+  "osaka", "bangkok", "chiang-mai", "bali", "kuala-lumpur",
+] as const;
+
+function metric(value: number | null, suffix = "") {
+  return value === null ? "—" : `${value}${suffix}`;
+}
 
 export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[]; locale: RoavioLocale }) {
-  const featured = FEATURED.map((slug) => catalog.find((city) => city.slug === slug)).filter((city): city is CityCatalogEntry => Boolean(city));
+  const cities = HOME_RAIL_SLUGS
+    .map((slug) => catalog.find((city) => city.slug === slug))
+    .filter((city): city is CityCatalogEntry => Boolean(city));
   const es = locale === "es";
 
   return (
-    <div className="rv-city-grid">
-      {featured.map((city, index) => {
+    <EngineAutoRail
+      className="rv-home-city-rail"
+      speed={24}
+      gap={14}
+      resumeDelay={1800}
+      direction="right"
+      ariaLabel={es ? "Ciudades populares y con alta calidad de vida" : "Popular and high quality-of-life cities"}
+      style={{ "--e-rail-edge": "var(--rv-paper)" } as React.CSSProperties}
+    >
+      {cities.map((city, index) => {
         const score = catalogFitScore(city);
         const imageSurfaceId = cityTransitionImageId(city.slug);
+        const destinationSurfaceId = cityTransitionSurfaceId(city.slug);
         return (
-          <EngineReveal
-            key={city.slug}
-            className="rv-city-card-reveal"
-            priority={index < 2}
-            effect="pop"
-            replay
-            renderMargin={1600}
-            motionMargin={150}
-            duration={340}
-            delay={Math.min(index % 3, 2) * 18}
-            scaleFrom={0.82}
-            overshoot={1.022}
-            releaseWhenFar
-          >
+          <article className="rv-home-rail-card" key={city.slug}>
             <EngineExpandLink
               id={imageSurfaceId}
-              className="rv-city-card"
+              className="rv-home-rail-card__visual"
               href={`/cities/${city.slug}`}
-              targetId={cityTransitionSurfaceId(city.slug)}
-              mediaSelector=".rv-city-card__photo"
+              targetId={destinationSurfaceId}
+              mediaSelector=".rv-city-thumb"
               duration={CITY_EXPAND_DURATION}
               handoffDuration={CITY_HANDOFF_DURATION}
               transition="instant"
-              style={{ background: gradients[index % gradients.length] }}
+              aria-label={`${es ? "Abrir" : "Open"} ${city.city}`}
             >
-              <OfficialCityImage
+              <CityThumb
                 slug={city.slug}
-                className="rv-city-card__photo"
-                priority={index < 2}
-                sizes="(max-width: 700px) calc(100vw - 2rem), (max-width: 1100px) calc(50vw - 2rem), 390px"
-                style={{ position: "absolute", inset: 0 }}
+                city={city.city}
+                country={city.country}
+                eager={index < 3}
               />
-              <div className="rv-card-top" data-engine-expand-detail>
-                <span className="rv-score">Roavio fit {score === null ? "—" : score.toFixed(1)}</span>
-                <span className="rv-score">{city.beach ? (es ? "Playa ✓" : "Beach ✓") : city.continent}</span>
-              </div>
-              <div className="rv-card-bottom" data-engine-expand-detail>
-                <h3>{city.city}</h3>
-                <p>{city.country} · {city.cost ?? "—"}</p>
-                <div className="rv-mini-metrics">
-                  <div className="rv-mini-metric"><strong>{city.quality === null ? "—" : `${city.quality}/10`}</strong><span>{es ? "calidad" : "quality"}</span></div>
-                  <div className="rv-mini-metric"><strong>{city.safety === null ? "—" : `${city.safety}/10`}</strong><span>{es ? "seguridad" : "safety"}</span></div>
-                  <div className="rv-mini-metric"><strong>{city.internet === null ? "—" : `${city.internet}M`}</strong><span>internet</span></div>
+              <span className="rv-home-rail-card__shade" aria-hidden="true" />
+              <div className="rv-home-rail-card__meta" data-engine-expand-detail>
+                <div>
+                  <h3>{city.city}</h3>
+                  <p>{city.country} · {city.continent}</p>
                 </div>
+                <strong>{score === null ? "—" : score.toFixed(1)}</strong>
               </div>
             </EngineExpandLink>
-          </EngineReveal>
+
+            <div className="rv-home-rail-card__metrics">
+              <span><strong>{city.cost?.replace("/mo", "") ?? "—"}</strong>{es ? "coste/mes" : "cost/mo"}</span>
+              <span><strong>{metric(city.internet, " Mbps")}</strong>internet</span>
+              <span><strong>{metric(city.quality, "/10")}</strong>{es ? "calidad" : "quality"}</span>
+            </div>
+
+            <div className="rv-home-rail-card__actions">
+              <EngineTransitionLink
+                href={`/compare?cities=${city.slug}`}
+                transition={{ type: "fade", duration: 220 }}
+                className="rv-home-rail-card__compare"
+              >
+                {es ? "+ Comparar" : "+ Compare"}
+              </EngineTransitionLink>
+              <EngineExpandLink
+                href={`/cities/${city.slug}`}
+                sourceId={imageSurfaceId}
+                targetId={destinationSurfaceId}
+                duration={CITY_EXPAND_DURATION}
+                handoffDuration={CITY_HANDOFF_DURATION}
+                transition="instant"
+                className="rv-home-rail-card__open"
+              >
+                {es ? "Abrir ↗" : "Open ↗"}
+              </EngineExpandLink>
+            </div>
+          </article>
         );
       })}
-    </div>
+    </EngineAutoRail>
   );
 }
