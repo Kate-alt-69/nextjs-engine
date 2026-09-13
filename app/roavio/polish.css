@@ -21,6 +21,7 @@ html[data-rv-theme='dark']{
    View Transitions API animate one compositor snapshot; Firefox falls back to
    only the surfaces that actually need a palette interpolation. */
 html,body{transition:background-color .24s cubic-bezier(.2,.8,.2,1),color .2s ease}
+body{position:relative;min-height:100svh}
 html.rv-theme-changing nav,
 html.rv-theme-changing .rv-panel,
 html.rv-theme-changing .rv-result-card,
@@ -66,9 +67,18 @@ html[data-rv-theme='dark'] .rv-result-metrics>div,
 html[data-rv-theme='dark'] .rv-compare-label{background:var(--rv-card-soft)!important}
 html[data-rv-theme='dark'] input,html[data-rv-theme='dark'] select{color:var(--rv-ink);background:var(--rv-card)}
 
-/* The visual theme control now owns its drawing in ThemeManimToggle. Keep this
-   dock concerned only with placement so the Manim scene stays self-contained. */
-.rv-footer-theme-dock{position:fixed;z-index:70;left:4.75rem;bottom:1rem;width:112px;height:52px;isolation:isolate}
+/* The Manim theme scene belongs to the page footer now, not to the viewport.
+   PreferencesShell is rendered after page content, so an absolute body child
+   naturally lands over the lower-left footer corner without following scroll. */
+.rv-footer-theme-dock{
+  position:absolute;
+  z-index:30;
+  left:max(1rem,calc((100vw - 1240px)/2 + 1rem));
+  bottom:.55rem;
+  width:112px;
+  height:52px;
+  isolation:isolate;
+}
 
 .rv-cookie{position:fixed;z-index:80;right:1rem;bottom:1rem;width:min(420px,calc(100vw - 2rem));display:grid;grid-template-columns:auto 1fr;gap:.85rem;padding:1rem;border:1px solid var(--rv-line);border-radius:22px;background:color-mix(in srgb,var(--rv-card) 96%,transparent);box-shadow:0 24px 70px var(--rv-shadow);backdrop-filter:blur(20px)}
 .rv-cookie__mark{width:2.1rem;height:2.1rem;display:grid;place-items:center;border-radius:50%;background:var(--rv-lime);color:#10231f;font-weight:900}.rv-cookie strong{display:block}.rv-cookie p{margin:.28rem 0 0;color:var(--rv-muted);font-size:.78rem;line-height:1.5}.rv-cookie__actions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:.55rem}
@@ -88,4 +98,4 @@ html[data-rv-theme='dark'] input,html[data-rv-theme='dark'] select{color:var(--r
 .rv-dossier-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:1rem;align-items:start}.rv-dossier-main{display:grid;gap:.8rem}.rv-dossier-section{padding:1rem 1.05rem;border:1px solid var(--rv-line);border-radius:18px;background:var(--rv-card)}.rv-dossier-section h2,.rv-dossier-section h3{margin-top:0}.rv-dossier-summary{position:sticky;top:5.4rem;padding:1rem;border:1px solid var(--rv-line);border-radius:18px;background:var(--rv-card);box-shadow:0 14px 45px var(--rv-shadow)}.rv-dossier-summary__rows{display:grid;gap:.45rem;margin:.8rem 0}.rv-dossier-summary__row{display:flex;justify-content:space-between;gap:1rem;padding-bottom:.4rem;border-bottom:1px solid var(--rv-line);font-size:.78rem}.rv-dossier-summary__row span{color:var(--rv-muted)}.rv-dossier-summary__actions{display:grid;gap:.5rem}.rv-dossier-insights{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}.rv-dossier-insight{padding:.9rem;border-radius:15px;background:var(--rv-card-soft);border:1px solid var(--rv-line)}.rv-dossier-insight p{margin:.45rem 0 0;font-size:.8rem;line-height:1.5}.rv-prose{font-size:.92rem;line-height:1.72}.rv-prose h2{font-size:1.3rem;margin:1.6rem 0 .55rem}.rv-prose h3{font-size:1.02rem;margin:1.15rem 0 .4rem}.rv-prose p{margin:.5rem 0}.rv-prose ul,.rv-prose ol{margin:.45rem 0 .8rem;padding-left:1.25rem}
 
 @media(max-width:900px){.rv-dossier-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.rv-dossier-layout{grid-template-columns:1fr}.rv-dossier-summary{position:static}.rv-footer-theme-dock{left:1rem}}
-@media(max-width:700px){.rv-cookie{left:.65rem;right:.65rem;bottom:.65rem;width:auto;border-radius:20px}.rv-cookie__actions{grid-template-columns:1fr}.rv-footer-theme-dock{left:.65rem;bottom:.65rem}.rv-footer-theme-dock--consent{bottom:13.75rem}.rv-dossier-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.rv-dossier-insights{grid-template-columns:1fr}.rv-dossier-hero{min-height:210px}.rv-dossier-hero__copy{padding:1.1rem}.rv-prose{font-size:.9rem}}
+@media(max-width:700px){.rv-cookie{left:.65rem;right:.65rem;bottom:.65rem;width:auto;border-radius:20px}.rv-cookie__actions{grid-template-columns:1fr}.rv-footer-theme-dock{left:.65rem;bottom:.45rem}.rv-dossier-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.rv-dossier-insights{grid-template-columns:1fr}.rv-dossier-hero{min-height:210px}.rv-dossier-hero__copy{padding:1.1rem}.rv-prose{font-size:.9rem}}
