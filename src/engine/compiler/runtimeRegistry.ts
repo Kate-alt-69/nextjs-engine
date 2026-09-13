@@ -79,6 +79,14 @@ for (const type of ["reveal", "EngineReveal"] as NodeType[]) {
 		defaultWorkClass: "near",
 	});
 }
+for (const type of ["expand-link", "EngineExpandLink"] as NodeType[]) {
+	setBuiltin(type, {
+		runtime: "client",
+		reason: "EngineExpandLink coordinates route navigation with a browser-side card-to-viewport spatial handoff.",
+		capabilities: ["dom", "visual-viewport", "request-animation-frame"],
+		defaultWorkClass: "visible",
+	});
+}
 for (const type of ["form", "input", "textarea", "checkbox", "custom-select"] as NodeType[]) {
 	setBuiltin(type, {
 		runtime: "client",
