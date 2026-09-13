@@ -1,6 +1,6 @@
 "use client";
 
-import { CustomSelect, EngineReveal, EngineScroll, EngineTransitionLink } from "@/engine";
+import { EngineReveal, EngineScroll, EngineTransitionLink } from "@/engine";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { AnimatedLikeButton } from "./AnimatedLikeButton";
 import { catalogFitScore, catalogMetric, type CityCatalogEntry } from "./catalog";
@@ -231,13 +231,6 @@ export function Explorer({
   const [compare, setCompare] = useState<string[]>([]);
   const { favorites, toggle } = useFavorites();
   const continents = ["All", ...Array.from(new Set(catalog.map((city) => city.continent)))];
-  const sortOptions = [
-    { value: "fit", label: copy.bestFit },
-    { value: "quality", label: copy.quality },
-    { value: "safety", label: copy.safety },
-    { value: "internet", label: copy.internet },
-    { value: "az", label: copy.az },
-  ];
 
   useEffect(() => {
     if (initialSearch) return;
@@ -285,6 +278,8 @@ export function Explorer({
     if (bounded === safePage) return;
     setPage(bounded);
 
+    // Let React commit the new page, then use NE's own scroll runtime rather
+    // than creating a browser smooth-scroll path beside EngineScroll.
     window.requestAnimationFrame(() => {
       EngineScroll.move("#rv-city-results", {
         align: "start",
@@ -313,24 +308,18 @@ export function Explorer({
           onChange={(event) => setQuery(event.target.value)}
           placeholder={copy.searchPlaceholder}
         />
-        <CustomSelect
-          className="rv-sort-select"
+        <select
+          className="rv-select"
           value={sort}
-          options={sortOptions}
-          onChange={(value) => setSort(value)}
-          ariaLabel={locale === "es" ? "Ordenar destinos" : "Sort destinations"}
-          size="md"
-          style={{
-            "--e-card-bg": "var(--rv-card)",
-            "--e-divider": "var(--rv-line)",
-            "--e-heading-color": "var(--rv-ink)",
-            "--e-text-color": "var(--rv-ink)",
-            "--e-muted": "var(--rv-muted)",
-            "--e-accent": "var(--rv-green)",
-            "--e-accent-soft": "color-mix(in srgb,var(--rv-green) 12%,transparent)",
-            "--e-hover-bg": "var(--rv-card-soft)",
-          } as CSSProperties}
-        />
+          onChange={(event) => setSort(event.target.value)}
+          aria-label={locale === "es" ? "Ordenar destinos" : "Sort destinations"}
+        >
+          <option value="fit">{copy.bestFit}</option>
+          <option value="quality">{copy.quality}</option>
+          <option value="safety">{copy.safety}</option>
+          <option value="internet">{copy.internet}</option>
+          <option value="az">{copy.az}</option>
+        </select>
         <button
           className="rv-pill"
           data-active={beachOnly}
