@@ -1,6 +1,6 @@
 "use client";
 
-import { EngineScroll, EngineTransitionLink } from "@/engine";
+import { EngineReveal, EngineScroll, EngineTransitionLink } from "@/engine";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatedLikeButton } from "./AnimatedLikeButton";
 import { catalogFitScore, catalogMetric, type CityCatalogEntry } from "./catalog";
@@ -91,6 +91,7 @@ function CityResultCard({
   favorite,
   compared,
   eager,
+  motionIndex,
   onFavorite,
   onCompare,
 }: {
@@ -99,6 +100,7 @@ function CityResultCard({
   favorite: boolean;
   compared: boolean;
   eager: boolean;
+  motionIndex: number;
   onFavorite: () => void;
   onCompare: () => void;
 }) {
@@ -106,76 +108,90 @@ function CityResultCard({
   const cityHref = `/cities/${city.slug}`;
 
   return (
-    <article className="rv-result-card">
-      <div className="rv-result-card__visual-wrap">
-        <EngineTransitionLink
-          href={cityHref}
-          transition="portal"
-          className="rv-result-card__visual"
-          aria-label={`${copy.open} ${city.city}`}
-        >
-          <CityThumb
-            slug={city.slug}
-            city={city.city}
-            country={city.country}
-            eager={eager}
-          />
-        </EngineTransitionLink>
-        <AnimatedLikeButton
-          active={favorite}
-          onToggle={onFavorite}
-          locale={locale}
-          city={city.city}
-        />
-      </div>
-
-      <div className="rv-result-card__body">
-        <div className="rv-result-head">
-          <div>
-            <h3>
-              <EngineTransitionLink href={cityHref} transition="portal" style={{ textDecoration: "none" }}>
-                {city.city}
-              </EngineTransitionLink>
-            </h3>
-            <p>
-              {city.country} · {continentLabel(city.continent, locale)}
-              {city.beach === true ? ` · ${locale === "es" ? "playa" : "beach"}` : ""}
-            </p>
-          </div>
-          <div
-            className="rv-result-score"
-            title={locale === "es" ? "Puntuación compuesta de la propuesta" : "Composite proposal score"}
-          >
-            {scoreLabel(city)}
-          </div>
-        </div>
-
-        <div className="rv-result-metrics">
-          <div><strong>{city.cost ? city.cost.replace("/mo", "") : "—"}</strong><span>{copy.monthlyCost}</span></div>
-          <div><strong>{catalogMetric(city.internet, " Mbps")}</strong><span>{copy.fixedInternet}</span></div>
-          <div><strong>{catalogMetric(city.quality, "/10")}</strong><span>{copy.quality}</span></div>
-        </div>
-
-        <div className="rv-card-actions">
-          <button
-            className="rv-icon-btn"
-            type="button"
-            data-active={compared}
-            onClick={onCompare}
-          >
-            {compared ? `✓ ${copy.compare}` : `+ ${copy.compare}`}
-          </button>
+    <EngineReveal
+      className="rv-result-card-reveal"
+      priority={eager}
+      effect="pop"
+      replay
+      renderMargin={1600}
+      motionMargin={150}
+      duration={340}
+      delay={Math.min(motionIndex % 3, 2) * 16}
+      scaleFrom={0.82}
+      overshoot={1.022}
+      releaseWhenFar
+    >
+      <article className="rv-result-card">
+        <div className="rv-result-card__visual-wrap">
           <EngineTransitionLink
-            className="rv-icon-btn"
             href={cityHref}
             transition="portal"
-            style={{ marginLeft: "auto", textDecoration: "none" }}
+            className="rv-result-card__visual"
+            aria-label={`${copy.open} ${city.city}`}
           >
-            {copy.open} ↗
+            <CityThumb
+              slug={city.slug}
+              city={city.city}
+              country={city.country}
+              eager={eager}
+            />
           </EngineTransitionLink>
+          <AnimatedLikeButton
+            active={favorite}
+            onToggle={onFavorite}
+            locale={locale}
+            city={city.city}
+          />
         </div>
-      </div>
-    </article>
+
+        <div className="rv-result-card__body">
+          <div className="rv-result-head">
+            <div>
+              <h3>
+                <EngineTransitionLink href={cityHref} transition="portal" style={{ textDecoration: "none" }}>
+                  {city.city}
+                </EngineTransitionLink>
+              </h3>
+              <p>
+                {city.country} · {continentLabel(city.continent, locale)}
+                {city.beach === true ? ` · ${locale === "es" ? "playa" : "beach"}` : ""}
+              </p>
+            </div>
+            <div
+              className="rv-result-score"
+              title={locale === "es" ? "Puntuación compuesta de la propuesta" : "Composite proposal score"}
+            >
+              {scoreLabel(city)}
+            </div>
+          </div>
+
+          <div className="rv-result-metrics">
+            <div><strong>{city.cost ? city.cost.replace("/mo", "") : "—"}</strong><span>{copy.monthlyCost}</span></div>
+            <div><strong>{catalogMetric(city.internet, " Mbps")}</strong><span>{copy.fixedInternet}</span></div>
+            <div><strong>{catalogMetric(city.quality, "/10")}</strong><span>{copy.quality}</span></div>
+          </div>
+
+          <div className="rv-card-actions">
+            <button
+              className="rv-icon-btn"
+              type="button"
+              data-active={compared}
+              onClick={onCompare}
+            >
+              {compared ? `✓ ${copy.compare}` : `+ ${copy.compare}`}
+            </button>
+            <EngineTransitionLink
+              className="rv-icon-btn"
+              href={cityHref}
+              transition="portal"
+              style={{ marginLeft: "auto", textDecoration: "none" }}
+            >
+              {copy.open} ↗
+            </EngineTransitionLink>
+          </div>
+        </div>
+      </article>
+    </EngineReveal>
   );
 }
 
@@ -326,6 +342,7 @@ export function Explorer({
               favorite={favorites.includes(city.slug)}
               compared={compare.includes(city.slug)}
               eager={index < 3}
+              motionIndex={index}
               onFavorite={() => toggle(city.slug)}
               onCompare={() => toggleCompare(city.slug)}
             />
