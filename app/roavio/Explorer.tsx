@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { AnimatedLikeButton } from "./AnimatedLikeButton";
 import { catalogFitScore, catalogMetric, type CityCatalogEntry } from "./catalog";
 import { peekRoavioCityAccent, type RoavioCityAccent } from "./cityAccent";
+import { cityExpandTransition, cityTransitionSurfaceId } from "./cityTransition";
 import { CityThumb } from "./CityThumb";
 import { copyFor, type RoavioLocale } from "./i18n";
 
@@ -107,6 +108,7 @@ function CityResultCard({
 }) {
   const copy = copyFor(locale).cities;
   const cityHref = `/cities/${city.slug}`;
+  const cityTransition = cityExpandTransition(city.slug);
   const [accent, setAccent] = useState<RoavioCityAccent | null>(null);
 
   useEffect(() => {
@@ -120,6 +122,7 @@ function CityResultCard({
 
   return (
     <EngineReveal
+      id={cityTransitionSurfaceId(city.slug)}
       className="rv-result-card-reveal"
       priority={eager}
       effect="pop"
@@ -140,7 +143,7 @@ function CityResultCard({
         <div className="rv-result-card__visual-wrap">
           <EngineTransitionLink
             href={cityHref}
-            transition="portal"
+            transition={cityTransition}
             className="rv-result-card__visual"
             aria-label={`${copy.open} ${city.city}`}
           >
@@ -196,7 +199,7 @@ function CityResultCard({
             <EngineTransitionLink
               className="rv-icon-btn rv-card-action rv-card-action--open"
               href={cityHref}
-              transition="portal"
+              transition={cityTransition}
               aria-label={`${copy.open} ${city.city}`}
               style={{ textDecoration: "none" }}
             >
