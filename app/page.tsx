@@ -2,7 +2,7 @@ import { createPage, defineSchema, type SchemaNode } from "@/engine";
 import { CityShowcase } from "./roavio/CityShowcase";
 import { HeroSearch } from "./roavio/ClientWidgets";
 import { loadCityCatalogForSlugs } from "./roavio/cityContent.server";
-import { HOME_CITY_SLUGS } from "./roavio/homeCities";
+import { HOME_RAIL_SLUGS } from "./roavio/homeCities";
 import { HomeHeroDeck } from "./roavio/HomeHeroDeck";
 import { copyFor, type RoavioLocale } from "./roavio/i18n";
 import { getRoavioLocale } from "./roavio/locale.server";
@@ -169,12 +169,12 @@ function createHomeSchema(locale: RoavioLocale) {
 }
 
 export default async function HomePage() {
-  const [catalog, locale] = await Promise.all([loadCityCatalogForSlugs(HOME_CITY_SLUGS), getRoavioLocale()]);
+  const [catalog, locale] = await Promise.all([loadCityCatalogForSlugs(HOME_RAIL_SLUGS), getRoavioLocale()]);
   const Page = createPage({
     schema: createHomeSchema(locale),
     slots: {
       "hero-search": <HeroSearch locale={locale} />,
-      "hero-deck": <HomeHeroDeck catalog={catalog} locale={locale} />,
+      "hero-deck": <HomeHeroDeck locale={locale} />,
       "city-showcase": <CityShowcase catalog={catalog} locale={locale} />,
     },
     compiler: { pageId: "roavio-home", serverFirst: true },

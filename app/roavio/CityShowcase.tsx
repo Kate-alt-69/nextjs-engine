@@ -2,19 +2,12 @@
 
 import { EngineAutoRail, EngineExpandLink, EngineTransitionLink } from "@/engine";
 import { catalogFitScore, type CityCatalogEntry } from "./catalog";
-import {
-  CITY_EXPAND_DURATION,
-  CITY_HANDOFF_DURATION,
-  cityTransitionImageId,
-  cityTransitionSurfaceId,
-} from "./cityTransition";
+import { CITY_EXPAND_DURATION, CITY_HANDOFF_DURATION, cityTransitionImageId, cityTransitionSurfaceId } from "./cityTransition";
 import { HOME_RAIL_SLUGS } from "./homeCities";
 import type { RoavioLocale } from "./i18n";
 import { CityThumb } from "./CityThumb";
 
-function metric(value: number | null, suffix = "") {
-  return value === null ? "—" : `${value}${suffix}`;
-}
+function metric(value: number | null, suffix = "") { return value === null ? "—" : `${value}${suffix}`; }
 
 export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[]; locale: RoavioLocale }) {
   const cities = HOME_RAIL_SLUGS
@@ -25,10 +18,11 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
   return (
     <EngineAutoRail
       className="rv-home-city-rail"
-      speed={24}
+      speed={30}
       gap={14}
-      resumeDelay={1800}
+      resumeDelay={1500}
       motionDirection="right"
+      pauseOnHover={false}
       ariaLabel={es ? "Ciudades populares y con alta calidad de vida" : "Popular and high quality-of-life cities"}
     >
       {cities.map((city, index) => {
@@ -48,18 +42,10 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
               transition="instant"
               aria-label={`${es ? "Abrir" : "Open"} ${city.city}`}
             >
-              <CityThumb
-                slug={city.slug}
-                city={city.city}
-                country={city.country}
-                eager={index < 3}
-              />
+              <CityThumb slug={city.slug} city={city.city} country={city.country} eager={index < 3} />
               <span className="rv-home-rail-card__shade" aria-hidden="true" />
               <div className="rv-home-rail-card__meta" data-engine-expand-detail>
-                <div>
-                  <h3>{city.city}</h3>
-                  <p>{city.country} · {city.continent}</p>
-                </div>
+                <div><h3>{city.city}</h3><p>{city.country} · {city.continent}</p></div>
                 <strong>{score === null ? "—" : score.toFixed(1)}</strong>
               </div>
             </EngineExpandLink>
@@ -71,11 +57,7 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
             </div>
 
             <div className="rv-home-rail-card__actions">
-              <EngineTransitionLink
-                href={`/compare?cities=${city.slug}`}
-                transition={{ type: "fade", duration: 220 }}
-                className="rv-home-rail-card__compare"
-              >
+              <EngineTransitionLink href={`/compare?cities=${city.slug}`} transition={{ type: "fade", duration: 220 }} className="rv-home-rail-card__compare">
                 {es ? "+ Comparar" : "+ Compare"}
               </EngineTransitionLink>
               <EngineExpandLink

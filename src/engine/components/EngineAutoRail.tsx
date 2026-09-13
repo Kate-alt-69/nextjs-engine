@@ -1,15 +1,6 @@
 "use client";
 
-import React, {
-	Children,
-	memo,
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	type CSSProperties,
-	type ReactNode,
-} from "react";
+import React, { Children, memo, useCallback, useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
 import { EngineScheduler } from "../core/enginescheduler";
 import type { BaseNodeProps } from "../schema/types";
 import { useCpropClass } from "../hooks/usePropStyles";
@@ -21,14 +12,16 @@ export interface EngineAutoRailProps extends BaseNodeProps {
 	speed?: number;
 	/** Gap between rail items. */
 	gap?: string | number;
-	/** Delay before automatic motion resumes after a user grabs/wheels the rail. */
+	/** Delay before automatic motion resumes after direct interaction. */
 	resumeDelay?: number;
-	/** Direction of automatic rail travel; intentionally distinct from CSS `direction`. */
+	/** Scroll direction. `right` increases scrollLeft, so card content travels right-to-left. */
 	motionDirection?: "right" | "left";
-	/** Bounce at the ends instead of jumping back to the beginning. */
+	/** Bounce at the ends instead of wrapping. */
 	bounce?: boolean;
 	/** Disable automatic movement while keeping the interactive native rail. */
 	autoplay?: boolean;
+	/** Pause automatic movement merely because the pointer is hovering the rail. */
+	pauseOnHover?: boolean;
 	ariaLabel?: string;
 }
 
@@ -46,7 +39,7 @@ const RAIL_CSS = `
 @media(prefers-reduced-motion:reduce){.e-auto-rail__viewport{scroll-behavior:auto}}
 `.trim();
 
-function injectRailCss(): void {
+function injectRailCss() {
 	if (typeof document === "undefined" || railCssInjected) return;
 	railCssInjected = true;
 	const style = document.createElement("style");
@@ -55,9 +48,7 @@ function injectRailCss(): void {
 	document.head.appendChild(style);
 }
 
-function cssGap(value: string | number): string {
-	return typeof value === "number" ? `${value}px` : value;
-}
+function cssGap(value: string | number) { return typeof value === "number" ? `${value}px` : value; }
 
 export const EngineAutoRail = memo(function EngineAutoRail({
 	children,
@@ -67,6 +58,7 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 	motionDirection = "right",
 	bounce = false,
 	autoplay = true,
+	pauseOnHover = true,
 	ariaLabel = "Scrollable cards",
 	className,
 	style,
@@ -101,16 +93,7 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 	}, []);
 
 	const requestNextFrame = useCallback(() => {
-		if (
-			typeof window === "undefined"
-			|| rafRef.current
-			|| !autoplay
-			|| reducedRef.current
-			|| pausedRef.current
-			|| !visibleRef.current
-			|| document.hidden
-			|| safeSpeed <= 0
-		) return;
+		if (typeof window === "undefined" || rafRef.current || !autoplay || reducedRef.current || pausedRef.current || !visibleRef.current || document.hidden || safeSpeed <= 0) return;
 		rafRef.current = window.requestAnimationFrame((now) => frameStepRef.current(now));
 	}, [autoplay, safeSpeed]);
 
@@ -122,16 +105,11 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 				lastFrameRef.current = 0;
 				return;
 			}
-
 			const previous = lastFrameRef.current || now;
 			const dt = Math.min(34, Math.max(0, now - previous));
 			lastFrameRef.current = now;
 			const maxScroll = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
-			if (maxScroll <= 1) {
-				lastFrameRef.current = 0;
-				return;
-			}
-
+			if (maxScroll <= 1) { lastFrameRef.current = 0; return; }
 			viewport.scrollLeft += directionRef.current * safeSpeed * (dt / 1000);
 			if (directionRef.current > 0 && viewport.scrollLeft >= maxScroll - 1) {
 				if (bounce) directionRef.current = -1;
@@ -162,13 +140,10 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 		directionRef.current = motionDirection === "right" ? 1 : -1;
 		const root = rootRef.current;
 		if (!root) return;
-		const releaseFrameMonitor = autoplay && !reducedRef.current
-			? EngineScheduler.acquireFrameMonitor()
-			: () => undefined;
+		const releaseFrameMonitor = autoplay && !reducedRef.current ? EngineScheduler.acquireFrameMonitor() : () => undefined;
 		const stopObserve = EngineScheduler.observe(root, (snapshot) => {
 			visibleRef.current = snapshot.visible || snapshot.near;
-			if (visibleRef.current) requestNextFrame();
-			else stopFrame();
+			if (visibleRef.current) requestNextFrame(); else stopFrame();
 		}, { nearMargin: "180px 0px", visibleThreshold: 0.01, releaseWhenFar: true });
 		const onVisibility = () => document.hidden ? stopFrame() : requestNextFrame();
 		document.addEventListener("visibilitychange", onVisibility);
@@ -206,16 +181,9 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 		if (!drag || drag.id !== event.pointerId) return;
 		dragRef.current = null;
 		rootRef.current?.removeAttribute("data-dragging");
-		try { event.currentTarget.releasePointerCapture?.(event.pointerId); } catch { /* browser may already release */ }
+		try { event.currentTarget.releasePointerCapture?.(event.pointerId); } catch { /* optional */ }
 		if (drag.moved) suppressClickUntilRef.current = performance.now() + 180;
 		pause(true);
-	};
-
-	const onClickCapture = (event: React.MouseEvent<HTMLDivElement>) => {
-		if (performance.now() < suppressClickUntilRef.current) {
-			event.preventDefault();
-			event.stopPropagation();
-		}
 	};
 
 	return (
@@ -226,12 +194,14 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 			style={{ ...resolvedStyle, "--e-rail-gap": cssGap(gap) } as CSSProperties}
 			role="region"
 			aria-label={ariaLabel}
-			onMouseEnter={() => pause(false)}
-			onMouseLeave={() => pause(true)}
+			onMouseEnter={pauseOnHover ? () => pause(false) : undefined}
+			onMouseLeave={pauseOnHover ? () => pause(true) : undefined}
 			onFocusCapture={() => pause(false)}
 			onBlurCapture={() => pause(true)}
 			onWheel={() => pause(true)}
-			onClickCapture={onClickCapture}
+			onClickCapture={(event) => {
+				if (performance.now() < suppressClickUntilRef.current) { event.preventDefault(); event.stopPropagation(); }
+			}}
 		>
 			<div
 				ref={viewportRef}
@@ -240,10 +210,9 @@ export const EngineAutoRail = memo(function EngineAutoRail({
 				onPointerMove={onPointerMove}
 				onPointerUp={finishDrag}
 				onPointerCancel={finishDrag}
+				onDragStart={(event) => event.preventDefault()}
 			>
-				{items.map((child, index) => (
-					<div className="e-auto-rail__item" key={index}>{child}</div>
-				))}
+				{items.map((child, index) => <div className="e-auto-rail__item" key={index}>{child}</div>)}
 			</div>
 		</div>
 	);
