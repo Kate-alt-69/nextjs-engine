@@ -52,6 +52,15 @@ function warmOfficialCityImage(src: string) {
   image.src = src;
 }
 
+/**
+ * Roavio city-photo renderer.
+ *
+ * Card-level scroll orchestration is handled by EngineScroll timelines. The
+ * image itself uses EngineScheduler's pooled visibility observers because that
+ * is the cheaper primitive for mounting/unmounting media DOM. The card's wider
+ * render timeline wakes the subtree before this 640px image boundary, so no
+ * per-image window scroll handler is needed.
+ */
 export function OfficialCityImage({
   slug,
   alt = "",
@@ -111,9 +120,6 @@ export function OfficialCityImage({
       if (eligible) warmOfficialCityImage(src);
     };
 
-    // Do one synchronous geometry bootstrap before waiting for IntersectionObserver.
-    // This fixes Chromium/Firefox cases where an observer attached inside a
-    // content-visibility subtree did not deliver until a later reload/scroll.
     syncWarmGeometry();
 
     const stop = EngineScheduler.observe(probe, (snapshot) => {
@@ -151,8 +157,9 @@ export function OfficialCityImage({
 
     const syncVisibleGeometry = () => setNear(geometryNear(probe, VISIBLE_DOM_MARGIN));
 
-    // Bootstrap the actual visible DOM immediately. This is the important part
-    // for home cards that previously stayed as placeholders until reload.
+    // Bootstrap once for first paint / bfcache restoration. After that the NE
+    // scheduler owns viewport updates; there is deliberately no window scroll
+    // listener per image anymore.
     syncVisibleGeometry();
 
     const stop = EngineScheduler.observe(probe, (snapshot) => {
@@ -163,24 +170,12 @@ export function OfficialCityImage({
       releaseWhenFar: true,
     });
 
-    let scrollRaf = 0;
-    const onScroll = () => {
-      if (scrollRaf) return;
-      scrollRaf = window.requestAnimationFrame(() => {
-        scrollRaf = 0;
-        syncVisibleGeometry();
-      });
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
     window.addEventListener("pageshow", syncVisibleGeometry);
+    window.addEventListener("resize", syncVisibleGeometry, { passive: true });
     return () => {
       stop();
-      if (scrollRaf) window.cancelAnimationFrame(scrollRaf);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
       window.removeEventListener("pageshow", syncVisibleGeometry);
+      window.removeEventListener("resize", syncVisibleGeometry);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [priority, slug]);
