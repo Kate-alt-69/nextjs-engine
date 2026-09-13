@@ -39,6 +39,8 @@ const LazyEngineCheckbox = lazyEngineComponent(() => import("../components/Engin
 const LazyEngineLabel = lazyEngineComponent(() => import("../components/EngineForms").then((module) => ({ default: module.EngineLabel })));
 const LazyEngineLink = lazyEngineComponent(() => import("../components/EngineLink").then((module) => ({ default: module.EngineLink })));
 const LazyEngineExpandLink = lazyEngineComponent(() => import("../components/EngineExpandLink").then((module) => ({ default: module.EngineExpandLink })));
+const LazyEngineSwipeDeck = lazyEngineComponent(() => import("../components/EngineSwipeDeck").then((module) => ({ default: module.EngineSwipeDeck })));
+const LazyEngineAutoRail = lazyEngineComponent(() => import("../components/EngineAutoRail").then((module) => ({ default: module.EngineAutoRail })));
 const LazyEngineNav = lazyEngineComponent(() => import("../components/EngineNav").then((module) => ({ default: module.EngineNav })));
 const LazyEngineManim = lazyEngineComponent(() => import("../components/EngineManim/EngineManim").then((module) => ({ default: module.EngineManim })));
 const LazyEngineManim3D = lazyEngineComponent(() => import("../components/EngineManim/EngineManim3D").then((module) => ({ default: module.EngineManim3D })));
@@ -80,6 +82,10 @@ function buildDefaultRegistry(): ComponentRegistry {
 	registry.set("EngineLink", LazyEngineLink);
 	registry.set("expand-link", LazyEngineExpandLink);
 	registry.set("EngineExpandLink", LazyEngineExpandLink);
+	registry.set("swipe-deck", LazyEngineSwipeDeck);
+	registry.set("EngineSwipeDeck", LazyEngineSwipeDeck);
+	registry.set("auto-rail", LazyEngineAutoRail);
+	registry.set("EngineAutoRail", LazyEngineAutoRail);
 	registry.set("nav", LazyEngineNav);
 	registry.set("EngineNav", LazyEngineNav);
 	registry.set("manim", LazyEngineManim);
