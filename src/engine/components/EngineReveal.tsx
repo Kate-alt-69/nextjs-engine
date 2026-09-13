@@ -63,6 +63,29 @@ function pointSpacing(): number {
 }
 
 /**
+ * Final visual-viewport safety check used only when a timeline is about to
+ * leave its active region. Mobile browser chrome can resize the visual viewport
+ * independently of the layout viewport for a frame, so a mathematically
+ * "before"/"after" timeline must never be allowed to hide pixels that are
+ * still physically visible to the user.
+ */
+function intersectsVisualViewport(element: HTMLElement, margin = 1): boolean {
+	const rect = element.getBoundingClientRect();
+	const visualViewport = window.visualViewport;
+	const viewportTop = visualViewport?.offsetTop ?? 0;
+	const viewportLeft = visualViewport?.offsetLeft ?? 0;
+	const viewportHeight = visualViewport?.height ?? window.innerHeight;
+	const viewportWidth = visualViewport?.width ?? window.innerWidth;
+	const viewportBottom = viewportTop + viewportHeight;
+	const viewportRight = viewportLeft + viewportWidth;
+
+	return rect.bottom > viewportTop - margin
+		&& rect.top < viewportBottom + margin
+		&& rect.right > viewportLeft - margin
+		&& rect.left < viewportRight + margin;
+}
+
+/**
  * Build a viewport-intersection timeline in EngineScroll points.
  *
  * `startAlign: "end"` resolves where the element BOTTOM meets the viewport
@@ -230,6 +253,7 @@ export const EngineReveal = memo(function EngineReveal({
 	const settleTimerRef = useRef<number | null>(null);
 	const enterRafRef = useRef<number | null>(null);
 	const revealedRef = useRef(false);
+	const visuallyHeldRef = useRef(false);
 	const motionRegionRef = useRef<RevealRegion | null>(null);
 	const renderRegionRef = useRef<RevealRegion | null>(null);
 	const [motionState, setMotionState] = useState<RevealState>("settled");
@@ -315,12 +339,28 @@ export const EngineReveal = memo(function EngineReveal({
 			motionRegionRef.current = region;
 
 			if (region === "active") {
+				// A visual-viewport hold means the timeline briefly disagreed with what
+				// the user could actually see (usually mobile browser chrome settling).
+				// Do not replay/flicker when the mathematical timeline catches back up.
+				if (visuallyHeldRef.current) {
+					visuallyHeldRef.current = false;
+					settle(false);
+					return;
+				}
 				if (!revealedRef.current || replay) animateIn();
 				else settle(false);
 				return;
 			}
 
 			clearPending();
+			if (intersectsVisualViewport(element)) {
+				visuallyHeldRef.current = true;
+				if (!revealedRef.current) animateIn();
+				else settle(false);
+				return;
+			}
+
+			visuallyHeldRef.current = false;
 			if (replay || !revealedRef.current) setMotionState("sleeping");
 		};
 
