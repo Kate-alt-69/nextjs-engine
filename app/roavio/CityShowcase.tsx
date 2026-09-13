@@ -1,5 +1,6 @@
 import { EngineReveal, EngineTransitionLink } from "@/engine";
 import { catalogFitScore, type CityCatalogEntry } from "./catalog";
+import { cityExpandTransition, cityTransitionSurfaceId } from "./cityTransition";
 import type { RoavioLocale } from "./i18n";
 import { OfficialCityImage } from "./OfficialCityImage";
 
@@ -21,9 +22,11 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
     <div className="rv-city-grid">
       {featured.map((city, index) => {
         const score = catalogFitScore(city);
+        const surfaceId = cityTransitionSurfaceId(city.slug);
         return (
           <EngineReveal
             key={city.slug}
+            id={surfaceId}
             className="rv-city-card-reveal"
             priority={index < 2}
             effect="pop"
@@ -36,7 +39,12 @@ export function CityShowcase({ catalog, locale }: { catalog: CityCatalogEntry[];
             overshoot={1.022}
             releaseWhenFar
           >
-            <EngineTransitionLink className="rv-city-card" href={`/cities/${city.slug}`} transition="portal" style={{ background: gradients[index % gradients.length] }}>
+            <EngineTransitionLink
+              className="rv-city-card"
+              href={`/cities/${city.slug}`}
+              transition={cityExpandTransition(city.slug)}
+              style={{ background: gradients[index % gradients.length] }}
+            >
               <OfficialCityImage
                 slug={city.slug}
                 className="rv-city-card__photo"
