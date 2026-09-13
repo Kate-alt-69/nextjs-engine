@@ -157,7 +157,7 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
       { type: "text", props: { content: `${city.country} · ${continentLabel(city.continent, locale)}`, variant: "overline", color: "var(--rv-lime)", weight: 800 } },
       { type: "heading", props: { level: 1, content: city.name, size: { xs: "2.65rem", md: "4rem" }, color: "#fff", lineHeight: .96, style: { margin: ".3rem 0 0" } } },
     ],
-  }, { priority: true, duration: 360, delay: 110 });
+  }, { priority: true, duration: 360, delay: 90 });
 
   const metricCards = stats.map(([label, value], index) => revealNode({
     type: "box",
@@ -171,7 +171,7 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
     priority: true,
     effect: "pop",
     duration: 360,
-    delay: 150 + index * 42,
+    delay: 150 + index * 46,
     scaleFrom: .94,
     overshoot: 1.012,
   }));
@@ -224,7 +224,7 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
           } as SchemaNode]
         : []),
     ],
-  }, { effect: "slide-up", duration: 460, delay: 90 });
+  }, { effect: "slide-up", duration: 460, delay: 420 });
 
   const summaryCard = revealNode({
     type: "box",
@@ -253,7 +253,7 @@ export function createCityDossier(city: CityContent, locale: RoavioLocale) {
         ],
       },
     ],
-  }, { effect: "slide-up", duration: 460, delay: 150 });
+  }, { effect: "slide-up", duration: 460, delay: 500 });
 
   const schema = defineSchema({
     meta: {
