@@ -69,6 +69,8 @@ export interface EngineImageProps extends Omit<ImageNodeProps, "type" | "objectF
 	qualityMobile?: number;
 	qualityDesktop?: number;
 	loader?: ImageLoader;
+	/** Explicit browser loading policy. Priority images default to eager. */
+	loading?: "eager" | "lazy";
 	/** Bypass the Next image optimizer and request `src` exactly as supplied. */
 	unoptimized?: boolean;
 	onLoad?: () => void;
@@ -93,6 +95,7 @@ export const EngineImage = memo(function EngineImage({
 	caption,
 	blurDataURL,
 	loader,
+	loading,
 	unoptimized = false,
 	onLoad,
 	onError,
@@ -128,6 +131,8 @@ export const EngineImage = memo(function EngineImage({
 	const mobileQuality = qualityMobile ?? resolvedQuality;
 	const desktopQuality = qualityDesktop ?? resolvedQuality;
 	const resolvedSizes = sizes ?? autoSizes(fill, width);
+	const resolvedLoading = loading ?? (priority ? "eager" : undefined);
+	const resolvedFetchPriority = priority ? "high" as const : undefined;
 	const resolvedAspectRatio = aspectRatio ?? (
 		!fill &&
 		typeof width === "number" && width > 0 &&
@@ -151,6 +156,8 @@ export const EngineImage = memo(function EngineImage({
 			alt,
 			sizes: resolvedSizes,
 			priority,
+			loading: resolvedLoading,
+			fetchPriority: resolvedFetchPriority,
 			loader,
 			unoptimized,
 			...sizing,
@@ -160,7 +167,7 @@ export const EngineImage = memo(function EngineImage({
 			mobile: getImageProps({ ...baseProps, quality: mobileQuality }),
 			desktop: getImageProps({ ...baseProps, quality: desktopQuality }),
 		};
-	}, [alt, desktopQuality, fill, height, loader, mobileQuality, priority, resolvedSizes, src, unoptimized, usePerViewport, width]);
+	}, [alt, desktopQuality, fill, height, loader, mobileQuality, priority, resolvedFetchPriority, resolvedLoading, resolvedSizes, src, unoptimized, usePerViewport, width]);
 
 	// Cached images can already be complete by the time React commits the node,
 	// especially when a route is hard-refreshed or restored from the back/forward
@@ -215,6 +222,8 @@ export const EngineImage = memo(function EngineImage({
 		alt,
 		sizes: resolvedSizes,
 		priority,
+		loading: resolvedLoading,
+		fetchPriority: resolvedFetchPriority,
 		loader,
 		unoptimized,
 		style: imageStyle,
