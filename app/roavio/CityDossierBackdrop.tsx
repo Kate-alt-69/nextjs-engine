@@ -1,5 +1,6 @@
 "use client";
 
+import { EngineReveal } from "@/engine";
 import { cityTransitionSurfaceId } from "./cityTransition";
 import { OfficialCityImage } from "./OfficialCityImage";
 
@@ -11,14 +12,24 @@ export function CityDossierBackdrop({ slug }: { slug: string }) {
       data-roavio-city-image
       aria-hidden="true"
     >
-      <OfficialCityImage
-        slug={slug}
+      <EngineReveal
+        className="rv-dossier-backdrop__reveal"
         priority
-        className="rv-dossier-backdrop__full"
-        sizes="100vw"
-        style={{ position: "absolute", inset: 0 }}
-      />
-      <span className="rv-dossier-backdrop__veil" />
+        effect="fade"
+        replay={false}
+        duration={520}
+        delay={40}
+        releaseWhenFar={false}
+      >
+        <OfficialCityImage
+          slug={slug}
+          priority
+          className="rv-dossier-backdrop__full"
+          sizes="100vw"
+          style={{ position: "absolute", inset: 0 }}
+        />
+        <span className="rv-dossier-backdrop__veil" />
+      </EngineReveal>
     </div>
   );
 }
