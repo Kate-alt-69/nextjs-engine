@@ -1,0 +1,12 @@
+/* The theme control sits over the existing footer surface. The dock must stay
+   visually transparent; giving the full-width dock its own page-colored
+   background creates the dark/cream rectangular strip visible behind the pill. */
+.rv-footer-theme-dock{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.rv-footer-theme-dock::before,
+.rv-footer-theme-dock::after{
+  display:none!important;
+}
