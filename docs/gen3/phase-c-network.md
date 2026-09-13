@@ -314,4 +314,4 @@ session + EngineCookie + origin + trust + nonce + signature + rate policy
 
 ## Next implementation phase
 
-Phase C is complete. Phase D begins with the used-feature manifest, compatibility fallback compiler, older-browser rendering path, compatibility dialog, and development-only `/_engine/debug` inspection surface.
+Phase C is complete. Phase D begins with the [used-feature compatibility manifest](./phase-d-hardening.md), compatibility fallback compiler, older-browser rendering path, compatibility dialog, and development-only `/_engine/debug` inspection surface.

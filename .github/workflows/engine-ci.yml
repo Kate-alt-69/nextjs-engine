@@ -70,6 +70,9 @@ jobs:
           node scripts/gen3-private-search-app-smoke.js
           node scripts/gen3-private-search-next-app-smoke.js
           node scripts/gen3-enginecookie-vault-smoke.js
+      - name: Test Generation 3 phase D compatibility contracts
+        if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
+        run: node scripts/gen3-compatibility-manifest-smoke.js
       - name: Type-check engine
         run: npm run type-check
       - name: Build Next.js integration app

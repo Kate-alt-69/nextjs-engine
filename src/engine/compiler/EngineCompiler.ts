@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { PageSchema, SchemaNode } from "../schema/types";
+import { compileEngineUsedFeatureManifest } from "./EngineCompatibilityManifest";
 import { getEngineRuntimeProfile, resolveNodeRuntime } from "./runtimeRegistry";
 import type {
 	EngineCapability,
@@ -142,7 +143,6 @@ function collectNodeCapabilities(
 interface CompileState {
 	pageId: string;
 	diagnostics: EngineCompilerDiagnostic[];
-	capabilities: Set<EngineCapability>;
 	assets: Map<string, EngineCompiledAsset>;
 	summary: EngineCompilerSummary;
 }
@@ -172,7 +172,6 @@ function compileNode(
 	const heavy = runtimeResolution.profile.heavy === true;
 	const interactive = runtimeResolution.runtime === "client";
 
-	for (const capability of capabilities) state.capabilities.add(capability);
 	for (const asset of assets) recordAsset(state, asset);
 
 	state.summary.totalNodes += 1;
@@ -225,7 +224,6 @@ export function compilePage(schema: PageSchema, options: EngineCompileOptions = 
 	const state: CompileState = {
 		pageId,
 		diagnostics: [],
-		capabilities: new Set(),
 		assets: new Map(),
 		summary: {
 			totalNodes: 0,
@@ -239,6 +237,7 @@ export function compilePage(schema: PageSchema, options: EngineCompileOptions = 
 	};
 
 	const root = compileNode(schema.root, "root", 0, state);
+	const featureManifest = compileEngineUsedFeatureManifest(pageId, root);
 	state.summary.assetCount = state.assets.size;
 
 	if (options.strict && state.summary.clientNodes === state.summary.totalNodes && state.summary.totalNodes > 1) {
@@ -255,7 +254,8 @@ export function compilePage(schema: PageSchema, options: EngineCompileOptions = 
 		schema,
 		root,
 		summary: state.summary,
-		capabilities: [...state.capabilities].sort(),
+		featureManifest,
+		capabilities: featureManifest.uses.map(({ feature }) => feature),
 		assets: [...state.assets.values()],
 		diagnostics: state.diagnostics,
 	};

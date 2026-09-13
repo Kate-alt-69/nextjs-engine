@@ -45,8 +45,10 @@ import { compilePage } from "nextjs-engine";
 const plan = compilePage(schema);
 
 console.log(plan.summary.clientIslands);
-console.log(plan.capabilities);
+console.log(plan.featureManifest.uses);
 ```
+
+`plan.capabilities` remains a compact compatibility alias derived from the richer Phase D used-feature manifest.
 
 ### Runtime classification
 
