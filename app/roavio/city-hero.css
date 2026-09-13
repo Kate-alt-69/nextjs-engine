@@ -99,6 +99,25 @@ html[data-rv-theme='light'] .rv-dossier-backdrop--fallback{background:linear-gra
   align-self:flex-end;
   width:min(760px,72%);
   max-width:760px;
+  color:#fff!important;
+  font-family:'DM Sans',system-ui,sans-serif;
+}
+/* The hero always sits on photography, even in light mode. Never inherit the
+   page's dark light-theme ink into the photo surface. */
+.rv-dossier-hero__copy h1{
+  color:#fff!important;
+  font-family:'Instrument Serif',Georgia,serif!important;
+  font-weight:400!important;
+  letter-spacing:-.025em!important;
+  text-shadow:0 2px 20px rgba(0,0,0,.32);
+}
+.rv-dossier-hero__copy>:first-child{
+  color:var(--rv-lime)!important;
+  font-family:'Manrope','DM Sans',sans-serif!important;
+  font-weight:800!important;
+  letter-spacing:.12em!important;
+  text-transform:uppercase;
+  text-shadow:0 1px 12px rgba(0,0,0,.28);
 }
 .rv-dossier-hero__image{
   position:absolute!important;
@@ -152,7 +171,8 @@ html[data-rv-theme='light'] .rv-dossier-backdrop--fallback{background:linear-gra
   color:#f3faf6!important;
 }
 .rv-dossier-intro .rv-dossier-metric>*{color:inherit!important}
-.rv-dossier-intro .rv-dossier-metric>*:first-child{color:rgba(237,249,243,.72)!important}
+.rv-dossier-intro .rv-dossier-metric>*:first-child{color:rgba(237,249,243,.72)!important;font-family:'DM Sans',sans-serif}
+.rv-dossier-intro .rv-dossier-metric>*:last-child{font-family:'Manrope','DM Sans',sans-serif;font-variant-numeric:tabular-nums}
 .rv-dossier-page .rv-dossier-section,
 .rv-dossier-page .rv-dossier-insight,
 .rv-dossier-page .rv-dossier-summary{
@@ -194,6 +214,10 @@ html[data-rv-theme='light'] .rv-dossier-page :is(
 html[data-rv-theme='light'] .rv-dossier-page .rv-dossier-summary__row span{
   color:var(--rv-muted)!important;
 }
+/* Explicitly repeat hero contrast after all light-theme rules. */
+html[data-rv-theme='light'] .rv-dossier-hero__copy,
+html[data-rv-theme='light'] .rv-dossier-hero__copy h1{color:#fff!important}
+html[data-rv-theme='light'] .rv-dossier-hero__copy>:first-child{color:var(--rv-lime)!important}
 
 @media(max-width:700px){
   .rv-dossier-backdrop img{
