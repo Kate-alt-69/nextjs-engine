@@ -16,6 +16,13 @@
   pointer-events:none;
   background:linear-gradient(145deg,#102a22,#07110e 62%);
 }
+.rv-dossier-backdrop__reveal,
+.rv-dossier-backdrop__reveal>.e-reveal__content{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+}
 .rv-dossier-backdrop img{
   position:absolute;
   inset:-1.75rem;
