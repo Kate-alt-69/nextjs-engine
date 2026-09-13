@@ -37,7 +37,10 @@
 }
 .rv-dossier-backdrop--fallback{background:linear-gradient(145deg,#15372c,#07110e 68%)}
 
-html[data-rv-theme='light'] .rv-dossier-page{background:#f5f4ee!important}
+html[data-rv-theme='light'] .rv-dossier-page{
+  background:#f5f4ee!important;
+  color:var(--rv-ink)!important;
+}
 html[data-rv-theme='light'] .rv-dossier-backdrop img{
   filter:blur(7px) saturate(.88) brightness(.99);
   opacity:.60;
@@ -139,6 +142,41 @@ html[data-rv-theme='light'] .rv-dossier-backdrop--fallback{background:linear-gra
 .rv-dossier-page .rv-dossier-summary{
   background:color-mix(in srgb,var(--rv-card) 92%,transparent)!important;
   backdrop-filter:none!important;
+}
+
+/* City dossiers are shared by all 95 destinations. Keep theme ownership here
+   so switching from dark to light cannot leave dark-mode text tokens behind. */
+html[data-rv-theme='light'] .rv-dossier-intro{
+  border-bottom-color:var(--rv-line)!important;
+}
+html[data-rv-theme='light'] .rv-dossier-intro .rv-dossier-metric{
+  background:color-mix(in srgb,var(--rv-card) 96%,transparent)!important;
+  border-color:var(--rv-line)!important;
+  color:var(--rv-ink)!important;
+}
+html[data-rv-theme='light'] .rv-dossier-intro .rv-dossier-metric>*{
+  color:inherit!important;
+}
+html[data-rv-theme='light'] .rv-dossier-intro .rv-dossier-metric>*:first-child{
+  color:var(--rv-muted)!important;
+}
+html[data-rv-theme='light'] .rv-dossier-page :is(
+  .rv-dossier-section,
+  .rv-dossier-summary,
+  .rv-dossier-insight,
+  .rv-prose
+){
+  color:var(--rv-ink)!important;
+}
+html[data-rv-theme='light'] .rv-dossier-page :is(
+  .rv-dossier-section,
+  .rv-dossier-summary,
+  .rv-dossier-insight
+) :is(h2,h3,h4,strong){
+  color:var(--rv-ink)!important;
+}
+html[data-rv-theme='light'] .rv-dossier-page .rv-dossier-summary__row span{
+  color:var(--rv-muted)!important;
 }
 
 @media(max-width:700px){
