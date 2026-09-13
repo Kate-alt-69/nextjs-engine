@@ -1,6 +1,6 @@
 "use client";
 
-import { EngineTransitionLink } from "@/engine";
+import { EngineReveal, EngineTransitionLink } from "@/engine";
 import { useMemo, useState, type ReactNode } from "react";
 import { catalogFitScore, catalogMetric, type CityCatalogEntry } from "./catalog";
 import { CityThumb } from "./CityThumb";
@@ -108,26 +108,41 @@ export function MatchQuiz({ catalog, locale }: { catalog: CityCatalogEntry[]; lo
               const fit = catalogFitScore(city);
               const cityHref = `/cities/${city.slug}`;
               return (
-                <article className="rv-result-card" key={city.slug}>
-                  <EngineTransitionLink href={cityHref} transition="portal" className="rv-result-card__visual" aria-label={`${es ? "Abrir" : "Open"} ${city.city}`}>
-                    <CityThumb slug={city.slug} city={city.city} country={city.country} eager={index < 3} />
-                  </EngineTransitionLink>
-                  <div className="rv-result-card__body">
-                    <div className="rv-result-head">
-                      <div><h3>{index + 1}. {city.city}</h3><p>{city.country} · {regionLabel(city.continent, locale)}</p></div>
-                      <div className="rv-result-score">{fit === null ? (es ? "parcial" : "partial") : fit.toFixed(1)}</div>
+                <EngineReveal
+                  key={city.slug}
+                  className="rv-result-card-reveal"
+                  priority={index < 3}
+                  effect="pop"
+                  replay
+                  renderMargin={1400}
+                  motionMargin={140}
+                  duration={330}
+                  delay={Math.min(index % 3, 2) * 18}
+                  scaleFrom={0.82}
+                  overshoot={1.02}
+                  releaseWhenFar
+                >
+                  <article className="rv-result-card">
+                    <EngineTransitionLink href={cityHref} transition="portal" className="rv-result-card__visual" aria-label={`${es ? "Abrir" : "Open"} ${city.city}`}>
+                      <CityThumb slug={city.slug} city={city.city} country={city.country} eager={index < 3} />
+                    </EngineTransitionLink>
+                    <div className="rv-result-card__body">
+                      <div className="rv-result-head">
+                        <div><h3>{index + 1}. {city.city}</h3><p>{city.country} · {regionLabel(city.continent, locale)}</p></div>
+                        <div className="rv-result-score">{fit === null ? (es ? "parcial" : "partial") : fit.toFixed(1)}</div>
+                      </div>
+                      <div className="rv-result-metrics">
+                        <div><strong>{catalogMetric(city.internet, " Mbps")}</strong><span>internet</span></div>
+                        <div><strong>{catalogMetric(city.safety, "/10")}</strong><span>{es ? "seguridad" : "safety"}</span></div>
+                        <div><strong>{catalogMetric(city.quality, "/10")}</strong><span>{es ? "calidad" : "quality"}</span></div>
+                      </div>
+                      <div className="rv-card-actions">
+                        <EngineTransitionLink className="rv-primary" href={cityHref} transition="portal">{es ? "Abrir ciudad" : "Open city"} →</EngineTransitionLink>
+                        <EngineTransitionLink className="rv-secondary" href={`/compare?cities=${city.slug}`} transition="depth">{es ? "Comparar" : "Compare"}</EngineTransitionLink>
+                      </div>
                     </div>
-                    <div className="rv-result-metrics">
-                      <div><strong>{catalogMetric(city.internet, " Mbps")}</strong><span>internet</span></div>
-                      <div><strong>{catalogMetric(city.safety, "/10")}</strong><span>{es ? "seguridad" : "safety"}</span></div>
-                      <div><strong>{catalogMetric(city.quality, "/10")}</strong><span>{es ? "calidad" : "quality"}</span></div>
-                    </div>
-                    <div className="rv-card-actions">
-                      <EngineTransitionLink className="rv-primary" href={cityHref} transition="portal">{es ? "Abrir ciudad" : "Open city"} →</EngineTransitionLink>
-                      <EngineTransitionLink className="rv-secondary" href={`/compare?cities=${city.slug}`} transition="depth">{es ? "Comparar" : "Compare"}</EngineTransitionLink>
-                    </div>
-                  </div>
-                </article>
+                  </article>
+                </EngineReveal>
               );
             })}
           </div>
