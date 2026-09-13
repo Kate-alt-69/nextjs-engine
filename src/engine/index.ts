@@ -90,6 +90,8 @@ export type { EngineLinkConfig, EngineLinkProps } from "./components/EngineLink"
 export { EngineNav, renderEngineAnchor } from "./components/EngineNav";
 export { EngineTransitionLink } from "./components/EngineTransitionLink";
 export type { EngineTransitionLinkProps } from "./components/EngineTransitionLink";
+export { EngineExpandLink } from "./components/EngineExpandLink";
+export type { EngineExpandLinkProps } from "./components/EngineExpandLink";
 export {
 	ENGINE_TRANSITIONS,
 	isKnownEngineTransition,
