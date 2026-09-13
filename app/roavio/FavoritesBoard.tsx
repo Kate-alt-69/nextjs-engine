@@ -5,6 +5,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { AnimatedLikeButton } from "./AnimatedLikeButton";
 import { catalogFitScore, catalogMetric, type CityCatalogEntry } from "./catalog";
 import { peekRoavioCityAccent, type RoavioCityAccent } from "./cityAccent";
+import { cityExpandTransition, cityTransitionSurfaceId } from "./cityTransition";
 import { CityThumb } from "./CityThumb";
 import { copyFor, type RoavioLocale } from "./i18n";
 
@@ -15,7 +16,7 @@ function readFavorites(): string[] {
   try {
     const parsed = JSON.parse(window.localStorage.getItem(FAVORITES_KEY) ?? "[]");
     return Array.isArray(parsed)
-      ? parsed.filter((value): value is string => typeof value === "string")
+      ? parsed.filter((item): item is string => typeof item === "string")
       : [];
   } catch {
     return [];
@@ -90,6 +91,7 @@ function FavoriteCityCard({
 }) {
   const copy = copyFor(locale).cities;
   const cityHref = `/cities/${city.slug}`;
+  const cityTransition = cityExpandTransition(city.slug);
   const [accent, setAccent] = useState<RoavioCityAccent | null>(null);
 
   useEffect(() => {
@@ -103,6 +105,7 @@ function FavoriteCityCard({
 
   return (
     <EngineReveal
+      id={cityTransitionSurfaceId(city.slug)}
       className="rv-result-card-reveal"
       effect="pop"
       replay
@@ -116,7 +119,7 @@ function FavoriteCityCard({
     >
       <article className="rv-result-card" data-accent-ready={accent ? "true" : "false"} style={accentStyle}>
         <div className="rv-result-card__visual-wrap">
-          <EngineTransitionLink href={cityHref} transition="portal" className="rv-result-card__visual" aria-label={`${copy.open} ${city.city}`}>
+          <EngineTransitionLink href={cityHref} transition={cityTransition} className="rv-result-card__visual" aria-label={`${copy.open} ${city.city}`}>
             <CityThumb
               slug={city.slug}
               city={city.city}
@@ -145,7 +148,7 @@ function FavoriteCityCard({
             <EngineTransitionLink className="rv-icon-btn rv-card-action rv-card-action--compare" href={`/compare?cities=${city.slug}`} transition="depth" style={{ textDecoration: "none" }}>
               <span aria-hidden>+</span><span>{copy.compare}</span>
             </EngineTransitionLink>
-            <EngineTransitionLink className="rv-icon-btn rv-card-action rv-card-action--open" href={cityHref} transition="portal" aria-label={`${copy.open} ${city.city}`} style={{ textDecoration: "none" }}>
+            <EngineTransitionLink className="rv-icon-btn rv-card-action rv-card-action--open" href={cityHref} transition={cityTransition} aria-label={`${copy.open} ${city.city}`} style={{ textDecoration: "none" }}>
               <span>{copy.open}</span><span aria-hidden>↗</span>
             </EngineTransitionLink>
           </div>
