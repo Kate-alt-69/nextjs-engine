@@ -63,6 +63,14 @@ export function decideLazy(node: SchemaNode, depth: number): LazyDecision {
 		};
 	}
 
+	// EngineReveal already owns a wider render timeline, a tighter motion
+	// timeline, geometry preservation, and far-content release. Wrapping it in a
+	// second LazyMount would duplicate viewport schedulers and can hide its
+	// registration target before EngineScroll measures it.
+	if (node.type === "reveal" || node.type === "EngineReveal") {
+		return eagerDecision();
+	}
+
 	// Media has expensive network/decode work. The outer lazy boundary also
 	// delays loading the split component module; the media component then owns
 	// its own fine-grained network loading once mounted.
