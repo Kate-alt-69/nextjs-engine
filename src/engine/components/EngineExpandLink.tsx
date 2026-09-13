@@ -77,13 +77,19 @@ function pageBackground(): string {
 
 function prepareMediaCover(root: HTMLElement, selector?: string): void {
 	if (!selector) return;
-	root.querySelectorAll<HTMLElement>(selector).forEach((surface) => {
-		important(surface, "position", "absolute");
-		important(surface, "inset", "0");
+	const surfaces: HTMLElement[] = [];
+	if (root.matches(selector)) surfaces.push(root);
+	root.querySelectorAll<HTMLElement>(selector).forEach((surface) => surfaces.push(surface));
+
+	for (const surface of surfaces) {
 		important(surface, "width", "100%");
 		important(surface, "height", "100%");
 		important(surface, "aspect-ratio", "auto");
 		important(surface, "border-radius", "inherit");
+		if (surface !== root) {
+			important(surface, "position", "absolute");
+			important(surface, "inset", "0");
+		}
 		surface.querySelectorAll<HTMLElement>("picture,.e-img-wrap,img,video").forEach((media) => {
 			important(media, "width", "100%");
 			important(media, "height", "100%");
@@ -92,7 +98,7 @@ function prepareMediaCover(root: HTMLElement, selector?: string): void {
 				important(media, "object-fit", "cover");
 			}
 		});
-	});
+	}
 }
 
 function detailTargets(root: HTMLElement, mediaSelector?: string, fadeSelector?: string): HTMLElement[] {
@@ -162,10 +168,12 @@ function nextPaint(): Promise<void> {
 /**
  * Cross-browser card -> page expansion.
  *
- * A visual clone survives the React route swap, so Firefox gets the same
- * spatial handoff as Chromium without depending on the native View Transition
- * API. The expanded source remains above route-level loading UI until the real
- * destination surface exists, then cross-fades into that surface.
+ * The first phase is compositor-only: a fixed visual clone keeps its original
+ * geometry and uses only transform + opacity to cover the viewport. That avoids
+ * animating top/left/width/height on every frame and keeps mobile/Firefox much
+ * closer to the display refresh rate. The URL changes only after that expansion
+ * completes. The clone then remains above route loading UI until the real
+ * destination target (and its primary image) are ready for the handoff.
  */
 export const EngineExpandLink = memo(
 	forwardRef<HTMLAnchorElement, EngineExpandLinkProps>((props, ref) => {
@@ -208,6 +216,11 @@ export const EngineExpandLink = memo(
 			running.current = true;
 			activeCleanup?.();
 			const rect = source.getBoundingClientRect();
+			if (rect.width <= 0 || rect.height <= 0) {
+				running.current = false;
+				void transitions.push(href, transition, { pointer: { x: event.clientX, y: event.clientY } });
+				return;
+			}
 			const computed = window.getComputedStyle(source);
 			const previousVisibility = source.style.visibility;
 			const clone = source.cloneNode(true) as HTMLElement;
@@ -224,12 +237,13 @@ export const EngineExpandLink = memo(
 			important(clone, "pointer-events", "none");
 			important(clone, "overflow", "hidden");
 			important(clone, "box-sizing", "border-box");
-			important(clone, "transform", "translateZ(0)");
+			important(clone, "transform", "translate3d(0,0,0) scale(1)");
 			important(clone, "transform-origin", "center center");
 			important(clone, "transition", "none");
 			important(clone, "animation", "none");
 			important(clone, "border-radius", computed.borderRadius || "0px");
-			important(clone, "will-change", "top,left,width,height,border-radius,opacity,transform");
+			important(clone, "backface-visibility", "hidden");
+			important(clone, "will-change", "transform,opacity");
 
 			const scrim = document.createElement("div");
 			scrim.setAttribute("aria-hidden", "true");
@@ -239,6 +253,7 @@ export const EngineExpandLink = memo(
 			important(scrim, "pointer-events", "none");
 			important(scrim, "background", pageBackground());
 			important(scrim, "opacity", "0");
+			important(scrim, "will-change", "opacity");
 
 			document.body.append(scrim, clone);
 			source.style.visibility = "hidden";
@@ -263,36 +278,38 @@ export const EngineExpandLink = memo(
 			const safeTargetTimeout = Math.max(1200, Math.min(20000, Number.isFinite(targetTimeout) ? targetTimeout : 8000));
 			const pointer = { x: event.clientX, y: event.clientY };
 			const easing = "cubic-bezier(.16,1,.3,1)";
+			const sourceCenterX = rect.left + rect.width / 2;
+			const sourceCenterY = rect.top + rect.height / 2;
+			const viewportCenterX = view.left + view.width / 2;
+			const viewportCenterY = view.top + view.height / 2;
+			const translateX = viewportCenterX - sourceCenterX;
+			const translateY = viewportCenterY - sourceCenterY;
+			const coverScale = Math.max(view.width / rect.width, view.height / rect.height) * 1.002;
 
 			const expand = clone.animate([
-				{
-					top: `${rect.top}px`, left: `${rect.left}px`, width: `${rect.width}px`, height: `${rect.height}px`,
-					borderRadius: computed.borderRadius || "0px", transform: "translateZ(0) scale(1)",
-				},
-				{
-					top: `${view.top}px`, left: `${view.left}px`, width: `${view.width}px`, height: `${view.height}px`,
-					borderRadius: endRadius, transform: "translateZ(0) scale(1)",
-				},
+				{ transform: "translate3d(0,0,0) scale(1)", opacity: 1 },
+				{ transform: `translate3d(${translateX}px,${translateY}px,0) scale(${coverScale})`, opacity: 1 },
 			], { duration: safeDuration, easing, fill: "forwards" });
 			const oldPageFade = scrim.animate([{ opacity: 0 }, { opacity: 1 }], {
-				duration: Math.min(280, safeDuration), easing: "ease-in", fill: "forwards",
+				duration: Math.min(300, safeDuration), easing: "ease-in", fill: "forwards",
 			});
 			const detailFades = detailTargets(clone, mediaSelector, fadeSelector).map((detail) => detail.animate(
-				[{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(8px)" }],
-				{ duration: Math.min(220, safeDuration * .55), easing: "ease-in", fill: "forwards" },
+				[{ opacity: 1, transform: "translate3d(0,0,0)" }, { opacity: 0, transform: "translate3d(0,8px,0)" }],
+				{ duration: Math.min(210, safeDuration * .5), easing: "ease-in", fill: "forwards" },
 			));
 
 			void (async () => {
 				try {
 					await Promise.all([animationDone(expand), animationDone(oldPageFade), ...detailFades.map(animationDone)]);
+					important(clone, "border-radius", endRadius);
 					await transitions.push(href, transition, { pointer });
 					const destination = await waitForTarget(targetId, safeTargetTimeout);
 					if (destination) {
-						await waitForDestinationMedia(destination, Math.min(2200, Math.max(600, safeTargetTimeout / 3)));
+						await waitForDestinationMedia(destination, Math.min(2400, Math.max(700, safeTargetTimeout / 3)));
 						await nextPaint();
 					}
 					const destinationIn = destination?.animate([
-						{ opacity: .16, transform: "scale(1.018)" },
+						{ opacity: .12, transform: "scale(1.012)" },
 						{ opacity: 1, transform: "scale(1)" },
 					], { duration: safeHandoff, easing: "cubic-bezier(.22,.8,.25,1)", fill: "both" }) ?? null;
 					const cloneOut = clone.animate([{ opacity: 1 }, { opacity: 0 }], {
