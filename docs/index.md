@@ -1,212 +1,162 @@
 # Next.js Engine — Documentation Index
 
-These docs are maintained against the current `src/engine` implementation.
+These docs follow the current `main-3` implementation unless a page explicitly describes an older release.
 
-`DOCUMENT.md` is the large historical/technical reference. When an older example in `DOCUMENT.md` conflicts with a component page here or with the current TypeScript types, prefer the component page and current source types.
+If a historical example conflicts with the current TypeScript source or a current component page, prefer the current source and current component page.
 
 ---
 
 ## Start here
 
 | I want to… | Read |
-|---|---|
-| Understand what NE is | [`readme.md`](./readme.md) |
-| Learn schemas / `createPage()` | [`readme.md`](./readme.md) |
+| --- | --- |
+| Understand the current Gen 3 stack | [`gen3/overview.md`](./gen3/overview.md) |
+| Learn server-first `createPage()` and the compiler plan | [`gen3/phase-a-b.md`](./gen3/phase-a-b.md) |
+| Learn schemas, props, and general page authoring | [`readme.md`](./readme.md) |
 | Learn styling and responsive props | [`styling.md`](./styling.md) |
-| Read version/release history | [`release/index.md`](./release/index.md) |
-| Add page/layout transitions | [`engine-components/enginetransitions.md`](./engine-components/enginetransitions.md) |
-| Write `.shed` GPU effects | [`engine-components/engineshader.md`](./engine-components/engineshader.md) |
-| Draw with Canvas / ECScene / shader mode | [`engine-components/enginecanvas.md`](./engine-components/enginecanvas.md) |
-| Render/import/export SVG from ECScene | [`engine-components/enginesvg.md`](./engine-components/enginesvg.md) |
-| Add scroll points / programmatic scrolling | [`engine-components/enginescroll.md`](./engine-components/enginescroll.md) |
-| Validate/analyze schemas | [`schema-diagnostics.md`](./schema-diagnostics.md) |
-| Build layouts and controls | [`engine-components/primitives.md`](./engine-components/primitives.md) |
-| Build in-house static APIs | [`engine-components/apistatic.md`](./engine-components/apistatic.md) |
-| Configure/call external APIs | [`engine-components/engineapi.md`](./engine-components/engineapi.md) |
-| Run the Gen 3 private-search security proof | [`gen3/private-search-example.md`](./gen3/private-search-example.md) |
-| Understand current runtime/performance behavior | [`runtime-performance.md`](./runtime-performance.md) |
+| Learn NENC, EngineCookies, sessions, replay/rate policy, and private backends | [`gen3/phase-c-network.md`](./gen3/phase-c-network.md) |
+| Learn compatibility manifests and fallback compilation | [`gen3/phase-d-hardening.md`](./gen3/phase-d-hardening.md) |
+| Run the device-bound private-search proof | [`gen3/private-search-example.md`](./gen3/private-search-example.md) |
+| Read release history | [`release/index.md`](./release/index.md) |
+| Read the large historical technical reference | [`../DOCUMENT.md`](../DOCUMENT.md) |
 
 ---
 
-## Release notes
+## Generation 3 stack
+
+```text
+schema
+	↓
+compilePage()
+	↓
+execution plan
+	├─ static / server / client ownership
+	├─ critical / visible / near / deferred / idle / sleeping work
+	├─ used-feature manifest
+	├─ fallback plan
+	├─ assets
+	└─ diagnostics
+	↓
+EngineServerRenderer
+	↓
+small client islands only where browser behavior is required
+	↓
+EngineScheduler + EngineViewport + EngineModel
+	↓
+optional EngineCommand / NENC / EngineCookies / EngineServer boundary
+```
+
+The normal Gen 3 page entrypoint is `createPage()`; a separate Gen 3 factory is not required.
+
+Read [`gen3/overview.md`](./gen3/overview.md) first if you are starting a new page or migrating a v2 page.
+
+---
+
+## Page and UI authoring
+
+| Topic | Documentation |
+| --- | --- |
+| Schema primitives | [`engine-components/primitives.md`](./engine-components/primitives.md) |
+| Styling / responsive values | [`styling.md`](./styling.md) |
+| Navigation | [`engine-components/enginenav.md`](./engine-components/enginenav.md) |
+| Page and layout transitions | [`engine-components/enginetransitions.md`](./engine-components/enginetransitions.md) |
+| Heroes | [`engine-components/enginehero.md`](./engine-components/enginehero.md) |
+| Forms | [`engine-components/engineforms.md`](./engine-components/engineforms.md) |
+| Markdown | [`engine-components/enginemarkdown.md`](./engine-components/enginemarkdown.md) |
+| Suspense/loading surfaces | [`engine-components/enginesuspense.md`](./engine-components/enginesuspense.md) |
+| Overlay/dialog/drawer/popover | [`engine-components/engineoverlay.md`](./engine-components/engineoverlay.md) |
+
+---
+
+## Graphics and motion
+
+Use the system that owns the job instead of forcing everything through one renderer.
+
+```text
+EngineTransitions+
+	→ page/layout state changes
+
+EngineScroll
+	→ scroll-driven movement and named points
+
+EngineCanvas
+	→ retained/immediate graphics surface
+
+EngineSVG
+	→ SVG rendering/import/export for ECScene
+
+EngineShader
+	→ compiled GPU effects and .shed programs
+
+EngineManim
+	→ higher-level animation/model choreography
+```
+
+| System | Documentation |
+| --- | --- |
+| EngineCanvas | [`engine-components/enginecanvas.md`](./engine-components/enginecanvas.md) |
+| EngineSVG | [`engine-components/enginesvg.md`](./engine-components/enginesvg.md) |
+| EngineShader | [`engine-components/engineshader.md`](./engine-components/engineshader.md) |
+| EngineTransitions+ | [`engine-components/enginetransitions.md`](./engine-components/enginetransitions.md) |
+| EngineScroll | [`engine-components/enginescroll.md`](./engine-components/enginescroll.md) |
+| EngineManim | [`engine-components/enginemanim.md`](./engine-components/enginemanim.md) |
+| EngineImage / EngineVideo | [`engine-components/engineimage.md`](./engine-components/engineimage.md) |
+
+EngineTransitions+ and EngineShader remain separate responsibilities. Transition presets such as `pixel`, `liquid`, and `dissolve` are transition animations, not `.shed` framebuffer passes.
+
+---
+
+## Browser/runtime systems
+
+| Topic | Documentation |
+| --- | --- |
+| Scheduler + server-first compiler | [`gen3/phase-a-b.md`](./gen3/phase-a-b.md) |
+| Browser capabilities | [`engine-components/enginebrowser.md`](./engine-components/enginebrowser.md) |
+| Device/adaptive layout | [`engine-components/enginemobile.md`](./engine-components/enginemobile.md) |
+| Runtime/lazy/performance behavior | [`runtime-performance.md`](./runtime-performance.md) |
+| Schema validation and diagnostics | [`schema-diagnostics.md`](./schema-diagnostics.md) |
+| Compatibility/fallback compiler | [`gen3/phase-d-hardening.md`](./gen3/phase-d-hardening.md) |
+
+For styling-only responsive differences, prefer responsive schema values/CSS. Use EngineViewport or request-time adaptive compilation only when behavior or structure genuinely depends on live/request device state.
+
+---
+
+## Network and backend systems
+
+| Topic | Documentation |
+| --- | --- |
+| External API resolver and auth | [`engine-components/engineapi.md`](./engine-components/engineapi.md) |
+| Static in-house endpoint programs | [`engine-components/apistatic.md`](./engine-components/apistatic.md) |
+| NENC / EngineCookies / sessions / device proof | [`gen3/phase-c-network.md`](./gen3/phase-c-network.md) |
+| Private-search end-to-end example | [`gen3/private-search-example.md`](./gen3/private-search-example.md) |
+
+Browser-safe command/cookie APIs belong in `nextjs-engine/network`. Request-aware dispatch, CORS, session policy, and private backend helpers belong in `nextjs-engine/server`.
+
+NENC is optional. Do not enable it merely because it exists; use it when the application has commands that benefit from the compiled single-endpoint boundary.
+
+---
+
+## Release history and compatibility
 
 The maintained release archive lives under [`docs/release`](./release/index.md).
 
+Release notes describe the Engine as it existed at that release. They are not the API contract for `main-3`.
+
 | Version | Release notes |
-|---|---|
+| --- | --- |
+| v2.6.2 | [`NE-v2-6-2.md`](./release/NE-v2-6-2.md) |
 | v2.6.1 | [`NE-v2-6-1.md`](./release/NE-v2-6-1.md) |
 | v2.6.0 | [`NE-v2-6-0.md`](./release/NE-v2-6-0.md) |
 | v2.5.0 | [`NE-v2-5-0.md`](./release/NE-v2-5-0.md) |
 | v2.0.0 | [`NE-v2-0-0.md`](./release/NE-v2-0-0.md) |
 | v1.0.0 | [`NE-v1-0-0.md`](./release/NE-v1-0-0.md) |
 
-Release notes describe the Engine as it existed at that release. The current component pages remain the source of truth for present-day APIs.
-
----
-
-## Visual systems — which one do I use?
-
-NE now has several visual/motion systems. They solve different jobs.
-
-```text
-EngineTransitions+
-	→ how UI/page state A changes into state B
-
-EngineScroll
-	→ movement/navigation driven by scroll position or named points
-
-EngineCanvas
-	→ canvas lifecycle + EC graphics surface
-
-EngineSVG
-	→ SVG renderer/import/export for ECScene
-
-EngineShader
-	→ compiled GPU-owned visual surfaces and `.shed` effects
-```
-
-### If you want a page change animation
-
-Use **EngineTransitions+**.
-
-```ts
-cprop: {
-	link: {
-		transition: "portal",
-	},
-}
-```
-
-It currently ships 20 named presets and shared-element morph support.
-
-Use `coordinateEngineViewTransition()` for theme or other imperative visual updates that must share native View Transition ownership with animated navigation.
-
-Read: [`enginetransitions.md`](./engine-components/enginetransitions.md).
-
-### If you want a GPU effect/background
-
-Use **EngineShader** and write a `.shed` file.
-
-```shed
-shader <= aurora => [
-	before.aurora => [
-		time <= system.time
-		speed => .6
-	]
-]
-```
-
-Then:
-
-```ts
-{
-	type: "section",
-	props: {
-		shader: "aurora",
-	},
-}
-```
-
-Read: [`engineshader.md`](./engine-components/engineshader.md).
-
-### If you want your own drawing/scene
-
-Use **EngineCanvas**.
-
-```ts
-{
-	type: "canvas",
-	props: {
-		graphics: {
-			engine: "2d",
-			scene,
-		},
-	},
-}
-```
-
-Read: [`enginecanvas.md`](./engine-components/enginecanvas.md).
-
-### If you want SVG output from an ECScene
-
-Use the **EngineSVG** graphics engine.
-
-```ts
-graphics: {
-	engine: "svg",
-	scene,
-}
-```
-
-Read: [`enginesvg.md`](./engine-components/enginesvg.md).
-
----
-
-## Current shader/transition boundary
-
-EngineTransitions+ and EngineShader are designed so they can integrate more deeply later, but their current responsibilities are intentionally separate:
-
-```text
-EngineTransitions+
-	→ native View Transition snapshots + preset animation
-
-EngineShader
-	→ GPU surfaces owned by ESH / EngineCanvas shader mode
-```
-
-Transition names such as `pixel`, `liquid`, and `dissolve` are currently native snapshot animations, **not** `.shed` framebuffer passes.
-
-Likewise, the planned whole-page Minecraft-shader-like global compositor / `styles.shed` direction is not a current surface ESH API yet. Current `.shed` programs attach to supported Engine surfaces or EngineCanvas shader mode.
-
-The docs call out future/reserved APIs clearly so examples do not pretend an unimplemented compositor already exists.
-
----
-
-## Engine components and systems
-
-| Component / system | Documentation | Summary |
-|---|---|---|
-| Primitives | [`primitives.md`](./engine-components/primitives.md) | Box, Stack, Grid, Text, Heading, Button, Card, Section, Slot |
-| EngineCanvas | [`enginecanvas.md`](./engine-components/enginecanvas.md) | callback mode, EC graphics engines, adaptive DPR, EngineShader mode |
-| EngineSVG | [`enginesvg.md`](./engine-components/enginesvg.md) | retained SVG renderer, EC topology, SVG import/export |
-| EngineShader | [`engineshader.md`](./engine-components/engineshader.md) | `.shed` language, compiler, GPU surfaces, stages, render graph, scheduling |
-| EngineTransitions+ | [`enginetransitions.md`](./engine-components/enginetransitions.md) | 20 page/layout presets, shared morphs, programmatic transitions |
-| EngineScroll | [`enginescroll.md`](./engine-components/enginescroll.md) | point navigation, URL protocol, one-RAF scheduler |
-| EngineBrowser | [`enginebrowser.md`](./engine-components/enginebrowser.md) | browser capabilities and interaction APIs |
-| EngineManim | [`enginemanim.md`](./engine-components/enginemanim.md) | 2D animation and demand-driven Three.js 3D model animation |
-| EngineImage / Video | [`engineimage.md`](./engine-components/engineimage.md) | viewport-aware media and responsive image quality |
-| EngineMarkdown | [`enginemarkdown.md`](./engine-components/enginemarkdown.md) | Markdown rendering and heading anchors |
-| EngineNav | [`enginenav.md`](./engine-components/enginenav.md) | navigation bar, normal/animated routing pipeline, menus |
-| EngineHero | [`enginehero.md`](./engine-components/enginehero.md) | centered/split/full-bleed heroes, backgrounds, parallax |
-| EngineSuspense | [`enginesuspense.md`](./engine-components/enginesuspense.md) | loading fallbacks and suspense helpers |
-| EngineForms | [`engineforms.md`](./engine-components/engineforms.md) | native form primitives and named handlers |
-| EngineAPI | [`engineapi.md`](./engine-components/engineapi.md) | HTTP request resolver, auth, `.api` provider configuration |
-| APIStatic | [`apistatic.md`](./engine-components/apistatic.md) | `data/endpoint/**/*.route`, endpoint DSL, discovery manifest, static resolver facade |
-| EngineMobile / Device | [`enginemobile.md`](./engine-components/enginemobile.md) | server schema patching and device detection |
-
----
-
-## Cross-cutting references
-
-| Topic | Documentation |
-|---|---|
-| Release/version history | [`release/index.md`](./release/index.md) |
-| Styling, responsive values, at-rules, pseudo states | [`styling.md`](./styling.md) |
-| Page/layout transitions and shared morphs | [`engine-components/enginetransitions.md`](./engine-components/enginetransitions.md) |
-| GPU `.shed` language and surface pipeline | [`engine-components/engineshader.md`](./engine-components/engineshader.md) |
-| Canvas modes and rendering engines | [`engine-components/enginecanvas.md`](./engine-components/enginecanvas.md) |
-| SVG geometry/import/export | [`engine-components/enginesvg.md`](./engine-components/enginesvg.md) |
-| Schema validation/analyzer codes and scope | [`schema-diagnostics.md`](./schema-diagnostics.md) |
-| Runtime, lazy behavior, bundle/runtime performance | [`runtime-performance.md`](./runtime-performance.md) |
-| External API providers and resolver auth | [`engine-components/engineapi.md`](./engine-components/engineapi.md) |
-| Static in-house endpoint programs | [`engine-components/apistatic.md`](./engine-components/apistatic.md) |
-
 ---
 
 ## Abbreviations
 
 | Abbreviation | Module |
-|---|---|
+| --- | --- |
 | EC | EngineCanvas |
 | ESVG | EngineSVG |
 | ESH | EngineShader |
@@ -214,7 +164,6 @@ The docs call out future/reserved APIs clearly so examples do not pretend an uni
 | ES | EngineScroll |
 | EB | EngineBrowser |
 | EM | EngineManim |
-| EI | EngineImage |
 | EMD | EngineMarkdown |
 | EN | EngineNav |
 | EH | EngineHero |
@@ -224,3 +173,4 @@ The docs call out future/reserved APIs clearly so examples do not pretend an uni
 | EAS | APIStatic |
 | EMO | EngineMobile |
 | ED | EngineDevice |
+| NENC | Next.js Engine Network Commands |
