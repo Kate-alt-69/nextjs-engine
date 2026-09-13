@@ -23,6 +23,16 @@ interface ScrollContextValue {
 
 const EngineScrollContext = createContext<ScrollContextValue | null>(null);
 
+const SCROLL_KEYS = new Set([
+	"ArrowDown",
+	"ArrowUp",
+	"End",
+	"Home",
+	"PageDown",
+	"PageUp",
+	" ",
+]);
+
 export function useEngineScroll(): ScrollContextValue | null {
 	return useContext(EngineScrollContext);
 }
@@ -49,6 +59,15 @@ function decodeAnchorId(value: string): string {
 	} catch {
 		return raw;
 	}
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+	if (!(target instanceof HTMLElement)) return false;
+	const tagName = target.tagName;
+	return target.isContentEditable
+		|| tagName === "INPUT"
+		|| tagName === "TEXTAREA"
+		|| tagName === "SELECT";
 }
 
 /** Hydration-safe reduced-motion preference with older MediaQueryList fallback. */
@@ -86,10 +105,13 @@ export const EngineScrollProvider = memo(function EngineScrollProvider({
 	const router = useRouter();
 	const pathname = usePathname();
 	const reducedMotion = useReducedMotionPreference();
-	const [visible, setVisible] = useState(!pageTransition);
+	// The first paint must already be visible. Page transitions only fade after
+	// an actual navigation request; hiding on mount causes hydration/remount flash.
+	const [visible, setVisible] = useState(true);
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const activeRafRef = useRef<number | null>(null);
 	const pendingAnchorRef = useRef<string | null>(null);
+	const pendingAnchorTimerRef = useRef<number | null>(null);
 	const navigatingRef = useRef(false);
 	const mountedRef = useRef(false);
 
@@ -104,6 +126,30 @@ export const EngineScrollProvider = memo(function EngineScrollProvider({
 		cancelAnimationFrame(activeRafRef.current);
 		activeRafRef.current = null;
 	}, []);
+
+	const cancelPendingAnchor = useCallback((): void => {
+		if (pendingAnchorTimerRef.current === null) return;
+		window.clearTimeout(pendingAnchorTimerRef.current);
+		pendingAnchorTimerRef.current = null;
+	}, []);
+
+	const interruptForUserIntent = useCallback((): void => {
+		const hadCustomAnimation = activeRafRef.current !== null;
+		cancelEaseScroll();
+		cancelPendingAnchor();
+		pendingAnchorRef.current = null;
+
+		// Native smooth scrolling is normally cancelled by touch/wheel itself.
+		// A no-op auto scroll additionally releases browsers that keep a native
+		// smooth anchor operation alive after the gesture begins.
+		if (!hadCustomAnimation && (method === "smooth" || method === "snap")) {
+			window.scrollTo({
+				top: window.scrollY,
+				left: window.scrollX,
+				behavior: "auto",
+			});
+		}
+	}, [cancelEaseScroll, cancelPendingAnchor, method]);
 
 	const easeScrollTo = useCallback((targetY: number): void => {
 		cancelEaseScroll();
@@ -158,6 +204,7 @@ export const EngineScrollProvider = memo(function EngineScrollProvider({
 			window.location.assign(url.href);
 			return;
 		}
+		cancelPendingAnchor();
 		const targetPath = url.pathname + url.search;
 		const currentPath = window.location.pathname + window.location.search;
 		const anchor = url.hash.slice(1);
@@ -178,15 +225,55 @@ export const EngineScrollProvider = memo(function EngineScrollProvider({
 		}
 		router.push(targetPath + url.hash);
 		navigatingRef.current = false;
-	}, [pageTransition, reducedMotion, router, safeTransitionDuration, smoothScrollTo]);
+	}, [cancelPendingAnchor, pageTransition, reducedMotion, router, safeTransitionDuration, smoothScrollTo]);
 
 	useEffect(() => {
 		mountedRef.current = true;
 		return () => {
 			mountedRef.current = false;
 			cancelEaseScroll();
+			cancelPendingAnchor();
 		};
-	}, [cancelEaseScroll]);
+	}, [cancelEaseScroll, cancelPendingAnchor]);
+
+	useEffect(() => {
+		const handleUserIntent = (): void => interruptForUserIntent();
+		const handleUserKey = (event: KeyboardEvent): void => {
+			if (isEditableTarget(event.target)) return;
+			if (SCROLL_KEYS.has(event.key)) interruptForUserIntent();
+		};
+
+		window.addEventListener("wheel", handleUserIntent, { passive: true });
+		window.addEventListener("touchstart", handleUserIntent, { passive: true });
+		window.addEventListener("touchmove", handleUserIntent, { passive: true });
+		window.addEventListener("keydown", handleUserKey);
+		return () => {
+			window.removeEventListener("wheel", handleUserIntent);
+			window.removeEventListener("touchstart", handleUserIntent);
+			window.removeEventListener("touchmove", handleUserIntent);
+			window.removeEventListener("keydown", handleUserKey);
+		};
+	}, [interruptForUserIntent]);
+
+	useEffect(() => {
+		if (method !== "snap") return;
+		const root = document.documentElement;
+		const previousSnapType = root.style.scrollSnapType;
+		const previousBehavior = root.style.scrollBehavior;
+		const previousPaddingTop = root.style.scrollPaddingTop;
+
+		// All EngineScroll navigation is window-based, so snap must use the root
+		// scroller too. A nested 100vh overflow container creates two competing
+		// scroll positions on mobile and is especially unstable with dynamic bars.
+		root.style.scrollSnapType = "y mandatory";
+		root.style.scrollBehavior = reducedMotion ? "auto" : "smooth";
+		root.style.scrollPaddingTop = `${offsetPx}px`;
+		return () => {
+			root.style.scrollSnapType = previousSnapType;
+			root.style.scrollBehavior = previousBehavior;
+			root.style.scrollPaddingTop = previousPaddingTop;
+		};
+	}, [method, offsetPx, reducedMotion]);
 
 	useEffect(() => {
 		navigatingRef.current = false;
@@ -202,15 +289,20 @@ export const EngineScrollProvider = memo(function EngineScrollProvider({
 		const anchor = pendingAnchorRef.current ?? window.location.hash.slice(1);
 		pendingAnchorRef.current = null;
 		if (!anchor || anchor.startsWith("-es?")) return;
+		cancelPendingAnchor();
 		const delay = pageTransition && !reducedMotion ? safeTransitionDuration + 50 : 0;
-		const timer = window.setTimeout(() => smoothScrollTo(anchor), delay);
-		return () => window.clearTimeout(timer);
-	}, [pageTransition, pathname, reducedMotion, safeTransitionDuration, smoothScrollTo]);
+		pendingAnchorTimerRef.current = window.setTimeout(() => {
+			pendingAnchorTimerRef.current = null;
+			smoothScrollTo(anchor);
+		}, delay);
+		return cancelPendingAnchor;
+	}, [cancelPendingAnchor, pageTransition, pathname, reducedMotion, safeTransitionDuration, smoothScrollTo]);
 
 	useEffect(() => {
 		const handleHistoryAnchor = (): void => {
 			const hash = window.location.hash;
 			if (!hash || hash.startsWith("#-es?")) return;
+			cancelPendingAnchor();
 			smoothScrollTo(hash.slice(1));
 		};
 		window.addEventListener("hashchange", handleHistoryAnchor);
@@ -219,7 +311,7 @@ export const EngineScrollProvider = memo(function EngineScrollProvider({
 			window.removeEventListener("hashchange", handleHistoryAnchor);
 			window.removeEventListener("popstate", handleHistoryAnchor);
 		};
-	}, [smoothScrollTo]);
+	}, [cancelPendingAnchor, smoothScrollTo]);
 
 	useEffect(() => {
 		const root = containerRef.current;
@@ -248,13 +340,6 @@ export const EngineScrollProvider = memo(function EngineScrollProvider({
 
 	const containerStyle: CSSProperties = {
 		...(pageTransition ? { background: transitionColor } : {}),
-		...(method === "snap" ? {
-			height: "100vh",
-			overflowY: "scroll",
-			scrollSnapType: "y mandatory",
-			scrollBehavior: reducedMotion ? "auto" : "smooth",
-			scrollPaddingTop: `${offsetPx}px`,
-		} : {}),
 	};
 	const contentStyle: CSSProperties = {
 		opacity: pageTransition ? (visible ? 1 : 0) : 1,
