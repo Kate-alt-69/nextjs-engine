@@ -1,9 +1,10 @@
 "use client";
 
 import { EngineReveal, EngineScroll, EngineTransitionLink } from "@/engine";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { AnimatedLikeButton } from "./AnimatedLikeButton";
 import { catalogFitScore, catalogMetric, type CityCatalogEntry } from "./catalog";
+import { peekRoavioCityAccent, type RoavioCityAccent } from "./cityAccent";
 import { CityThumb } from "./CityThumb";
 import { copyFor, type RoavioLocale } from "./i18n";
 
@@ -106,6 +107,16 @@ function CityResultCard({
 }) {
   const copy = copyFor(locale).cities;
   const cityHref = `/cities/${city.slug}`;
+  const [accent, setAccent] = useState<RoavioCityAccent | null>(null);
+
+  useEffect(() => {
+    setAccent(peekRoavioCityAccent(city.slug));
+  }, [city.slug]);
+
+  const accentStyle = accent ? {
+    "--rv-city-accent": accent.rgb,
+    "--rv-city-accent-hex": accent.hex,
+  } as CSSProperties : undefined;
 
   return (
     <EngineReveal
@@ -121,7 +132,11 @@ function CityResultCard({
       overshoot={1.022}
       releaseWhenFar
     >
-      <article className="rv-result-card">
+      <article
+        className="rv-result-card"
+        data-accent-ready={accent ? "true" : "false"}
+        style={accentStyle}
+      >
         <div className="rv-result-card__visual-wrap">
           <EngineTransitionLink
             href={cityHref}
@@ -134,7 +149,24 @@ function CityResultCard({
               city={city.city}
               country={city.country}
               eager={eager}
+              onAccent={setAccent}
             />
+            <span className="rv-result-card__image-shade" aria-hidden="true" />
+            <div className="rv-result-card__image-meta">
+              <div className="rv-result-card__image-copy">
+                <h3>{city.city}</h3>
+                <p>
+                  {city.country} · {continentLabel(city.continent, locale)}
+                  {city.beach === true ? ` · ${locale === "es" ? "playa" : "beach"}` : ""}
+                </p>
+              </div>
+              <strong
+                className="rv-result-score"
+                title={locale === "es" ? "Puntuación compuesta de la propuesta" : "Composite proposal score"}
+              >
+                {scoreLabel(city)}
+              </strong>
+            </div>
           </EngineTransitionLink>
           <AnimatedLikeButton
             active={favorite}
@@ -145,48 +177,31 @@ function CityResultCard({
         </div>
 
         <div className="rv-result-card__body">
-          <div className="rv-result-head">
-            <div>
-              <h3>
-                <EngineTransitionLink href={cityHref} transition="portal" style={{ textDecoration: "none" }}>
-                  {city.city}
-                </EngineTransitionLink>
-              </h3>
-              <p>
-                {city.country} · {continentLabel(city.continent, locale)}
-                {city.beach === true ? ` · ${locale === "es" ? "playa" : "beach"}` : ""}
-              </p>
-            </div>
-            <div
-              className="rv-result-score"
-              title={locale === "es" ? "Puntuación compuesta de la propuesta" : "Composite proposal score"}
-            >
-              {scoreLabel(city)}
-            </div>
-          </div>
-
           <div className="rv-result-metrics">
             <div><strong>{city.cost ? city.cost.replace("/mo", "") : "—"}</strong><span>{copy.monthlyCost}</span></div>
             <div><strong>{catalogMetric(city.internet, " Mbps")}</strong><span>{copy.fixedInternet}</span></div>
             <div><strong>{catalogMetric(city.quality, "/10")}</strong><span>{copy.quality}</span></div>
           </div>
 
-          <div className="rv-card-actions">
+          <div className="rv-card-actions rv-card-actions--city">
             <button
-              className="rv-icon-btn"
+              className="rv-icon-btn rv-card-action rv-card-action--compare"
               type="button"
               data-active={compared}
               onClick={onCompare}
             >
-              {compared ? `✓ ${copy.compare}` : `+ ${copy.compare}`}
+              <span aria-hidden>{compared ? "✓" : "+"}</span>
+              <span>{copy.compare}</span>
             </button>
             <EngineTransitionLink
-              className="rv-icon-btn"
+              className="rv-icon-btn rv-card-action rv-card-action--open"
               href={cityHref}
               transition="portal"
-              style={{ marginLeft: "auto", textDecoration: "none" }}
+              aria-label={`${copy.open} ${city.city}`}
+              style={{ textDecoration: "none" }}
             >
-              {copy.open} ↗
+              <span>{copy.open}</span>
+              <span aria-hidden>↗</span>
             </EngineTransitionLink>
           </div>
         </div>
