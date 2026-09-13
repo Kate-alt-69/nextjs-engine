@@ -17,6 +17,10 @@ export type EngineCapability =
 	| "intersection-observer"
 	| "visual-viewport"
 	| "view-transitions"
+	| "web-animations"
+	| "container-queries"
+	| "media-queries"
+	| "css-grid"
 	| "clipboard"
 	| "media"
 	| "speech"
@@ -85,6 +89,57 @@ export interface EngineUsedFeatureManifest {
 	uses: readonly EngineUsedFeature[];
 }
 
+export type EngineFallbackKind = "native" | "runtime" | "rendering";
+export type EngineFallbackFidelity = "full" | "close" | "structural";
+export type EngineResolvedFallbackStatus = "native" | "fallback" | "unavailable";
+export type EngineLegacyContent = "html" | "css" | "text" | "images" | "links" | "basic-form-structure";
+
+export interface EngineFallbackStrategy {
+	id: string;
+	kind: EngineFallbackKind;
+	requires: readonly EngineCapability[];
+	fidelity: EngineFallbackFidelity;
+}
+
+export interface EngineFeatureFallbackPolicy {
+	feature: EngineCapability;
+	fallbacks: readonly EngineFallbackStrategy[];
+}
+
+export interface EngineCompiledFeatureFallback {
+	feature: EngineCapability;
+	requiredBy: readonly EngineUsedFeatureSource[];
+	strategies: readonly EngineFallbackStrategy[];
+}
+
+export interface EngineLegacyRenderPlan {
+	mode: "best-effort";
+	preserves: readonly EngineLegacyContent[];
+	clientEnhancements: readonly EngineUsedFeatureSource[];
+}
+
+export interface EngineFallbackPlan {
+	version: 1;
+	pageId: string;
+	features: readonly EngineCompiledFeatureFallback[];
+	legacy: EngineLegacyRenderPlan;
+}
+
+export interface EngineResolvedFeatureFallback {
+	feature: EngineCapability;
+	status: EngineResolvedFallbackStatus;
+	strategy: EngineFallbackStrategy | null;
+	requiredBy: readonly EngineUsedFeatureSource[];
+}
+
+export interface EngineResolvedFallbackPlan {
+	pageId: string;
+	features: readonly EngineResolvedFeatureFallback[];
+	legacy: EngineLegacyRenderPlan;
+}
+
+export type EngineFeatureSupportResolver = (feature: EngineCapability) => boolean;
+
 export interface EngineCompilerSummary {
 	totalNodes: number;
 	staticNodes: number;
@@ -102,6 +157,7 @@ export interface EngineCompiledPage {
 	root: EngineCompiledNode;
 	summary: EngineCompilerSummary;
 	featureManifest: EngineUsedFeatureManifest;
+	fallbackPlan: EngineFallbackPlan;
 	/** Compatibility alias for the feature names in featureManifest. */
 	capabilities: EngineCapability[];
 	assets: EngineCompiledAsset[];

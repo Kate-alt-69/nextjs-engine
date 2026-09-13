@@ -219,7 +219,7 @@ The portable [`examples/gen3-private-search`](./examples/gen3-private-search) pr
 
 See [`docs/gen3/phase-c-network.md`](./docs/gen3/phase-c-network.md) for the completed Phase C security model and invariants.
 
-Phase D compatibility work begins with a frozen per-page used-feature manifest. It records only capabilities the compiled schema needs, along with the exact nodes that require them, so later fallback checks never warn about irrelevant browser APIs. See [`docs/gen3/phase-d-hardening.md`](./docs/gen3/phase-d-hardening.md).
+Phase D compatibility work compiles a frozen per-page used-feature manifest and ordered fallback plan. It records only capabilities the schema needs, resolves native/runtime/rendering fallbacks against browser support, and keeps best-effort legacy HTML, CSS, text, images, links, and form structure separate from full client runtime support. See [`docs/gen3/phase-d-hardening.md`](./docs/gen3/phase-d-hardening.md).
 
 ---
 
