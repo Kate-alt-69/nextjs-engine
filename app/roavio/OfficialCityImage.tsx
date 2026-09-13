@@ -1,6 +1,6 @@
 "use client";
 
-import { EngineImage, EngineScheduler } from "@/engine";
+import { EngineBrowser, EngineImage, EngineScheduler } from "@/engine";
 import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { getRoavioCityImage } from "./cityImages";
 
@@ -8,9 +8,8 @@ type EngineImageProps = ComponentProps<typeof EngineImage>;
 
 const warmedCityImages = new Set<string>();
 const warmingCityImages = new Map<string, HTMLImageElement>();
-const VISIBLE_DOM_MARGIN = 640;
-const WARM_MARGIN = 1600;
 const MAX_RETRIES = 2;
+const IMAGE_NEAR_MARGIN = "640px 0px";
 
 function hasNecessaryConsent(): boolean {
   if (typeof document === "undefined") return false;
@@ -29,13 +28,17 @@ function hasNecessaryConsent(): boolean {
   }
 }
 
-function geometryNear(element: Element, margin: number) {
-  const rect = element.getBoundingClientRect();
-  return rect.bottom >= -margin && rect.top <= window.innerHeight + margin;
+function networkAllowsWarmup(): boolean {
+  const network = EngineBrowser.network.status();
+  if (!network.online || network.saveData) return false;
+  if (network.type === "slow-2g" || network.type === "2g" || network.type === "3g") return false;
+  if (typeof network.downlink === "number" && network.downlink > 0 && network.downlink < 1.5) return false;
+  if (typeof network.rtt === "number" && network.rtt > 700) return false;
+  return true;
 }
 
 function warmOfficialCityImage(src: string) {
-  if (typeof window === "undefined" || !hasNecessaryConsent()) return;
+  if (typeof window === "undefined" || !hasNecessaryConsent() || !networkAllowsWarmup()) return;
   if (warmedCityImages.has(src) || warmingCityImages.has(src)) return;
 
   const image = new window.Image();
@@ -53,13 +56,13 @@ function warmOfficialCityImage(src: string) {
 }
 
 /**
- * Roavio city-photo renderer.
+ * Thin Roavio adapter around NE's EngineImage.
  *
- * Card-level scroll orchestration is handled by EngineScroll timelines. The
- * image itself uses EngineScheduler's pooled visibility observers because that
- * is the cheaper primitive for mounting/unmounting media DOM. The card's wider
- * render timeline wakes the subtree before this 640px image boundary, so no
- * per-image window scroll handler is needed.
+ * EngineReveal owns the wide card render window. Once this component exists,
+ * consented users on a reasonable connection can warm the exact official
+ * Unsplash URL during NE idle time. EngineImage independently owns the tighter
+ * 640px media DOM lifecycle, cached-image recovery, frame-pressure policy and
+ * LCP priority behavior.
  */
 export function OfficialCityImage({
   slug,
@@ -78,150 +81,83 @@ export function OfficialCityImage({
   objectFit?: EngineImageProps["objectFit"];
   style?: EngineImageProps["style"];
 }) {
-  const probeRef = useRef<HTMLSpanElement | null>(null);
-  const warmEligibleRef = useRef(priority);
-  const nearRef = useRef(priority);
   const retryCountRef = useRef(0);
   const retryTimerRef = useRef<number | null>(null);
-  const [nearViewport, setNearViewport] = useState(priority);
   const [failed, setFailed] = useState(false);
   const src = getRoavioCityImage(slug);
-
-  const setNear = (next: boolean) => {
-    nearRef.current = next;
-    setNearViewport((current) => current === next ? current : next);
-    if (next && failed && retryCountRef.current <= MAX_RETRIES) setFailed(false);
-  };
 
   useEffect(() => {
     retryCountRef.current = 0;
     if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current);
     retryTimerRef.current = null;
     setFailed(false);
-    setNear(priority);
-    warmEligibleRef.current = priority;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [priority, slug]);
+  }, [slug]);
 
-  useEffect(() => {
-    return () => {
-      if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current);
-    };
+  useEffect(() => () => {
+    if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current);
   }, []);
 
   useEffect(() => {
     if (!src || priority) return;
-    const probe = probeRef.current;
-    if (!probe) return;
+    let cancelIdle: (() => void) | null = null;
 
-    const syncWarmGeometry = () => {
-      const eligible = geometryNear(probe, WARM_MARGIN);
-      warmEligibleRef.current = eligible;
-      if (eligible) warmOfficialCityImage(src);
+    const scheduleWarm = () => {
+      cancelIdle?.();
+      if (!hasNecessaryConsent() || !networkAllowsWarmup()) return;
+      cancelIdle = EngineScheduler.runWhenIdle(() => warmOfficialCityImage(src), 1200);
     };
 
-    syncWarmGeometry();
+    scheduleWarm();
+    const stopNetwork = EngineBrowser.network.onchange(scheduleWarm);
+    window.addEventListener("rv:consent-changed", scheduleWarm);
 
-    const stop = EngineScheduler.observe(probe, (snapshot) => {
-      const eligible = snapshot.near || snapshot.visible || geometryNear(probe, WARM_MARGIN);
-      warmEligibleRef.current = eligible;
-      if (eligible) warmOfficialCityImage(src);
-    }, {
-      nearMargin: `${WARM_MARGIN}px 0px`,
-      visibleThreshold: 0.01,
-      releaseWhenFar: false,
-    });
-
-    window.addEventListener("pageshow", syncWarmGeometry);
-    window.addEventListener("resize", syncWarmGeometry, { passive: true });
     return () => {
-      stop();
-      window.removeEventListener("pageshow", syncWarmGeometry);
-      window.removeEventListener("resize", syncWarmGeometry);
+      cancelIdle?.();
+      stopNetwork();
+      window.removeEventListener("rv:consent-changed", scheduleWarm);
     };
   }, [priority, src]);
-
-  useEffect(() => {
-    if (!src || priority) return;
-    const handleConsentChanged = () => {
-      if (warmEligibleRef.current) warmOfficialCityImage(src);
-    };
-    window.addEventListener("rv:consent-changed", handleConsentChanged);
-    return () => window.removeEventListener("rv:consent-changed", handleConsentChanged);
-  }, [priority, src]);
-
-  useEffect(() => {
-    if (priority) return;
-    const probe = probeRef.current;
-    if (!probe) return;
-
-    const syncVisibleGeometry = () => setNear(geometryNear(probe, VISIBLE_DOM_MARGIN));
-
-    // Bootstrap once for first paint / bfcache restoration. After that the NE
-    // scheduler owns viewport updates; there is deliberately no window scroll
-    // listener per image anymore.
-    syncVisibleGeometry();
-
-    const stop = EngineScheduler.observe(probe, (snapshot) => {
-      setNear(snapshot.near || snapshot.visible || geometryNear(probe, VISIBLE_DOM_MARGIN));
-    }, {
-      nearMargin: `${VISIBLE_DOM_MARGIN}px 0px`,
-      visibleThreshold: 0.01,
-      releaseWhenFar: true,
-    });
-
-    window.addEventListener("pageshow", syncVisibleGeometry);
-    window.addEventListener("resize", syncVisibleGeometry, { passive: true });
-    return () => {
-      stop();
-      window.removeEventListener("pageshow", syncVisibleGeometry);
-      window.removeEventListener("resize", syncVisibleGeometry);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [priority, slug]);
 
   const handleError = () => {
     if (!src) return;
-    setFailed(true);
     warmingCityImages.delete(src);
+    if (retryCountRef.current >= MAX_RETRIES) {
+      setFailed(true);
+      return;
+    }
 
-    if (!nearRef.current || retryCountRef.current >= MAX_RETRIES) return;
     retryCountRef.current += 1;
+    setFailed(true);
     const delay = retryCountRef.current === 1 ? 450 : 1100;
     if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current);
     retryTimerRef.current = window.setTimeout(() => {
       retryTimerRef.current = null;
-      if (nearRef.current) setFailed(false);
+      setFailed(false);
     }, delay);
   };
 
+  if (!src || failed) return null;
+
   return (
-    <>
-      <span
-        ref={probeRef}
-        className="rv-city-image-probe"
-        data-rv-image-state={nearViewport ? "near" : "sleeping"}
-        aria-hidden="true"
-      />
-      {src && !failed && nearViewport ? (
-        <EngineImage
-          src={src}
-          alt={alt}
-          fill
-          priority={priority}
-          sizes={sizes}
-          quality={72}
-          objectFit={objectFit}
-          className={className}
-          style={style}
-          unoptimized
-          onLoad={() => {
-            retryCountRef.current = 0;
-            warmedCityImages.add(src);
-          }}
-          onError={handleError}
-        />
-      ) : null}
-    </>
+    <EngineImage
+      src={src}
+      alt={alt}
+      fill
+      priority={priority}
+      loading={priority ? "eager" : "lazy"}
+      nearMargin={IMAGE_NEAR_MARGIN}
+      releaseWhenFar
+      sizes={sizes}
+      quality={72}
+      objectFit={objectFit}
+      className={className}
+      style={style}
+      unoptimized
+      onLoad={() => {
+        retryCountRef.current = 0;
+        warmedCityImages.add(src);
+      }}
+      onError={handleError}
+    />
   );
 }
