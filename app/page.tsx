@@ -8,6 +8,20 @@ import { createFooterNode, createRoavioNav, roavioTheme } from "./roavio/theme";
 
 const HOME_FEATURED_SLUGS = ["valencia", "lisboa", "bali", "bangkok", "dubai", "chiang-mai"] as const;
 
+function revealProps(index: number) {
+  return {
+    effect: "pop",
+    replay: true,
+    renderMargin: 1200,
+    motionMargin: 120,
+    duration: 330,
+    delay: Math.min(index % 4, 3) * 18,
+    scaleFrom: 0.86,
+    overshoot: 1.018,
+    releaseWhenFar: true,
+  };
+}
+
 function statCards(locale: RoavioLocale): SchemaNode[] {
   const es = locale === "es";
   const stats = [
@@ -17,15 +31,19 @@ function statCards(locale: RoavioLocale): SchemaNode[] {
     ["6", es ? "continentes" : "continents", "var(--rv-yellow)"],
   ] as const;
 
-  return stats.map(([value, label, accent]) => ({
-    type: "card",
+  return stats.map(([value, label, accent], index) => ({
+    type: "reveal",
     key: label,
-    props: { variant: "flat", innerPadding: "1rem", bg: "var(--rv-card)", border: "1px solid var(--rv-line)", borderRadius: "20px" },
-    children: [
-      { type: "box", props: { w: "2rem", h: ".35rem", borderRadius: "99px", bg: accent } },
-      { type: "text", props: { content: value, size: { xs: "1.55rem", md: "2rem" }, weight: 800, mt: ".8rem", fontFamily: "Manrope" } },
-      { type: "text", props: { content: label, size: ".78rem", color: "var(--rv-muted)" } },
-    ],
+    props: revealProps(index),
+    children: [{
+      type: "card",
+      props: { variant: "flat", innerPadding: "1rem", bg: "var(--rv-card)", border: "1px solid var(--rv-line)", borderRadius: "20px", style: { height: "100%" } },
+      children: [
+        { type: "box", props: { w: "2rem", h: ".35rem", borderRadius: "99px", bg: accent } },
+        { type: "text", props: { content: value, size: { xs: "1.55rem", md: "2rem" }, weight: 800, mt: ".8rem", fontFamily: "Manrope" } },
+        { type: "text", props: { content: label, size: ".78rem", color: "var(--rv-muted)" } },
+      ],
+    }],
   }));
 }
 
@@ -38,15 +56,19 @@ function decisionCards(locale: RoavioLocale): SchemaNode[] {
     ["04", es ? "Confía en los números" : "Trust the numbers", es ? "Los datos ausentes no se rellenan con ficción." : "Missing data stays missing instead of becoming fiction."],
   ] as const;
 
-  return cards.map(([number, title, body]) => ({
-    type: "card",
+  return cards.map(([number, title, body], index) => ({
+    type: "reveal",
     key: number,
-    props: { variant: "flat", innerPadding: "1rem", bg: "var(--rv-card)", border: "1px solid var(--rv-line)", borderRadius: "20px" },
-    children: [
-      { type: "text", props: { content: number, variant: "overline", color: "var(--rv-green)", weight: 800 } },
-      { type: "text", props: { content: title, size: "1.05rem", weight: 800, mt: ".65rem" } },
-      { type: "text", props: { content: body, size: ".82rem", color: "var(--rv-muted)", lineHeight: 1.6, mt: ".4rem" } },
-    ],
+    props: revealProps(index),
+    children: [{
+      type: "card",
+      props: { variant: "flat", innerPadding: "1rem", bg: "var(--rv-card)", border: "1px solid var(--rv-line)", borderRadius: "20px", style: { height: "100%" } },
+      children: [
+        { type: "text", props: { content: number, variant: "overline", color: "var(--rv-green)", weight: 800 } },
+        { type: "text", props: { content: title, size: "1.05rem", weight: 800, mt: ".65rem" } },
+        { type: "text", props: { content: body, size: ".82rem", color: "var(--rv-muted)", lineHeight: 1.6, mt: ".4rem" } },
+      ],
+    }],
   }));
 }
 
@@ -137,14 +159,18 @@ function createHomeSchema(locale: RoavioLocale) {
             props: { columns: { xs: 1, md: 2 }, gap: "1rem" },
             children: [
               {
-                type: "card",
-                props: { variant: "flat", innerPadding: "1.5rem", bg: "var(--rv-ink)", color: "var(--rv-paper)", borderRadius: "26px", style: { minHeight: "320px" } },
-                children: [
-                  { type: "text", props: { content: "DECISION LAYER", variant: "overline", color: "var(--rv-lime)", weight: 800 } },
-                  { type: "heading", props: { level: 2, content: es ? "Los rankings explican por qué, no solo quién gana." : "Rankings explain why — not just who won.", size: { xs: "2rem", md: "2.8rem" }, color: "#f3faf6", style: { margin: ".8rem 0" } } },
-                  { type: "text", props: { content: es ? "El encaje Roavio combina señales útiles mientras las métricas originales siguen visibles y comparables." : "Roavio Fit combines useful signals while the original source metrics stay visible and comparable.", color: "var(--rv-muted)", lineHeight: 1.7 } },
-                  { type: "button", props: { href: "/compare", label: es ? "Abrir comparación" : "Open comparison", variant: "elevated", accentColor: "var(--rv-lime)", color: "#10231f", mt: "1.4rem" } },
-                ],
+                type: "reveal",
+                props: { ...revealProps(0), renderMargin: 900 },
+                children: [{
+                  type: "card",
+                  props: { variant: "flat", innerPadding: "1.5rem", bg: "var(--rv-ink)", color: "var(--rv-paper)", borderRadius: "26px", style: { minHeight: "320px", height: "100%" } },
+                  children: [
+                    { type: "text", props: { content: "DECISION LAYER", variant: "overline", color: "var(--rv-lime)", weight: 800 } },
+                    { type: "heading", props: { level: 2, content: es ? "Los rankings explican por qué, no solo quién gana." : "Rankings explain why — not just who won.", size: { xs: "2rem", md: "2.8rem" }, color: "#f3faf6", style: { margin: ".8rem 0" } } },
+                    { type: "text", props: { content: es ? "El encaje Roavio combina señales útiles mientras las métricas originales siguen visibles y comparables." : "Roavio Fit combines useful signals while the original source metrics stay visible and comparable.", color: "var(--rv-muted)", lineHeight: 1.7 } },
+                    { type: "button", props: { href: "/compare", label: es ? "Abrir comparación" : "Open comparison", variant: "elevated", accentColor: "var(--rv-lime)", color: "#10231f", mt: "1.4rem" } },
+                  ],
+                }],
               },
               { type: "grid", props: { columns: 2, gap: ".8rem" }, children: decisions },
             ],
