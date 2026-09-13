@@ -72,4 +72,32 @@ test("EngineReveal animates tall cards and keeps geometry stable across a fast m
 		Number.parseFloat(getComputedStyle(element).opacity)
 	));
 	expect(opacity).toBeGreaterThan(0.5);
+
+	// At document end, every reveal that still physically intersects the visual
+	// viewport must remain rendered. Mobile browser chrome can temporarily make
+	// the mathematical layout viewport disagree with what the user actually sees.
+	const visibleRevealStates = await reveals.evaluateAll((elements) => {
+		const visualViewport = window.visualViewport;
+		const top = visualViewport?.offsetTop ?? 0;
+		const left = visualViewport?.offsetLeft ?? 0;
+		const bottom = top + (visualViewport?.height ?? window.innerHeight);
+		const right = left + (visualViewport?.width ?? window.innerWidth);
+
+		return elements.flatMap((element) => {
+			const rect = element.getBoundingClientRect();
+			const intersects = rect.bottom > top
+				&& rect.top < bottom
+				&& rect.right > left
+				&& rect.left < right;
+			if (!intersects) return [];
+			const content = element.querySelector<HTMLElement>(".e-reveal__content");
+			return [content?.dataset.engineRevealState ?? "missing"];
+		});
+	});
+
+	expect(visibleRevealStates.length).toBeGreaterThan(0);
+	expect(
+		visibleRevealStates.filter((state) => state === "sleeping" || state === "missing"),
+		`visible reveal states at bottom: ${visibleRevealStates.join(", ")}`,
+	).toEqual([]);
 });
