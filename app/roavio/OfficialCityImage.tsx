@@ -1,7 +1,13 @@
 "use client";
 
 import { EngineBrowser, EngineImage, EngineScheduler, useEngineSchedule } from "@/engine";
-import { useEffect, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
+import {
+  getRoavioFallbackAccent,
+  peekRoavioCityAccent,
+  resolveRoavioCityAccent,
+  type RoavioCityAccent,
+} from "./cityAccent";
 import { getRoavioCityImage } from "./cityImages";
 
 type EngineImageProps = ComponentProps<typeof EngineImage>;
@@ -11,6 +17,13 @@ const warmingCityImages = new Map<string, HTMLImageElement>();
 const MAX_RETRIES = 2;
 const WARM_NEAR_MARGIN = "1600px 0px";
 const IMAGE_NEAR_MARGIN = "640px 0px";
+const ACCENT_SURFACE_SELECTOR = [
+  ".rv-result-card",
+  ".rv-city-card",
+  ".rv-compare-city-card",
+  ".rv-dossier-page",
+  "[data-roavio-accent-surface]",
+].join(",");
 
 function hasNecessaryConsent(): boolean {
   if (typeof document === "undefined") return false;
@@ -63,6 +76,9 @@ function warmOfficialCityImage(src: string) {
  * - This NE scheduler probe opens the cache-warm window at ~1600px.
  * - EngineImage owns the real image DOM at ~640px, cached-image recovery,
  *   frame-pressure policy and LCP priority behavior.
+ * - The same probe automatically carries the official image palette up to the
+ *   nearest Roavio city surface, so every consumer gets accents without each
+ *   card implementing its own color-analysis lifecycle.
  */
 export function OfficialCityImage({
   slug,
@@ -73,6 +89,7 @@ export function OfficialCityImage({
   objectFit = "cover",
   style,
   onLoad,
+  onAccent,
 }: {
   slug: string;
   alt?: string;
@@ -82,9 +99,11 @@ export function OfficialCityImage({
   objectFit?: EngineImageProps["objectFit"];
   style?: EngineImageProps["style"];
   onLoad?: () => void;
+  onAccent?: (accent: RoavioCityAccent) => void;
 }) {
   const retryCountRef = useRef(0);
   const retryTimerRef = useRef<number | null>(null);
+  const accentProbeRef = useRef<HTMLSpanElement | null>(null);
   const [failed, setFailed] = useState(false);
   const src = getRoavioCityImage(slug);
   const warmSchedule = useEngineSchedule<HTMLSpanElement>({
@@ -93,12 +112,29 @@ export function OfficialCityImage({
     releaseWhenFar: true,
   });
 
+  const applyAccent = useCallback((accent: RoavioCityAccent, source: "fallback" | "image") => {
+    const surface = accentProbeRef.current?.closest(ACCENT_SURFACE_SELECTOR) as HTMLElement | null;
+    if (surface) {
+      surface.style.setProperty("--rv-city-accent", accent.rgb);
+      surface.style.setProperty("--rv-city-accent-hex", accent.hex);
+      surface.dataset.accentReady = "true";
+      surface.dataset.accentSource = source;
+    }
+    onAccent?.(accent);
+  }, [onAccent]);
+
   useEffect(() => {
     retryCountRef.current = 0;
     if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current);
     retryTimerRef.current = null;
     setFailed(false);
-  }, [slug]);
+
+    // Never make every card wait on image decode before it has its own identity.
+    // A cached photo-derived accent wins; otherwise use a deterministic temporary
+    // hue and replace it as soon as the official image sample resolves.
+    const cached = peekRoavioCityAccent(slug);
+    applyAccent(cached ?? getRoavioFallbackAccent(slug), cached ? "image" : "fallback");
+  }, [applyAccent, slug]);
 
   useEffect(() => () => {
     if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current);
@@ -153,7 +189,10 @@ export function OfficialCityImage({
   return (
     <>
       <span
-        ref={warmSchedule.ref}
+        ref={(node) => {
+          accentProbeRef.current = node;
+          warmSchedule.ref(node);
+        }}
         aria-hidden="true"
         style={{ position: "absolute", inset: 0, opacity: 0, pointerEvents: "none" }}
       />
@@ -175,6 +214,7 @@ export function OfficialCityImage({
           retryCountRef.current = 0;
           warmedCityImages.add(src);
           onLoad?.();
+          void resolveRoavioCityAccent(slug).then((accent) => applyAccent(accent, "image"));
         }}
         onError={handleError}
       />
