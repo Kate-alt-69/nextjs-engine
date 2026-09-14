@@ -37,19 +37,74 @@ Movement options are:
 ```ts
 {
 	offset?: number;
+	behavior?: "smooth" | "native" | "instant";
 	duration?: number;
 	easing?: "linear" | "easeInQuad" | "easeOutQuad" |
 		"easeInOutQuad" | "easeInCubic" | "easeOutCubic" |
 		"easeInOutCubic";
 	align?: "start" | "center" | "end" | "nearest";
 	interruptible?: boolean;
-	respectReducedMotion?: boolean;
+	reducedMotion?: "respect" | "reduce" | "ignore";
 }
 ```
 
-Smooth movement defaults to about `550ms`. Unless
-`respectReducedMotion: false` is set, reduced-motion users receive immediate
-movement.
+Smooth movement defaults to about `550ms`. `respectReducedMotion` remains as a
+deprecated compatibility alias; new code should use `reducedMotion`.
+
+## Site behavior policy
+
+EngineScroll can enforce a site-level movement policy without changing the
+user's browser settings:
+
+```ts
+EngineScroll.configure({
+	behavior: "smooth",
+	duration: 420,
+	easing: "easeOutCubic",
+	interruptible: true,
+	reducedMotion: "respect",
+});
+```
+
+The same policy can be scoped to a React tree:
+
+```tsx
+<EngineScrollProvider policy={{
+	behavior: "smooth",
+	duration: 420,
+	reducedMotion: "respect",
+}}>
+	{children}
+</EngineScrollProvider>
+```
+
+| `behavior` | Ownership | Result |
+|---|---|---|
+| `"smooth"` | EngineScroll | Uses NE's RAF animation, even when native CSS smooth scrolling is disabled |
+| `"native"` | Browser | Delegates to `scrollTo({ behavior: "smooth" })`; browser behavior wins |
+| `"instant"` | EngineScroll | Jumps immediately and bypasses page-level `scroll-behavior: smooth` CSS |
+
+| `reducedMotion` | Result |
+|---|---|
+| `"respect"` | Default. Reads `prefers-reduced-motion` and jumps immediately when reduction is requested |
+| `"reduce"` | Always uses immediate movement, regardless of the operating-system preference |
+| `"ignore"` | Keeps the requested animation even when reduction is requested; use only for an explicit product requirement |
+
+`EngineScroll.getPolicy()` returns the effective policy and
+`EngineScroll.resetPolicy()` restores the global defaults. Any movement can
+override the policy for one call:
+
+```ts
+EngineScroll.move("#results", {
+	behavior: "instant",
+	reducedMotion: "reduce",
+});
+```
+
+This policy only controls explicit EngineScroll operations, including the
+`#-es?` URL protocol. It does not intercept wheel/trackpad input or ordinary
+`href="#section"` anchors. Use `EngineScroll.move()` or an EngineScroll URL when
+the site must own that movement.
 
 Wheel, touch, and page-scroll keyboard intent interrupts an interruptible ES
 animation. Key presses inside inputs, textareas, selects, or editable content do

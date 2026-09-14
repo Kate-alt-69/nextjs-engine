@@ -36,6 +36,8 @@ function main() {
 			"EngineScrollState.ts",
 			"EngineScrollRuntime.ts",
 			"EngineScrollEasing.ts",
+			"EngineScrollBehavior.ts",
+			"EngineScrollBrowser.ts",
 			"EngineScrollPointManager.ts",
 			"EngineScrollPointTracker.ts",
 			"EngineScrollAnimation.ts",

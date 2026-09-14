@@ -3,6 +3,7 @@
 // ============================================================================
 
 export { EngineScroll } from "./EngineScroll";
+export { EngineScrollBehavior } from "./EngineScrollBehavior";
 export { EngineScrollRuntime } from "./EngineScrollRuntime";
 
 export {
@@ -100,8 +101,12 @@ export type {
 	EngineScrollAnimation,
 	EngineScrollDirection,
 	EngineScrollEasingName,
+	EngineScrollBehaviorPolicy,
 	EngineScrollMoveOptions,
+	EngineScrollBehaviorMode,
 	EngineScrollPoint,
+	EngineScrollReducedMotion,
+	EngineScrollResolvedBehaviorPolicy,
 	EngineScrollState,
 	EngineScrollSubscriber,
 	EngineViewport,

@@ -90,6 +90,8 @@ EngineScroll now goes far beyond `move()`:
 - ranges and reusable boundary resolution;
 - active/nearest point tracking;
 - snapping;
+- site-level smooth/native/instant behavior policies;
+- configurable reduced-motion handling with a safe `respect` default;
 - numeric timeline tracks;
 - CSS bindings;
 - crossing/activity events;

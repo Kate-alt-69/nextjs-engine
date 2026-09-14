@@ -12,12 +12,14 @@ import React, {
 	useMemo,
 } from "react";
 import { EngineScroll } from "./EngineScroll";
+import { EngineScrollBehavior } from "./EngineScrollBehavior";
 import { EngineScrollNavigator } from "./EngineScrollNavigator";
 import { EngineScrollURL } from "./EngineScrollURL";
 import type {
 	EngineScrollNavigationOptions,
 	EngineScrollTarget,
 } from "./EngineScrollNavigator";
+import type { EngineScrollBehaviorPolicy } from "./EngineScrollTypes";
 
 export interface EngineScrollCtx {
 	move: (
@@ -42,14 +44,22 @@ export function useEngineScroll(): EngineScrollCtx {
 
 export interface EngineScrollProviderProps {
 	children: React.ReactNode;
+	policy?: EngineScrollBehaviorPolicy;
 }
 
-export function EngineScrollProvider({ children }: EngineScrollProviderProps) {
+export function EngineScrollProvider({ children, policy }: EngineScrollProviderProps) {
 	useEffect(() => {
+		const releasePolicy = policy
+			? EngineScrollBehavior.scope(policy)
+			: () => {};
 		EngineScroll.initialize();
 		EngineScrollURL.execute();
-		return EngineScrollURL.listen();
-	}, []);
+		const stopListening = EngineScrollURL.listen();
+		return () => {
+			stopListening();
+			releasePolicy();
+		};
+	}, [policy]);
 
 	const move = useCallback((
 		target: EngineScrollTarget,

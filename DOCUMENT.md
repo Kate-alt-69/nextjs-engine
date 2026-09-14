@@ -1,7 +1,8 @@
 # Next.js Engine — Technical Documentation
 
-> **Last updated:** 2026-09-13
+> **Last updated:** 2026-09-14
 > **Changes in this update:**
+> - **EngineScroll behavior policy** — Added global and provider-scoped `smooth`, `native`, and `instant` movement ownership. NE smooth movement is RAF-driven and independent of browser CSS smooth-scroll settings; reduced motion supports `respect` (default), `reduce`, and explicit `ignore` policies, with per-movement overrides.
 > - **EngineTransitions+ native coordinator** — Page navigation and app-level theme/visual updates can now share one `coordinateEngineViewTransition()` owner for the browser View Transitions API. Conflicting app-level animations skip their extra visual transition while still applying the update, newer NE navigation can replace an older visual transition, native cancellation is handled as a normal result, and real update-callback failures still propagate.
 > - **Generation 3 private login/search proofs** — Added both a portable browser-to-backend example and a real Next.js device-bound login/private-search page using the generated single NENC endpoint, hashed HttpOnly sessions, origin/replay/rate/permission enforcement, server-only credentials, sanitized results, and copied-cookie rejection coverage. Phase C is complete.
 > - **Generation 3 backend proving flows** — NENC now selects credential-scoped `EngineAPIResolver` instances from a frozen, sanitized command context, forwards command `input` to ordinary HTTP request bodies, and proves that unauthorized calls cannot reach private backends or obtain their credentials.
@@ -1695,6 +1696,31 @@ EngineScrollNavigator.move("top");
 EngineScrollNavigator.move("bottom");
 ```
 
+### Movement behavior policy
+
+```ts
+EngineScroll.configure({
+	behavior: "smooth",       // "smooth" | "native" | "instant"
+	duration: 420,
+	easing: "easeOutCubic",
+	interruptible: true,
+	reducedMotion: "respect", // "respect" | "reduce" | "ignore"
+});
+```
+
+`"smooth"` is the default and uses NE's RAF scheduler, so it works even when
+native browser/CSS smooth scrolling is disabled. `"native"` delegates movement
+to the browser. `"instant"` forces an immediate jump. Reduced motion is
+respected by default; `"reduce"` always jumps, while `"ignore"` explicitly
+keeps animation enabled.
+
+Use `<EngineScrollProvider policy={{ ... }}>` for a React-tree-scoped policy.
+`EngineScroll.getPolicy()` reads the active policy and
+`EngineScroll.resetPolicy()` restores global defaults. `behavior`, `duration`,
+`easing`, `interruptible`, and `reducedMotion` can also be overridden on one
+`move()` call. The policy does not hijack physical wheel/trackpad input or
+ordinary hash anchors.
+
 **`EngineScrollTarget` type:**
 
 ```ts
@@ -1859,7 +1885,7 @@ Supported for backwards compatibility. New projects should use `EngineScrollProv
 | Duration control | ❌ browser decides | ✅ configurable ms |
 | Easing curve | ❌ browser decides | ✅ full easing library |
 | Safari compatibility | ⚠️ bugs on `<body>` | ✅ works everywhere |
-| `prefers-reduced-motion` | ✅ browser handles | ✅ instant jump |
+| `prefers-reduced-motion` | ✅ browser handles | ✅ configurable, respects by default |
 | Interrupt on new scroll | ❌ fights native | ✅ RAF cancels cleanly |
 
 ## cprop — Custom CSS Props

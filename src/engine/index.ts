@@ -258,6 +258,7 @@ export {
 
 export {
 	EngineScroll,
+	EngineScrollBehavior,
 	EngineScrollProvider,
 	useEngineScroll,
 	useEngineScrollTimeline,
@@ -303,7 +304,11 @@ export type {
 	EngineScrollAlignment,
 	EngineScrollDirection,
 	EngineScrollEasingName,
+	EngineScrollBehaviorPolicy,
 	EngineScrollMoveOptions,
+	EngineScrollBehaviorMode,
+	EngineScrollReducedMotion,
+	EngineScrollResolvedBehaviorPolicy,
 	EngineScrollSnapMode,
 	EngineScrollSnapOptions,
 	EngineScrollTimelineActivityEvent,

@@ -55,6 +55,7 @@ function main() {
 			"EngineScrollState.ts",
 			"EngineScrollRuntime.ts",
 			"EngineScrollEasing.ts",
+			"EngineScrollBehavior.ts",
 			"EngineScrollPointManager.ts",
 			"EngineScrollAnimation.ts",
 			"EngineScrollMovement.ts",
@@ -93,6 +94,8 @@ function main() {
 		};
 		let cleanedUrl = null;
 		let lastScrollTop = null;
+		let lastScrollOptions = null;
+		let reducedMotionMatches = false;
 
 		global.ResizeObserver = class ResizeObserver {
 			observe() {}
@@ -107,7 +110,11 @@ function main() {
 			location,
 			addEventListener() {},
 			removeEventListener() {},
+			matchMedia() {
+				return { matches: reducedMotionMatches };
+			},
 			scrollTo(options) {
+				lastScrollOptions = options;
 				lastScrollTop = typeof options === "number" ? options : options.top;
 			},
 		};
@@ -132,6 +139,8 @@ function main() {
 		global.cancelAnimationFrame = () => {};
 
 		const { EngineScrollRuntime } = require(path.join(root, "EngineScrollRuntime.js"));
+		const { EngineScrollAnimation } = require(path.join(root, "EngineScrollAnimation.js"));
+		const { EngineScrollBehavior } = require(path.join(root, "EngineScrollBehavior.js"));
 		const { EngineScrollPointManager } = require(path.join(root, "EngineScrollPointManager.js"));
 		const {
 			EngineScrollTargetResolver,
@@ -158,6 +167,53 @@ function main() {
 		cache.viewportHeight = 100;
 		cache.documentWidth = 1200;
 		cache.viewportWidth = 1200;
+
+		// Site policy controls ES movement without depending on browser CSS settings.
+		assert.deepEqual(EngineScrollBehavior.current(), {
+			behavior: "smooth",
+			duration: 550,
+			easing: "easeInOutCubic",
+			interruptible: true,
+			reducedMotion: "respect",
+		});
+		EngineScrollBehavior.configure({
+			duration: 420,
+			easing: "easeOutCubic",
+			interruptible: false,
+		});
+		reducedMotionMatches = true;
+		EngineScrollAnimation.start(50);
+		assert.equal(lastScrollOptions.behavior, "instant");
+		assert.equal(state.animation.duration, 0);
+		assert.equal(state.animation.active, false);
+
+		EngineScrollBehavior.configure({ reducedMotion: "ignore" });
+		lastScrollOptions = null;
+		EngineScrollAnimation.start(60);
+		assert.equal(lastScrollOptions, null);
+		assert.equal(state.animation.active, true);
+		assert.equal(state.animation.duration, 420);
+		assert.equal(state.animation.easing, "easeOutCubic");
+		assert.equal(state.animation.interruptible, false);
+		EngineScrollAnimation.stop();
+
+		EngineScrollBehavior.configure({ behavior: "native" });
+		EngineScrollAnimation.start(70);
+		assert.equal(lastScrollOptions.behavior, "smooth");
+		assert.equal(state.animation.active, false);
+		EngineScrollAnimation.start(75, { behavior: "instant" });
+		assert.equal(lastScrollOptions.behavior, "instant");
+
+		EngineScrollBehavior.configure({ behavior: "smooth", reducedMotion: "respect" });
+		EngineScrollAnimation.start(80, { respectReducedMotion: false });
+		assert.equal(state.animation.active, true);
+		EngineScrollAnimation.stop();
+		const releasePolicy = EngineScrollBehavior.scope({ duration: 125 });
+		assert.equal(EngineScrollBehavior.current().duration, 125);
+		releasePolicy();
+		assert.equal(EngineScrollBehavior.current().duration, 420);
+		EngineScrollBehavior.reset();
+		reducedMotionMatches = false;
 
 		// A failing runtime subscriber must not starve later subscribers.
 		let survivorCalls = 0;

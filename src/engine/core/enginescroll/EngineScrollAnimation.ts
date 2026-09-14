@@ -3,18 +3,19 @@
 // ============================================================================
 
 import { EngineScrollEasing } from "./EngineScrollEasing";
+import { EngineScrollBehavior } from "./EngineScrollBehavior";
+import { EngineScrollBrowser } from "./EngineScrollBrowser";
 import { EngineScrollRuntime } from "./EngineScrollRuntime";
 import { BrowserScheduler } from "./browser/BrowserScheduler";
 import type { EngineScrollMoveOptions } from "./EngineScrollTypes";
 
 export class EngineScrollAnimation {
-	private static readonly DEFAULT_DURATION = 550;
 	private static readonly PROGRAMMATIC_SCROLL_GUARD_MS = 100;
 
-	private static markProgrammaticScroll(): void {
+	private static markProgrammaticScroll(duration = 0): void {
 		const cache = EngineScrollRuntime.get().getCache();
 		cache.programmaticScrollUntil = performance.now()
-			+ this.PROGRAMMATIC_SCROLL_GUARD_MS;
+			+ Math.max(this.PROGRAMMATIC_SCROLL_GUARD_MS, duration);
 	}
 
 	public static isAnimating(): boolean {
@@ -37,34 +38,42 @@ export class EngineScrollAnimation {
 		const resolvedOptions: EngineScrollMoveOptions = typeof options === "number"
 			? { duration: options }
 			: options;
+		const behaviorPolicy = EngineScrollBehavior.resolve(resolvedOptions);
 		const safeTargetPoint = Number.isFinite(targetPoint)
 			? targetPoint
 			: state.viewport.top;
-		const requestedDuration = Number.isFinite(resolvedOptions.duration)
-			? Math.max(0, resolvedOptions.duration!)
-			: this.DEFAULT_DURATION;
-		const reducedMotion = resolvedOptions.respectReducedMotion !== false
-			&& typeof window !== "undefined"
-			&& typeof window.matchMedia === "function"
-			&& window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-		const safeDuration = reducedMotion ? 0 : requestedDuration;
+		const reducedMotion = EngineScrollBehavior.shouldReduce(behaviorPolicy);
+		const safeDuration = reducedMotion || behaviorPolicy.behavior === "instant"
+			? 0
+			: behaviorPolicy.duration;
 
 		animation.startPoint = state.viewport.top;
 		animation.currentPoint = state.viewport.top;
 		animation.targetPoint = safeTargetPoint;
 		animation.duration = safeDuration;
 		animation.startTime = performance.now();
-		animation.easing = resolvedOptions.easing ?? "easeInOutCubic";
-		animation.interruptible = resolvedOptions.interruptible !== false;
+		animation.easing = behaviorPolicy.easing;
+		animation.interruptible = behaviorPolicy.interruptible;
+
+		const spacing = state.page.pointSpacing > 0 ? state.page.pointSpacing : 1;
 
 		if (safeDuration <= 0 || Math.abs(safeTargetPoint - state.viewport.top) < 0.0001) {
-			const spacing = state.page.pointSpacing > 0 ? state.page.pointSpacing : 1;
 			this.markProgrammaticScroll();
-			window.scrollTo({
-				top: safeTargetPoint * spacing,
-				left: window.scrollX,
-				behavior: "auto",
-			});
+			EngineScrollBrowser.scrollTo(safeTargetPoint * spacing);
+			animation.currentPoint = safeTargetPoint;
+			animation.active = false;
+			cache.isAnimating = false;
+			BrowserScheduler.request();
+			return;
+		}
+
+		if (behaviorPolicy.behavior === "native") {
+			this.markProgrammaticScroll(safeDuration);
+			EngineScrollBrowser.scrollTo(
+				safeTargetPoint * spacing,
+				window.scrollX,
+				"smooth",
+			);
 			animation.currentPoint = safeTargetPoint;
 			animation.active = false;
 			cache.isAnimating = false;
@@ -108,11 +117,7 @@ export class EngineScrollAnimation {
 		animation.currentPoint = animation.startPoint
 			+ (animation.targetPoint - animation.startPoint) * eased;
 		this.markProgrammaticScroll();
-		window.scrollTo({
-			top: animation.currentPoint * spacing,
-			left: window.scrollX,
-			behavior: "auto",
-		});
+		EngineScrollBrowser.scrollTo(animation.currentPoint * spacing);
 
 		if (progress < 1) return;
 		animation.currentPoint = animation.targetPoint;
