@@ -123,14 +123,28 @@ function policyMap(overrides: readonly EngineFeatureFallbackPolicy[]): Map<Engin
 	return policies;
 }
 
+function nodeImportance(root: EngineCompiledNode): Map<string, "required" | "optional"> {
+	const importance = new Map<string, "required" | "optional">();
+	const visit = (node: EngineCompiledNode): void => {
+		importance.set(node.id, node.source.compatibility === "optional" ? "optional" : "required");
+		for (const child of node.children) visit(child);
+	};
+	visit(root);
+	return importance;
+}
+
 export function compileEngineFallbackPlan(
 	manifest: EngineUsedFeatureManifest,
 	root: EngineCompiledNode,
 	policies: readonly EngineFeatureFallbackPolicy[] = [],
 ): EngineFallbackPlan {
 	const fallbacks = policyMap(policies);
+	const importance = nodeImportance(root);
 	const features: EngineCompiledFeatureFallback[] = manifest.uses.map((usage) => Object.freeze({
 		feature: usage.feature,
+		importance: usage.requiredBy.every((source) => importance.get(source.nodeId) === "optional")
+			? "optional"
+			: "required",
 		requiredBy: usage.requiredBy,
 		strategies: Object.freeze([
 			strategy("native", "native", [usage.feature], "full"),
@@ -155,6 +169,7 @@ export function resolveEngineFallbackPlan(
 		)) ?? null;
 		return Object.freeze({
 			feature: feature.feature,
+			importance: feature.importance,
 			status: selected?.kind === "native" ? "native" : selected ? "fallback" : "unavailable",
 			strategy: selected,
 			requiredBy: feature.requiredBy,

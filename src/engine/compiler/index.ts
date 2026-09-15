@@ -26,6 +26,7 @@ export type {
 	EngineCompilerSummary,
 	EngineDeviceTarget,
 	EngineCompiledFeatureFallback,
+	EngineCompatibilityImportance,
 	EngineFallbackFidelity,
 	EngineFallbackKind,
 	EngineFallbackPlan,

@@ -37,6 +37,7 @@ export type {
 	EngineCompilerSummary,
 	EngineDeviceTarget,
 	EngineCompiledFeatureFallback,
+	EngineCompatibilityImportance,
 	EngineFallbackFidelity,
 	EngineFallbackKind,
 	EngineFallbackPlan,
@@ -82,6 +83,18 @@ export { useEngineModel, useEngineModelValue } from "./hooks/useEngineModel";
 export { EngineViewport } from "./core/EngineViewport";
 export type { EngineViewportSnapshot } from "./core/EngineViewport";
 export { useEngineViewport } from "./hooks/useEngineViewport";
+
+export { EngineCompatibilityDialog } from "./components/EngineCompatibilityDialog";
+export type { EngineCompatibilityDialogProps } from "./components/EngineCompatibilityDialog";
+export {
+	detectEngineBrowserFeature,
+	engineFallbackPlanNeedsCompatibilityCheck,
+	evaluateEngineBrowserCompatibility,
+} from "./core/EngineBrowserCompatibility";
+export type {
+	EngineCompatibilityIssue,
+	EngineCompatibilityReport,
+} from "./core/EngineBrowserCompatibility";
 
 export { generateEngineMetadata } from "./core/engineMetadata";
 

@@ -102,3 +102,50 @@ test("reduced motion keeps transitions functional without animation stalls", asy
 
 	expect(failures, failures.join("\n")).toEqual([]);
 });
+
+test("the Gen 3 dialog appears only for a used feature without a fallback", async ({ page }) => {
+	await page.addInitScript(() => {
+		const getContext = HTMLCanvasElement.prototype.getContext;
+		HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, contextId: string, ...args: any[]) {
+			if (contextId === "webgl2") return null;
+			return getContext.call(this, contextId as any, ...args as any);
+		} as typeof HTMLCanvasElement.prototype.getContext;
+	});
+	const failures = watchBrowserFailures(page);
+	await page.goto("/engine-compat-test/browser-dialog");
+
+	const dialog = page.getByRole("alertdialog", { name: "Browser update recommended" });
+	await expect(dialog).toBeVisible();
+	await expect(dialog.getByRole("button", { name: "Leave" })).toBeVisible();
+	await expect(dialog.getByRole("button", { name: "Continue" })).toBeFocused();
+	await expect(dialog.getByRole("button", { name: "Update" })).toBeVisible();
+
+	await dialog.getByRole("button", { name: "Continue" }).click();
+	await expect(dialog).toBeHidden();
+	await page.reload();
+	await expect(dialog).toBeHidden();
+	expect(failures, failures.join("\n")).toEqual([]);
+});
+
+test("reasonable fallbacks suppress the Gen 3 browser warning", async ({ page }) => {
+	await page.addInitScript(() => {
+		try {
+			Object.defineProperty(Document.prototype, "startViewTransition", {
+				configurable: true,
+				value: undefined,
+			});
+			Object.defineProperty(Element.prototype, "animate", {
+				configurable: true,
+				value: undefined,
+			});
+		} catch {
+			// Browsers without either API are already on the intended path.
+		}
+	});
+	const failures = watchBrowserFailures(page);
+	await page.goto("/engine-compat-test/browser-dialog/fallback");
+
+	await expect(page.getByRole("heading", { name: "Reasonable fallback available" })).toBeVisible();
+	await expect(page.getByRole("alertdialog", { name: "Browser update recommended" })).toHaveCount(0);
+	expect(failures, failures.join("\n")).toEqual([]);
+});

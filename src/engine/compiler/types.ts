@@ -91,6 +91,7 @@ export interface EngineUsedFeatureManifest {
 
 export type EngineFallbackKind = "native" | "runtime" | "rendering";
 export type EngineFallbackFidelity = "full" | "close" | "structural";
+export type EngineCompatibilityImportance = "required" | "optional";
 export type EngineResolvedFallbackStatus = "native" | "fallback" | "unavailable";
 export type EngineLegacyContent = "html" | "css" | "text" | "images" | "links" | "basic-form-structure";
 
@@ -108,6 +109,7 @@ export interface EngineFeatureFallbackPolicy {
 
 export interface EngineCompiledFeatureFallback {
 	feature: EngineCapability;
+	importance: EngineCompatibilityImportance;
 	requiredBy: readonly EngineUsedFeatureSource[];
 	strategies: readonly EngineFallbackStrategy[];
 }
@@ -127,6 +129,7 @@ export interface EngineFallbackPlan {
 
 export interface EngineResolvedFeatureFallback {
 	feature: EngineCapability;
+	importance: EngineCompatibilityImportance;
 	status: EngineResolvedFallbackStatus;
 	strategy: EngineFallbackStrategy | null;
 	requiredBy: readonly EngineUsedFeatureSource[];
