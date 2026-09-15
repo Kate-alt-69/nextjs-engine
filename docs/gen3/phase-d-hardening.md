@@ -2,7 +2,7 @@
 
 > Branch: `main-3`
 >
-> Status: D.1–D.3 compatibility compiler and legacy-render plan complete
+> Status: D.1–D.4 compatibility compiler, legacy rendering, and browser dialog complete
 
 Phase D makes the Generation 3 compiler understandable, compatible, measurable, secure, and release-ready. It builds on the compiler/runtime graph from Phases A and B and the secure command layer from Phase C.
 
@@ -71,14 +71,53 @@ const fallbackPlan = compileEngineFallbackPlan(featureManifest, root, [{
 
 This is not a second renderer and it does not pretend an unsupported GPU or media API works. The Generation 3 server renderer already sends static markup and passes nested server-rendered children through client-island boundaries. The legacy plan makes that contract explicit so compatibility UI and future build diagnostics can distinguish “the enhancement is unavailable” from “the page content is unavailable.”
 
+## D.4 — Browser compatibility dialog
+
+`createPage()` now mounts the compatibility dialog only when its compiled fallback plan contains a potentially blocking feature. Static pages and pages whose features all have unconditional fallbacks do not mount the dialog runtime.
+
+In the browser, the engine probes only capabilities referenced by that page's feature and fallback plan. It does not use the user agent and it does not test unrelated APIs. A warning appears only when all three conditions are true:
+
+1. the compiled page actually uses the feature;
+2. at least one requiring node marks it as required;
+3. the native feature is unsupported and no compiled fallback can run.
+
+The default importance is `required`. Decorative enhancements can opt out without hiding failures needed by the rest of the page:
+
+```ts
+{
+	type: "canvas",
+	compatibility: "optional",
+	props: {
+		mode: "webgl2",
+		onDraw: "decorativeBackground",
+	},
+}
+```
+
+When multiple nodes use a feature, one required use keeps that feature required. It becomes optional only when every requiring node explicitly marks it optional.
+
+The accessible `alertdialog` uses the required copy and actions:
+
+```text
+Browser update recommended
+
+Some features used by this site are not fully supported
+by your current browser.
+
+[Leave] [Continue] [Update]
+```
+
+`Continue` dismisses the same unsupported-feature set for the current origin and browser session, preventing the warning from repeating on every page. `Leave` returns through browser history or leaves for a blank page when there is no prior entry. `Update` opens the generic browser-update resource only after the user chooses it. Application code can also render `EngineCompatibilityDialog` directly and override those actions or URLs.
+
+`evaluateEngineBrowserCompatibility()` returns a frozen report containing every unavailable required feature, its resolution result, and the exact compiler `requiredBy` paths. D.5 EngineDebug can therefore explain the cause without duplicating capability detection or exposing the report in production DOM attributes.
+
 ## Phase D implementation order
 
-1. D.4 browser compatibility dialog;
-2. D.5–D.15 dev-only EngineDebug and compiler explanations;
-3. D.16–D.17 incremental compilation and HMR integration;
-4. D.18 build budgets;
-5. D.19 static security diagnostics;
-6. D.20 production tree-shaking proofs;
-7. D.21–D.22 device, network, browser, torture, and visual tests.
+1. D.5–D.15 dev-only EngineDebug and compiler explanations;
+2. D.16–D.17 incremental compilation and HMR integration;
+3. D.18 build budgets;
+4. D.19 static security diagnostics;
+5. D.20 production tree-shaking proofs;
+6. D.21–D.22 device, network, browser, torture, and visual tests.
 
 The production invariant remains strict: debug surfaces must be absent from `next build` and `next start`, while unused feature runtimes must not enter production bundles.

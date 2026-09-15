@@ -603,6 +603,8 @@ export interface SchemaNode {
 	type: NodeType;
 	name?: string;
 	key?: string;
+	/** Whether missing browser capabilities owned by this node should recommend an update. */
+	compatibility?: "required" | "optional";
 	props?: Record<string, unknown>;
 	children?: SchemaNode[] | string;
 }
