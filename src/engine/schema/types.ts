@@ -316,6 +316,13 @@ export interface MarkdownProps extends BaseNodeProps {
 	blockAnimation?: "none" | "fade-in" | "slide-up";
 	animationDuration?: string;
 	animationStagger?: number;
+	codeBackground?: string;
+	codeColor?: string;
+	inlineCodeBackground?: string;
+	inlineCodeColor?: string;
+	codeBorderColor?: string;
+	codeFontFamily?: string;
+	showCodeLanguage?: boolean;
 }
 
 export interface HeadingProps extends TextProps {

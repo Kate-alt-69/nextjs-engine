@@ -1353,7 +1353,7 @@ that should be completed before introducing major new engine features.
 
 ## Status
 
-🟡 Medium Priority
+✅ Core completed — optional front matter and syntax highlighting remain extensibility work
 
 ---
 
@@ -1462,21 +1462,22 @@ maintainability, and future extensibility.
 
 ---
 
-## Current Limitations
+## Resolved limitations
 
 Known issues include:
 
-* Nested unordered lists
-* Nested ordered lists
+* Nested ordered and unordered lists
 * Multi-level blockquotes
-* Triple backtick code fences
-* Tables
-* Front matter
-* Inline HTML edge cases
-* Complex emphasis nesting
+* Triple-backtick and tilde code fences
+* Compact same-line fence recovery for generated documentation
+* Tables and task lists
+* Safe raw-HTML handling
+* Complex inline formatting
+* Stable hydration without warning suppression
 
-Current hydration warnings are suppressed, but parser correctness should be
-improved.
+Front matter remains optional because it is document metadata rather than
+rendered prose. Code blocks expose `language-*` classes for an application-owned
+syntax highlighter without forcing one into every EngineMarkdown bundle.
 
 ---
 
@@ -1485,8 +1486,7 @@ improved.
 Replace the regex parser with a proper tokenization pipeline while preserving
 the existing public API.
 
-The `MarkdownProps` interface should remain unchanged to avoid breaking
-existing projects.
+Existing `MarkdownProps` remain compatible. New code-surface props are optional.
 
 ---
 
@@ -1500,7 +1500,6 @@ Support:
 * Tables
 * Code fences
 * Syntax highlighting hooks
-* Front matter
 * Blockquotes
 * Images
 * Links
@@ -1512,23 +1511,19 @@ Support:
 
 ## Optional Integration
 
-Allow optional peer dependency support for:
-
-* `marked`
-* `remark`
-* Custom parser
-
-without making external packages mandatory.
+The implementation uses `react-markdown` and `remark-gfm` for a maintained AST
+pipeline. Raw HTML remains disabled; custom code highlighting can consume the
+emitted language classes.
 
 ---
 
 ## Required Work
 
-* [ ] Build tokenizer
-* [ ] Build AST
-* [ ] Implement renderer
-* [ ] Preserve MarkdownProps
-* [ ] Improve hydration stability
+* [x] Adopt standards-backed tokenizer
+* [x] Build CommonMark/GFM AST
+* [x] Implement semantic React renderer
+* [x] Preserve MarkdownProps compatibility
+* [x] Improve hydration stability
 * [ ] Benchmark performance
 
 ---
