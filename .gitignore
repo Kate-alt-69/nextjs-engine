@@ -10,6 +10,7 @@ app/gemini/**.tsx
 app/asdf/**.tsx
 .engine-api-compiled.json
 .nextjs-engine/nenc/manifest.json
+.nextjs-engine/tree-shaking-proof/
 /public/_static/endpoint/
 /public/_static/shader/
 .next/

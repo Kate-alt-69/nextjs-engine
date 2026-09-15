@@ -91,10 +91,14 @@ check(video.includes("video.pause()"), "offscreen autoplay video pauses");
 check(video.includes("!schedule.underFramePressure"), "near video initialization waits while visible frames are pressured");
 
 const canvasFacade = read("src/engine/components/EngineCanvas.tsx");
-check(canvasFacade.includes("adaptiveProp ?? false"), "Gen 3 Canvas preserves resolution unless adaptive DPR is explicitly enabled");
-check(canvasFacade.includes("handlers.adaptive ?? false"), "Gen 3 low-level Canvas hook also preserves resolution by default");
+check(canvasFacade.includes("adaptiveProp ?? false"), "Gen 3 Canvas keeps the compatibility adaptive default explicit");
+check(canvasFacade.includes("handlers.adaptive ?? false"), "Gen 3 low-level Canvas hook keeps the compatibility default explicit");
 check(canvasFacade.includes("useCoreEngineCanvas"), "Gen 3 low-level hook wraps the compatible v2 core instead of changing patch behavior");
 check(canvasFacade.includes("acquireFrameMonitor"), "Canvas/Shader activity feeds the shared frame-pressure monitor without changing resolution");
+const canvasCore = read("src/engine/core/enginecanvas/EngineCanvas.tsx");
+const shaderRuntime = read("src/engine/components/EngineShader.tsx");
+check(!canvasCore.includes("resolveAdaptiveDpr") && !canvasCore.includes("nextDpr"), "Canvas never lowers backing resolution under frame pressure");
+check(!shaderRuntime.includes("nextDpr") && !shaderRuntime.includes("adaptiveWindowStart"), "Shader never lowers backing resolution under frame pressure");
 
 const model = read("src/engine/core/EngineModel.ts");
 for (const api of ["get<", "set<", "update<", "computed<", "action<", "watch<", "subscribe("]) {

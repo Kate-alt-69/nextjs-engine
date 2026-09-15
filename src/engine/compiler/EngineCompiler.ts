@@ -5,7 +5,9 @@
 import type { PageSchema, SchemaNode } from "../schema/types";
 import { compileEngineUsedFeatureManifest } from "./EngineCompatibilityManifest";
 import { compileEngineFallbackPlan } from "./EngineFallbackCompiler";
-import { getEngineRuntimeProfile, resolveNodeRuntime } from "./runtimeRegistry";
+import { compileEngineArtifact } from "./EngineArtifactGraph";
+import { assertEngineSecurityDiagnostics, compileEngineSecurityDiagnostics } from "./EngineSecurityCompiler";
+import { getEngineRuntimeProfile, getEngineRuntimeRegistryRevision, resolveNodeRuntime } from "./runtimeRegistry";
 import type {
 	EngineCapability,
 	EngineCompileOptions,
@@ -41,16 +43,24 @@ function resolvePageId(schema: PageSchema, requestedId?: string): string {
 	return `engine-${stableHash(title)}`;
 }
 
-function resolveWorkClass(node: SchemaNode, depth: number): EngineWorkClass {
+function resolveWorkClass(node: SchemaNode, depth: number): { workClass: EngineWorkClass; reason: string } {
 	const props = node.props ?? {};
-	if (props.priority === true || props.eager === true) return "critical";
-	if (props.lazy === true) return "deferred";
-	if (node.type === "hero" || (depth === 0 && node.type !== "video")) return "critical";
+	if (props.priority === true || props.eager === true) {
+		return { workClass: "critical", reason: "The node explicitly requests priority/eager work." };
+	}
+	if (props.lazy === true) {
+		return { workClass: "deferred", reason: "The node explicitly requests lazy work." };
+	}
+	if (node.type === "hero" || (depth === 0 && node.type !== "video")) {
+		return { workClass: "critical", reason: "Root and hero content is critical for the initial page presentation." };
+	}
 	const profile = getEngineRuntimeProfile(node.type);
-	if (profile.defaultWorkClass) return profile.defaultWorkClass;
-	if (depth <= 1) return "visible";
-	if (depth <= 3) return "near";
-	return "deferred";
+	if (profile.defaultWorkClass) {
+		return { workClass: profile.defaultWorkClass, reason: `The ${String(node.type)} runtime profile defaults to ${profile.defaultWorkClass} work.` };
+	}
+	if (depth <= 1) return { workClass: "visible", reason: "The node is near the top of the compiled page tree." };
+	if (depth <= 3) return { workClass: "near", reason: "The node is nested below initially visible content and can be prepared near the viewport." };
+	return { workClass: "deferred", reason: "Deeply nested work is deferred until it is useful." };
 }
 
 function addAsset(
@@ -167,7 +177,8 @@ function compileNode(
 ): EngineCompiledNode {
 	const nodeId = `${state.pageId}-${stableHash(`${path}:${node.type}:${node.name ?? ""}`)}`;
 	const runtimeResolution = resolveNodeRuntime(node);
-	const workClass = resolveWorkClass(node, depth);
+	const workResolution = resolveWorkClass(node, depth);
+	const workClass = workResolution.workClass;
 	const capabilities = collectNodeCapabilities(node, runtimeResolution.profile.capabilities);
 	const assets = collectNodeAssets(node, nodeId, workClass);
 	const heavy = runtimeResolution.profile.heavy === true;
@@ -211,6 +222,7 @@ function compileNode(
 		runtime: runtimeResolution.runtime,
 		runtimeReason: runtimeResolution.reason,
 		workClass,
+		workReason: workResolution.reason,
 		capabilities,
 		heavy,
 		interactive,
@@ -220,7 +232,7 @@ function compileNode(
 	};
 }
 
-export function compilePage(schema: PageSchema, options: EngineCompileOptions = {}): EngineCompiledPage {
+function compilePageFresh(schema: PageSchema, options: EngineCompileOptions = {}): EngineCompiledPage {
 	const pageId = resolvePageId(schema, options.pageId);
 	const state: CompileState = {
 		pageId,
@@ -238,6 +250,11 @@ export function compilePage(schema: PageSchema, options: EngineCompileOptions = 
 	};
 
 	const root = compileNode(schema.root, "root", 0, state);
+	if (options.security !== "off") {
+		const securityDiagnostics = compileEngineSecurityDiagnostics(root);
+		state.diagnostics.push(...securityDiagnostics);
+		if (options.security !== "report") assertEngineSecurityDiagnostics(securityDiagnostics);
+	}
 	const featureManifest = compileEngineUsedFeatureManifest(pageId, root);
 	const fallbackPlan = compileEngineFallbackPlan(featureManifest, root);
 	state.summary.assetCount = state.assets.size;
@@ -262,6 +279,19 @@ export function compilePage(schema: PageSchema, options: EngineCompileOptions = 
 		assets: [...state.assets.values()],
 		diagnostics: state.diagnostics,
 	};
+}
+
+export function compilePage(schema: PageSchema, options: EngineCompileOptions = {}): EngineCompiledPage {
+	const pageId = resolvePageId(schema, options.pageId);
+	return compileEngineArtifact({
+		kind: "schema",
+		id: `page:${pageId}`,
+		input: {
+			schema,
+			options,
+			runtimeRegistryRevision: getEngineRuntimeRegistryRevision(),
+		},
+	}, () => compilePageFresh(schema, options)).value;
 }
 
 export function findCompiledNode(plan: EngineCompiledPage, idOrName: string): EngineCompiledNode | undefined {

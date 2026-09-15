@@ -2,6 +2,7 @@
 
 > **Last updated:** 2026-09-15
 > **Changes in this update:**
+> - **Generation 3 D.11–D.22 hardening** — Added dev-only NENC/Cookie/Model/capability/WHY inspector contracts, dependency-aware artifact caching and scoped HMR, optional attributed build budgets, build-blocking security diagnostics, emitted-bundle tree-shaking proofs, and desktop/phone/tablet/high-refresh/network/Chromium/Firefox/WebKit/older-browser test matrices. Canvas adaptation no longer lowers backing resolution.
 > - **Generation 3 browser compatibility dialog** — Added isolated capability probes plus `EngineCompatibilityDialog`, which resolves only the compiled page's used features, auto-opens for real fallback/unavailable outcomes, stays empty during SSR and on fully native pages, supports fail-closed custom capability overrides, and can reveal stable compiler source paths.
 > - **EngineScroll behavior policy** — Added global and provider-scoped `smooth`, `native`, and `instant` movement ownership. NE smooth movement is RAF-driven and independent of browser CSS smooth-scroll settings; reduced motion supports `respect` (default), `reduce`, and explicit `ignore` policies, with per-movement overrides.
 > - **EngineTransitions+ native coordinator** — Page navigation and app-level theme/visual updates can now share one `coordinateEngineViewTransition()` owner for the browser View Transitions API. Conflicting app-level animations skip their extra visual transition while still applying the update, newer NE navigation can replace an older visual transition, native cancellation is handled as a normal result, and real update-callback failures still propagate.
@@ -1540,7 +1541,7 @@ A canvas node that uses the GPU correctly and doesn't lag.
 | `responsive` | `boolean` | `true` when no width/height | Fill container, resize automatically |
 | `dpr` | `number\|"auto"` | `"auto"` | Device pixel ratio for sharp rendering |
 | `maxDpr` | `number` | `2` | DPR cap — prevents 3× rendering on 3× displays |
-| `adaptive` | `boolean` | `true` | Reduce DPR when FPS < 30, restore when > 55 |
+| `adaptive` | `boolean` | `true` | Compatibility switch for scheduling integrations; never reduces DPR or visual quality |
 | `pauseWhenOffscreen` | `boolean` | `true` | Stop RAF when canvas leaves viewport |
 | `pauseWhenHidden` | `boolean` | `true` | Stop RAF when browser tab is hidden |
 | `alpha` | `boolean` | `false` | Transparent canvas — set false for a free GPU win |

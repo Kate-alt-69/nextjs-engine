@@ -15,12 +15,21 @@ export type {
 // in `nextjs-engine/server`; this barrel only exposes browser/server-safe APIs.
 export {
 	ENGINE_DEFAULT_FALLBACK_POLICIES,
+	assertEngineBuildBudgets,
+	assertEngineSecurityDiagnostics,
 	compilePage,
 	compileEngineUsedFeatureManifest,
 	compileEngineFallbackPlan,
+	compileEngineArtifact,
+	compileEngineSecurityDiagnostics,
+	evaluateEngineBuildBudgets,
 	explainCompiledNode,
+	fingerprintEngineArtifact,
 	findCompiledNode,
 	getEngineRuntimeProfile,
+	getEngineRuntimeRegistryRevision,
+	inspectEngineArtifactGraph,
+	invalidateEngineArtifacts,
 	registerEngineRuntimeProfile,
 	resolveEngineFallbackPlan,
 	resolveNodeRuntime,
@@ -28,6 +37,17 @@ export {
 } from "./compiler";
 export type {
 	EngineAssetKind,
+	EngineBuildAttribution,
+	EngineBuildBudgetLimits,
+	EngineBuildBudgetMetric,
+	EngineBuildBudgetReport,
+	EngineBuildBudgetResult,
+	EngineBuildMeasurements,
+	EngineArtifactDescriptor,
+	EngineArtifactInspection,
+	EngineArtifactKind,
+	EngineArtifactReference,
+	EngineArtifactResult,
 	EngineCapability,
 	EngineCompileOptions,
 	EngineCompiledAsset,
@@ -78,14 +98,22 @@ export type { EngineScheduleListener, EngineSchedulePolicy, EngineScheduleSnapsh
 export { useEngineSchedule, useEngineVisible } from "./hooks/useEngineScheduler";
 export type { UseEngineScheduleReturn } from "./hooks/useEngineScheduler";
 export { EngineModel } from "./core/EngineModel";
-export type { EngineModelAction, EngineModelKeyListener, EngineModelListener, EngineModelState } from "./core/EngineModel";
+export type {
+	EngineModelAction,
+	EngineModelConsumerInspection,
+	EngineModelInspection,
+	EngineModelKeyListener,
+	EngineModelListener,
+	EngineModelOptions,
+	EngineModelState,
+} from "./core/EngineModel";
 export { useEngineModel, useEngineModelValue } from "./hooks/useEngineModel";
 export { EngineViewport } from "./core/EngineViewport";
 export type { EngineViewportSnapshot } from "./core/EngineViewport";
 export { useEngineViewport } from "./hooks/useEngineViewport";
 
-export { EngineCompatibilityDialog } from "./components/EngineCompatibilityDialog";
-export type { EngineCompatibilityDialogProps } from "./components/EngineCompatibilityDialog";
+export { EngineBrowserUpdateDialog } from "./components/EngineCompatibilityDialog";
+export type { EngineBrowserUpdateDialogProps } from "./components/EngineCompatibilityDialog";
 export {
 	detectEngineBrowserFeature,
 	engineFallbackPlanNeedsCompatibilityCheck,

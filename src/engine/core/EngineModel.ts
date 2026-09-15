@@ -10,6 +10,24 @@ export type EngineModelKeyListener<T> = (value: T, previous: T) => void;
 export type EngineModelAction<TState extends EngineModelState, TArgs extends unknown[] = unknown[], TResult = unknown> =
 	(model: EngineModel<TState>, ...args: TArgs) => TResult;
 
+export interface EngineModelOptions {
+	name?: string;
+}
+
+export interface EngineModelConsumerInspection {
+	id: string;
+	keys: readonly string[];
+}
+
+export interface EngineModelInspection<TState extends EngineModelState = EngineModelState> {
+	name: string;
+	version: number;
+	state: Readonly<TState>;
+	computed: readonly string[];
+	actions: readonly string[];
+	consumers: readonly EngineModelConsumerInspection[];
+}
+
 export class EngineModel<TState extends EngineModelState = EngineModelState> {
 	private state: TState;
 	private readonly initialState: TState;
@@ -18,10 +36,19 @@ export class EngineModel<TState extends EngineModelState = EngineModelState> {
 	private keyListeners = new Map<keyof TState, Set<EngineModelKeyListener<any>>>();
 	private computedValues = new Map<string, (state: Readonly<TState>) => unknown>();
 	private actions = new Map<string, EngineModelAction<TState, any[], any>>();
+	private readonly debugName: string;
+	private debugConsumers = new Map<string, Set<string>>();
+	private debugListeners = new Set<EngineModelListener>();
 
-	constructor(initialState: TState) {
+	constructor(initialState: TState, options: EngineModelOptions = {}) {
 		this.initialState = { ...initialState };
 		this.state = { ...initialState };
+		this.debugName = options.name?.trim() || "EngineModel";
+	}
+
+	private notifyDebug(): void {
+		if (process.env.NODE_ENV === "production") return;
+		for (const listener of [...this.debugListeners]) listener();
 	}
 
 	get<K extends keyof TState>(key: K): TState[K] {
@@ -39,6 +66,7 @@ export class EngineModel<TState extends EngineModelState = EngineModelState> {
 		this.version += 1;
 		for (const listener of [...(this.keyListeners.get(key) ?? [])]) listener(value, previous);
 		for (const listener of [...this.listeners]) listener();
+		this.notifyDebug();
 	}
 
 	update<K extends keyof TState>(key: K, updater: (current: TState[K]) => TState[K]): void {
@@ -66,6 +94,7 @@ export class EngineModel<TState extends EngineModelState = EngineModelState> {
 			}
 		}
 		for (const listener of [...this.listeners]) listener();
+		this.notifyDebug();
 	}
 
 	reset(): void {
@@ -123,7 +152,57 @@ export class EngineModel<TState extends EngineModelState = EngineModelState> {
 		return this.version;
 	}
 
-	static create<T extends EngineModelState>(initialState: T): EngineModel<T> {
-		return new EngineModel(initialState);
+	registerDebugConsumer(id: string, key: keyof TState | "*"): () => void {
+		if (process.env.NODE_ENV === "production") return () => undefined;
+		const normalizedId = id.trim();
+		if (!normalizedId) return () => undefined;
+		const normalizedKey = String(key);
+		const keys = this.debugConsumers.get(normalizedId) ?? new Set<string>();
+		keys.add(normalizedKey);
+		this.debugConsumers.set(normalizedId, keys);
+		this.notifyDebug();
+		return () => {
+			const current = this.debugConsumers.get(normalizedId);
+			if (!current) return;
+			current.delete(normalizedKey);
+			if (current.size === 0) this.debugConsumers.delete(normalizedId);
+			this.notifyDebug();
+		};
+	}
+
+	subscribeDebug(listener: EngineModelListener): () => void {
+		if (process.env.NODE_ENV === "production") {
+			throw new Error("[EngineModel] Debug subscriptions are development-only.");
+		}
+		this.debugListeners.add(listener);
+		return () => this.debugListeners.delete(listener);
+	}
+
+	inspect(): EngineModelInspection<TState> {
+		if (process.env.NODE_ENV === "production") {
+			throw new Error("[EngineModel] State inspection is development-only.");
+		}
+		return Object.freeze({
+			name: this.debugName,
+			version: this.version,
+			state: Object.freeze({ ...this.state }),
+			computed: Object.freeze([...this.computedValues.keys()].sort()),
+			actions: Object.freeze([...this.actions.keys()].sort()),
+			consumers: Object.freeze([...this.debugConsumers.entries()]
+				.sort(([left], [right]) => left.localeCompare(right))
+				.map(([id, keys]) => Object.freeze({ id, keys: Object.freeze([...keys].sort()) }))),
+		});
+	}
+
+	debugSet(key: keyof TState, value: unknown): void {
+		if (process.env.NODE_ENV === "production") {
+			throw new Error("[EngineModel] State editing is development-only.");
+		}
+		if (!this.has(key)) throw new Error(`[EngineModel] Cannot edit unknown key "${String(key)}".`);
+		this.set(key, value as TState[keyof TState]);
+	}
+
+	static create<T extends EngineModelState>(initialState: T, options?: EngineModelOptions): EngineModel<T> {
+		return new EngineModel(initialState, options);
 	}
 }

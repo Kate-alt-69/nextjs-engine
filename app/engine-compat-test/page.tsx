@@ -14,11 +14,13 @@ const COMPATIBILITY_PLAN: EngineFallbackPlan = {
 	features: [
 		{
 			feature: "css-grid",
+			importance: "required",
 			requiredBy: [{ nodeId: "compat-grid", path: "root", nodeType: "grid", runtime: "static" }],
 			strategies: [{ id: "native", kind: "native", requires: ["css-grid"], fidelity: "full" }],
 		},
 		{
 			feature: "view-transitions",
+			importance: "required",
 			requiredBy: [{ nodeId: "compat-link", path: "root.1", nodeType: "link", runtime: "client" }],
 			strategies: [
 				{ id: "native", kind: "native", requires: ["view-transitions"], fidelity: "full" },
@@ -28,6 +30,7 @@ const COMPATIBILITY_PLAN: EngineFallbackPlan = {
 		},
 		{
 			feature: "webgl2",
+			importance: "required",
 			requiredBy: [{ nodeId: "compat-canvas", path: "root.2", nodeType: "canvas", runtime: "client" }],
 			strategies: [{ id: "native", kind: "native", requires: ["webgl2"], fidelity: "full" }],
 		},

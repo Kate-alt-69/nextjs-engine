@@ -25,5 +25,15 @@ export default defineConfig({
 		{ name: "chromium", use: { ...devices["Desktop Chrome"] } },
 		{ name: "firefox", use: { ...devices["Desktop Firefox"] } },
 		{ name: "webkit", use: { ...devices["Desktop Safari"] } },
+		{
+			name: "phone-chromium-matrix",
+			grep: /@device-matrix/,
+			use: { ...devices["Pixel 7"] },
+		},
+		{
+			name: "tablet-webkit-matrix",
+			grep: /@device-matrix/,
+			use: { ...devices["iPad Pro 11"] },
+		},
 	],
 });

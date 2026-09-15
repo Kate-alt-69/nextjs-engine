@@ -212,19 +212,13 @@ can wait during frame pressure. Offscreen autoplay video pauses.
 
 ### Canvas and Shader
 
-Generation 3 changes the public Canvas default:
+Generation 3 keeps Canvas backing resolution at its configured DPR. The
+`adaptive` compatibility prop remains available for scheduling integrations;
+it never lowers DPR. This applies to both `<EngineCanvas />` and the public
+low-level `useEngineCanvas()` facade.
 
-```text
-adaptive DPR default = false
-```
-
-This applies to both `<EngineCanvas />` and the public low-level
-`useEngineCanvas()` facade.
-
-Developers who deliberately want the legacy dynamic-resolution behavior can
-still opt in with `adaptive: true`.
-
-The scheduler can monitor Canvas/Shader frame delivery while leaving DPR alone.
+The scheduler can monitor Canvas/Shader frame delivery, postpone speculative
+work, and adjust timing while leaving DPR and visual fidelity alone.
 
 ## Phase B — automatic phone/tablet layout compilation
 

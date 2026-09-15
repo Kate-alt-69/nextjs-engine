@@ -12,6 +12,7 @@ const DEFAULT_PROFILE: EngineRuntimeProfile = {
 };
 
 const profiles = new Map<NodeType, EngineRuntimeProfile>();
+let registryRevision = 0;
 
 function setBuiltin(type: NodeType, profile: EngineRuntimeProfile): void {
 	profiles.set(type, Object.freeze({ ...profile }));
@@ -124,10 +125,15 @@ setBuiltin("suspense", {
 
 export function registerEngineRuntimeProfile(type: NodeType, profile: EngineRuntimeProfile): void {
 	profiles.set(type, Object.freeze({ ...profile }));
+	registryRevision += 1;
 }
 
 export function unregisterEngineRuntimeProfile(type: NodeType): void {
-	profiles.delete(type);
+	if (profiles.delete(type)) registryRevision += 1;
+}
+
+export function getEngineRuntimeRegistryRevision(): number {
+	return registryRevision;
 }
 
 export function getEngineRuntimeProfile(type: NodeType): EngineRuntimeProfile {

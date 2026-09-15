@@ -21,7 +21,7 @@ import {
 import { compilePage } from "./compiler/EngineCompiler";
 import { EngineServerRenderer } from "./compiler/EngineServerRenderer";
 import type { EngineCompiledPage } from "./compiler/types";
-import { EngineCompatibilityDialog } from "./components/EngineCompatibilityDialog";
+import { EngineBrowserUpdateDialog } from "./components/EngineCompatibilityDialog";
 import { engineFallbackPlanNeedsCompatibilityCheck } from "./core/EngineBrowserCompatibility";
 
 export interface EngineCompilerOptions {
@@ -213,7 +213,7 @@ export function createPage(options: CreatePageOptions): EnginePageComponent {
 
 	function renderCompatibility(plan: EngineCompiledPage) {
 		return engineFallbackPlanNeedsCompatibilityCheck(plan.fallbackPlan)
-			? <EngineCompatibilityDialog plan={plan.fallbackPlan} />
+			? <EngineBrowserUpdateDialog plan={plan.fallbackPlan} />
 			: null;
 	}
 

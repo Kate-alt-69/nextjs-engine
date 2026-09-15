@@ -3,6 +3,10 @@
 const withEngineAPI = require("./engineApiPlugin");
 const withEngineShader = require("./engineShaderPlugin");
 const withEngineNENC = require("./nencPlugin");
+const {
+	clearPluginArtifactCache,
+	inspectPluginArtifactCache,
+} = require("./artifactCache");
 
 function withEngine(nextConfig = {}, pluginOptions = {}) {
 	const apiOptions = pluginOptions.api || pluginOptions;
@@ -20,3 +24,5 @@ module.exports.withEngine = withEngine;
 module.exports.withEngineAPI = withEngineAPI;
 module.exports.withEngineShader = withEngineShader;
 module.exports.withEngineNENC = withEngineNENC;
+module.exports.clearPluginArtifactCache = clearPluginArtifactCache;
+module.exports.inspectPluginArtifactCache = inspectPluginArtifactCache;

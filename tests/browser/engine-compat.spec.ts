@@ -149,3 +149,69 @@ test("reasonable fallbacks suppress the Gen 3 browser warning", async ({ page })
 	await expect(page.getByRole("alertdialog", { name: "Browser update recommended" })).toHaveCount(0);
 	expect(failures, failures.join("\n")).toEqual([]);
 });
+
+test("@device-matrix responsive rendering preserves content and visual fidelity", async ({ page }) => {
+	const failures = watchBrowserFailures(page);
+	await page.goto("/engine-compat-test");
+	await closeCompatibilityDialog(page);
+	await expect(page.getByTestId("count")).toHaveText("0");
+	const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+	expect(overflow).toBeLessThanOrEqual(1);
+	expect(failures, failures.join("\n")).toEqual([]);
+});
+
+test("network matrix survives fast, normal, high-latency, and slow delivery", async ({ page, browserName }) => {
+	test.skip(browserName !== "chromium", "One browser owns the transport matrix; rendering still runs in all three engines.");
+	const failures = watchBrowserFailures(page);
+	for (const profile of [
+		{ name: "fast", latency: 0 },
+		{ name: "normal", latency: 40 },
+		{ name: "high-latency", latency: 250 },
+		{ name: "slow", latency: 650 },
+	]) {
+		await page.unrouteAll({ behavior: "wait" });
+		await page.route("**/engine-compat-test", async (route) => {
+			if (profile.latency > 0) await new Promise((resolve) => setTimeout(resolve, profile.latency));
+			await route.continue();
+		});
+		await page.goto("/engine-compat-test");
+		await expect(page.getByTestId("count"), profile.name).toHaveText("0");
+	}
+	expect(failures, failures.join("\n")).toEqual([]);
+});
+
+test("offline reconnect restores navigation without losing the rendered page", async ({ page, context, browserName }) => {
+	test.skip(browserName !== "chromium", "Chromium owns deterministic offline transport emulation.");
+	const failures = watchBrowserFailures(page);
+	await page.goto("/engine-compat-test");
+	await closeCompatibilityDialog(page);
+	await context.setOffline(true);
+	await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false);
+	await expect(page.getByTestId("count")).toHaveText("0");
+	await context.setOffline(false);
+	await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(true);
+	await page.reload();
+	await expect(page.getByTestId("count")).toHaveText("0");
+	expect(failures, failures.join("\n")).toEqual([]);
+});
+
+test("older-browser capability gaps use compiled fallbacks", async ({ page, browserName }) => {
+	test.skip(browserName !== "chromium", "Legacy capability emulation is browser-independent.");
+	await page.addInitScript(() => {
+		try {
+			Object.defineProperty(Document.prototype, "startViewTransition", { configurable: true, value: undefined });
+			Object.defineProperty(window, "visualViewport", { configurable: true, value: undefined });
+			Object.defineProperty(window, "IntersectionObserver", { configurable: true, value: undefined });
+		} catch {
+			// A genuinely older engine already has the intended capability gaps.
+		}
+	});
+	const failures = watchBrowserFailures(page);
+	await page.goto("/engine-compat-test");
+	await expect(page.getByTestId("effect-transition-status")).toHaveText("done");
+	const compatibilityDialog = page.getByTestId("engine-compatibility-dialog");
+	if (await compatibilityDialog.isVisible()) await page.keyboard.press("Escape");
+	await page.getByTestId("liquid").click();
+	await expect(page.getByTestId("count")).toHaveText("1");
+	expect(failures, failures.join("\n")).toEqual([]);
+});

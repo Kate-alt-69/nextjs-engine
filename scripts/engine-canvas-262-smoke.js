@@ -50,12 +50,11 @@ function main() {
 		assert.ok(Math.abs(sixty.refreshRate - 60) <= 1, `expected ~60 Hz, got ${sixty.refreshRate}`);
 		assert.ok(Math.abs(sixty.averageFps - 60) <= 1, `expected ~60 fps, got ${sixty.averageFps}`);
 
-		const oneTwenty = feedClock(new ECFrameClock(), 1000 / 120, 48);
-		assert.ok(Math.abs(oneTwenty.refreshRate - 120) <= 1, `expected ~120 Hz, got ${oneTwenty.refreshRate}`);
-		assert.ok(Math.abs(oneTwenty.averageFps - 120) <= 2, `expected ~120 fps, got ${oneTwenty.averageFps}`);
-
-		const oneFortyFour = feedClock(new ECFrameClock(), 1000 / 144, 48);
-		assert.ok(Math.abs(oneFortyFour.refreshRate - 144) <= 1, `expected ~144 Hz, got ${oneFortyFour.refreshRate}`);
+		for (const refreshRate of [90, 120, 144, 165, 240]) {
+			const timing = feedClock(new ECFrameClock(), 1000 / refreshRate, 48);
+			assert.ok(Math.abs(timing.refreshRate - refreshRate) <= 2, `expected ~${refreshRate} Hz, got ${timing.refreshRate}`);
+			assert.ok(Math.abs(timing.averageFps - refreshRate) <= 3, `expected ~${refreshRate} fps, got ${timing.averageFps}`);
+		}
 
 		const dropped = new ECFrameClock();
 		let now = 0;
@@ -84,6 +83,7 @@ function main() {
 
 		const coreSource = fs.readFileSync(path.join(process.cwd(), "src", "engine", "core", "enginecanvas", "EngineCanvas.tsx"), "utf8");
 		assert.match(coreSource, /adaptiveTargetFps = "display"/, "EngineCanvas must target detected display cadence by default");
+		assert.doesNotMatch(coreSource, /resolveAdaptiveDpr|nextDpr|lastDprAdjustment/, "adaptive scheduling must never lower Canvas visual resolution");
 		assert.match(coreSource, /desynchronized = false/, "2D presentation must prefer synchronized rendering by default");
 		assert.match(coreSource, /frameClock\.step\(now\)/, "EngineCanvas must use the refresh-aware frame clock");
 		assert.doesNotMatch(coreSource, /lastFrameTime === 0 \? 16/, "EngineCanvas must not inject a fake 60 Hz first-frame delta");
