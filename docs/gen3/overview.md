@@ -198,6 +198,7 @@ module.exports = withEngine(nextConfig, {
 	api: { /* EngineAPI / APIStatic options */ },
 	shader: { /* EngineShader options */ },
 	nenc: { /* optional NENC build options */ },
+	seo: { /* optional EngineSEO schema and generated crawler routes */ },
 });
 ```
 
@@ -210,6 +211,7 @@ Do not enable NENC, Shader compilation, or other subsystems merely because they 
 | Compiler, server rendering, scheduler, adaptive layout | [`phase-a-b.md`](./phase-a-b.md) |
 | NENC, EngineCookies, device proof, sessions, private backends | [`phase-c-network.md`](./phase-c-network.md) |
 | Used-feature manifests, fallbacks, legacy durability | [`phase-d-hardening.md`](./phase-d-hardening.md) |
+| Metadata, sitemap, robots, JSON-LD, and social previews | [`../engine-components/engineseo.md`](../engine-components/engineseo.md) |
 | End-to-end device-bound private-search example | [`private-search-example.md`](./private-search-example.md) |
 | Schema/style/component APIs | [`../readme.md`](../readme.md) and [`../engine-components/`](../engine-components/) |
 | Historical release contracts | [`../release/index.md`](../release/index.md) |

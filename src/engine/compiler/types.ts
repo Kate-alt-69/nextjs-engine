@@ -63,6 +63,7 @@ export interface EngineCompiledNode {
 	runtime: Exclude<EngineRuntimeKind, "auto">;
 	runtimeReason: string;
 	workClass: EngineWorkClass;
+	workReason: string;
 	capabilities: EngineCapability[];
 	heavy: boolean;
 	interactive: boolean;
@@ -171,4 +172,6 @@ export interface EngineCompileOptions {
 	pageId?: string;
 	device?: EngineDeviceTarget;
 	strict?: boolean;
+	/** Serious security diagnostics fail compilation by default. */
+	security?: "enforce" | "report" | "off";
 }

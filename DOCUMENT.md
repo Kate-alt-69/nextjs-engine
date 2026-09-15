@@ -3,6 +3,10 @@
 > **Last updated:** 2026-09-15
 > **Changes in this update:**
 > - **Generation 3 EngineDebug D.5–D.10** — Added the development-only `/_engine/debug` workbench with application route exploration, live preview, compiler-node picking, static/server/client/deferred boundary overlays, live scheduler states and transitions, and desktop/tablet/phone/custom device simulation. The plugin removes its generated route before production route discovery, and CI proves no debug route or workbench module enters the production output.
+> - **Generation 3 EngineSEO** — Added a JSON-style SEO schema and `engineseo.set.*` builder that generate Next.js metadata, canonical/OpenGraph/Twitter tags, Google/Bing verification, sitemap and robots results, safely escaped JSON-LD, dynamic `ImageResponse` cards, custom previews, and real website-screenshot previews. The combined plugin can discover static routes and generate protected Next metadata files without overwriting application-owned files.
+> - **Generation 3 server-first Markdown** — Schema Markdown now compiles as deterministic static markup in `EngineServerRenderer`, including CSS-only text/block animations. The CommonMark/GFM parser and legacy client adapter stay out of server-first route bundles; direct `<EngineMarkdown />` imports remain compatible. The built-in 404 is server-first too, so its fallback boundary no longer preloads the full client barrel on every page.
+> - **EngineMarkdown CommonMark/GFM upgrade** — Replaced the regex-only renderer with a safe AST pipeline supporting inline/fenced code, whitespace-preserving scrollable code surfaces, nested lists, tables, task lists, blockquotes, strikethrough, images, and autolinks. Added compatibility repair for compact one-line code fences while keeping raw HTML disabled and URL validation enforced.
+> - **Generation 3 D.11–D.22 hardening** — Added dev-only NENC/Cookie/Model/capability/WHY inspector contracts, dependency-aware artifact caching and scoped HMR, optional attributed build budgets, build-blocking security diagnostics, emitted-bundle tree-shaking proofs, and desktop/phone/tablet/high-refresh/network/Chromium/Firefox/WebKit/older-browser test matrices. Canvas adaptation no longer lowers backing resolution.
 > - **Generation 3 browser compatibility dialog** — Added isolated capability probes plus `EngineCompatibilityDialog`, which resolves only the compiled page's used features, auto-opens for real fallback/unavailable outcomes, stays empty during SSR and on fully native pages, supports fail-closed custom capability overrides, and can reveal stable compiler source paths.
 > - **EngineScroll behavior policy** — Added global and provider-scoped `smooth`, `native`, and `instant` movement ownership. NE smooth movement is RAF-driven and independent of browser CSS smooth-scroll settings; reduced motion supports `respect` (default), `reduce`, and explicit `ignore` policies, with per-movement overrides.
 > - **EngineTransitions+ native coordinator** — Page navigation and app-level theme/visual updates can now share one `coordinateEngineViewTransition()` owner for the browser View Transitions API. Conflicting app-level animations skip their extra visual transition while still applying the update, newer NE navigation can replace an older visual transition, native cancellation is handled as a normal result, and real update-callback failures still propagate.
@@ -46,7 +50,7 @@
 > - **Markdown heading anchors** — `EngineMarkdown` now generates stable slug ids for headings, so schema links/buttons can use `href: "#section-name"` for smooth in-page document navigation. Optional `headingIdPrefix` can namespace generated heading ids.
 > - **`createPage` markdown shorthand** — `createPage` now accepts compact local Markdown page objects with `filePath`, optional `title`, `description`, `meta`, `theme`, `markdown`, and `section` fields. It also accepts direct `{ meta, theme, root }` schemas again, matching the older engine examples.
 > - **Bug fix:** `createPage.tsx` — removed top-level `node:fs/promises` import that crashed webpack. Now uses a dynamic `import("fs/promises")` inside the async resolver so webpack never sees a static `node:` URI. `next.config.js` also gets a client-side `fs` fallback as defence-in-depth.
-> - **`EngineMarkdown`** — lazy-loaded by default when below the fold (added to `lazyDetect.ts`). New props: `textAnimation` (`fade-in` | `slide-up`), `blockAnimation` (per-block staggered), `animationDuration`, `animationStagger`, `fontFamily`, `bodySize`, `bodyLineHeight`. Animation CSS is injected once on first mount and respects `prefers-reduced-motion`.
+> - **`EngineMarkdown` legacy adapter** — Direct component imports preserve the existing client style hooks. Gen 3 schema Markdown renders on the server and collects the same animation CSS without hydration. Props remain compatible: `textAnimation`, `blockAnimation`, `animationDuration`, `animationStagger`, `fontFamily`, `bodySize`, and `bodyLineHeight`.
 > - **`MarkdownProps`** in `types.ts` updated with all new props above.
 > **Changes in this update:** Added support for common long-form style aliases in the engine style bridge, including `fontSize`, `fontWeight`, `width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`, `alignItems`, `justifyContent`, `gridTemplateColumns`, `gridTemplateRows`, `backgroundImage`, `backgroundSize`, `backgroundRepeat`, `backgroundPosition`, `boxShadow`, `transition`, `backdrop`, and `backdropFilter`. `bg` now writes to CSS `background`, so gradients render correctly. Added `createComponent`, an engine helper for reusable schema-rendered components with runtime slots. Component children are available inside the schema as a slot named `children`.
 
@@ -606,7 +610,7 @@ Page section with a centered max-width content column.
 
 ### markdown
 
-Renders a Markdown string as semantic HTML inside an `<article>`. Lazy-loaded when below the fold (400px rootMargin). Parsed blocks: headings `#`–`######`, paragraphs, `**bold**`, `*italic*`, `[links](url)`, unordered/ordered lists, `---` horizontal rules.
+Renders CommonMark plus GitHub Flavored Markdown as safe semantic HTML inside an `<article>`. In the default Generation 3 `createPage` path it is static server markup rather than a hydrated island. Supported syntax includes headings, nested lists, blockquotes, inline/fenced code, links, images, tables, task lists, strikethrough, and thematic breaks; raw HTML remains disabled.
 
 **Content loading:**
 
@@ -1541,7 +1545,7 @@ A canvas node that uses the GPU correctly and doesn't lag.
 | `responsive` | `boolean` | `true` when no width/height | Fill container, resize automatically |
 | `dpr` | `number\|"auto"` | `"auto"` | Device pixel ratio for sharp rendering |
 | `maxDpr` | `number` | `2` | DPR cap — prevents 3× rendering on 3× displays |
-| `adaptive` | `boolean` | `true` | Reduce DPR when FPS < 30, restore when > 55 |
+| `adaptive` | `boolean` | `true` | Compatibility switch for scheduling integrations; never reduces DPR or visual quality |
 | `pauseWhenOffscreen` | `boolean` | `true` | Stop RAF when canvas leaves viewport |
 | `pauseWhenHidden` | `boolean` | `true` | Stop RAF when browser tab is hidden |
 | `alpha` | `boolean` | `false` | Transparent canvas — set false for a free GPU win |
@@ -2513,6 +2517,25 @@ Used internally by `EngineSection` (inner content wrapper) and `EngineCard` (cov
 ---
 
 ## Metadata Integration (SEO)
+
+Generation 3 applications should use `EngineSEO`. The older `generateEngineMetadata()` helper remains supported for existing pages.
+
+```ts
+import { EngineSEO } from "@/engine";
+
+const engineseo = EngineSEO.create({
+	site: { name: "Kastrick", url: "https://kastrick.example" },
+	page: { title: "Next.js Engine", description: "Schema-driven Next.js rendering.", path: "/engine" },
+	structuredData: "auto",
+});
+
+engineseo.set.preview.customImage("/social/engine.png");
+export const generateMetadata = engineseo.generateMetadata;
+```
+
+EngineSEO also exposes `sitemap`, `robots`, and `jsonLd()` outputs. `EngineSEOJsonLd` safely serializes the structured data, `nextjs-engine/seo` owns dynamic `ImageResponse` rendering, and `nextjs-engine/seo-plugin` can generate protected Next metadata routes or capture a reachable website into a real 1200×630 preview image. See `docs/engine-components/engineseo.md` for the complete schema and setup.
+
+### Legacy helper
 
 ```ts
 // app/some-page/page.tsx

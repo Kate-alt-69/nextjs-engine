@@ -3,6 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const { compileShaderDirectory } = require("./engineShaderCompiler");
+const { compilePluginArtifact, fingerprintPluginInputs } = require("./artifactCache");
 
 const WATCH_STATE_KEY = Symbol.for("nextjs-engine.engine-shader-watch-state");
 
@@ -130,7 +131,16 @@ function withEngineShader(nextConfig = {}, pluginOptions = {}) {
 	} = pluginOptions;
 	const projectRoot = process.cwd();
 	const resolvedBasePath = resolveShaderBasePath(projectRoot, shaderOutputDir, shaderBasePath);
-	const compile = () => compileShaderArtifacts(projectRoot, shaderDir, shaderOutputDir);
+	const compile = () => {
+		const sourceDirectory = path.resolve(projectRoot, shaderDir);
+		const fingerprint = fingerprintPluginInputs([sourceDirectory], {
+			shaderBasePath: resolvedBasePath,
+			shaderOutputDir,
+		});
+		return compilePluginArtifact("shader", projectRoot, fingerprint, () => (
+			compileShaderArtifacts(projectRoot, shaderDir, shaderOutputDir)
+		)).value;
+	};
 	compile();
 	watchShaderSources({ projectRoot, shaderDir, compile });
 	return {

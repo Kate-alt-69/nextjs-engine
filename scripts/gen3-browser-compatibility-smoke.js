@@ -165,6 +165,6 @@ for (const action of ["Leave", "Continue", "Update"]) {
 assert.match(dialogSource, /sessionStorage/);
 assert.match(dialogSource, /role="alertdialog"/);
 assert.match(createPageSource, /engineFallbackPlanNeedsCompatibilityCheck/);
-assert.match(createPageSource, /<EngineCompatibilityDialog plan=/);
+assert.match(createPageSource, /<EngineBrowserUpdateDialog plan=/);
 
 console.log("Generation 3 browser compatibility dialog smoke: ok");

@@ -1,4 +1,3 @@
-"use client";
 // ─────────────────────────────────────────────────────────────────────────────
 //  Engine — Default 404 Page
 //
@@ -13,7 +12,7 @@
 //    · Subtle footer credit using the new TextPart inline-link feature
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { createPage, defineSchema } from "./index";
+import { createPage, defineSchema } from "./createPage";
 
 const NotFoundSchema = defineSchema({
 	meta: {

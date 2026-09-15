@@ -3,6 +3,7 @@
 > Branch: `main-3`
 >
 > Status: D.1–D.10 compatibility and dev-only EngineDebug workbench complete
+> Status: D.1–D.4 and D.11–D.22 complete; D.5–D.10 debug route/shell work remains separately owned
 
 Phase D makes the Generation 3 compiler understandable, compatible, measurable, secure, and release-ready. It builds on the compiler/runtime graph from Phases A and B and the secure command layer from Phase C.
 
@@ -145,5 +146,56 @@ The simulator does not claim to change physical hardware. In particular, its ref
 4. D.19 static security diagnostics;
 5. D.20 production tree-shaking proofs;
 6. D.21–D.22 device, network, browser, torture, and visual tests.
+## D.11–D.15 — Development inspector data
 
-The production invariant remains strict: debug surfaces must be absent from `next build` and `next start`, while unused feature runtimes must not enter production bundles.
+Inspector contracts live behind the direct development entrypoint `nextjs-engine/debug`; the main browser-safe barrel does not import them. They provide data to the separately owned debug UI without creating a second route or shell:
+
+- NENC logical name, runtime owner, opaque compiled command, auth, permission, `EngineAPIResolver` use, and an explicit `privateEndpointExposed: false` result;
+- EngineCookie owner, creator, purpose, device binding, allowed commands, and expiry—never storage ids, ciphertext, public-key material, or raw credentials;
+- named `EngineModel` state, computed values, actions, and registered React consumers, plus dev-only state editing and subscriptions;
+- `USED`/`UNUSED` capabilities, native support, selected fallback, and responsible compiled nodes;
+- a `why` explanation for every runtime, scheduling, responsive, and fallback decision.
+
+All inspector calls reject in production. `EngineModel` consumer tracking is a development no-op in production.
+
+## D.16–D.17 — Artifact graph and scoped HMR
+
+`compileEngineArtifact()` caches schema, style, asset, command, model, device, and capability artifacts by stable fingerprints. Dependency edges support targeted invalidation through `invalidateEngineArtifacts()`, while `inspectEngineArtifactGraph()` exposes hit/rebuild metadata only in development.
+
+The NENC and Shader plugins use the same scoped-artifact rule at build-tool level. A schema edit recompiles the page plan and its dependent styles without rebuilding unrelated commands or shaders; command and shader source edits rebuild only their own artifacts. The runtime registry revision participates in page fingerprints so plugin/profile changes cannot reuse a stale plan.
+
+## D.18 — Optional build budgets
+
+`evaluateEngineBuildBudgets()` accepts limits for initial JavaScript, route JavaScript, critical CSS, request count, and hydrated island count. Each configured limit returns `PASS` or `FAIL` with the actual value, unit, and sorted contributor attribution. `assertEngineBuildBudgets()` converts failures into a build error.
+
+```ts
+const report = evaluateEngineBuildBudgets(measurements, {
+	initialJS: 180_000,
+	routeJS: 90_000,
+	criticalCSS: 18_000,
+	requestCount: 12,
+	hydratedIslands: 4,
+}, attribution);
+
+assertEngineBuildBudgets(report);
+```
+
+After `next build`, `scripts/gen3-production-proof.js` reads Next's emitted build and route manifests for real byte/request measurements. CI or applications can provide JSON limits through `ENGINE_BUILD_BUDGETS`; hydrated-island measurements can be supplied through `ENGINE_HYDRATED_ISLANDS`.
+
+## D.19 — Static security diagnostics
+
+Schema compilation rejects serious findings by default: literal client-visible secrets, `javascript:` URLs, client imports of private database/server modules, credentialed wildcard CORS, `SameSite=None` cookies without `Secure`, and protected commands that explicitly disable device proof. Messages identify the property path but never reproduce a secret value. Upload forms without byte or MIME allowlists receive warnings.
+
+Use `security: "report"` to collect diagnostics without throwing while migrating, or `security: "off"` only for a deliberately external validation pipeline.
+
+## D.20 — Production tree-shaking proof
+
+The production proof reads the actual route chunks and verifies that development inspectors and unused NENC, EngineModel, Canvas, EngineBrowser, and EngineCookies markers are absent. A separate minimal Next client build selects only the budget evaluator and proves all five optional runtimes disappear together. This tests emitted production JavaScript rather than source imports.
+
+## D.21–D.22 — Device, network, and browser matrix
+
+The automated matrix covers desktop, phone, and tablet viewports; 60, 90, 120, 144, 165, and 240 Hz timing; fast, normal, high-latency, slow, and offline→reconnect delivery; reduced motion; Chromium, Firefox, and WebKit; and an older-browser mode with modern capabilities removed. Responsive tests guard against horizontal overflow and runtime warnings.
+
+Adaptive pressure never reduces image, video, Canvas, Shader, or geometry resolution. It may change layout, postpone dynamic work, pause invisible work, or adjust animation timing.
+
+The production invariant remains strict: debug surfaces are absent from `next build` and `next start`, while unused feature runtimes do not enter route bundles.

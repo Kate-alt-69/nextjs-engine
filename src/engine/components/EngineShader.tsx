@@ -257,7 +257,7 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 		const reducedMotion = (config.respectReducedMotion ?? true)
 			&& window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 		const host = props.layer ? canvas.parentElement ?? canvas : canvas;
-		let currentDpr = desiredDpr(maxDpr, resolutionScale);
+		const currentDpr = desiredDpr(maxDpr, resolutionScale);
 		let cssWidth = Math.max(1, host.clientWidth || canvas.clientWidth || 1);
 		let cssHeight = Math.max(1, host.clientHeight || canvas.clientHeight || 1);
 		let lastTimestamp = 0;
@@ -273,9 +273,6 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 		let disposed = false;
 		let eventFrame = 0;
 		let animationCleanup: (() => void) | null = null;
-		let adaptiveWindowStart = performance.now();
-		let adaptiveSamples = 0;
-		let adaptiveTotal = 0;
 
 		const resizeBackingStore = () => {
 			const width = Math.max(1, Math.round(cssWidth * currentDpr));
@@ -343,28 +340,9 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 			if (lastTimestamp !== 0) {
 				const interval = timestamp - lastTimestamp;
 				if (interval + 0.5 < frameInterval) return;
-				adaptiveTotal += interval;
-				adaptiveSamples += 1;
 			}
 			lastTimestamp = timestamp;
 			draw(timestamp);
-			if ((config.adaptive ?? true) && timestamp - adaptiveWindowStart >= 1200 && adaptiveSamples > 0) {
-				const average = adaptiveTotal / adaptiveSamples;
-				const target = desiredDpr(maxDpr, resolutionScale);
-				let nextDpr = currentDpr;
-				if (average > frameInterval * 1.5 && currentDpr > 0.125) {
-					nextDpr = Math.max(0.125, currentDpr - 0.125);
-				} else if (average < frameInterval * 1.15 && currentDpr < target - 0.05) {
-					nextDpr = Math.min(target, currentDpr + 0.125);
-				}
-				if (Math.abs(nextDpr - currentDpr) >= 0.05) {
-					currentDpr = nextDpr;
-					resizeBackingStore();
-				}
-				adaptiveWindowStart = timestamp;
-				adaptiveSamples = 0;
-				adaptiveTotal = 0;
-			}
 		};
 
 		const syncAnimationSubscription = () => {
@@ -463,7 +441,6 @@ export const EngineShader = memo(function EngineShader(props: EngineShaderProps)
 		config?.src,
 		config?.fps,
 		config?.maxDpr,
-		config?.adaptive,
 		config?.pauseWhenOffscreen,
 		config?.pauseWhenHidden,
 		config?.respectReducedMotion,

@@ -28,7 +28,7 @@ require.extensions[".ts"] = (module, filename) => {
 	module._compile(output, filename);
 };
 
-const { compilePage } = require("../src/engine/compiler/EngineCompiler.ts");
+const { compilePage, findCompiledNode } = require("../src/engine/compiler/EngineCompiler.ts");
 
 if (previousTsLoader) require.extensions[".ts"] = previousTsLoader;
 else delete require.extensions[".ts"];
@@ -72,6 +72,15 @@ const plan = compilePage({
 				name: "critical-logo",
 				props: { src: "/shared.png", priority: true, alt: "Shared" },
 			},
+			{
+				type: "markdown",
+				name: "server-markdown",
+				props: {
+					content: "# Static documentation",
+					textAnimation: "fade-in",
+					blockAnimation: "slide-up",
+				},
+			},
 		],
 	},
 });
@@ -80,6 +89,10 @@ check(plan.summary.clientNodes === 4, "compiler counts all client nodes in the g
 check(plan.summary.clientIslands === 4, "nested client nodes remain independent server-slot client islands");
 check(plan.capabilities.includes("webgl2"), "Canvas mode contributes its concrete graphics capability");
 check(plan.capabilities.includes("view-transitions"), "animated links contribute View Transition capability metadata");
+
+const markdown = findCompiledNode(plan, "server-markdown");
+check(markdown?.runtime === "static", "Markdown remains static when its visual effects compile to CSS");
+check(markdown?.interactive === false, "Markdown does not allocate a hydrated client island");
 
 const videoSources = plan.assets.filter((asset) => asset.kind === "video");
 check(videoSources.some((asset) => asset.source === "/movie.webm"), "video source arrays record WebM assets");

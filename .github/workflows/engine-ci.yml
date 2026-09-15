@@ -78,6 +78,13 @@ jobs:
           node scripts/gen3-fallback-legacy-smoke.js
           node scripts/gen3-compatibility-dialog-smoke.js
           node scripts/gen3-engine-debug-smoke.js
+          node scripts/gen3-debug-inspectors-smoke.js
+          node scripts/gen3-incremental-hmr-smoke.js
+          node scripts/gen3-budget-security-smoke.js
+          node scripts/engine-markdown-gfm-smoke.js
+      - name: Test Generation 3 EngineSEO contracts
+        if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
+        run: node scripts/gen3-engine-seo-smoke.js
       - name: Type-check engine
         run: npm run type-check
       - name: Build Next.js integration app
@@ -85,6 +92,18 @@ jobs:
       - name: Prove EngineDebug is absent from production
         if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
         run: node scripts/gen3-engine-debug-production-smoke.js
+      - name: Prove production bundle budgets and unused runtimes
+        if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
+        run: |
+          node scripts/gen3-production-proof.js dist /engine-compat-test
+          node scripts/gen3-production-proof.js dist /engine-markdown-test
+          node scripts/gen3-tree-shaking-smoke.js
+      - name: Install Generation 3 browser matrix
+        if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Test Generation 3 browsers, devices, and networks
+        if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
+        run: npx playwright test
       - name: Report production client bundle sizes
         shell: bash
         run: |

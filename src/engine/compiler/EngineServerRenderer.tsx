@@ -10,6 +10,7 @@ import {
 	BREAKPOINT_ORDER,
 	type Breakpoint,
 	type EngineConfig,
+	type MarkdownProps,
 	type PageSchema,
 	type SchemaNode,
 	type TextVariant,
@@ -23,6 +24,10 @@ import {
 } from "./EngineStyleCompiler";
 import { EngineClientIsland } from "./EngineClientIsland";
 import { compileEngineDebugAttributes } from "./EngineDebugMetadata";
+import {
+	ENGINE_MARKDOWN_CSS,
+	EngineMarkdownRenderer,
+} from "../components/EngineMarkdownRenderer";
 
 export interface EngineServerRendererProps {
 	schema: PageSchema;
@@ -65,7 +70,7 @@ const BUTTON_SIZES: Record<string, CSSProperties> = {
 
 const SERVER_RENDERED_TYPES = new Set([
 	"box", "stack", "grid", "text", "heading", "section", "hero", "card", "button",
-	"link", "EngineLink", "spacer", "divider", "option", "optgroup", "label", "slot", "image",
+	"link", "EngineLink", "spacer", "divider", "option", "optgroup", "label", "slot", "image", "markdown",
 ]);
 
 function shortHash(value: string): string {
@@ -255,6 +260,20 @@ function renderServerNode(
 			return typeof props.caption === "string" ? <figure key={compiled.id}>{image}<figcaption>{props.caption}</figcaption></figure> : image;
 		}
 		default: return <EngineClientIsland key={compiled.id} node={{ ...node, children: undefined }} config={config} slots={slots} debug={debug}>{children}</EngineClientIsland>;
+		case "markdown": {
+			collector.add(ENGINE_MARKDOWN_CSS);
+			return (
+				<EngineMarkdownRenderer
+					key={compiled.id}
+					{...(props as MarkdownProps)}
+					content={typeof props.content === "string" ? props.content : ""}
+					articleStyle={style}
+					articleClassName={className}
+					articleId={id}
+				/>
+			);
+		}
+		default: return <EngineClientIsland key={compiled.id} node={{ ...node, children: undefined }} config={config} slots={slots}>{children}</EngineClientIsland>;
 	}
 }
 

@@ -22,7 +22,7 @@ const ACTION_STYLE: CSSProperties = {
 	padding: ".625rem .9rem",
 };
 
-export interface EngineCompatibilityDialogProps {
+export interface EngineBrowserUpdateDialogProps {
 	plan: EngineFallbackPlan;
 	isSupported?: EngineFeatureSupportResolver;
 	leaveUrl?: string;
@@ -52,7 +52,7 @@ function navigate(url: string): void {
 	}
 }
 
-export function EngineCompatibilityDialog({
+export function EngineBrowserUpdateDialog({
 	plan,
 	isSupported = detectEngineBrowserFeature,
 	leaveUrl,
@@ -61,7 +61,7 @@ export function EngineCompatibilityDialog({
 	onContinue,
 	onLeave,
 	onUpdate,
-}: EngineCompatibilityDialogProps) {
+}: EngineBrowserUpdateDialogProps) {
 	const report = useMemo(
 		() => evaluateEngineBrowserCompatibility(plan, isSupported),
 		[isSupported, plan],
