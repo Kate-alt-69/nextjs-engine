@@ -77,13 +77,11 @@ export type {
 	EngineWorkClass,
 } from "./compiler";
 export {
-	EngineCompatibilityDialog,
 	createEngineBrowserSupportResolver,
 	resolveEngineBrowserCompatibility,
 	supportsEngineBrowserFeature,
 } from "./core/enginecompatibility";
 export type {
-	EngineCompatibilityDialogProps,
 	EngineFeatureSupportOverrides,
 } from "./core/enginecompatibility";
 export { compileAdaptiveSchema } from "./compiler/EngineAdaptiveCompiler";

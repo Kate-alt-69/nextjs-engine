@@ -228,6 +228,7 @@ export const EngineNav = memo(
 				display: "flex",
 				alignItems: variant === "vertical" ? "flex-start" : "center",
 				flexDirection: variant === "vertical" ? "column" : "row",
+				boxSizing: "border-box",
 				position: sticky ? "sticky" : "relative",
 				top: sticky ? 0 : undefined,
 				zIndex: sticky ? 40 : undefined,
