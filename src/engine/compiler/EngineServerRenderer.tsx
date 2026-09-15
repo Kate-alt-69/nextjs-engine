@@ -259,7 +259,6 @@ function renderServerNode(
 			const image = <NextImage key={compiled.id} {...debug} src={props.src} alt={props.alt} width={fill ? undefined : Number(props.width ?? 800)} height={fill ? undefined : Number(props.height ?? 600)} fill={fill} priority={props.priority === true} quality={typeof props.quality === "number" ? props.quality : undefined} sizes={typeof props.sizes === "string" ? props.sizes : undefined} style={{ ...style, objectFit: (props.objectFit as CSSProperties["objectFit"]) ?? undefined }} />;
 			return typeof props.caption === "string" ? <figure key={compiled.id}>{image}<figcaption>{props.caption}</figcaption></figure> : image;
 		}
-		default: return <EngineClientIsland key={compiled.id} node={{ ...node, children: undefined }} config={config} slots={slots} debug={debug}>{children}</EngineClientIsland>;
 		case "markdown": {
 			collector.add(ENGINE_MARKDOWN_CSS);
 			return (
@@ -273,7 +272,7 @@ function renderServerNode(
 				/>
 			);
 		}
-		default: return <EngineClientIsland key={compiled.id} node={{ ...node, children: undefined }} config={config} slots={slots}>{children}</EngineClientIsland>;
+		default: return <EngineClientIsland key={compiled.id} node={{ ...node, children: undefined }} config={config} slots={slots} debug={debug}>{children}</EngineClientIsland>;
 	}
 }
 

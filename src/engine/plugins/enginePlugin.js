@@ -16,9 +16,7 @@ function withEngine(nextConfig = {}, pluginOptions = {}) {
 	const apiConfig = withEngineAPI(nextConfig, apiOptions);
 	const nencConfig = pluginOptions.nenc ? withEngineNENC(apiConfig, pluginOptions.nenc) : apiConfig;
 	const debugConfig = withEngineDebug(nencConfig, pluginOptions.debug || {});
-	return withEngineShader(
-		debugConfig,
-	const seoConfig = withEngineSEO(nencConfig, pluginOptions.seo);
+	const seoConfig = withEngineSEO(debugConfig, pluginOptions.seo);
 	return withEngineShader(
 		seoConfig,
 		shaderOptions,
