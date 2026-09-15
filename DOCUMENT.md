@@ -2,6 +2,7 @@
 
 > **Last updated:** 2026-09-15
 > **Changes in this update:**
+> - **Generation 3 EngineSEO** — Added a JSON-style SEO schema and `engineseo.set.*` builder that generate Next.js metadata, canonical/OpenGraph/Twitter tags, Google/Bing verification, sitemap and robots results, safely escaped JSON-LD, dynamic `ImageResponse` cards, custom previews, and real website-screenshot previews. The combined plugin can discover static routes and generate protected Next metadata files without overwriting application-owned files.
 > - **Generation 3 D.11–D.22 hardening** — Added dev-only NENC/Cookie/Model/capability/WHY inspector contracts, dependency-aware artifact caching and scoped HMR, optional attributed build budgets, build-blocking security diagnostics, emitted-bundle tree-shaking proofs, and desktop/phone/tablet/high-refresh/network/Chromium/Firefox/WebKit/older-browser test matrices. Canvas adaptation no longer lowers backing resolution.
 > - **Generation 3 browser compatibility dialog** — Added isolated capability probes plus `EngineCompatibilityDialog`, which resolves only the compiled page's used features, auto-opens for real fallback/unavailable outcomes, stays empty during SSR and on fully native pages, supports fail-closed custom capability overrides, and can reveal stable compiler source paths.
 > - **EngineScroll behavior policy** — Added global and provider-scoped `smooth`, `native`, and `instant` movement ownership. NE smooth movement is RAF-driven and independent of browser CSS smooth-scroll settings; reduced motion supports `respect` (default), `reduce`, and explicit `ignore` policies, with per-movement overrides.
@@ -2513,6 +2514,25 @@ Used internally by `EngineSection` (inner content wrapper) and `EngineCard` (cov
 ---
 
 ## Metadata Integration (SEO)
+
+Generation 3 applications should use `EngineSEO`. The older `generateEngineMetadata()` helper remains supported for existing pages.
+
+```ts
+import { EngineSEO } from "@/engine";
+
+const engineseo = EngineSEO.create({
+	site: { name: "Kastrick", url: "https://kastrick.example" },
+	page: { title: "Next.js Engine", description: "Schema-driven Next.js rendering.", path: "/engine" },
+	structuredData: "auto",
+});
+
+engineseo.set.preview.customImage("/social/engine.png");
+export const generateMetadata = engineseo.generateMetadata;
+```
+
+EngineSEO also exposes `sitemap`, `robots`, and `jsonLd()` outputs. `EngineSEOJsonLd` safely serializes the structured data, `nextjs-engine/seo` owns dynamic `ImageResponse` rendering, and `nextjs-engine/seo-plugin` can generate protected Next metadata routes or capture a reachable website into a real 1200×630 preview image. See `docs/engine-components/engineseo.md` for the complete schema and setup.
+
+### Legacy helper
 
 ```ts
 // app/some-page/page.tsx

@@ -77,6 +77,8 @@ jobs:
           }
           for (const requiredFile of [
             "./package/engine/plugins/enginePlugin.js",
+            "./package/engine/plugins/engineSEOPlugin.js",
+            "./package/engine/plugins/engineSEOCapture.js",
             "./package/engine/plugins/engineApiPlugin.js",
             "./package/engine/plugins/apiStaticCompiler.js",
             "./package/engine/plugins/engineShaderPlugin.js",
@@ -95,6 +97,11 @@ jobs:
             import: "./engine/network.ts",
             default: "./engine/network.ts"
           };
+          packageJson.exports["./seo"] = {
+            types: "./engine/seo.ts",
+            import: "./engine/seo.ts",
+            default: "./engine/seo.ts"
+          };
           packageJson.exports["./plugin"] = {
             require: "./engine/plugins/enginePlugin.js",
             default: "./engine/plugins/enginePlugin.js"
@@ -110,6 +117,10 @@ jobs:
           packageJson.exports["./nenc-plugin"] = {
             require: "./engine/plugins/nencPlugin.js",
             default: "./engine/plugins/nencPlugin.js"
+          };
+          packageJson.exports["./seo-plugin"] = {
+            require: "./engine/plugins/engineSEOPlugin.js",
+            default: "./engine/plugins/engineSEOPlugin.js"
           };
 
           const typescriptVersion = packageJson.dependencies?.typescript

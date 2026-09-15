@@ -80,6 +80,9 @@ jobs:
           node scripts/gen3-debug-inspectors-smoke.js
           node scripts/gen3-incremental-hmr-smoke.js
           node scripts/gen3-budget-security-smoke.js
+      - name: Test Generation 3 EngineSEO contracts
+        if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
+        run: node scripts/gen3-engine-seo-smoke.js
       - name: Type-check engine
         run: npm run type-check
       - name: Build Next.js integration app

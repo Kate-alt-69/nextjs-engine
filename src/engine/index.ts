@@ -125,6 +125,41 @@ export type {
 } from "./core/EngineBrowserCompatibility";
 
 export { generateEngineMetadata } from "./core/engineMetadata";
+export {
+	EngineSEO,
+	EngineSEOJsonLd,
+	compileEngineSEOJsonLd,
+	compileEngineSEOMetadata,
+	compileEngineSEORobots,
+	compileEngineSEOSitemap,
+	createEngineSEO,
+	inferEngineSEOSchema,
+	serializeEngineSEOJsonLd,
+} from "./core/engineseo";
+export type {
+	EngineSEOBuilder,
+	EngineSEOCustomPreview,
+	EngineSEOGeneratedPreview,
+	EngineSEOGeneratorProps,
+	EngineSEOImage,
+	EngineSEOInput,
+	EngineSEOJsonLdNode,
+	EngineSEOJsonLdProps,
+	EngineSEOJsonValue,
+	EngineSEOPageSchema,
+	EngineSEOPreview,
+	EngineSEOResolver,
+	EngineSEORobotsSchema,
+	EngineSEOSchema,
+	EngineSEOSetters,
+	EngineSEOSitemapRoute,
+	EngineSEOSitemapSchema,
+	EngineSEOSiteSchema,
+	EngineSEOSocialSchema,
+	EngineSEOSource,
+	EngineSEOVerificationSchema,
+	EngineSEOWebsitePreview,
+} from "./core/engineseo";
 
 export { validateSchema, validatePageSchema } from "./core/validateSchema";
 export type { ValidationError, ValidationResult } from "./core/validateSchema";

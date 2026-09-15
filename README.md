@@ -180,6 +180,7 @@ import {
 	EnginePopover,
 	EngineBrowser,
 	EngineAPIResolver,
+	EngineSEO,
 	APIStatic
 } from "nextjs-engine"
 ```
@@ -204,6 +205,7 @@ Specialized plugin entrypoints remain available for advanced setups:
 const withEngineAPI = require("nextjs-engine/api-plugin")
 const withEngineShader = require("nextjs-engine/shader-plugin")
 const withEngineNENC = require("nextjs-engine/nenc-plugin")
+const withEngineSEO = require("nextjs-engine/seo-plugin")
 ```
 
 Generation 3 NENC is enabled explicitly through the combined plugin:
@@ -222,6 +224,8 @@ The portable [`examples/gen3-private-search`](./examples/gen3-private-search) pr
 See [`docs/gen3/phase-c-network.md`](./docs/gen3/phase-c-network.md) for the completed Phase C security model and invariants.
 
 Phase D compatibility work compiles a frozen per-page used-feature manifest and ordered fallback plan. It records only capabilities the schema needs, resolves native/runtime/rendering fallbacks against browser support, and keeps best-effort legacy content separate from full client runtime support. `createPage()` automatically recommends a browser update only when a required, actually used feature has no viable fallback; decorative nodes can opt out with `compatibility: "optional"`. See [`docs/gen3/phase-d-hardening.md`](./docs/gen3/phase-d-hardening.md).
+
+Generation 3 EngineSEO turns an Engine page or dedicated JSON-style schema into Next.js metadata, canonical/OpenGraph/Twitter tags, Google/Bing verification, sitemap and robots outputs, safe JSON-LD, and dynamic `ImageResponse` cards. Social previews can use a custom image, a generated banner, or a real website screenshot captured through the Node-only helper. See [`docs/engine-components/engineseo.md`](./docs/engine-components/engineseo.md).
 
 ---
 
