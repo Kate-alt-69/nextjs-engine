@@ -14,8 +14,13 @@ function watchBrowserFailures(page: Page) {
 }
 
 async function closeCompatibilityDialog(page: Page) {
-	const dialogBody = page.getByTestId("dialog-body");
+	const dialogBody = page.getByTestId("engine-compatibility-dialog");
 	await expect(dialogBody).toBeVisible();
+	await expect(dialogBody.getByText("1 fallback active · 1 unavailable")).toBeVisible();
+	await expect(dialogBody.locator('[data-engine-compatibility-status="fallback"]')).toHaveCount(1);
+	await expect(dialogBody.locator('[data-engine-compatibility-status="unavailable"]')).toHaveCount(1);
+	await expect(dialogBody.getByText("CSS Grid")).toHaveCount(0);
+	await expect(page.getByRole("button", { name: "Native compatibility should stay hidden" })).toHaveCount(0);
 	await page.keyboard.press("Escape");
 	await expect(dialogBody).toBeHidden();
 }

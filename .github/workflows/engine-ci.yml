@@ -76,7 +76,7 @@ jobs:
         run: |
           node scripts/gen3-compatibility-manifest-smoke.js
           node scripts/gen3-fallback-legacy-smoke.js
-          node scripts/gen3-browser-compatibility-smoke.js
+          node scripts/gen3-compatibility-dialog-smoke.js
       - name: Type-check engine
         run: npm run type-check
       - name: Build Next.js integration app

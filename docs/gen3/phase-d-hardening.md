@@ -2,7 +2,7 @@
 
 > Branch: `main-3`
 >
-> Status: D.1–D.4 compatibility compiler, legacy rendering, and browser dialog complete
+> Status: D.1–D.4 compatibility compiler, legacy-render plan, and browser dialog complete
 
 Phase D makes the Generation 3 compiler understandable, compatible, measurable, secure, and release-ready. It builds on the compiler/runtime graph from Phases A and B and the secure command layer from Phase C.
 
@@ -73,43 +73,32 @@ This is not a second renderer and it does not pretend an unsupported GPU or medi
 
 ## D.4 — Browser compatibility dialog
 
-`createPage()` now mounts the compatibility dialog only when its compiled fallback plan contains a potentially blocking feature. Static pages and pages whose features all have unconditional fallbacks do not mount the dialog runtime.
+`EngineCompatibilityDialog` resolves a compiled page's `fallbackPlan` after hydration and opens only when a feature the page actually uses needs a fallback or is unavailable. A fully native page renders no trigger and no dialog. Server rendering stays empty until real browser support can be measured, preventing false warnings and hydration mismatches.
 
-In the browser, the engine probes only capabilities referenced by that page's feature and fallback plan. It does not use the user agent and it does not test unrelated APIs. A warning appears only when all three conditions are true:
-
-1. the compiled page actually uses the feature;
-2. at least one requiring node marks it as required;
-3. the native feature is unsupported and no compiled fallback can run.
-
-The default importance is `required`. Decorative enhancements can opt out without hiding failures needed by the rest of the page:
-
-```ts
-{
-	type: "canvas",
-	compatibility: "optional",
-	props: {
-		mode: "webgl2",
-		onDraw: "decorativeBackground",
-	},
-}
+```tsx
+<EngineCompatibilityDialog
+	plan={enginePlan.fallbackPlan}
+	showSources={process.env.NODE_ENV === "development"}
+/>
 ```
 
-When multiple nodes use a feature, one required use keeps that feature required. It becomes optional only when every requiring node explicitly marks it optional.
+The dialog distinguishes two outcomes:
 
-The accessible `alertdialog` uses the required copy and actions:
+- `fallback` — NE selected the first viable compiled fallback and names it;
+- `unavailable` — no native implementation or honest fallback can run, while the dialog explains that durable server-rendered content remains available when possible.
 
-```text
-Browser update recommended
+Built-in probes cover the compiler's DOM, Canvas/WebGL, scheduling, viewport, transition, CSS, clipboard, media, speech, and network capabilities. They live in a small isolated compatibility module rather than importing the full `EngineBrowser` interaction runtime. Unknown or application-defined capabilities fail closed unless the application supplies an explicit support override:
 
-Some features used by this site are not fully supported
-by your current browser.
-
-[Leave] [Continue] [Update]
+```tsx
+<EngineCompatibilityDialog
+	plan={enginePlan.fallbackPlan}
+	support={{
+		"company-ar-renderer": true, // Result from the application's client probe.
+	}}
+/>
 ```
 
-`Continue` dismisses the same unsupported-feature set for the current origin and browser session, preventing the warning from repeating on every page. `Leave` returns through browser history or leaves for a blank page when there is no prior entry. `Update` opens the generic browser-update resource only after the user chooses it. Application code can also render `EngineCompatibilityDialog` directly and override those actions or URLs.
-
-`evaluateEngineBrowserCompatibility()` returns a frozen report containing every unavailable required feature, its resolution result, and the exact compiler `requiredBy` paths. D.5 EngineDebug can therefore explain the cause without duplicating capability detection or exposing the report in production DOM attributes.
+`autoOpen` defaults to `true`. Set it to `false` to expose only the manual “Browser compatibility” trigger. `showSources` reveals the stable compiled node paths responsible for each issue and defaults to `false` for user-facing dialogs.
 
 ## Phase D implementation order
 
