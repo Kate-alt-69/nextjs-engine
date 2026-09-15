@@ -1,7 +1,8 @@
 # Next.js Engine — Technical Documentation
 
-> **Last updated:** 2026-09-14
+> **Last updated:** 2026-09-15
 > **Changes in this update:**
+> - **Generation 3 browser compatibility dialog** — Added isolated capability probes plus `EngineCompatibilityDialog`, which resolves only the compiled page's used features, auto-opens for real fallback/unavailable outcomes, stays empty during SSR and on fully native pages, supports fail-closed custom capability overrides, and can reveal stable compiler source paths.
 > - **EngineScroll behavior policy** — Added global and provider-scoped `smooth`, `native`, and `instant` movement ownership. NE smooth movement is RAF-driven and independent of browser CSS smooth-scroll settings; reduced motion supports `respect` (default), `reduce`, and explicit `ignore` policies, with per-movement overrides.
 > - **EngineTransitions+ native coordinator** — Page navigation and app-level theme/visual updates can now share one `coordinateEngineViewTransition()` owner for the browser View Transitions API. Conflicting app-level animations skip their extra visual transition while still applying the update, newer NE navigation can replace an older visual transition, native cancellation is handled as a normal result, and real update-callback failures still propagate.
 > - **Generation 3 private login/search proofs** — Added both a portable browser-to-backend example and a real Next.js device-bound login/private-search page using the generated single NENC endpoint, hashed HttpOnly sessions, origin/replay/rate/permission enforcement, server-only credentials, sanitized results, and copied-cookie rejection coverage. Phase C is complete.

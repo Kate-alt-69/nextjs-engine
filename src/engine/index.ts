@@ -55,6 +55,16 @@ export type {
 	EngineUsedFeatureSource,
 	EngineWorkClass,
 } from "./compiler";
+export {
+	EngineCompatibilityDialog,
+	createEngineBrowserSupportResolver,
+	resolveEngineBrowserCompatibility,
+	supportsEngineBrowserFeature,
+} from "./core/enginecompatibility";
+export type {
+	EngineCompatibilityDialogProps,
+	EngineFeatureSupportOverrides,
+} from "./core/enginecompatibility";
 export { compileAdaptiveSchema } from "./compiler/EngineAdaptiveCompiler";
 export type {
 	EngineAdaptiveChange,

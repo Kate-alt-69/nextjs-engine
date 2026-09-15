@@ -2,7 +2,7 @@
 
 > Branch: `main-3`
 >
-> Status: D.1–D.3 compatibility compiler and legacy-render plan complete
+> Status: D.1–D.4 compatibility compiler, legacy-render plan, and browser dialog complete
 
 Phase D makes the Generation 3 compiler understandable, compatible, measurable, secure, and release-ready. It builds on the compiler/runtime graph from Phases A and B and the secure command layer from Phase C.
 
@@ -71,14 +71,42 @@ const fallbackPlan = compileEngineFallbackPlan(featureManifest, root, [{
 
 This is not a second renderer and it does not pretend an unsupported GPU or media API works. The Generation 3 server renderer already sends static markup and passes nested server-rendered children through client-island boundaries. The legacy plan makes that contract explicit so compatibility UI and future build diagnostics can distinguish “the enhancement is unavailable” from “the page content is unavailable.”
 
+## D.4 — Browser compatibility dialog
+
+`EngineCompatibilityDialog` resolves a compiled page's `fallbackPlan` after hydration and opens only when a feature the page actually uses needs a fallback or is unavailable. A fully native page renders no trigger and no dialog. Server rendering stays empty until real browser support can be measured, preventing false warnings and hydration mismatches.
+
+```tsx
+<EngineCompatibilityDialog
+	plan={enginePlan.fallbackPlan}
+	showSources={process.env.NODE_ENV === "development"}
+/>
+```
+
+The dialog distinguishes two outcomes:
+
+- `fallback` — NE selected the first viable compiled fallback and names it;
+- `unavailable` — no native implementation or honest fallback can run, while the dialog explains that durable server-rendered content remains available when possible.
+
+Built-in probes cover the compiler's DOM, Canvas/WebGL, scheduling, viewport, transition, CSS, clipboard, media, speech, and network capabilities. They live in a small isolated compatibility module rather than importing the full `EngineBrowser` interaction runtime. Unknown or application-defined capabilities fail closed unless the application supplies an explicit support override:
+
+```tsx
+<EngineCompatibilityDialog
+	plan={enginePlan.fallbackPlan}
+	support={{
+		"company-ar-renderer": true, // Result from the application's client probe.
+	}}
+/>
+```
+
+`autoOpen` defaults to `true`. Set it to `false` to expose only the manual “Browser compatibility” trigger. `showSources` reveals the stable compiled node paths responsible for each issue and defaults to `false` for user-facing dialogs.
+
 ## Phase D implementation order
 
-1. D.4 browser compatibility dialog;
-2. D.5–D.15 dev-only EngineDebug and compiler explanations;
-3. D.16–D.17 incremental compilation and HMR integration;
-4. D.18 build budgets;
-5. D.19 static security diagnostics;
-6. D.20 production tree-shaking proofs;
-7. D.21–D.22 device, network, browser, torture, and visual tests.
+1. D.5–D.15 dev-only EngineDebug and compiler explanations;
+2. D.16–D.17 incremental compilation and HMR integration;
+3. D.18 build budgets;
+4. D.19 static security diagnostics;
+5. D.20 production tree-shaking proofs;
+6. D.21–D.22 device, network, browser, torture, and visual tests.
 
 The production invariant remains strict: debug surfaces must be absent from `next build` and `next start`, while unused feature runtimes must not enter production bundles.

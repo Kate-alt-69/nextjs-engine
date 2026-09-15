@@ -159,6 +159,14 @@ Current built-in fallback chains include:
 
 Advanced graphics features remain native-only unless an application provides an explicit fallback policy.
 
+Render the compiled result as an honest, hydration-safe browser warning with `EngineCompatibilityDialog`:
+
+```tsx
+<EngineCompatibilityDialog plan={enginePlan.fallbackPlan} />
+```
+
+It checks only used features, auto-opens only for fallback or unavailable results, and renders nothing when every used feature is native. Custom capabilities can provide explicit boolean support overrides; unknown capabilities otherwise fail closed.
+
 ## Network and credential boundary
 
 Browser-safe networking lives at:
