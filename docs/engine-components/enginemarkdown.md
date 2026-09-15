@@ -61,8 +61,14 @@ on the same physical line; valid CommonMark input remains unchanged.
 }
 ```
 
-EngineMarkdown itself is a client component and receives the resolved `content`
-string. It does not read files from the browser.
+In the Generation 3 `createPage` path, the compiler classifies Markdown as
+`static` and `EngineServerRenderer` parses it into semantic markup on the
+server. The parser, GFM runtime, and Markdown compatibility pass are therefore
+not required by that route's browser bundle.
+
+Direct `<EngineMarkdown />` imports remain supported through a client adapter.
+That adapter receives resolved `content` and retains the legacy client style
+hooks; it never reads files from the browser.
 
 ## Props
 
@@ -158,10 +164,16 @@ hash, mail, and telephone links stay in the current browsing context.
 
 ## Parsing/runtime behavior
 
-The source compatibility pass is memoized by the `content` string. A CommonMark
-AST and the GFM extensions then produce semantic React elements. The result is
-deterministic for the same content; EngineMarkdown does not suppress hydration
-warnings to hide content mismatches.
+The source compatibility pass and CommonMark/GFM AST produce deterministic
+React elements for the same content. Schema Markdown is rendered directly by
+the Gen 3 server renderer with its CSS collected into the page style output;
+it does not allocate a hydrated client island. `textAnimation` and
+`blockAnimation` remain server-renderable because they compile to CSS classes
+and variables rather than a browser animation controller.
+
+The direct component compatibility adapter shares the same renderer and keeps
+legacy client style work behind a memoized compatibility boundary.
+EngineMarkdown does not suppress hydration warnings to hide content mismatches.
 
 ## Animations
 
@@ -177,6 +189,7 @@ warnings to hide content mismatches.
 }
 ```
 
-The injected animation stylesheet respects `prefers-reduced-motion: reduce`.
-It also uses a stable DOM id, so development hot reloads do not intentionally
-append duplicate Markdown keyframe style elements.
+The animation stylesheet respects `prefers-reduced-motion: reduce`. Gen 3
+schema rendering collects it on the server. The direct client adapter uses a
+stable DOM id, so development hot reloads do not intentionally append duplicate
+Markdown keyframe style elements.

@@ -62,6 +62,7 @@ Examples:
 | `text`, `heading`, `box`, `grid`, `section` | static/server |
 | ordinary `link` | server |
 | link with an Engine transition | client island |
+| `markdown` (including CSS-only entrance effects) | static server markup |
 | `image` | server markup + browser resource |
 | `video` | client island |
 | `canvas`, Manim | client island |
@@ -71,6 +72,12 @@ Examples:
 The compiler also upgrades otherwise-static nodes when browser behavior is
 attached through handlers, model bindings, animation, Shader behavior, or
 other client-only props.
+
+Markdown is a deliberate exception to the generic animation upgrade: its
+`textAnimation` and `blockAnimation` options compile to CSS only. The shared
+AST renderer runs inside `EngineServerRenderer`, while the old direct component
+API remains available as a compatibility adapter. Production bundle checks
+reject the adapter's client-runtime marker from server-first Markdown routes.
 
 ### Nested client islands
 

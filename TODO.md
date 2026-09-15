@@ -1445,7 +1445,7 @@ core/StyleCollector.ts
 
 ## Status
 
-🟡 Medium Priority
+✅ Completed
 
 ---
 
@@ -1524,7 +1524,7 @@ emitted language classes.
 * [x] Implement semantic React renderer
 * [x] Preserve MarkdownProps compatibility
 * [x] Improve hydration stability
-* [ ] Benchmark performance
+* [x] Prove the parser and legacy adapter stay out of server-first route client bundles
 
 ---
 
@@ -1532,6 +1532,9 @@ emitted language classes.
 
 ```
 components/EngineMarkdown.tsx
+components/EngineMarkdownRenderer.tsx
+compiler/EngineServerRenderer.tsx
+compiler/runtimeRegistry.ts
 ```
 
 ---

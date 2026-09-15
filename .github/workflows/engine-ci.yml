@@ -92,6 +92,7 @@ jobs:
         if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
         run: |
           node scripts/gen3-production-proof.js dist /engine-compat-test
+          node scripts/gen3-production-proof.js dist /engine-markdown-test
           node scripts/gen3-tree-shaking-smoke.js
       - name: Install Generation 3 browser matrix
         if: github.ref_name == 'main-3' || github.base_ref == 'main-3'

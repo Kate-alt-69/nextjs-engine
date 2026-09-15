@@ -10,6 +10,7 @@ import {
 	BREAKPOINT_ORDER,
 	type Breakpoint,
 	type EngineConfig,
+	type MarkdownProps,
 	type PageSchema,
 	type SchemaNode,
 	type TextVariant,
@@ -22,6 +23,10 @@ import {
 	compileStyleAtRuleClass,
 } from "./EngineStyleCompiler";
 import { EngineClientIsland } from "./EngineClientIsland";
+import {
+	ENGINE_MARKDOWN_CSS,
+	EngineMarkdownRenderer,
+} from "../components/EngineMarkdownRenderer";
 
 export interface EngineServerRendererProps {
 	schema: PageSchema;
@@ -64,7 +69,7 @@ const BUTTON_SIZES: Record<string, CSSProperties> = {
 
 const SERVER_RENDERED_TYPES = new Set([
 	"box", "stack", "grid", "text", "heading", "section", "hero", "card", "button",
-	"link", "EngineLink", "spacer", "divider", "option", "optgroup", "label", "slot", "image",
+	"link", "EngineLink", "spacer", "divider", "option", "optgroup", "label", "slot", "image", "markdown",
 ]);
 
 function shortHash(value: string): string {
@@ -251,6 +256,19 @@ function renderServerNode(
 			const fill = props.fill === true;
 			const image = <NextImage key={compiled.id} src={props.src} alt={props.alt} width={fill ? undefined : Number(props.width ?? 800)} height={fill ? undefined : Number(props.height ?? 600)} fill={fill} priority={props.priority === true} quality={typeof props.quality === "number" ? props.quality : undefined} sizes={typeof props.sizes === "string" ? props.sizes : undefined} style={{ ...style, objectFit: (props.objectFit as CSSProperties["objectFit"]) ?? undefined }} />;
 			return typeof props.caption === "string" ? <figure key={compiled.id}>{image}<figcaption>{props.caption}</figcaption></figure> : image;
+		}
+		case "markdown": {
+			collector.add(ENGINE_MARKDOWN_CSS);
+			return (
+				<EngineMarkdownRenderer
+					key={compiled.id}
+					{...(props as MarkdownProps)}
+					content={typeof props.content === "string" ? props.content : ""}
+					articleStyle={style}
+					articleClassName={className}
+					articleId={id}
+				/>
+			);
 		}
 		default: return <EngineClientIsland key={compiled.id} node={{ ...node, children: undefined }} config={config} slots={slots}>{children}</EngineClientIsland>;
 	}

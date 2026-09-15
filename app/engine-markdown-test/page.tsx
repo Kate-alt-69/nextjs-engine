@@ -1,4 +1,4 @@
-import { EngineMarkdown } from "../../src/engine/components/EngineMarkdown";
+import { createPage } from "../../src/engine/createPage";
 
 const NAS_MARKDOWN = [
 	"# NAS layout",
@@ -35,10 +35,22 @@ const NAS_MARKDOWN = [
 	"<script data-engine-markdown-unsafe>window.__unsafe = true</script>",
 ].join("\n");
 
-export default function EngineMarkdownTestPage() {
-	return (
-		<main style={{ margin: "0 auto", maxWidth: "72rem", padding: "2rem", minWidth: 0 }}>
-			<EngineMarkdown content={NAS_MARKDOWN} />
-		</main>
-	);
-}
+export default createPage({
+	compiler: { pageId: "engine-markdown-test" },
+	schema: {
+		meta: { title: "EngineMarkdown server-first proof" },
+		root: {
+			type: "section",
+			props: {
+				contentMaxWidth: "72rem",
+				px: "2rem",
+				py: "2rem",
+			},
+			children: [{
+				type: "markdown",
+				name: "server-markdown",
+				props: { content: NAS_MARKDOWN },
+			}],
+		},
+	},
+});

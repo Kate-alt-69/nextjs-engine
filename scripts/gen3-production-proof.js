@@ -43,6 +43,15 @@ function routeEntry(manifest, route) {
 	return Object.keys(manifest.entryJSFiles).find((key) => key.endsWith(suffix));
 }
 
+function prerenderedHtmlChunkFiles(distRoot, route) {
+	const normalized = route.replace(/^\/+|\/+$/g, "");
+	const filename = path.join(distRoot, "server", "app", `${normalized}.html`);
+	if (!fs.existsSync(filename)) return [];
+	const html = fs.readFileSync(filename, "utf8");
+	return [...html.matchAll(/src="\/_next\/(static\/chunks\/[^"]+\.js)"/g)]
+		.map((match) => match[1]);
+}
+
 const distRoot = path.resolve(process.argv[2] || "dist");
 const route = process.argv[3] || "/engine-compat-test";
 const buildManifest = JSON.parse(fs.readFileSync(path.join(distRoot, "build-manifest.json"), "utf8"));
@@ -53,6 +62,10 @@ assert.ok(entry, `Missing route entry for ${route}.`);
 const initialFiles = [...new Set([...buildManifest.polyfillFiles, ...buildManifest.rootMainFiles])];
 const routeFiles = [...new Set(routeManifest.entryJSFiles[entry])];
 const cssFiles = [...new Set(routeManifest.entryCSSFiles?.[entry] ?? [])];
+const emittedJavaScriptFiles = [...new Set([
+	...routeFiles,
+	...prerenderedHtmlChunkFiles(distRoot, route),
+])];
 const measurements = {
 	initialJS: bytes(distRoot, initialFiles),
 	routeJS: bytes(distRoot, routeFiles),
@@ -69,12 +82,13 @@ const runtimeMarkers = {
 	EngineCanvas: ["EngineCanvas]", "adaptiveTargetFps"],
 	EngineBrowser: ["EngineBrowser]", "browserInfo"],
 	EngineCookies: ["EngineCookies]", "EngineCookieVault"],
+	EngineMarkdownClient: ["__engine_md__", "e-md-code-block"],
 };
-const expectedAbsent = (process.env.ENGINE_EXPECT_ABSENT || "NENC,EngineModel,EngineCanvas,EngineCookies")
+const expectedAbsent = (process.env.ENGINE_EXPECT_ABSENT || "NENC,EngineModel,EngineCanvas,EngineCookies,EngineMarkdownClient")
 	.split(",")
 	.map((value) => value.trim())
 	.filter(Boolean);
-const routeSource = routeFiles.map((filename) => fs.readFileSync(path.join(distRoot, filename), "utf8")).join("\n");
+const routeSource = emittedJavaScriptFiles.map((filename) => fs.readFileSync(path.join(distRoot, filename), "utf8")).join("\n");
 for (const runtime of expectedAbsent) {
 	const markers = runtimeMarkers[runtime];
 	assert.ok(markers, `Unknown runtime ${runtime}.`);
@@ -91,5 +105,12 @@ const attribution = {
 };
 const limits = process.env.ENGINE_BUILD_BUDGETS ? JSON.parse(process.env.ENGINE_BUILD_BUDGETS) : {};
 const budgetReport = evaluateEngineBuildBudgets(measurements, limits, attribution);
-console.log(JSON.stringify({ route, measurements, budgetReport, attribution, absent: expectedAbsent }, null, 2));
+console.log(JSON.stringify({
+	route,
+	measurements,
+	budgetReport,
+	attribution,
+	inspectedJavaScriptFiles: emittedJavaScriptFiles.length,
+	absent: expectedAbsent,
+}, null, 2));
 assertEngineBuildBudgets(budgetReport);

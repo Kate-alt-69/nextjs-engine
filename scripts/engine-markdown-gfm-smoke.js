@@ -60,11 +60,17 @@ async function main() {
 	assert.match(html, /<del>legacy<\/del>/, "GFM strikethrough must render semantically");
 
 	const componentSource = fs.readFileSync(path.join(process.cwd(), "src", "engine", "components", "EngineMarkdown.tsx"), "utf8");
-	assert.match(componentSource, /import ReactMarkdown/);
-	assert.match(componentSource, /remarkPlugins=\{\[remarkGfm\]\}/);
-	assert.match(componentSource, /skipHtml/, "raw HTML must remain disabled");
-	assert.match(componentSource, /overflowX: "auto"/, "wide code and tables must scroll inside their container");
-	assert.match(componentSource, /safeMarkdownUrl/, "links and images must pass through the Engine URL policy");
+	const rendererSource = fs.readFileSync(path.join(process.cwd(), "src", "engine", "components", "EngineMarkdownRenderer.tsx"), "utf8");
+	const serverSource = fs.readFileSync(path.join(process.cwd(), "src", "engine", "compiler", "EngineServerRenderer.tsx"), "utf8");
+	assert.doesNotMatch(componentSource, /import ReactMarkdown/, "the compatibility adapter must not own the AST implementation");
+	assert.match(componentSource, /EngineMarkdownRenderer/, "direct component imports must retain the shared renderer");
+	assert.match(rendererSource, /import ReactMarkdown/);
+	assert.match(rendererSource, /remarkPlugins=\{\[remarkGfm\]\}/);
+	assert.match(rendererSource, /skipHtml/, "raw HTML must remain disabled");
+	assert.match(rendererSource, /overflowX: "auto"/, "wide code and tables must scroll inside their container");
+	assert.match(rendererSource, /safeMarkdownUrl/, "links and images must pass through the Engine URL policy");
+	assert.match(serverSource, /collector\.add\(ENGINE_MARKDOWN_CSS\)/, "server rendering must collect Markdown CSS without a client effect");
+	assert.match(serverSource, /case "markdown"/, "the Gen 3 server renderer must own schema Markdown nodes");
 
 	console.log("EngineMarkdown CommonMark/GFM smoke: ok");
 }
