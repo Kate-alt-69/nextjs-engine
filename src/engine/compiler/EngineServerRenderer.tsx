@@ -207,7 +207,7 @@ function renderServerNode(
 		}
 		case "section": {
 			const outer = compileEngineStyles({ ...props, width: "100%" }, collector, { ...(props.fullViewport === true ? { minHeight: "100svh" } : {}), ...(props.snapAlign ? { scrollSnapAlign: props.snapAlign as CSSProperties["scrollSnapAlign"] } : {}), ...(props.style as CSSProperties | undefined) });
-			const inner = compileEngineStyles({ maxW: props.contentMaxWidth ?? "1200px", px: props.px ?? "1.5rem", py: props.py ?? "4rem" }, collector, { width: "100%", ...(props.centered !== false ? { marginLeft: "auto", marginRight: "auto" } : {}) });
+			const inner = compileEngineStyles({ maxW: props.contentMaxWidth ?? "1200px", px: props.px ?? "1.5rem", py: props.py ?? "4rem" }, collector, { boxSizing: "border-box", width: "100%", ...(props.centered !== false ? { marginLeft: "auto", marginRight: "auto" } : {}) });
 			return wrapHref(props.href, <section key={compiled.id} {...debug} id={id} className={className} style={outer}><div style={inner}>{children}</div></section>);
 		}
 		case "hero": {
