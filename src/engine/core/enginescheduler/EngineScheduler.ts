@@ -28,6 +28,33 @@ export interface EngineScheduleSnapshot {
 
 export type EngineScheduleListener = (snapshot: EngineScheduleSnapshot) => void;
 
+export type EngineSchedulerDebugState = "VISIBLE" | "NEAR" | "SLEEPING" | "DEFERRED";
+export type EngineSchedulerDebugActivity = "RUNNING" | "PRELOADING" | "SLEEPING" | "DEFERRED" | "IDLE";
+
+export interface EngineSchedulerDebugTask {
+	id: string;
+	label: string;
+	nodeId?: string;
+	nodeType?: string;
+	state: EngineSchedulerDebugState;
+	activity: EngineSchedulerDebugActivity;
+	updatedAt: number;
+}
+
+export interface EngineSchedulerDebugTransition {
+	id: string;
+	label: string;
+	from: string;
+	to: string;
+	at: number;
+}
+
+export interface EngineSchedulerDebugSnapshot {
+	tasks: EngineSchedulerDebugTask[];
+	transitions: EngineSchedulerDebugTransition[];
+	underFramePressure: boolean;
+}
+
 type ObserverListener = (entry: IntersectionObserverEntry) => void;
 
 interface ObserverPool {
@@ -92,25 +119,33 @@ class EngineSchedulerRuntime {
 	private frameMonitorRaf = 0;
 	private frameClock = new ECFrameClock(48);
 	private highestObservedRefreshRate = 60;
+	private debugTasks = new Map<Element, EngineSchedulerDebugTask>();
+	private debugTransitions: EngineSchedulerDebugTransition[] = [];
+	private debugIds = new WeakMap<Element, string>();
+	private debugSequence = 0;
 
 	observe(
 		element: Element,
 		listener: EngineScheduleListener,
 		policy: EngineSchedulePolicy = {},
 	): () => void {
+		const notify = (snapshot: EngineScheduleSnapshot) => {
+			listener(snapshot);
+			this.recordDebugSnapshot(element, snapshot);
+		};
 		if (typeof window === "undefined" || !("IntersectionObserver" in window)) {
-			listener({
+			notify({
 				state: policy.priority ? "critical" : "visible",
 				near: true,
 				visible: true,
 				underFramePressure: this.framePressure,
 			});
-			return () => undefined;
+			return () => this.clearDebugTask(element);
 		}
 
 		if (policy.priority) {
-			listener({ state: "critical", near: true, visible: true, underFramePressure: this.framePressure });
-			return () => undefined;
+			notify({ state: "critical", near: true, visible: true, underFramePressure: this.framePressure });
+			return () => this.clearDebugTask(element);
 		}
 
 		const nearMargin = policy.nearMargin ?? "700px 0px";
@@ -129,10 +164,10 @@ class EngineSchedulerRuntime {
 						: "deferred";
 			if (nextState === currentState) return;
 			currentState = nextState;
-			listener({ state: nextState, near, visible, underFramePressure: this.framePressure });
+			notify({ state: nextState, near, visible, underFramePressure: this.framePressure });
 		};
 
-		listener({ state: currentState, near, visible, underFramePressure: this.framePressure });
+		notify({ state: currentState, near, visible, underFramePressure: this.framePressure });
 		const stopNear = subscribeObserver(element, nearMargin, 0, (entry) => {
 			near = entry.isIntersecting;
 			emit();
@@ -146,6 +181,15 @@ class EngineSchedulerRuntime {
 		return () => {
 			stopNear();
 			stopVisible();
+			this.clearDebugTask(element);
+		};
+	}
+
+	debugSnapshot(): EngineSchedulerDebugSnapshot {
+		return {
+			tasks: [...this.debugTasks.values()].sort((left, right) => left.label.localeCompare(right.label)),
+			transitions: [...this.debugTransitions],
+			underFramePressure: this.framePressure,
 		};
 	}
 
@@ -165,6 +209,7 @@ class EngineSchedulerRuntime {
 		if (nextPressure === this.framePressure) return;
 		this.framePressure = nextPressure;
 		for (const listener of [...this.pressureListeners]) listener(nextPressure);
+		this.emitDebugSnapshot();
 	}
 
 	isUnderFramePressure(): boolean {
@@ -262,6 +307,75 @@ class EngineSchedulerRuntime {
 		if (!this.framePressure) return;
 		this.framePressure = false;
 		for (const listener of [...this.pressureListeners]) listener(false);
+		this.emitDebugSnapshot();
+	}
+
+	private debugIdentity(element: Element): { id: string; label: string; nodeId?: string; nodeType?: string } {
+		const owner = element.closest("[data-engine-debug-id]") as HTMLElement | null;
+		const nodeId = owner?.dataset.engineDebugId;
+		const nodeType = owner?.dataset.engineDebugType;
+		let id = nodeId ?? this.debugIds.get(element);
+		if (!id) {
+			this.debugSequence += 1;
+			id = `scheduler-${this.debugSequence}`;
+			this.debugIds.set(element, id);
+		}
+		return {
+			id,
+			label: owner?.dataset.engineDebugName ?? nodeType ?? element.tagName.toLowerCase(),
+			nodeId,
+			nodeType,
+		};
+	}
+
+	private recordDebugSnapshot(element: Element, snapshot: EngineScheduleSnapshot): void {
+		if (process.env.NODE_ENV === "production" || typeof window === "undefined") return;
+		const identity = this.debugIdentity(element);
+		const state: EngineSchedulerDebugState = snapshot.visible || snapshot.state === "critical"
+			? "VISIBLE"
+			: snapshot.near
+				? "NEAR"
+				: snapshot.state === "sleeping"
+					? "SLEEPING"
+					: "DEFERRED";
+		const activity: EngineSchedulerDebugActivity = state === "VISIBLE"
+			? "RUNNING"
+			: state === "NEAR"
+				? "PRELOADING"
+				: state;
+		const previous = this.debugTasks.get(element);
+		const next: EngineSchedulerDebugTask = {
+			...identity,
+			state,
+			activity,
+			updatedAt: performance.now(),
+		};
+		this.debugTasks.set(element, next);
+		if (previous && (previous.state !== next.state || previous.activity !== next.activity)) {
+			this.debugTransitions.push({
+				id: next.id,
+				label: next.label,
+				from: `${previous.state}/${previous.activity}`,
+				to: `${next.state}/${next.activity}`,
+				at: next.updatedAt,
+			});
+			if (this.debugTransitions.length > 50) this.debugTransitions.shift();
+		}
+		this.emitDebugSnapshot();
+	}
+
+	private clearDebugTask(element: Element): void {
+		if (!this.debugTasks.delete(element)) return;
+		this.emitDebugSnapshot();
+	}
+
+	private emitDebugSnapshot(): void {
+		if (process.env.NODE_ENV === "production" || typeof window === "undefined") return;
+		const schedulerWindow = window as Window & {
+			__NEXT_ENGINE_SCHEDULER_DEBUG__?: { snapshot: () => EngineSchedulerDebugSnapshot };
+		};
+		schedulerWindow.__NEXT_ENGINE_SCHEDULER_DEBUG__ = { snapshot: () => this.debugSnapshot() };
+		window.dispatchEvent(new CustomEvent("engine:debug:scheduler", { detail: this.debugSnapshot() }));
 	}
 }
 
