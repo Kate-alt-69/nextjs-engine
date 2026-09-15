@@ -206,8 +206,9 @@ function renderServerNode(
 			return <React.Fragment key={compiled.id}><Tag {...debug} id={id} className={className} style={compileEngineStyles(props as any, collector, { ...TEXT_STYLES[`h${level}` as TextVariant], ...(props.style as CSSProperties | undefined) })}>{renderTextContent(props, children)}</Tag>{typeof props.subheading === "string" ? <p style={{ ...TEXT_STYLES.lead, color: "var(--e-muted, #64748b)", marginTop: "0.5rem" }}>{props.subheading}</p> : null}</React.Fragment>;
 		}
 		case "section": {
-			const outer = compileEngineStyles({ ...props, width: "100%" }, collector, { ...(props.fullViewport === true ? { minHeight: "100svh" } : {}), ...(props.snapAlign ? { scrollSnapAlign: props.snapAlign as CSSProperties["scrollSnapAlign"] } : {}), ...(props.style as CSSProperties | undefined) });
-			const inner = compileEngineStyles({ maxW: props.contentMaxWidth ?? "1200px", px: props.px ?? "1.5rem", py: props.py ?? "4rem" }, collector, { boxSizing: "border-box", width: "100%", ...(props.centered !== false ? { marginLeft: "auto", marginRight: "auto" } : {}) });
+			const { px, py, ...sectionProps } = props;
+			const outer = compileEngineStyles({ ...sectionProps, width: "100%" }, collector, { ...(props.fullViewport === true ? { minHeight: "100svh" } : {}), ...(props.snapAlign ? { scrollSnapAlign: props.snapAlign as CSSProperties["scrollSnapAlign"] } : {}), ...(props.style as CSSProperties | undefined) });
+			const inner = compileEngineStyles({ maxW: props.contentMaxWidth ?? "1200px", px: px ?? "1.5rem", py: py ?? "4rem" }, collector, { boxSizing: "border-box", width: "100%", ...(props.centered !== false ? { marginLeft: "auto", marginRight: "auto" } : {}) });
 			return wrapHref(props.href, <section key={compiled.id} {...debug} id={id} className={className} style={outer}><div style={inner}>{children}</div></section>);
 		}
 		case "hero": {
