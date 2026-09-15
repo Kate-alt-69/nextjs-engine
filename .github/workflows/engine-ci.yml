@@ -77,6 +77,7 @@ jobs:
           node scripts/gen3-compatibility-manifest-smoke.js
           node scripts/gen3-fallback-legacy-smoke.js
           node scripts/gen3-compatibility-dialog-smoke.js
+          node scripts/gen3-engine-debug-smoke.js
           node scripts/gen3-debug-inspectors-smoke.js
           node scripts/gen3-incremental-hmr-smoke.js
           node scripts/gen3-budget-security-smoke.js
@@ -88,6 +89,9 @@ jobs:
         run: npm run type-check
       - name: Build Next.js integration app
         run: npx next build
+      - name: Prove EngineDebug is absent from production
+        if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
+        run: node scripts/gen3-engine-debug-production-smoke.js
       - name: Prove production bundle budgets and unused runtimes
         if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
         run: |

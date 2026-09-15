@@ -2,6 +2,7 @@
 
 > Branch: `main-3`
 >
+> Status: D.1–D.10 compatibility and dev-only EngineDebug workbench complete
 > Status: D.1–D.4 and D.11–D.22 complete; D.5–D.10 debug route/shell work remains separately owned
 
 Phase D makes the Generation 3 compiler understandable, compatible, measurable, secure, and release-ready. It builds on the compiler/runtime graph from Phases A and B and the secure command layer from Phase C.
@@ -100,6 +101,51 @@ Built-in probes cover the compiler's DOM, Canvas/WebGL, scheduling, viewport, tr
 
 `autoOpen` defaults to `true`. Set it to `false` to expose only the manual “Browser compatibility” trigger. `showSources` reveals the stable compiled node paths responsible for each issue and defaults to `false` for user-facing dialogs.
 
+## D.5 — Development-only EngineDebug route
+
+The combined Engine plugin generates `app/%5Fengine/debug/page.tsx` only while Next.js runs in development. Next exposes that encoded private-looking directory as `/_engine/debug`. The generated module points at the package's EngineDebug implementation and is protected by an ownership marker, so the plugin never replaces or removes an application-owned page.
+
+Production is an absence guarantee, not an authentication rule. When `NODE_ENV` is not `development`, the plugin removes its generated page and Next's stale development type cache before Next discovers and validates production routes. CI builds the application and proves the route is absent from the App Router manifests and compiled server/client output. There is no hidden production endpoint to protect.
+
+## D.6 — Page explorer and live preview
+
+EngineDebug discovers App Router and Pages Router page files, normalizes route groups and dynamic segments, and presents the resulting application routes in a sidebar. Selecting a route updates a same-origin live preview without leaving the workbench. Private framework directories and the debug page itself never enter the explorer.
+
+## D.7 — Visual node picker
+
+Picker mode inspects the real compiler metadata attached to rendered Engine roots. The inspector reports the stable compiler id and path, node type, server/static/client rendering decision, the reason for that decision, hydration work, estimated client JavaScript class, current runtime status, and declared capabilities. Canvas islands also expose their measured frame rate and the simulated display refresh target.
+
+The metadata is development-only. Server/static nodes report zero client bytes; browser-dependent nodes identify the lazy runtime boundary rather than claiming an imprecise byte count.
+
+## D.8 — Runtime-boundary overlay
+
+The preview overlay labels the actual rendered boundaries as `STATIC`, `SERVER`, `CLIENT`, or `DEFERRED`. Color and text are injected into the preview document by the workbench and can be disabled without changing the application tree.
+
+## D.9 — Live scheduler inspector
+
+`EngineScheduler` publishes a development-only snapshot whenever observed work changes state. The workbench displays the exact task identity, compiler path, frame pressure, and transitions among:
+
+- `VISIBLE / RUNNING`;
+- `NEAR / PRELOADING`;
+- `SLEEPING`;
+- `DEFERRED`.
+
+The bridge is attached only in development and retains a bounded transition history. When a rendered Engine node has not registered direct scheduled work, the inspector can still explain its current inferred DOM visibility without presenting that inference as a scheduler transition.
+
+## D.10 — Device and viewport simulator
+
+Desktop, tablet, phone, and custom profiles control the preview's CSS viewport, device-pixel ratio probe, refresh target, touch and hover capability probes, orientation, and VisualViewport availability. The panel compares the selected profile with measured layout results—for example, the number of computed grid columns—so a developer can see why a schema lays out differently.
+
+The simulator does not claim to change physical hardware. In particular, its refresh control changes the Engine debug target and explanation while the live FPS meter continues to report the browser's actual animation cadence.
+
+## Phase D implementation order
+
+1. D.11–D.15 remaining compiler explanations and EngineDebug diagnostics;
+2. D.16–D.17 incremental compilation and HMR integration;
+3. D.18 build budgets;
+4. D.19 static security diagnostics;
+5. D.20 production tree-shaking proofs;
+6. D.21–D.22 device, network, browser, torture, and visual tests.
 ## D.11–D.15 — Development inspector data
 
 Inspector contracts live behind the direct development entrypoint `nextjs-engine/debug`; the main browser-safe barrel does not import them. They provide data to the separately owned debug UI without creating a second route or shell:

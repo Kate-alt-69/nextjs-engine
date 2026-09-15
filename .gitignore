@@ -17,3 +17,5 @@ app/asdf/**.tsx
 test-results/
 playwright-report/
 certificates/
+/app/%5Fengine/
+/src/app/%5Fengine/

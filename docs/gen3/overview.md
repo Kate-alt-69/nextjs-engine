@@ -129,6 +129,8 @@ critical → visible → near → deferred → idle → sleeping
 
 Frame pressure delays speculative work. It does not lower resolution by default.
 
+In development, `/_engine/debug` exposes the scheduler's live task states and bounded transition history beside the page preview. The same workbench can pick compiler nodes, overlay `STATIC`, `SERVER`, `CLIENT`, and `DEFERRED` boundaries, and simulate viewport/device capability profiles. Its generated route is removed before production route discovery.
+
 ### EngineViewport
 
 `EngineViewport` is the shared browser viewport source. It tracks layout and visual viewport dimensions, offsets, orientation, scale, and keyboard inset behind one subscription surface.
