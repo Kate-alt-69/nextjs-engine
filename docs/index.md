@@ -17,6 +17,7 @@ If a historical example conflicts with the current TypeScript source or a curren
 | Learn NENC, EngineCookies, sessions, replay/rate policy, and private backends | [`gen3/phase-c-network.md`](./gen3/phase-c-network.md) |
 | Learn compatibility manifests and fallback compilation | [`gen3/phase-d-hardening.md`](./gen3/phase-d-hardening.md) |
 | Generate metadata, sitemaps, robots, JSON-LD, and social previews | [`engine-components/engineseo.md`](./engine-components/engineseo.md) |
+| Generate Google/Bing/Yandex-aware XML sitemaps | [`engine-components/engineseo-provider-sitemaps.md`](./engine-components/engineseo-provider-sitemaps.md) |
 | Run the device-bound private-search proof | [`gen3/private-search-example.md`](./gen3/private-search-example.md) |
 | Read release history | [`release/index.md`](./release/index.md) |
 | Read the large historical technical reference | [`../DOCUMENT.md`](../DOCUMENT.md) |
@@ -67,6 +68,7 @@ Read [`gen3/overview.md`](./gen3/overview.md) first if you are starting a new pa
 | Suspense/loading surfaces | [`engine-components/enginesuspense.md`](./engine-components/enginesuspense.md) |
 | Overlay/dialog/drawer/popover | [`engine-components/engineoverlay.md`](./engine-components/engineoverlay.md) |
 | SEO, crawler routes, JSON-LD, and social previews | [`engine-components/engineseo.md`](./engine-components/engineseo.md) |
+| Search-engine-specific XML sitemaps | [`engine-components/engineseo-provider-sitemaps.md`](./engine-components/engineseo-provider-sitemaps.md) |
 
 ---
 

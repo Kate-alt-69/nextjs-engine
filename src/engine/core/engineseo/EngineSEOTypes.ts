@@ -98,6 +98,76 @@ export interface EngineSEORobotsSchema {
 	};
 }
 
+export type EngineSEOSitemapProvider = "google" | "bing" | "yandex";
+
+export interface EngineSEOSitemapProviderFileOptions {
+	enabled?: boolean;
+	filename?: string;
+	includeLastModified?: boolean;
+}
+
+export interface EngineSEOGoogleSitemapFileOptions extends EngineSEOSitemapProviderFileOptions {
+	includeImages?: boolean;
+	includeVideos?: boolean;
+	includeNews?: boolean;
+	includeAlternates?: boolean;
+}
+
+export interface EngineSEOBingSitemapFileOptions extends EngineSEOSitemapProviderFileOptions {}
+
+export interface EngineSEOYandexSitemapFileOptions extends EngineSEOSitemapProviderFileOptions {
+	includeChangeFrequency?: boolean;
+	includePriority?: boolean;
+}
+
+export interface EngineSEOSitemapProviderFilesSchema {
+	google?: boolean | EngineSEOGoogleSitemapFileOptions;
+	bing?: boolean | EngineSEOBingSitemapFileOptions;
+	yandex?: boolean | EngineSEOYandexSitemapFileOptions;
+}
+
+export interface EngineSEOSitemapVideoRestriction {
+	relationship: "allow" | "deny";
+	countries: string[];
+}
+
+export interface EngineSEOSitemapVideoPlatform {
+	relationship: "allow" | "deny";
+	types: Array<"web" | "mobile" | "tv">;
+}
+
+export interface EngineSEOSitemapVideoUploader {
+	name: string;
+	info?: string;
+}
+
+export interface EngineSEOSitemapVideo {
+	thumbnailUrl: string;
+	title: string;
+	description: string;
+	contentUrl?: string;
+	playerUrl?: string;
+	duration?: number;
+	expirationDate?: string | Date;
+	rating?: number;
+	viewCount?: number;
+	publicationDate?: string | Date;
+	familyFriendly?: boolean;
+	restriction?: EngineSEOSitemapVideoRestriction;
+	platform?: EngineSEOSitemapVideoPlatform;
+	requiresSubscription?: boolean;
+	uploader?: EngineSEOSitemapVideoUploader;
+	live?: boolean;
+	tags?: string[];
+}
+
+export interface EngineSEOSitemapNews {
+	publicationName: string;
+	language: string;
+	publicationDate: string | Date;
+	title: string;
+}
+
 export interface EngineSEOSitemapRoute {
 	path: string;
 	lastModified?: string | Date;
@@ -105,6 +175,9 @@ export interface EngineSEOSitemapRoute {
 	priority?: number;
 	images?: string[];
 	alternates?: Record<string, string>;
+	videos?: EngineSEOSitemapVideo[];
+	news?: EngineSEOSitemapNews;
+	providers?: EngineSEOSitemapProvider[];
 }
 
 export type EngineSEOSitemapLastModifiedMode = "git" | "build" | false;
@@ -118,6 +191,15 @@ export interface EngineSEOSitemapSchema {
 	 * sites whose route content is genuinely regenerated on every build.
 	 */
 	lastModified?: EngineSEOSitemapLastModifiedMode;
+	/**
+	 * Generates search-engine-aware XML routes such as google_sitemap.xml,
+	 * bing_sitemap.xml, and yandex_sitemap.xml. `true` enables all built-ins.
+	 */
+	providerFiles?: boolean | EngineSEOSitemapProviderFilesSchema;
+}
+
+export interface EngineSEOProviderSitemapCompileOptions {
+	now?: string | Date;
 }
 
 export type EngineSEOJsonValue = string | number | boolean | null | EngineSEOJsonValue[] | { [key: string]: EngineSEOJsonValue };
