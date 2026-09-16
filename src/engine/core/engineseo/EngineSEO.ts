@@ -199,7 +199,10 @@ export function compileEngineSEOSitemap(schema: EngineSEOSchema): MetadataRoute.
 	const configured = schema.sitemap?.routes;
 	const routes = Array.isArray(configured) && configured.length > 0
 		? configured
-		: [{ path: schema.page?.path ?? schema.page?.canonical ?? "/" }];
+		: [{
+			path: schema.page?.path ?? schema.page?.canonical ?? "/",
+			lastModified: schema.page?.modifiedTime,
+		}];
 	const defaults = schema.sitemap?.defaults ?? {};
 	const unique = new Map<string, MetadataRoute.Sitemap[number]>();
 	for (const route of routes) {

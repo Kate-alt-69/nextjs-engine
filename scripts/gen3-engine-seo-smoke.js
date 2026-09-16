@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { execFileSync } = require("node:child_process");
 const ts = require("typescript");
 
 const previousLoaders = { ts: require.extensions[".ts"], tsx: require.extensions[".tsx"] };
@@ -86,6 +87,10 @@ async function run() {
 	const sitemap = compileEngineSEOSitemap(schema);
 	assert.deepEqual(sitemap.map(({ url }) => url), ["https://kastrick.example/", "https://kastrick.example/engine-seo"]);
 	assert.equal(sitemap[1].changeFrequency, "weekly");
+	assert.equal(compileEngineSEOSitemap({
+		site: schema.site,
+		page: { path: "/fresh", modifiedTime: "2026-09-16T12:34:56.000Z" },
+	})[0].lastModified, "2026-09-16T12:34:56.000Z");
 	const robots = compileEngineSEORobots(schema);
 	assert.equal(robots.rules.userAgent, "*");
 	assert.equal(robots.sitemap, "https://kastrick.example/sitemap.xml");
@@ -109,6 +114,17 @@ async function run() {
 	touch("app/_private/page.tsx");
 	touch("pages/account.tsx");
 	assert.deepEqual(discoverEngineSEORoutes(root), ["/", "/account", "/docs", "/products"]);
+	execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
+	execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+	execFileSync("git", ["-c", "user.name=EngineSEO", "-c", "user.email=engineseo@example.test", "commit", "-m", "Add test pages"], {
+		cwd: root,
+		stdio: "ignore",
+		env: {
+			...process.env,
+			GIT_AUTHOR_DATE: "2026-09-16T12:34:56Z",
+			GIT_COMMITTER_DATE: "2026-09-16T12:34:56Z",
+		},
+	});
 
 	const generated = prepareEngineSEORoutes({
 		rootDir: root,
@@ -119,7 +135,16 @@ async function run() {
 	assert.deepEqual(generated.routes, ["/", "/account", "/docs", "/products"]);
 	for (const filename of Object.values(generated.files)) assert.ok(fs.readFileSync(filename, "utf8").startsWith(GENERATED_MARKER));
 	assert.match(fs.readFileSync(generated.files.sitemap, "utf8"), /createEngineSEO/);
+	assert.match(fs.readFileSync(generated.files.sitemap, "utf8"), /lastModified":"2026-09-16T12:34:56.000Z"/);
 	assert.match(fs.readFileSync(generated.files.openGraphImage, "utf8"), /createEngineSEOImageResponse/);
+
+	const buildDated = prepareEngineSEORoutes({
+		rootDir: root,
+		modulePath: path.resolve(__dirname, "../src/engine/core/engineseo/index.ts"),
+		schema: { ...schema, sitemap: { routes: "auto", lastModified: "build" } },
+		buildTime: "2026-09-17T01:02:03Z",
+	});
+	assert.match(fs.readFileSync(buildDated.files.sitemap, "utf8"), /lastModified":"2026-09-17T01:02:03.000Z"/);
 
 	const foreignRobots = "export default function robots() { return { rules: [] }; }\n";
 	fs.writeFileSync(generated.files.robots, foreignRobots, "utf8");

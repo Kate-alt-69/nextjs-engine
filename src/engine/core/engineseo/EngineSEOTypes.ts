@@ -107,9 +107,17 @@ export interface EngineSEOSitemapRoute {
 	alternates?: Record<string, string>;
 }
 
+export type EngineSEOSitemapLastModifiedMode = "git" | "build" | false;
+
 export interface EngineSEOSitemapSchema {
 	routes?: EngineSEOSitemapRoute[] | "auto";
 	defaults?: Omit<EngineSEOSitemapRoute, "path">;
+	/**
+	 * Adds last-modified dates to automatically discovered routes. Git dates are
+	 * accurate per source file and are the default. Build dates are opt-in for
+	 * sites whose route content is genuinely regenerated on every build.
+	 */
+	lastModified?: EngineSEOSitemapLastModifiedMode;
 }
 
 export type EngineSEOJsonValue = string | number | boolean | null | EngineSEOJsonValue[] | { [key: string]: EngineSEOJsonValue };

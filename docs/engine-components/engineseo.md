@@ -186,7 +186,7 @@ module.exports = withEngine(nextConfig, {
 	seo: {
 		schema: {
 			site: { name: "Kastrick", url: "https://kastrick.example" },
-			sitemap: { routes: "auto", defaults: { changeFrequency: "weekly" } },
+			sitemap: { routes: "auto", lastModified: "git" },
 			robots: { index: true, follow: true },
 			preview: { mode: "generated" },
 		},
@@ -196,6 +196,21 @@ module.exports = withEngine(nextConfig, {
 ```
 
 Dynamic segments such as `[slug]` cannot be guessed safely and must be listed explicitly with their real paths. EngineSEO refuses to overwrite hand-written `sitemap.ts`, `robots.ts`, or `opengraph-image.tsx` files and removes only files carrying its generated ownership marker.
+
+### Accurate modification dates
+
+Automatic sitemaps use `lastModified: "git"` by default. EngineSEO finds the source file for each static route and writes the date of the commit that most recently changed that file. An explicit route-level `lastModified` always wins. When Git history or a source file is unavailable (for example, a dynamic CMS route), EngineSEO omits the date instead of publishing a false signal; supply the content's real update date yourself:
+
+```js
+sitemap: {
+	routes: [
+		{ path: "/", lastModified: "2026-09-16T12:34:56Z" },
+		{ path: "/articles/engine-seo", lastModified: article.updatedAt },
+	],
+}
+```
+
+Use `lastModified: false` to disable automatic dates. `lastModified: "build"` stamps every discovered route with one build timestamp and is intended only for pages whose meaningful content is genuinely regenerated on every build. Search engines can ignore repeatedly inaccurate dates, so build time is not the safe default. `changeFrequency` and `priority` remain available for sitemap compatibility, but major crawlers may ignore them.
 
 ## JSON-LD
 

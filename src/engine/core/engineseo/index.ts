@@ -25,6 +25,7 @@ export type {
 	EngineSEORobotsSchema,
 	EngineSEOSchema,
 	EngineSEOSetters,
+	EngineSEOSitemapLastModifiedMode,
 	EngineSEOSitemapRoute,
 	EngineSEOSitemapSchema,
 	EngineSEOSiteSchema,
