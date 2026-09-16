@@ -197,9 +197,11 @@ module.exports = withEngine(nextConfig, {
 
 Dynamic segments such as `[slug]` cannot be guessed safely and must be listed explicitly with their real paths. EngineSEO refuses to overwrite hand-written `sitemap.ts`, `robots.ts`, or `opengraph-image.tsx` files and removes only files carrying its generated ownership marker.
 
+Automatic App Router discovery flattens ordinary route groups such as `(docs)`, but ignores non-canonical branches that must not become sitemap URLs: private `_...` segments, parallel `@...` slots, and all interception forms `(.)`, `(..)`, `(..)(..)`, and `(...)`. This prevents modal/intercepting pages from leaking fake public URLs into generated sitemaps.
+
 ### Accurate modification dates
 
-Automatic sitemaps use `lastModified: "git"` by default. EngineSEO finds the source file for each static route and writes the date of the commit that most recently changed that file. An explicit route-level `lastModified` always wins. When Git history or a source file is unavailable (for example, a dynamic CMS route), EngineSEO omits the date instead of publishing a false signal; supply the content's real update date yourself:
+Automatic sitemaps use `lastModified: "git"` by default. EngineSEO finds the source file for each static route and writes the date of the commit that most recently changed that file. Git pathspecs are normalized to forward-slash form before lookup so the same route-source mapping works on Windows and POSIX hosts. An explicit route-level `lastModified` always wins. When Git history or a source file is unavailable (for example, a dynamic CMS route), EngineSEO omits the date instead of publishing a false signal; supply the content's real update date yourself:
 
 ```js
 sitemap: {

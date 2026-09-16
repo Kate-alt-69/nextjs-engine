@@ -38,6 +38,7 @@ const {
 	GENERATED_MARKER,
 	captureEngineSEOWebsitePreview,
 	discoverEngineSEORoutes,
+	gitLastModified,
 	prepareEngineSEORoutes,
 } = require("../src/engine/plugins/engineSEOPlugin.js");
 
@@ -112,6 +113,11 @@ async function run() {
 	touch("app/(docs)/docs/page.tsx");
 	touch("app/blog/[slug]/page.tsx");
 	touch("app/_private/page.tsx");
+	touch("app/@modal/page.tsx");
+	touch("app/(.)modal/page.tsx");
+	touch("app/(..)settings/page.tsx");
+	touch("app/(..)(..)archive/page.tsx");
+	touch("app/(...)photo/page.tsx");
 	touch("pages/account.tsx");
 	assert.deepEqual(discoverEngineSEORoutes(root), ["/", "/account", "/docs", "/products"]);
 	execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
@@ -125,6 +131,8 @@ async function run() {
 			GIT_COMMITTER_DATE: "2026-09-16T12:34:56Z",
 		},
 	});
+	assert.equal(gitLastModified(root, path.join(root, "app", "products", "page.tsx")), "2026-09-16T12:34:56.000Z");
+	assert.equal(gitLastModified(root, path.join(root, "..", "outside.tsx")), undefined);
 
 	const generated = prepareEngineSEORoutes({
 		rootDir: root,
