@@ -62,74 +62,86 @@ jobs:
           const sourcePackageJson = require("./source/package.json");
           packageJson.version = sourcePackageJson.version;
           if (packageJson.name !== "nextjs-engine") {
-            throw new Error(`Refusing to sync unexpected package: ${packageJson.name}`);
+          	throw new Error(`Refusing to sync unexpected package: ${packageJson.name}`);
+          }
+
+          const sourceDependencies = sourcePackageJson.dependencies || {};
+          packageJson.peerDependencies = packageJson.peerDependencies || {};
+          for (const dependency of Object.keys(packageJson.peerDependencies)) {
+          	if (sourceDependencies[dependency]) {
+          		packageJson.peerDependencies[dependency] = sourceDependencies[dependency];
+          	}
           }
 
           const serverExport = packageJson.exports?.["./server"];
           if (!serverExport || serverExport.import !== "./engine/server.ts") {
-            throw new Error("Package must export nextjs-engine/server from ./engine/server.ts");
+          	throw new Error("Package must export nextjs-engine/server from ./engine/server.ts");
           }
           if (!fs.existsSync("./package/engine/server.ts")) {
-            throw new Error("Package server export points to a missing engine/server.ts");
+          	throw new Error("Package server export points to a missing engine/server.ts");
           }
           if (!fs.existsSync("./package/engine/network.ts")) {
-            throw new Error("Package network export points to a missing engine/network.ts");
+          	throw new Error("Package network export points to a missing engine/network.ts");
           }
           for (const requiredFile of [
-            "./package/engine/plugins/enginePlugin.js",
-            "./package/engine/plugins/engineDebugPlugin.js",
-            "./package/engine/plugins/engineSEOPlugin.js",
-            "./package/engine/plugins/engineSEOCapture.js",
-            "./package/engine/plugins/engineApiPlugin.js",
-            "./package/engine/plugins/apiStaticCompiler.js",
-            "./package/engine/plugins/engineShaderPlugin.js",
-            "./package/engine/plugins/engineShaderCompiler.js",
-            "./package/engine/plugins/nencCompiler.js",
-            "./package/engine/plugins/nencPlugin.js"
+          	"./package/engine/plugins/enginePlugin.js",
+          	"./package/engine/plugins/engineDebugPlugin.js",
+          	"./package/engine/plugins/engineSEOPlugin.js",
+          	"./package/engine/plugins/engineSEOCapture.js",
+          	"./package/engine/plugins/engineApiPlugin.js",
+          	"./package/engine/plugins/apiStaticCompiler.js",
+          	"./package/engine/plugins/engineShaderPlugin.js",
+          	"./package/engine/plugins/engineShaderCompiler.js",
+          	"./package/engine/plugins/nencCompiler.js",
+          	"./package/engine/plugins/nencPlugin.js"
           ]) {
-            if (!fs.existsSync(requiredFile)) {
-              throw new Error(`Package is missing ${requiredFile}`);
-            }
+          	if (!fs.existsSync(requiredFile)) {
+          		throw new Error(`Package is missing ${requiredFile}`);
+          	}
           }
 
           packageJson.exports = packageJson.exports || {};
           packageJson.exports["./network"] = {
-            types: "./engine/network.ts",
-            import: "./engine/network.ts",
-            default: "./engine/network.ts"
+          	types: "./engine/network.ts",
+          	import: "./engine/network.ts",
+          	default: "./engine/network.ts"
           };
           packageJson.exports["./seo"] = {
-            types: "./engine/seo.ts",
-            import: "./engine/seo.ts",
-            default: "./engine/seo.ts"
+          	types: "./engine/seo.ts",
+          	import: "./engine/seo.ts",
+          	default: "./engine/seo.ts"
           };
           packageJson.exports["./plugin"] = {
-            require: "./engine/plugins/enginePlugin.js",
-            default: "./engine/plugins/enginePlugin.js"
+          	require: "./engine/plugins/enginePlugin.js",
+          	default: "./engine/plugins/enginePlugin.js"
           };
           packageJson.exports["./api-plugin"] = {
-            require: "./engine/plugins/engineApiPlugin.js",
-            default: "./engine/plugins/engineApiPlugin.js"
+          	require: "./engine/plugins/engineApiPlugin.js",
+          	default: "./engine/plugins/engineApiPlugin.js"
           };
           packageJson.exports["./shader-plugin"] = {
-            require: "./engine/plugins/engineShaderPlugin.js",
-            default: "./engine/plugins/engineShaderPlugin.js"
+          	require: "./engine/plugins/engineShaderPlugin.js",
+          	default: "./engine/plugins/engineShaderPlugin.js"
           };
           packageJson.exports["./nenc-plugin"] = {
-            require: "./engine/plugins/nencPlugin.js",
-            default: "./engine/plugins/nencPlugin.js"
+          	require: "./engine/plugins/nencPlugin.js",
+          	default: "./engine/plugins/nencPlugin.js"
           };
           packageJson.exports["./seo-plugin"] = {
-            require: "./engine/plugins/engineSEOPlugin.js",
-            default: "./engine/plugins/engineSEOPlugin.js"
+          	require: "./engine/plugins/engineSEOPlugin.js",
+          	default: "./engine/plugins/engineSEOPlugin.js"
           };
 
           const typescriptVersion = packageJson.dependencies?.typescript
-            || packageJson.devDependencies?.typescript
-            || "^5.9.3";
+          	|| packageJson.devDependencies?.typescript
+          	|| "^5.9.3";
+          const runtimeDependencies = Object.fromEntries(
+          	Object.entries(sourceDependencies)
+          		.filter(([dependency]) => !(dependency in packageJson.peerDependencies)),
+          );
           packageJson.dependencies = {
-            ...(packageJson.dependencies || {}),
-            typescript: typescriptVersion
+          	...runtimeDependencies,
+          	typescript: typescriptVersion
           };
           if (packageJson.devDependencies) delete packageJson.devDependencies.typescript;
 
