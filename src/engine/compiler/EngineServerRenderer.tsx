@@ -514,7 +514,7 @@ function renderServerNode(
 				&& !Array.isArray(props.subheadingProps)
 				? props.subheadingProps as Record<string, unknown>
 				: {};
-			const subheadingInput = {
+			const subheadingInput: Record<string, unknown> = {
 				color: "var(--e-muted, #64748b)",
 				mt: "0.5rem",
 				...subheadingProps,
