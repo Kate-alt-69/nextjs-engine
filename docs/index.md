@@ -16,6 +16,7 @@ If a historical example conflicts with the current TypeScript source or a curren
 | Learn styling and responsive props | [`styling.md`](./styling.md) |
 | Learn NENC, EngineCookies, sessions, replay/rate policy, and private backends | [`gen3/phase-c-network.md`](./gen3/phase-c-network.md) |
 | Learn compatibility manifests and fallback compilation | [`gen3/phase-d-hardening.md`](./gen3/phase-d-hardening.md) |
+| Understand EngineDebug ephemeral isolation | [`gen3/engine-debug-isolation.md`](./gen3/engine-debug-isolation.md) |
 | Generate metadata, sitemaps, robots, JSON-LD, and social previews | [`engine-components/engineseo.md`](./engine-components/engineseo.md) |
 | Generate Google/Bing/Yandex-aware XML sitemaps | [`engine-components/engineseo-provider-sitemaps.md`](./engine-components/engineseo-provider-sitemaps.md) |
 | Run the device-bound private-search proof | [`gen3/private-search-example.md`](./gen3/private-search-example.md) |
@@ -120,6 +121,7 @@ EngineTransitions+ and EngineShader remain separate responsibilities. Transition
 | Runtime/lazy/performance behavior | [`runtime-performance.md`](./runtime-performance.md) |
 | Schema validation and diagnostics | [`schema-diagnostics.md`](./schema-diagnostics.md) |
 | Compatibility/fallback compiler | [`gen3/phase-d-hardening.md`](./gen3/phase-d-hardening.md) |
+| EngineDebug ephemeral workbench isolation | [`gen3/engine-debug-isolation.md`](./gen3/engine-debug-isolation.md) |
 
 For styling-only responsive differences, prefer responsive schema values/CSS. Use EngineViewport or request-time adaptive compilation only when behavior or structure genuinely depends on live/request device state.
 

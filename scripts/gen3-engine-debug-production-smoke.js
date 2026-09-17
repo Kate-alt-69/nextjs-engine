@@ -31,7 +31,11 @@ for (const compiledRoot of compiledRoots) {
 			const filename = path.join(current, entry.name);
 			if (entry.isDirectory()) pending.push(filename);
 			else if (/\.(?:js|json)$/.test(entry.name)) {
-				assert.doesNotMatch(fs.readFileSync(filename, "utf8"), /Next\.js Engine Debug|D\.5–D\.10/, `${filename} compiled the dev-only debugger`);
+				assert.doesNotMatch(
+					fs.readFileSync(filename, "utf8"),
+					/Next\.js Engine Debug|D\.5–D\.10|data-next-engine-debug-active/,
+					`${filename} compiled the dev-only debugger`,
+				);
 			}
 		}
 	}

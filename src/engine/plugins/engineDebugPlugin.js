@@ -84,16 +84,22 @@ function discoverEngineDebugPages(rootDirectory, configuredPages = []) {
 	return [...routes].sort((left, right) => left === "/" ? -1 : right === "/" ? 1 : left.localeCompare(right));
 }
 
-function generatedRouteSource(routeDirectory, modulePath, pages) {
+function generatedRouteSource(routeDirectory, modulePath, isolationModulePath, pages) {
 	const importPath = normalizeImportPath(path.relative(routeDirectory, modulePath));
+	const isolationImportPath = normalizeImportPath(path.relative(routeDirectory, isolationModulePath));
 	return [
 		GENERATED_MARKER,
+		`import { EngineDebugIsolation } from ${JSON.stringify(isolationImportPath)};`,
 		`import { EngineDebugPage } from ${JSON.stringify(importPath)};`,
 		"",
 		`const pages = ${JSON.stringify(pages, null, "\t")} as const;`,
 		"",
 		"export default function EngineDebugRoute() {",
-		"\treturn <EngineDebugPage pages={pages} />;",
+		"\treturn (",
+		"\t\t<EngineDebugIsolation>",
+		"\t\t\t<EngineDebugPage pages={pages} />",
+		"\t\t</EngineDebugIsolation>",
+		"\t);",
 		"}",
 		"",
 	].join("\n");
@@ -141,11 +147,15 @@ function prepareEngineDebugRoute(options = {}) {
 	}
 
 	const modulePath = path.resolve(options.modulePath || path.join(__dirname, "..", "debug", "EngineDebugPage.tsx"));
+	const isolationModulePath = path.resolve(options.isolationModulePath || path.join(__dirname, "..", "debug", "EngineDebugIsolation.tsx"));
 	if (!fs.existsSync(modulePath)) {
 		throw new Error(`[EngineDebug] Debug page module is missing: ${modulePath}`);
 	}
+	if (!fs.existsSync(isolationModulePath)) {
+		throw new Error(`[EngineDebug] Debug isolation module is missing: ${isolationModulePath}`);
+	}
 	const pages = discoverEngineDebugPages(rootDirectory, options.pages || []);
-	const source = generatedRouteSource(routeDirectory, modulePath, pages);
+	const source = generatedRouteSource(routeDirectory, modulePath, isolationModulePath, pages);
 	if (fs.existsSync(routeFile)) {
 		const existing = fs.readFileSync(routeFile, "utf8");
 		if (!existing.startsWith(GENERATED_MARKER)) {

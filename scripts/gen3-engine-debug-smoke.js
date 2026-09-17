@@ -14,6 +14,7 @@ const {
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "nextjs-engine-debug-"));
 const previousNodeEnv = process.env.NODE_ENV;
 const modulePath = path.resolve(__dirname, "../src/engine/debug/EngineDebugPage.tsx");
+const isolationModulePath = path.resolve(__dirname, "../src/engine/debug/EngineDebugIsolation.tsx");
 const routeFile = path.join(root, "app", "%5Fengine", "debug", "page.tsx");
 
 function touch(relative) {
@@ -33,20 +34,38 @@ try {
 
 	assert.deepEqual(discoverEngineDebugPages(root), ["/", "/account", "/docs", "/products"]);
 	process.env.NODE_ENV = "development";
-	const development = prepareEngineDebugRoute({ rootDir: root, modulePath });
+	const development = prepareEngineDebugRoute({ rootDir: root, modulePath, isolationModulePath });
 	assert.equal(development.development, true);
 	assert.deepEqual(development.pages, ["/", "/account", "/docs", "/products"]);
 	const generated = fs.readFileSync(routeFile, "utf8");
 	assert.ok(generated.startsWith(GENERATED_MARKER));
+	assert.match(generated, /EngineDebugIsolation/);
+	assert.match(generated, /<EngineDebugIsolation>/);
 	assert.match(generated, /EngineDebugPage/);
 	assert.doesNotMatch(generated, /_private/);
-	assert.equal(prepareEngineDebugRoute({ rootDir: root, modulePath }).routeFile, routeFile, "generation must be idempotent");
+	assert.equal(
+		prepareEngineDebugRoute({ rootDir: root, modulePath, isolationModulePath }).routeFile,
+		routeFile,
+		"generation must be idempotent",
+	);
+
+	const isolationSource = fs.readFileSync(isolationModulePath, "utf8");
+	for (const requirement of [
+		"attachShadow",
+		"createPortal",
+		"MutationObserver",
+		"data-next-engine-debug-active",
+		"data-next-engine-debug-host",
+		"inert",
+		"aria-hidden",
+		"2147483647",
+	]) assert.match(isolationSource, new RegExp(requirement));
 
 	const staleDevelopmentTypes = path.join(root, ".next", "dev", "types");
 	fs.mkdirSync(staleDevelopmentTypes, { recursive: true });
 	fs.writeFileSync(path.join(staleDevelopmentTypes, "validator.ts"), "import './_engine/debug';\n", "utf8");
 	process.env.NODE_ENV = "production";
-	const production = prepareEngineDebugRoute({ rootDir: root, modulePath });
+	const production = prepareEngineDebugRoute({ rootDir: root, modulePath, isolationModulePath });
 	assert.equal(production.development, false);
 	assert.equal(fs.existsSync(routeFile), false, "production preparation must remove the generated route before route discovery");
 	assert.equal(fs.existsSync(staleDevelopmentTypes), false, "production preparation must remove stale development route types");
@@ -54,7 +73,7 @@ try {
 	fs.mkdirSync(path.dirname(routeFile), { recursive: true });
 	fs.writeFileSync(routeFile, "export default function UserRoute() { return null; }\n", "utf8");
 	assert.throws(
-		() => prepareEngineDebugRoute({ rootDir: root, modulePath }),
+		() => prepareEngineDebugRoute({ rootDir: root, modulePath, isolationModulePath }),
 		/Refusing to remove non-generated route/,
 		"production cleanup must never delete an application-owned route",
 	);
