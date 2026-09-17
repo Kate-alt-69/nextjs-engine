@@ -100,6 +100,18 @@ try {
 		"the compatibility probe must not pull the full browser interaction runtime into the dialog bundle",
 	);
 
+	const publicApiSource = fs.readFileSync(require.resolve("../src/engine/index.ts"), "utf8");
+	assert.match(
+		publicApiSource,
+		/EngineCompatibilityDialog,\s*\n\s*resolveEngineBrowserCompatibility/,
+		"the Gen 3 compatibility dialog must be exported from the public Engine barrel",
+	);
+	assert.match(
+		publicApiSource,
+		/EngineCompatibilityDialogProps,\s*\n\s*EngineFeatureSupportOverrides/,
+		"the Gen 3 compatibility dialog props must be exported from the public Engine barrel",
+	);
+
 	console.log("Generation 3 browser compatibility dialog smoke: ok");
 } finally {
 	restoreTypeScriptLoaders();
