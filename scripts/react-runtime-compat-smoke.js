@@ -62,6 +62,31 @@ function main() {
 		assert.match(overlaySource, /usePortalTarget/, "overlay portals should resolve after mount");
 		assert.match(overlaySource, /\[options\.lockScroll, options\.open\]/, "live scroll-lock changes need an independent lifecycle");
 
+		const { withEngineImageConfig } = require(path.join(repoRoot, "src", "engine", "plugins", "enginePlugin.js"));
+		const originalImageConfig = {
+			reactStrictMode: true,
+			images: {
+				qualities: [60, 90],
+				formats: ["image/avif", "image/webp"],
+			},
+		};
+		const resolvedImageConfig = withEngineImageConfig(originalImageConfig);
+		assert.deepEqual(
+			resolvedImageConfig.images.qualities,
+			[60, 65, 75, 78, 90],
+			"withEngine should preserve application qualities and allow every built-in EngineImage quality preset",
+		);
+		assert.deepEqual(
+			resolvedImageConfig.images.formats,
+			["image/avif", "image/webp"],
+			"withEngine must preserve unrelated Next image configuration",
+		);
+		assert.deepEqual(
+			originalImageConfig.images.qualities,
+			[60, 90],
+			"Engine image config normalization must not mutate the caller's Next config",
+		);
+
 		console.log("React/Next compatibility smoke tests passed");
 	} finally {
 		fs.rmSync(outDir, { recursive: true, force: true });
