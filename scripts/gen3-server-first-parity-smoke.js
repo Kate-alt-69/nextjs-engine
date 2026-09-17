@@ -96,7 +96,7 @@ try {
 	assert.match(String(resolved.color), /^var\(/, "explicit at-rule styles should keep an inline CSS-variable binding");
 
 	const collectedCss = collector.collect();
-	assert.match(collectedCss, /@media\(min-width:800px\)\{:root\{--e-at-/, "style media rules should survive server compilation");
+	assert.match(collectedCss, /@media\(min-width:\s*800px\)\{:root\{--e-at-/, "style media rules should survive server compilation regardless of harmless whitespace");
 	assert.match(collectedCss, /@keyframes engine-fade\{from\{opacity:0\}to\{opacity:1\}\}/, "keyframes should retain frame selectors");
 
 	const precedenceCollector = new StyleCollector();
