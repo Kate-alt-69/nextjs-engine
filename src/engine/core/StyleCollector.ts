@@ -101,9 +101,9 @@ export class StyleCollector {
 export const globalStyleCollector = new StyleCollector();
 
 if (
-	typeof module !== "undefined" &&
-	process.env.NODE_ENV !== "production" &&
-	(module as any).hot
+	typeof module !== "undefined"
+	&& process.env.NODE_ENV !== "production"
+	&& (module as any).hot
 ) {
 	(module as any).hot.dispose(() => {
 		if (typeof document !== "undefined") {
@@ -121,7 +121,7 @@ export function EngineGlobalStyles(): React.ReactElement | null {
 	return React.createElement("style", {
 		id: "eng-global",
 		"data-engine-generated": "true",
-		precedence: "engine-global",
+		suppressHydrationWarning: true,
 		dangerouslySetInnerHTML: { __html: compiledGlobalCssContent },
 	});
 }

@@ -58,6 +58,7 @@ jobs:
           node scripts/gen3-phase-ab-smoke.js
           node scripts/gen3-compiler-runtime-smoke.js
           node scripts/gen3-adaptive-runtime-smoke.js
+          node scripts/gen3-server-first-parity-smoke.js
       - name: Test Generation 3 phase C contracts
         if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
         run: |

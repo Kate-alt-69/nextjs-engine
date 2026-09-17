@@ -57,7 +57,9 @@ export function EngineProvider({
 	children,
 }: EngineProviderProps) {
 	const ownedStyleCollectorRef = React.useRef<StyleCollector | null>(null);
-	if (ownedStyleCollectorRef.current === null) ownedStyleCollectorRef.current = new StyleCollector();
+	if (ownedStyleCollectorRef.current === null) {
+		ownedStyleCollectorRef.current = new StyleCollector();
+	}
 	const collector = styleCollector ?? ownedStyleCollectorRef.current;
 	const resolvedHandlers = handlers ?? EMPTY_HANDLERS;
 	const resolvedSlots = slots ?? EMPTY_SLOTS;
@@ -109,14 +111,14 @@ export interface EngineCollectedStylesProps {
 }
 
 /**
- * Emit CSS collected by the nearest EngineProvider.
- *
- * During hydration the client adopts the exact server-emitted text already in
- * the DOM, then reconciles to the deterministic collector snapshot after mount.
- * This keeps React's first client tree byte-for-byte aligned with SSR even when
- * concurrent/Suspense traversal order differs. Later dynamic rules are flushed
- * through the collector subscription without mutating React state during render.
- */
+* Emit CSS collected by the nearest EngineProvider.
+*
+* During hydration the client adopts the exact server-emitted text already in
+* the DOM, then reconciles to the deterministic collector snapshot after mount.
+* This keeps React's first client tree byte-for-byte aligned with SSR even when
+* concurrent/Suspense traversal order differs. Later dynamic rules are flushed
+* through the collector subscription without mutating React state during render.
+*/
 export function EngineCollectedStyles({ id }: EngineCollectedStylesProps) {
 	const styleCollector = useStyleCollector();
 	const generatedId = React.useId().replace(/:/g, "");
@@ -141,7 +143,7 @@ export function EngineCollectedStyles({ id }: EngineCollectedStylesProps) {
 		<style
 			id={resolvedId}
 			data-engine-generated="true"
-			precedence="engine"
+			suppressHydrationWarning
 			dangerouslySetInnerHTML={{ __html: css }}
 		/>
 	);
@@ -191,7 +193,10 @@ function subscribeViewportWidth(subscriber: ViewportSubscriber): () => void {
 
 const breakpointOrder: Breakpoint[] = ["xs", "sm", "md", "lg", "xl", "2xl"];
 
-function resolveBreakpoint(width: number, breakpoints: Required<EngineConfig>["breakpoints"]): Breakpoint {
+function resolveBreakpoint(
+	width: number,
+	breakpoints: Required<EngineConfig>["breakpoints"],
+): Breakpoint {
 	if (width >= (breakpoints["2xl"] ?? 1536)) return "2xl";
 	if (width >= (breakpoints.xl ?? 1280)) return "xl";
 	if (width >= (breakpoints.lg ?? 1024)) return "lg";

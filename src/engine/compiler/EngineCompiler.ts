@@ -43,7 +43,10 @@ function resolvePageId(schema: PageSchema, requestedId?: string): string {
 	return `engine-${stableHash(title)}`;
 }
 
-function resolveWorkClass(node: SchemaNode, depth: number): { workClass: EngineWorkClass; reason: string } {
+function resolveWorkClass(
+	node: SchemaNode,
+	depth: number,
+): { workClass: EngineWorkClass; reason: string } {
 	const props = node.props ?? {};
 	if (props.priority === true || props.eager === true) {
 		return { workClass: "critical", reason: "The node explicitly requests priority/eager work." };
@@ -56,10 +59,17 @@ function resolveWorkClass(node: SchemaNode, depth: number): { workClass: EngineW
 	}
 	const profile = getEngineRuntimeProfile(node.type);
 	if (profile.defaultWorkClass) {
-		return { workClass: profile.defaultWorkClass, reason: `The ${String(node.type)} runtime profile defaults to ${profile.defaultWorkClass} work.` };
+		return {
+			workClass: profile.defaultWorkClass,
+			reason: `The ${String(node.type)} runtime profile defaults to ${profile.defaultWorkClass} work.`,
+		};
 	}
-	if (depth <= 1) return { workClass: "visible", reason: "The node is near the top of the compiled page tree." };
-	if (depth <= 3) return { workClass: "near", reason: "The node is nested below initially visible content and can be prepared near the viewport." };
+	if (depth <= 1) {
+		return { workClass: "visible", reason: "The node is near the top of the compiled page tree." };
+	}
+	if (depth <= 3) {
+		return { workClass: "near", reason: "The node is nested below initially visible content and can be prepared near the viewport." };
+	}
 	return { workClass: "deferred", reason: "Deeply nested work is deferred until it is useful." };
 }
 
@@ -100,12 +110,23 @@ function addVideoSources(
 			continue;
 		}
 		if (entry && typeof entry === "object") {
-			addAsset(assets, nodeId, workClass, "video", (entry as Record<string, unknown>).src, priority);
+			addAsset(
+				assets,
+				nodeId,
+				workClass,
+				"video",
+				(entry as Record<string, unknown>).src,
+				priority,
+			);
 		}
 	}
 }
 
-function collectNodeAssets(node: SchemaNode, nodeId: string, workClass: EngineWorkClass): EngineCompiledAsset[] {
+function collectNodeAssets(
+	node: SchemaNode,
+	nodeId: string,
+	workClass: EngineWorkClass,
+): EngineCompiledAsset[] {
 	const props = node.props ?? {};
 	const assets: EngineCompiledAsset[] = [];
 	const priority = props.priority === true || props.eager === true;
@@ -115,10 +136,18 @@ function collectNodeAssets(node: SchemaNode, nodeId: string, workClass: EngineWo
 		addVideoSources(assets, nodeId, workClass, props.src, priority);
 		addAsset(assets, nodeId, workClass, "image", props.poster, priority);
 	}
-	if (node.type === "canvas" || node.type === "manim" || node.type === "EngineManim" || node.type === "manim3d" || node.type === "EngineManim3D") {
+	if (
+		node.type === "canvas"
+		|| node.type === "manim"
+		|| node.type === "EngineManim"
+		|| node.type === "manim3d"
+		|| node.type === "EngineManim3D"
+	) {
 		addAsset(assets, nodeId, workClass, "module", `engine:${node.type}`, priority);
 	}
-	if (typeof props.shader === "string") addAsset(assets, nodeId, workClass, "shader", props.shader, priority);
+	if (typeof props.shader === "string") {
+		addAsset(assets, nodeId, workClass, "shader", props.shader, priority);
+	}
 	return assets;
 }
 
@@ -145,7 +174,10 @@ function collectNodeCapabilities(
 		if (props.mode === "webgl2") capabilities.add("webgl2");
 		if (props.shader !== undefined) capabilities.add("webgl2");
 	}
-	if ((node.type === "link" || node.type === "EngineLink") && hasAnimatedTransition(node)) {
+	if (
+		(node.type === "link" || node.type === "EngineLink")
+		&& hasAnimatedTransition(node)
+	) {
 		capabilities.add("view-transitions");
 	}
 	return [...capabilities];
@@ -167,6 +199,13 @@ function recordAsset(state: CompileState, asset: EngineCompiledAsset): void {
 	const assetIsMoreUrgent = asset.priority && !existing.priority
 		|| WORK_PRIORITY[asset.workClass] < WORK_PRIORITY[existing.workClass];
 	if (assetIsMoreUrgent) state.assets.set(asset.id, asset);
+}
+
+function isSchemaNode(value: unknown): value is SchemaNode {
+	return value != null
+		&& typeof value === "object"
+		&& !Array.isArray(value)
+		&& typeof (value as Record<string, unknown>).type === "string";
 }
 
 function compileNode(
@@ -204,14 +243,22 @@ function compileNode(
 		});
 	}
 
-	const children = Array.isArray(node.children)
-		? node.children.map((child, index) => compileNode(
-			child,
-			`${path}.${index}`,
-			depth + 1,
-			state,
-		))
-		: [];
+	// Slot fallbacks are executable schema, not opaque prop data. Compile them
+	// into the normal graph so runtime classification, assets, capabilities,
+	// diagnostics and server rendering all see the same branch.
+	const fallback = node.type === "slot" ? node.props?.fallback : undefined;
+	const children = node.type === "slot"
+		? isSchemaNode(fallback)
+			? [compileNode(fallback, `${path}.fallback`, depth + 1, state)]
+			: []
+		: Array.isArray(node.children)
+			? node.children.map((child, index) => compileNode(
+				child,
+				`${path}.${index}`,
+				depth + 1,
+				state,
+			))
+			: [];
 
 	return {
 		id: nodeId,
@@ -232,7 +279,10 @@ function compileNode(
 	};
 }
 
-function compilePageFresh(schema: PageSchema, options: EngineCompileOptions = {}): EngineCompiledPage {
+function compilePageFresh(
+	schema: PageSchema,
+	options: EngineCompileOptions = {},
+): EngineCompiledPage {
 	const pageId = resolvePageId(schema, options.pageId);
 	const state: CompileState = {
 		pageId,
@@ -253,13 +303,19 @@ function compilePageFresh(schema: PageSchema, options: EngineCompileOptions = {}
 	if (options.security !== "off") {
 		const securityDiagnostics = compileEngineSecurityDiagnostics(root);
 		state.diagnostics.push(...securityDiagnostics);
-		if (options.security !== "report") assertEngineSecurityDiagnostics(securityDiagnostics);
+		if (options.security !== "report") {
+			assertEngineSecurityDiagnostics(securityDiagnostics);
+		}
 	}
 	const featureManifest = compileEngineUsedFeatureManifest(pageId, root);
 	const fallbackPlan = compileEngineFallbackPlan(featureManifest, root);
 	state.summary.assetCount = state.assets.size;
 
-	if (options.strict && state.summary.clientNodes === state.summary.totalNodes && state.summary.totalNodes > 1) {
+	if (
+		options.strict
+		&& state.summary.clientNodes === state.summary.totalNodes
+		&& state.summary.totalNodes > 1
+	) {
 		state.diagnostics.push({
 			level: "warning",
 			code: "G3-W001",
@@ -281,7 +337,10 @@ function compilePageFresh(schema: PageSchema, options: EngineCompileOptions = {}
 	};
 }
 
-export function compilePage(schema: PageSchema, options: EngineCompileOptions = {}): EngineCompiledPage {
+export function compilePage(
+	schema: PageSchema,
+	options: EngineCompileOptions = {},
+): EngineCompiledPage {
 	const pageId = resolvePageId(schema, options.pageId);
 	return compileEngineArtifact({
 		kind: "schema",
@@ -294,7 +353,10 @@ export function compilePage(schema: PageSchema, options: EngineCompileOptions = 
 	}, () => compilePageFresh(schema, options)).value;
 }
 
-export function findCompiledNode(plan: EngineCompiledPage, idOrName: string): EngineCompiledNode | undefined {
+export function findCompiledNode(
+	plan: EngineCompiledPage,
+	idOrName: string,
+): EngineCompiledNode | undefined {
 	const visit = (node: EngineCompiledNode): EngineCompiledNode | undefined => {
 		if (node.id === idOrName || node.name === idOrName) return node;
 		for (const child of node.children) {
@@ -306,7 +368,10 @@ export function findCompiledNode(plan: EngineCompiledPage, idOrName: string): En
 	return visit(plan.root);
 }
 
-export function explainCompiledNode(plan: EngineCompiledPage, idOrName: string): string | undefined {
+export function explainCompiledNode(
+	plan: EngineCompiledPage,
+	idOrName: string,
+): string | undefined {
 	const node = findCompiledNode(plan, idOrName);
 	if (!node) return undefined;
 	return `${node.type} renders as ${node.runtime}: ${node.runtimeReason}`;
