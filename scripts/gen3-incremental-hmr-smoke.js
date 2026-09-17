@@ -20,6 +20,7 @@ process.env.NODE_ENV = "development";
 
 const {
 	compileEngineArtifact,
+	fingerprintEngineArtifact,
 	inspectEngineArtifactGraph,
 	invalidateEngineArtifacts,
 } = require("../src/engine/compiler/EngineArtifactGraph.ts");
@@ -78,6 +79,31 @@ try {
 	for (const kind of ["schema", "style", "asset", "command", "model", "device", "capability"]) {
 		assert.ok(graph.some((entry) => entry.kind === kind), `${kind} graph metadata must be inspectable`);
 	}
+
+	const makeScopedHandler = (scope) => () => scope;
+	const firstHandler = makeScopedHandler("first");
+	const secondHandler = makeScopedHandler("second");
+	assert.equal(
+		fingerprintEngineArtifact({ handler: firstHandler }),
+		fingerprintEngineArtifact({ handler: firstHandler }),
+		"the same function object must keep a stable artifact fingerprint",
+	);
+	assert.notEqual(
+		fingerprintEngineArtifact({ handler: firstHandler }),
+		fingerprintEngineArtifact({ handler: secondHandler }),
+		"different closures with identical source text must not share an artifact fingerprint",
+	);
+	const firstFunctionArtifact = compileEngineArtifact(
+		{ kind: "schema", id: "function-identity", input: { handler: firstHandler } },
+		() => firstHandler,
+	);
+	const secondFunctionArtifact = compileEngineArtifact(
+		{ kind: "schema", id: "function-identity", input: { handler: secondHandler } },
+		() => secondHandler,
+	);
+	assert.equal(firstFunctionArtifact.cacheHit, false);
+	assert.equal(secondFunctionArtifact.cacheHit, false, "a new closure must rebuild instead of reusing stale request state");
+	assert.equal(secondFunctionArtifact.value, secondHandler, "the artifact graph must return the current closure after rebuilding");
 
 	const pageSchema = {
 		meta: { title: "Incremental page" },
