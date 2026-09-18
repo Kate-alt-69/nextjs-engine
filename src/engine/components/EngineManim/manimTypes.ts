@@ -166,7 +166,7 @@ export interface Manim3DCamera {
 // ── DSL types (Tier 3 / 4) ───────────────────────────────────────────────────
 
 export interface ManimBoneTransform {
-	/** Direct bone name: "left.hand", "right.leg", "2.tentacle" */
+	/** Direct bone name: "left.hand", "right.leg", "2.tentacle", or "$root" for the loaded model root. */
 	bone:     string;
 	move?:    [number, number, number];
 	rotate?:  [number, number, number]; // Euler degrees [x, y, z]
@@ -200,6 +200,7 @@ export interface ManimDSLDocument {
 export type AnimationSource = "file" | "source";
 
 export interface ManimBoneOverride {
+	/** Bone name, or "$root" to animate the complete loaded model (including OBJ). */
 	bone:   string;
 	frames: ManimDSLFrameGroup[];
 	/** "replace" removes the GLTF track; "additive" layers on top */
@@ -260,6 +261,8 @@ export interface Manim3DConfig {
 	/** Path to GLTF/GLB/OBJ file */
 	src:        string;
 	format?:    "gltf" | "glb" | "obj";
+	/** Optional Wavefront material library used when format = "obj". */
+	materialSrc?: string;
 	camera?:    Manim3DCamera;
 	lights?:    Manim3DLight[];
 	animation?: ManimAnimationRoute;
