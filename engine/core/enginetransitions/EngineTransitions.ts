@@ -17,22 +17,15 @@ import {
 	safeSharedTransitionName,
 	scaleTransitionCssValue,
 } from "./TransitionCompatibility";
+import {
+	runCoordinatedEngineViewTransition,
+	type EngineNativeViewTransition,
+} from "./ViewTransitionCoordinator";
 import type {
 	EngineTransitionInput,
 	EngineTransitionRunContext,
 	EngineTransitionsController,
 } from "./TransitionTypes";
-
-interface EngineViewTransition {
-	finished: Promise<void>;
-	ready: Promise<void>;
-	updateCallbackDone: Promise<void>;
-	skipTransition?: () => void;
-}
-
-type EngineTransitionDocument = Document & {
-	startViewTransition?: (updateCallback: () => void | Promise<void>) => EngineViewTransition;
-};
 
 type PseudoAnimationOptions = KeyframeAnimationOptions & { pseudoElement: string };
 
@@ -53,10 +46,6 @@ const BASE_CSS = `
 }
 `;
 
-let activeTransition: EngineViewTransition | null = null;
-let activeToken = 0;
-let activeCleanup: (() => void) | null = null;
-
 function ensureTransitionStyles(): void {
 	if (typeof document === "undefined" || document.getElementById(STYLE_ID)) return;
 	const styleElement = document.createElement("style");
@@ -72,10 +61,12 @@ function reducedMotionEnabled(): boolean {
 }
 
 function createSharedManager(ids: string[]) {
+	let active = true;
 	const touched = new Set<HTMLElement>();
 	const restoreActions: Array<() => void> = [];
 
 	const apply = (): void => {
+		if (!active) return;
 		for (const id of ids) {
 			const element = document.getElementById(id);
 			if (!(element instanceof HTMLElement) || touched.has(element)) continue;
@@ -90,6 +81,7 @@ function createSharedManager(ids: string[]) {
 	};
 
 	const restore = (): void => {
+		active = false;
 		for (const restoreAction of restoreActions.splice(0)) restoreAction();
 		touched.clear();
 	};
@@ -314,55 +306,25 @@ async function beginTransition(resolved: ResolvedEngineTransition, update: () =>
 		await update();
 		return;
 	}
-	const transitionDocument = document as EngineTransitionDocument;
-	if (typeof transitionDocument.startViewTransition !== "function") {
-		await runLegacyTransition(resolved, update);
-		return;
-	}
-
-	ensureTransitionStyles();
-	activeTransition?.skipTransition?.();
-	activeCleanup?.();
-	const token = ++activeToken;
 	const sharedManager = createSharedManager(resolved.shared);
-	sharedManager.apply();
-	activeCleanup = () => sharedManager.restore();
-
-	let transition: EngineViewTransition;
-	try {
-		transition = transitionDocument.startViewTransition(async () => {
+	await runCoordinatedEngineViewTransition(
+		async () => {
 			await update();
 			sharedManager.apply();
-		});
-	} catch {
-		sharedManager.restore();
-		activeCleanup = null;
-		await runLegacyTransition(resolved, update);
-		return;
-	}
-	activeTransition = transition;
-	transition.ready.then(() => {
-		if (token === activeToken && !playRootAnimations(resolved)) transition.skipTransition?.();
-	}).catch(() => transition.skipTransition?.());
-
-	let updateError: unknown;
-	try {
-		await transition.updateCallbackDone;
-	} catch (reason) {
-		updateError = reason;
-	}
-	try {
-		await transition.finished;
-	} catch {
-		// A newer transition may intentionally skip this one.
-	} finally {
-		if (token === activeToken) {
-			activeCleanup?.();
-			activeCleanup = null;
-			activeTransition = null;
-		}
-	}
-	if (updateError !== undefined) throw updateError;
+		},
+		{ conflict: "replace" },
+		{
+			cleanup: sharedManager.restore,
+			fallback: () => runLegacyTransition(resolved, update),
+			onReady: (transition: EngineNativeViewTransition) => {
+				if (!playRootAnimations(resolved)) transition.skipTransition?.();
+			},
+			prepare: () => {
+				ensureTransitionStyles();
+				sharedManager.apply();
+			},
+		},
+	);
 }
 
 export async function runEngineTransition(update: () => void | Promise<void>, transition: EngineTransitionInput = "fade", context: EngineTransitionRunContext = {}): Promise<void> {

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { EngineConfig, SchemaNode } from "../schema/types";
+import type { EngineDebugDomAttributes } from "./EngineDebugMetadata";
 import { SchemaRenderer } from "../core/SchemaRenderer";
 import { EngineCollectedStyles, EngineProvider } from "../providers/EngineProvider";
 import { EngineScrollProvider } from "../core/enginescroll";
@@ -13,9 +14,10 @@ export interface EngineClientIslandProps {
 	config?: EngineConfig;
 	slots?: Record<string, ReactNode>;
 	children?: ReactNode;
+	debug?: EngineDebugDomAttributes;
 }
 
-export function EngineClientIsland({ node, config, slots, children }: EngineClientIslandProps) {
+export function EngineClientIsland({ node, config, slots, children, debug }: EngineClientIslandProps) {
 	const hasServerChildren = children !== undefined && children !== null;
 	const islandNode: SchemaNode = hasServerChildren
 		? {
@@ -30,7 +32,7 @@ export function EngineClientIsland({ node, config, slots, children }: EngineClie
 		? { ...(slots ?? {}), [SERVER_CHILDREN_SLOT]: children }
 		: slots;
 
-	return (
+	const island = (
 		<EngineScrollProvider>
 			<EngineProvider config={config} slots={islandSlots}>
 				<SchemaRenderer schema={{ root: islandNode }} />
@@ -38,4 +40,7 @@ export function EngineClientIsland({ node, config, slots, children }: EngineClie
 			</EngineProvider>
 		</EngineScrollProvider>
 	);
+	return debug
+		? <div {...debug} style={{ display: "contents" }}>{island}</div>
+		: island;
 }

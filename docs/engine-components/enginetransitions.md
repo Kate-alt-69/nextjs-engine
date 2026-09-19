@@ -155,6 +155,32 @@ export function ScrollDrivenScene({ sceneIndex }: { sceneIndex: number }) {
 
 This is the intended path for EngineScroll-driven UI, async data, media state, timers, and other lifecycle-driven state changes; callers do not need `setTimeout()` or `requestAnimationFrame()` workarounds.
 
+### App-level theme and visual updates
+
+Do not call `document.startViewTransition()` directly beside EngineTransitions+. The browser owns only one native View Transition at a time, so a theme transition and route transition can otherwise supersede each other and reject their native lifecycle promises with `AbortError`.
+
+Use NE's shared coordinator for app-level DOM updates that need a native transition but do not need an EngineTransitions+ preset:
+
+```tsx
+"use client";
+
+import { coordinateEngineViewTransition } from "nextjs-engine";
+
+export function chooseTheme(theme: "day" | "night") {
+	const apply = () => {
+		document.documentElement.dataset.theme = theme;
+	};
+
+	void coordinateEngineViewTransition(apply);
+}
+```
+
+The default conflict behavior is `skip`: when an NE transition is already active, the theme is still applied immediately, but a second native visual transition is not started. This keeps route navigation responsive and prevents two callers from fighting over the browser API.
+
+NE navigation uses `conflict: "replace"` internally so the user's newest navigation can skip an older visual transition. In both modes, the coordinator observes `ready`, `updateCallbackDone`, and `finished` immediately. An intentional native `AbortError` resolves as a normal `"cancelled"` status; an error thrown by the actual update callback still rejects.
+
+Use `useEngineTransitions().run()` for React state updates that need an NE preset and its synchronous snapshot handling. Use `coordinateEngineViewTransition()` for imperative theme/class/attribute updates that would otherwise call the native browser API directly.
+
 ### Programmatic navigation
 
 ```tsx
@@ -482,7 +508,10 @@ EngineTransitions+ deliberately preserves normal browser/Next.js behavior where 
 - unsupported browsers perform the update/navigation without animation;
 - `prefers-reduced-motion: reduce` users receive effectively instant transitions;
 - `run()` yields one microtask before its synchronous React snapshot update, so lifecycle/effect-driven transitions do not call `flushSync()` from inside React's current commit stack;
-- a newly started transition skips the previous active transition instead of building a queue;
+- native View Transitions have one shared NE coordinator across page, theme, and other app-level visual updates;
+- app-level coordinated updates skip only their extra visual effect while another transition is active, but still apply the update;
+- a newly started NE navigation skips the previous active visual transition instead of building a queue;
+- intentional native cancellation is observed and resolves normally rather than surfacing as an unhandled `AbortError`;
 - shared-element inline `view-transition-name` values are restored after the transition;
 - `duration` is clamped so accidental huge values cannot lock the page in a multi-minute animation.
 
@@ -534,6 +563,7 @@ See [`engineshader.md`](./engineshader.md) for the current GPU surface system.
 import {
 	ENGINE_TRANSITIONS,
 	EngineTransitionLink,
+	coordinateEngineViewTransition,
 	isKnownEngineTransition,
 	navigateWithEngineTransition,
 	normalizeEngineTransitionType,
@@ -557,6 +587,9 @@ EngineTransitionOptions
 EngineTransitionPointer
 EngineTransitionRunContext
 EngineTransitionsController
+EngineViewTransitionConflict
+EngineViewTransitionOptions
+EngineViewTransitionStatus
 ResolvedEngineTransition
 ```
 
@@ -589,3 +622,7 @@ Check the **Config fields that are active today** table above. Some typed fields
 ### A new click interrupts the old transition
 
 That is expected. NE skips the active transition so the UI responds to the user's newest action instead of waiting for an animation queue to finish.
+
+### Theme switching logs `AbortError`
+
+Replace direct `document.startViewTransition(applyTheme)` calls with `coordinateEngineViewTransition(applyTheme)`. The coordinator shares ownership with `EngineTransitionLink`, applies the theme even when navigation is active, and treats a superseded visual transition as normal cancellation.

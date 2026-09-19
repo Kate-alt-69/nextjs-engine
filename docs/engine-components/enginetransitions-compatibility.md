@@ -100,6 +100,14 @@ Animated `push()` / `replace()` calls now normalize the destination URL before s
 
 If the requested URL is already the current URL, NE lets the router handle it immediately rather than waiting for a URL mutation that can never occur.
 
+## Concurrent native transitions
+
+The browser exposes one active same-document View Transition. EngineTransitions+ therefore routes both preset transitions and app-level `coordinateEngineViewTransition()` calls through a shared coordinator.
+
+App-level theme/class/attribute changes use `conflict: "skip"` by default. If a route transition is already active, the update still runs but its additional native animation is skipped. NE navigation uses `conflict: "replace"`, preserving the existing latest-action-wins behavior.
+
+The coordinator attaches handlers to all three native lifecycle promises (`ready`, `updateCallbackDone`, and `finished`) as soon as a transition starts. The `AbortError` produced when a visual transition is superseded is a normal `"cancelled"` result. Errors thrown by the update callback are not swallowed and still reject the coordinator call.
+
 ## Reduced motion
 
 `prefers-reduced-motion: reduce` remains a hard animation bypass for Transitions+. The actual update/navigation still occurs.
@@ -113,11 +121,12 @@ If the requested URL is already the current URL, NE lets the router handle it im
 - a complex `liquid` state transition;
 - animated route navigation;
 - same-URL transition completion;
+- a coordinated theme update immediately followed by animated navigation;
 - the fallback path with native View Transitions disabled;
 - reduced-motion behavior;
 - browser page errors and hydration-related console errors.
 
-The lighter `scripts/engine-transitions-compat-smoke.js` additionally rejects typed CSS multiplication and checks collision-safe shared names without needing a browser download.
+The lighter `scripts/engine-transitions-compat-smoke.js` additionally rejects typed CSS multiplication and checks collision-safe shared names without needing a browser download. `scripts/engine-view-transition-coordinator-smoke.js` deterministically proves replacement cancellation, app-level conflict skipping, fallback updates, callback error propagation, and the absence of unhandled native promise rejections.
 
 ## Compatibility principle
 

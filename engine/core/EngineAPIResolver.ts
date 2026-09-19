@@ -101,15 +101,22 @@ function appendFormDataValue(target: FormData, key: string, value: unknown): voi
 	target.append(key, String(value));
 }
 
-function buildRequestBody(formData: EngineAPIFormData): BodyInit {
-	if (isNativeFormData(formData)) return formData;
-	const hasBinaryPayload = Object.values(formData).some(containsBinaryValue);
-	if (!hasBinaryPayload) return JSON.stringify(formData);
+function buildRequestBody(input: unknown): BodyInit {
+	if (isNativeFormData(input)) return input;
+	if (!isPlainObject(input)) {
+		const serialized = JSON.stringify(input);
+		if (serialized === undefined) {
+			throw new Error("[EngineAPIResolver] Request input cannot be serialized as JSON.");
+		}
+		return serialized;
+	}
+	const hasBinaryPayload = Object.values(input).some(containsBinaryValue);
+	if (!hasBinaryPayload) return JSON.stringify(input);
 	if (typeof FormData === "undefined") {
 		throw new Error("[EngineAPIResolver] Binary form data requires the FormData Web API.");
 	}
 	const nativeFormData = new FormData();
-	for (const [key, value] of Object.entries(formData)) appendFormDataValue(nativeFormData, key, value);
+	for (const [key, value] of Object.entries(input)) appendFormDataValue(nativeFormData, key, value);
 	return nativeFormData;
 }
 
@@ -174,7 +181,7 @@ export class EngineAPIResolver {
 		pageOverrides?: EngineAPIConfig;
 		nodeOverrides?: EngineAPIConfig;
 		formData?: EngineAPIFormData;
-		/** Input passed to APIStatic. `formData` is used only when input is undefined. */
+		/** Input passed to APIStatic or serialized for an HTTP body. `formData` is the compatibility fallback. */
 		input?: unknown;
 	} = {}): Promise<Response> {
 		const { pageOverrides, nodeOverrides, formData, input } = params;
@@ -206,7 +213,10 @@ export class EngineAPIResolver {
 		if (!url.trim()) throw new Error("[EngineAPIResolver] Cannot resolve a request without an endpoint.");
 
 		let body: BodyInit | undefined;
-		if (!["GET", "HEAD"].includes(method) && formData !== undefined) body = buildRequestBody(formData);
+		const requestInput = input !== undefined ? input : formData;
+		if (!["GET", "HEAD"].includes(method) && requestInput !== undefined) {
+			body = buildRequestBody(requestInput);
+		}
 
 		const headers: Record<string, string> = {
 			...(typeof body === "string" ? { "Content-Type": "application/json" } : {}),

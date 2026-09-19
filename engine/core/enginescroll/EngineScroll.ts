@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { EngineScrollAnimation } from "./EngineScrollAnimation";
+import { EngineScrollBehavior } from "./EngineScrollBehavior";
 import { EngineScrollBrowser } from "./EngineScrollBrowser";
 import {
 	EngineScrollDirector,
@@ -33,7 +34,11 @@ import type { EngineScrollPointTrackerConfig } from "./EngineScrollPointTracker"
 import type { EngineScrollRangeConfig } from "./EngineScrollRange";
 import type { EngineScrollSnapOptions } from "./EngineScrollSnap";
 import type { EngineScrollTimelineConfig } from "./EngineScrollTimeline";
-import type { EngineScrollMoveOptions } from "./EngineScrollTypes";
+import type {
+	EngineScrollBehaviorPolicy,
+	EngineScrollMoveOptions,
+	EngineScrollResolvedBehaviorPolicy,
+} from "./EngineScrollTypes";
 
 export class EngineScroll {
 	private static initialized = false;
@@ -61,6 +66,20 @@ export class EngineScroll {
 
 	public static runtime(): EngineScrollRuntime {
 		return EngineScrollRuntime.get();
+	}
+
+	public static configure(
+		policy: EngineScrollBehaviorPolicy,
+	): Readonly<EngineScrollResolvedBehaviorPolicy> {
+		return EngineScrollBehavior.configure(policy);
+	}
+
+	public static getPolicy(): Readonly<EngineScrollResolvedBehaviorPolicy> {
+		return EngineScrollBehavior.current();
+	}
+
+	public static resetPolicy(): Readonly<EngineScrollResolvedBehaviorPolicy> {
+		return EngineScrollBehavior.reset();
 	}
 
 	public static state() {

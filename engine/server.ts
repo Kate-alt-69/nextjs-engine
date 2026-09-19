@@ -23,7 +23,17 @@ export {
 } from "./core/nenc/EngineCommand";
 export { createNENCDispatcher } from "./core/nenc/NENCDispatcher";
 export { createNENCDeviceSignatureVerifier } from "./core/nenc/NENCDeviceProof";
+export {
+	resolveNENCRequestDestinationOrigin,
+	resolveNENCRequestOrigin,
+} from "./core/nenc/NENCOrigin";
 export { createNENCAccountSessionPolicy, hashNENCSessionToken } from "./core/nenc/NENCSessionAuth";
+export { createNENCCommandAPIResolverFactory } from "./core/nenc/NENCCommandAPI";
+export type {
+	NENCCommandAPIContext,
+	NENCCommandAPIResolverFactory,
+	NENCCommandAPIResolverFactoryOptions,
+} from "./core/nenc/NENCCommandAPI";
 export {
 	NENCCommandSecurityPolicy,
 	NENCMemoryRateLimitStore,
@@ -51,6 +61,7 @@ export type {
 } from "./core/nenc/NENCDeviceProof";
 export { NENCReplayGuard, NENCMemoryReplayStore } from "./core/nenc/NENCReplay";
 export type {
+	NENCAPIResolverFactory,
 	NENCAuthenticationContext,
 	NENCAuthenticationResult,
 	NENCAuthorizationContext,

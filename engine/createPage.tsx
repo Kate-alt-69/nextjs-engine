@@ -21,6 +21,8 @@ import {
 import { compilePage } from "./compiler/EngineCompiler";
 import { EngineServerRenderer } from "./compiler/EngineServerRenderer";
 import type { EngineCompiledPage } from "./compiler/types";
+import { EngineBrowserUpdateDialog } from "./components/EngineCompatibilityDialog";
+import { engineFallbackPlanNeedsCompatibilityCheck } from "./core/EngineBrowserCompatibility";
 
 export interface EngineCompilerOptions {
 	strict?: boolean;
@@ -209,30 +211,38 @@ export function createPage(options: CreatePageOptions): EnginePageComponent {
 		strict: compiler?.strict,
 	});
 
-	function renderLegacyPage(resolvedSchema: PageSchema) {
+	function renderCompatibility(plan: EngineCompiledPage) {
+		return engineFallbackPlanNeedsCompatibilityCheck(plan.fallbackPlan)
+			? <EngineBrowserUpdateDialog plan={plan.fallbackPlan} />
+			: null;
+	}
+
+	function renderLegacyPage(resolvedSchema: PageSchema, resolvedPlan: EngineCompiledPage) {
 		return (
 			<EngineScrollProvider>
 				<EngineProvider config={config} handlers={handlers} slots={slots}>
 					<EngineTheme schema={resolvedSchema} />
 					<SchemaRenderer schema={resolvedSchema} />
 					<EngineCollectedStyles id="__engine_styles__" />
+					{renderCompatibility(resolvedPlan)}
 				</EngineProvider>
 			</EngineScrollProvider>
 		);
 	}
 
 	function renderPage(resolvedSchema: PageSchema) {
-		if (!useServerFirstRenderer) return renderLegacyPage(resolvedSchema);
 		const resolvedPlan = resolvedSchema === schema
 			? basePlan
 			: compilePage(resolvedSchema, {
 				pageId: compiler?.pageId,
 				strict: compiler?.strict,
 			});
+		if (!useServerFirstRenderer) return renderLegacyPage(resolvedSchema, resolvedPlan);
 		return (
 			<>
 				<EngineTheme schema={resolvedSchema} />
 				<EngineServerRenderer schema={resolvedSchema} plan={resolvedPlan} config={config} slots={slots} />
+				{renderCompatibility(resolvedPlan)}
 			</>
 		);
 	}

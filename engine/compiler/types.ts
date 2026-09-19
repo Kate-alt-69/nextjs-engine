@@ -17,6 +17,10 @@ export type EngineCapability =
 	| "intersection-observer"
 	| "visual-viewport"
 	| "view-transitions"
+	| "web-animations"
+	| "container-queries"
+	| "media-queries"
+	| "css-grid"
 	| "clipboard"
 	| "media"
 	| "speech"
@@ -59,6 +63,7 @@ export interface EngineCompiledNode {
 	runtime: Exclude<EngineRuntimeKind, "auto">;
 	runtimeReason: string;
 	workClass: EngineWorkClass;
+	workReason: string;
 	capabilities: EngineCapability[];
 	heavy: boolean;
 	interactive: boolean;
@@ -66,6 +71,78 @@ export interface EngineCompiledNode {
 	assets: EngineCompiledAsset[];
 	source: SchemaNode;
 }
+
+export interface EngineUsedFeatureSource {
+	nodeId: string;
+	path: string;
+	nodeType: NodeType;
+	runtime: Exclude<EngineRuntimeKind, "auto">;
+}
+
+export interface EngineUsedFeature {
+	feature: EngineCapability;
+	requiredBy: readonly EngineUsedFeatureSource[];
+}
+
+export interface EngineUsedFeatureManifest {
+	version: 1;
+	pageId: string;
+	uses: readonly EngineUsedFeature[];
+}
+
+export type EngineFallbackKind = "native" | "runtime" | "rendering";
+export type EngineFallbackFidelity = "full" | "close" | "structural";
+export type EngineCompatibilityImportance = "required" | "optional";
+export type EngineResolvedFallbackStatus = "native" | "fallback" | "unavailable";
+export type EngineLegacyContent = "html" | "css" | "text" | "images" | "links" | "basic-form-structure";
+
+export interface EngineFallbackStrategy {
+	id: string;
+	kind: EngineFallbackKind;
+	requires: readonly EngineCapability[];
+	fidelity: EngineFallbackFidelity;
+}
+
+export interface EngineFeatureFallbackPolicy {
+	feature: EngineCapability;
+	fallbacks: readonly EngineFallbackStrategy[];
+}
+
+export interface EngineCompiledFeatureFallback {
+	feature: EngineCapability;
+	importance: EngineCompatibilityImportance;
+	requiredBy: readonly EngineUsedFeatureSource[];
+	strategies: readonly EngineFallbackStrategy[];
+}
+
+export interface EngineLegacyRenderPlan {
+	mode: "best-effort";
+	preserves: readonly EngineLegacyContent[];
+	clientEnhancements: readonly EngineUsedFeatureSource[];
+}
+
+export interface EngineFallbackPlan {
+	version: 1;
+	pageId: string;
+	features: readonly EngineCompiledFeatureFallback[];
+	legacy: EngineLegacyRenderPlan;
+}
+
+export interface EngineResolvedFeatureFallback {
+	feature: EngineCapability;
+	importance: EngineCompatibilityImportance;
+	status: EngineResolvedFallbackStatus;
+	strategy: EngineFallbackStrategy | null;
+	requiredBy: readonly EngineUsedFeatureSource[];
+}
+
+export interface EngineResolvedFallbackPlan {
+	pageId: string;
+	features: readonly EngineResolvedFeatureFallback[];
+	legacy: EngineLegacyRenderPlan;
+}
+
+export type EngineFeatureSupportResolver = (feature: EngineCapability) => boolean;
 
 export interface EngineCompilerSummary {
 	totalNodes: number;
@@ -83,6 +160,9 @@ export interface EngineCompiledPage {
 	schema: PageSchema;
 	root: EngineCompiledNode;
 	summary: EngineCompilerSummary;
+	featureManifest: EngineUsedFeatureManifest;
+	fallbackPlan: EngineFallbackPlan;
+	/** Compatibility alias for the feature names in featureManifest. */
 	capabilities: EngineCapability[];
 	assets: EngineCompiledAsset[];
 	diagnostics: EngineCompilerDiagnostic[];
@@ -92,4 +172,6 @@ export interface EngineCompileOptions {
 	pageId?: string;
 	device?: EngineDeviceTarget;
 	strict?: boolean;
+	/** Serious security diagnostics fail compilation by default. */
+	security?: "enforce" | "report" | "off";
 }

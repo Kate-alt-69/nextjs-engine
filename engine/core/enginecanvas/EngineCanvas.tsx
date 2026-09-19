@@ -5,7 +5,7 @@
 //
 // Keeps expensive work out of the hot frame path:
 // · built-in graphics engines are dynamically imported only when selected
-// · adaptive DPR follows the observed display cadence instead of assuming 60 Hz
+// · refresh-aware timing adapts behavior without reducing visual resolution
 // · responsive CSS sizing is never replaced with fixed inline pixel sizing
 // · offscreen + hidden pause reasons cannot accidentally resume each other
 // · callback/scene refs stay current without tearing down the canvas runtime
@@ -23,8 +23,6 @@ import type { ECScene } from "./ECTypes";
 import type { ECRenderContext, RenderingEngine } from "./RenderingEngine";
 import {
 	ECFrameClock,
-	getAdaptiveFrameThresholds,
-	resolveAdaptiveTargetFps,
 	type ECFrameTiming,
 } from "./ECFrameClock";
 import { useHandler } from "../../providers/EngineProvider";
@@ -46,7 +44,9 @@ export interface EngineCanvasProps {
 	responsive?: boolean;
 	dpr?: number | "auto";
 	maxDpr?: number;
+	/** Compatibility switch retained for scheduling integrations. Visual resolution is never reduced. */
 	adaptive?: boolean;
+	/** Compatibility target hint; retained without using it to lower quality. */
 	adaptiveTargetFps?: number | "display";
 	pauseWhenOffscreen?: boolean;
 	pauseWhenHidden?: boolean;
@@ -162,22 +162,6 @@ function getCanvasCssSize(
 	};
 }
 
-function resolveAdaptiveDpr(
-	currentDpr: number,
-	targetDpr: number,
-	averageFps: number,
-	targetFps: number,
-): number {
-	const thresholds = getAdaptiveFrameThresholds(targetFps);
-	if (averageFps < thresholds.degradeBelow && currentDpr > 0.5) {
-		return Math.max(0.5, currentDpr - 0.25);
-	}
-	if (averageFps > thresholds.recoverAbove && currentDpr < targetDpr - 0.05) {
-		return Math.min(targetDpr, currentDpr + 0.25);
-	}
-	return currentDpr;
-}
-
 export const EngineCanvas = memo(function EngineCanvas({
 	mode = "auto",
 	width,
@@ -248,7 +232,6 @@ export const EngineCanvas = memo(function EngineCanvas({
 		let running = false;
 		let drawCompleted = false;
 		let frame = 0;
-		let lastDprAdjustment = 0;
 		let currentDpr = getTargetDpr(dprProp, maxDpr);
 		let lastCssWidth = 0;
 		let lastCssHeight = 0;
@@ -307,17 +290,6 @@ export const EngineCanvas = memo(function EngineCanvas({
 
 			const timing = frameClock.step(now);
 			const delta = timing.delta;
-
-			if (adaptive && timing.averageFps > 0 && now - lastDprAdjustment >= 750) {
-				const targetDpr = getTargetDpr(dprProp, maxDpr);
-				const targetFps = resolveAdaptiveTargetFps(adaptiveTargetFps, timing.refreshRate);
-				const nextDpr = resolveAdaptiveDpr(currentDpr, targetDpr, timing.averageFps, targetFps);
-
-				if (Math.abs(nextDpr - currentDpr) >= 0.05) {
-					resizeBackingStore(lastCssWidth, lastCssHeight, nextDpr, true);
-				}
-				lastDprAdjustment = now;
-			}
 
 			const currentGraphics = graphicsRef.current;
 			if (currentGraphics) {
@@ -507,11 +479,8 @@ export function useEngineCanvas(
 
 		const context = contextResult.ctx;
 		const maxDpr = handlers.maxDpr ?? 2;
-		const adaptive = handlers.adaptive ?? true;
-		const adaptiveTargetFps = handlers.adaptiveTargetFps ?? "display";
 		const frameClock = new ECFrameClock(48);
 		let currentDpr = getTargetDpr("auto", maxDpr);
-		let lastDprAdjustment = 0;
 		let frame = 0;
 		let raf = 0;
 
@@ -532,14 +501,6 @@ export function useEngineCanvas(
 		const tick = (now: number): void => {
 			const timing = frameClock.step(now);
 			const delta = timing.delta;
-
-			if (adaptive && timing.averageFps > 0 && now - lastDprAdjustment >= 750) {
-				const targetDpr = getTargetDpr("auto", maxDpr);
-				const targetFps = resolveAdaptiveTargetFps(adaptiveTargetFps, timing.refreshRate);
-				const nextDpr = resolveAdaptiveDpr(currentDpr, targetDpr, timing.averageFps, targetFps);
-				if (Math.abs(nextDpr - currentDpr) >= 0.05) resize(nextDpr);
-				lastDprAdjustment = now;
-			}
 
 			if (handlers.onDraw?.(context, canvas, delta, frame++, timing) === false) return;
 			raf = requestAnimationFrame(tick);

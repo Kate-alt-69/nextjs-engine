@@ -5,6 +5,8 @@
 export type EngineScrollPoint = number;
 export type EngineScrollDirection = -1 | 0 | 1;
 export type EngineScrollAlignment = "start" | "center" | "end" | "nearest";
+export type EngineScrollBehaviorMode = "smooth" | "native" | "instant";
+export type EngineScrollReducedMotion = "respect" | "reduce" | "ignore";
 export type EngineScrollEasingName =
 	| "linear"
 	| "easeInQuad"
@@ -14,12 +16,26 @@ export type EngineScrollEasingName =
 	| "easeOutCubic"
 	| "easeInOutCubic";
 
-export interface EngineScrollMoveOptions {
-	offset?: number;
+export interface EngineScrollBehaviorPolicy {
+	behavior?: EngineScrollBehaviorMode;
 	duration?: number;
 	easing?: EngineScrollEasingName;
-	align?: EngineScrollAlignment;
 	interruptible?: boolean;
+	reducedMotion?: EngineScrollReducedMotion;
+}
+
+export interface EngineScrollResolvedBehaviorPolicy {
+	behavior: EngineScrollBehaviorMode;
+	duration: number;
+	easing: EngineScrollEasingName;
+	interruptible: boolean;
+	reducedMotion: EngineScrollReducedMotion;
+}
+
+export interface EngineScrollMoveOptions extends EngineScrollBehaviorPolicy {
+	offset?: number;
+	align?: EngineScrollAlignment;
+	/** @deprecated Use reducedMotion: "respect" or "ignore". */
 	respectReducedMotion?: boolean;
 }
 
@@ -68,6 +84,7 @@ export interface EngineScrollRuntimeCache {
 	isUserScrolling: boolean;
 	isAnimating: boolean;
 	lastUserScrollTime: number;
+	userScrollIdleUntil: number;
 	programmaticScrollUntil: number;
 }
 

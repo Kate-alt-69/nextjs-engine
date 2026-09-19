@@ -9,6 +9,7 @@ import type { EngineCommandAuth } from "./types";
 import type { NENCServerCommand, NENCServerManifest } from "./NENCManifest";
 import type { NENCReplayGuard } from "./NENCReplay";
 import type { NENCCommandSecurityPolicy } from "./NENCCommandSecurity";
+import type { NENCCommandAPIResolverFactory } from "./NENCCommandAPI";
 
 export interface NENCRequestContext {
 	request: Request;
@@ -34,6 +35,8 @@ export interface NENCAuthorizationContext extends NENCAuthenticationContext {
 	permissions: readonly string[];
 }
 
+export type NENCAPIResolverFactory = NENCCommandAPIResolverFactory;
+
 export interface NENCSignatureContext extends NENCRequestContext {
 	rawBody: string;
 	signature: string | null;
@@ -43,7 +46,7 @@ export interface NENCSignatureContext extends NENCRequestContext {
 
 export interface NENCDispatcherOptions {
 	manifest: NENCServerManifest;
-	api: EngineAPIResolver | (() => EngineAPIResolver);
+	api: EngineAPIResolver | NENCAPIResolverFactory;
 	trust?: EngineTrustList;
 	cors?: EngineCORSRuleSet;
 	replay?: NENCReplayGuard;

@@ -316,6 +316,13 @@ export interface MarkdownProps extends BaseNodeProps {
 	blockAnimation?: "none" | "fade-in" | "slide-up";
 	animationDuration?: string;
 	animationStagger?: number;
+	codeBackground?: string;
+	codeColor?: string;
+	inlineCodeBackground?: string;
+	inlineCodeColor?: string;
+	codeBorderColor?: string;
+	codeFontFamily?: string;
+	showCodeLanguage?: boolean;
 }
 
 export interface HeadingProps extends TextProps {
@@ -603,6 +610,8 @@ export interface SchemaNode {
 	type: NodeType;
 	name?: string;
 	key?: string;
+	/** Whether missing browser capabilities owned by this node should recommend an update. */
+	compatibility?: "required" | "optional";
 	props?: Record<string, unknown>;
 	children?: SchemaNode[] | string;
 }

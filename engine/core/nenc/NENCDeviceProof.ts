@@ -9,6 +9,7 @@ import {
 } from "../enginecookies/EngineDeviceKey";
 import type { EngineDeviceProof, EngineDevicePublicIdentity } from "../enginecookies/types";
 import type { NENCSignatureContext } from "./NENCDispatcherTypes";
+import { resolveNENCRequestDestinationOrigin } from "./NENCOrigin";
 
 export interface NENCDeviceIdentityContext extends NENCSignatureContext {
 	proof: EngineDeviceProof;
@@ -34,7 +35,7 @@ export function createNENCDeviceSignatureVerifier(
 		return verifyEngineDeviceProof(identity, proof, {
 			method: context.request.method,
 			target: `${requestURL.pathname}${requestURL.search}`,
-			origin: requestURL.origin,
+			origin: resolveNENCRequestDestinationOrigin(context.request),
 			bodyHash: await hashEngineDeviceValue(context.rawBody),
 			timestamp: Number(context.timestamp),
 			nonce: context.nonce,

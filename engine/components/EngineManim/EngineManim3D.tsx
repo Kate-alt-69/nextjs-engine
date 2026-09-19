@@ -38,6 +38,14 @@ function resolveThreeColor(color: string, THREE: ThreeModule): InstanceType<Thre
 	return new THREE.Color(color.startsWith("var(") ? "#ffffff" : color);
 }
 
+function baseState(object: ThreeObject): BoneBaseState {
+	return {
+		position: [object.position.x, object.position.y, object.position.z],
+		rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
+		scale: [object.scale.x, object.scale.y, object.scale.z],
+	};
+}
+
 function disposeObjectTree(root: ThreeObject): void {
 	const disposedTextures = new Set<unknown>();
 	const disposedMaterials = new Set<unknown>();
@@ -165,20 +173,22 @@ export const EngineManim3D = memo(function EngineManim3D({
 			}
 
 			let modelRoot: ThreeObject | null = null;
-			let mixer: InstanceType<ThreeModule["AnimationMixer"]> | null = null;
-			let activeAction: InstanceType<ThreeModule["AnimationAction"]> | null = null;
-			const boneMap = new Map<string, any>();
-			const boneBaseState = new Map<string, BoneBaseState>();
-			let boneTracks: ReturnType<typeof routeAnimation>["boneTracks"] = [];
-			let lookTarget: any = null;
+			let fileAnimations: InstanceType<ThreeModule["AnimationClip"]>[] = [];
 
 			if (format === "obj") {
 				const { OBJLoader } = await import("three/examples/jsm/loaders/OBJLoader.js");
+				const loader = new OBJLoader();
+				if (cfg.materialSrc) {
+					const { MTLLoader } = await import("three/examples/jsm/loaders/MTLLoader.js");
+					const materials = await new MTLLoader().loadAsync(cfg.materialSrc);
+					materials.preload();
+					loader.setMaterials(materials);
+				}
 				if (disposed) {
 					renderer.dispose();
 					return undefined;
 				}
-				modelRoot = await new OBJLoader().loadAsync(cfg.src);
+				modelRoot = await loader.loadAsync(cfg.src);
 			} else {
 				const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
 				if (disposed) {
@@ -187,46 +197,49 @@ export const EngineManim3D = memo(function EngineManim3D({
 				}
 				const gltf = await new GLTFLoader().loadAsync(cfg.src);
 				modelRoot = gltf.scene;
-
-				modelRoot.traverse((object: any) => {
-					if (!object.isBone) return;
-					boneMap.set(object.name, object);
-					boneBaseState.set(object.name, {
-						position: [object.position.x, object.position.y, object.position.z],
-						rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
-						scale: [object.scale.x, object.scale.y, object.scale.z],
-					});
-				});
-
-				if (cfg.animation) {
-					const route = routeAnimation(cfg.animation, 240);
-					boneTracks = route.boneTracks;
-					if (route.clipName && gltf.animations.length > 0) {
-						const clip = gltf.animations.find((candidate: any) => candidate.name === route.clipName)
-							?? gltf.animations[0];
-						if (clip) {
-							mixer = new THREE.AnimationMixer(modelRoot);
-							activeAction = mixer.clipAction(clip);
-							activeAction.timeScale = route.clipSpeed;
-							activeAction.play();
-						}
-					}
-				}
-
-				const lookContent = cfg.camera?.look?.content;
-				if (typeof lookContent === "string") lookTarget = boneMap.get(lookContent) ?? null;
+				fileAnimations = gltf.animations;
 			}
 
 			if (!modelRoot) {
 				renderer.dispose();
 				return undefined;
 			}
-
 			if (disposed) {
 				disposeObjectTree(modelRoot);
 				renderer.dispose();
 				return undefined;
 			}
+
+			let mixer: InstanceType<ThreeModule["AnimationMixer"]> | null = null;
+			let activeAction: InstanceType<ThreeModule["AnimationAction"]> | null = null;
+			const boneMap = new Map<string, any>();
+			const boneBaseState = new Map<string, BoneBaseState>();
+			boneMap.set("$root", modelRoot);
+			boneBaseState.set("$root", baseState(modelRoot));
+			modelRoot.traverse((object: any) => {
+				if (!object.isBone || !object.name) return;
+				boneMap.set(object.name, object);
+				boneBaseState.set(object.name, baseState(object));
+			});
+
+			let boneTracks: ReturnType<typeof routeAnimation>["boneTracks"] = [];
+			if (cfg.animation) {
+				const route = routeAnimation(cfg.animation, 240);
+				boneTracks = route.boneTracks;
+				if (route.clipName && fileAnimations.length > 0) {
+					const clip = fileAnimations.find((candidate) => candidate.name === route.clipName) ?? fileAnimations[0];
+					if (clip) {
+						mixer = new THREE.AnimationMixer(modelRoot);
+						activeAction = mixer.clipAction(clip);
+						activeAction.timeScale = route.clipSpeed;
+						activeAction.play();
+					}
+				}
+			}
+
+			let lookTarget: any = null;
+			const lookContent = cfg.camera?.look?.content;
+			if (typeof lookContent === "string") lookTarget = boneMap.get(lookContent) ?? null;
 
 			setWireframe(modelRoot, cfg.settings?.wireframe ?? false);
 			scene.add(modelRoot);
@@ -244,45 +257,31 @@ export const EngineManim3D = memo(function EngineManim3D({
 
 			const applyBoneTracks = (normalTime: number): void => {
 				for (const track of boneTracks) {
-					const bone = boneMap.get(track.bone);
-					if (!bone) continue;
+					const target = boneMap.get(track.bone);
+					if (!target) continue;
 					const sampled = sampleBoneTrack(track, normalTime);
 					const base = boneBaseState.get(track.bone);
 
 					if (sampled.move) {
 						if (track.mode === "additive") {
-							const origin = mixer ? [bone.position.x, bone.position.y, bone.position.z] : (base?.position ?? [0, 0, 0]);
-							bone.position.set(
-								origin[0] + sampled.move[0],
-								origin[1] + sampled.move[1],
-								origin[2] + sampled.move[2],
-							);
-						} else {
-							bone.position.set(...sampled.move);
-						}
+							const origin = mixer ? [target.position.x, target.position.y, target.position.z] : (base?.position ?? [0, 0, 0]);
+							target.position.set(origin[0] + sampled.move[0], origin[1] + sampled.move[1], origin[2] + sampled.move[2]);
+						} else target.position.set(...sampled.move);
 					}
 
 					if (sampled.rotate) {
 						const rotation = sampled.rotate.map(toRad) as [number, number, number];
 						if (track.mode === "additive") {
-							const origin = mixer ? [bone.rotation.x, bone.rotation.y, bone.rotation.z] : (base?.rotation ?? [0, 0, 0]);
-							bone.rotation.set(origin[0] + rotation[0], origin[1] + rotation[1], origin[2] + rotation[2]);
-						} else {
-							bone.rotation.set(...rotation);
-						}
+							const origin = mixer ? [target.rotation.x, target.rotation.y, target.rotation.z] : (base?.rotation ?? [0, 0, 0]);
+							target.rotation.set(origin[0] + rotation[0], origin[1] + rotation[1], origin[2] + rotation[2]);
+						} else target.rotation.set(...rotation);
 					}
 
 					if (sampled.scale) {
 						if (track.mode === "additive") {
-							const origin = mixer ? [bone.scale.x, bone.scale.y, bone.scale.z] : (base?.scale ?? [1, 1, 1]);
-							bone.scale.set(
-								origin[0] * sampled.scale[0],
-								origin[1] * sampled.scale[1],
-								origin[2] * sampled.scale[2],
-							);
-						} else {
-							bone.scale.set(...sampled.scale);
-						}
+							const origin = mixer ? [target.scale.x, target.scale.y, target.scale.z] : (base?.scale ?? [1, 1, 1]);
+							target.scale.set(origin[0] * sampled.scale[0], origin[1] * sampled.scale[1], origin[2] * sampled.scale[2]);
+						} else target.scale.set(...sampled.scale);
 					}
 				}
 			};
@@ -318,7 +317,6 @@ export const EngineManim3D = memo(function EngineManim3D({
 					fpsAccumulator %= fpsInterval;
 					if (mixer) mixer.update(step);
 					sourceAnimationTime += step;
-
 					if (boneTracks.length > 0) {
 						const clipDuration = activeAction?.getClip()?.duration;
 						const duration = Math.max(0.001, clipDuration ?? sourceDuration);
@@ -328,7 +326,6 @@ export const EngineManim3D = memo(function EngineManim3D({
 					updateCameraConstraint();
 					renderer.render(scene, camera);
 				}
-
 				raf = requestAnimationFrame(tick);
 			};
 
@@ -375,7 +372,6 @@ export const EngineManim3D = memo(function EngineManim3D({
 				else stopLoop();
 			};
 			document.addEventListener("visibilitychange", onVisibilityChange);
-
 			startLoop();
 
 			return () => {

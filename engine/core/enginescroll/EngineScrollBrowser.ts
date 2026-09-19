@@ -47,8 +47,12 @@ export class EngineScrollBrowser {
 		}
 	}
 
-	public static scrollTo(top: number, left = window.scrollX): void {
-		window.scrollTo({ top, left, behavior: "instant" });
+	public static scrollTo(
+		top: number,
+		left = window.scrollX,
+		behavior: ScrollBehavior = "instant",
+	): void {
+		window.scrollTo({ top, left, behavior });
 	}
 
 	public static getTimestamp(): number {
