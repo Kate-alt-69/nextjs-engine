@@ -107,7 +107,7 @@ const HomeSchema = defineSchema({
 								{ label: "Forms", href: "#forms" },
 							],
 						},
-						{ label: "Docs", href: "/DOCUMENT.md", target: "_blank" },
+						{ label: "Docs", href: "https://kastrick.vercel.app/project/nextjs-engine/doc", target: "_blank" },
 					],
 				},
 			},
