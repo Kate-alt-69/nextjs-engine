@@ -315,8 +315,10 @@ function NodeRenderer({ node, depth, path }: NodeRendererProps) {
 		: undefined;
 	const shaderId = hasLayerShader ? `e-shader-${shortHash(`${path}|${String(node.type)}|${node.name ?? ""}`)}` : undefined;
 	const resolvedDomId = explicitId ?? pointName ?? shaderId;
+	const debugMetadata = process.env.NODE_ENV === "development" ? { "data-engine-debug-path": path, "data-engine-debug-name": String(node.type) } : {};
 	const nodeProps = {
 		...componentProps,
+		...debugMetadata,
 		...(resolvedDomId ? { id: resolvedDomId } : {}),
 		...(mergedClassName ? { className: mergedClassName } : {}),
 		...(Object.keys(extraStyle).length > 0

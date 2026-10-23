@@ -29,6 +29,7 @@ import {
 	ENGINE_MARKDOWN_CSS,
 	EngineMarkdownRenderer,
 } from "../components/EngineMarkdownRenderer";
+import { EngineUrlIcon } from "../components/EngineUrlIcon";
 
 export interface EngineServerRendererProps {
 	schema: PageSchema;
@@ -151,12 +152,20 @@ function mergeClassName(node: SchemaNode, collector: StyleCollector): string | u
 	return mergePropsClassName(node.props ?? {}, collector);
 }
 
-function wrapHref(href: unknown, child: ReactNode): ReactNode {
+function withUrlIcon(href: string, children: ReactNode, props: Record<string, unknown>): ReactNode {
+	if (props["emd_show-url-icon"] !== true) return children;
+	const rawSize = props["emd_url-icon-size"];
+	const size = rawSize === "auto" || typeof rawSize === "number" ? rawSize : "auto";
+	return <><EngineUrlIcon href={href} size={size} />{children}</>;
+}
+
+function wrapHref(href: unknown, child: ReactNode, props: Record<string, unknown> = {}): ReactNode {
 	if (typeof href !== "string" || href.length === 0) return child;
 	const external = /^([a-z][a-z0-9+.-]*:|\/\/)/i.test(href);
+	const content = withUrlIcon(href, child, props);
 	return external
-		? <a href={href} target="_blank" rel="noopener noreferrer" style={{ display: "contents", color: "inherit", textDecoration: "none" }}>{child}</a>
-		: <NextLink href={href} style={{ display: "contents", color: "inherit", textDecoration: "none" }}>{child}</NextLink>;
+		? <a href={href} target="_blank" rel="noopener noreferrer" style={{ display: "contents", color: "inherit", textDecoration: "none" }}>{content}</a>
+		: <NextLink href={href} style={{ display: "contents", color: "inherit", textDecoration: "none" }}>{content}</NextLink>;
 }
 
 function renderTextContent(
@@ -412,6 +421,7 @@ function renderServerNode(
 			return wrapHref(
 				props.href,
 				<Tag key={compiled.id} {...debug} id={id} className={className} style={style}>{children}</Tag>,
+				props,
 			);
 		}
 
@@ -448,6 +458,7 @@ function renderServerNode(
 						))
 						: children}
 				</div>,
+				props,
 			);
 		}
 
@@ -467,6 +478,7 @@ function renderServerNode(
 			return wrapHref(
 				props.href,
 				<div key={compiled.id} {...debug} id={id} className={className} style={gridStyle}>{children}</div>,
+				props,
 			);
 		}
 
@@ -487,6 +499,7 @@ function renderServerNode(
 				<Tag key={compiled.id} {...debug} id={id} className={className} style={textStyle}>
 					{renderTextContent(props, children)}
 				</Tag>,
+				props,
 			);
 		}
 
@@ -508,6 +521,7 @@ function renderServerNode(
 				<Tag {...debug} id={id} className={className} style={headingStyle}>
 					{renderTextContent(props, children)}
 				</Tag>,
+				props,
 			);
 			const subheadingProps = props.subheadingProps != null
 				&& typeof props.subheadingProps === "object"
@@ -546,6 +560,7 @@ function renderServerNode(
 					<SubheadingTag id={subheadingId} className={subheadingClassName} style={subheadingStyle}>
 						{renderTextContent(subheadingInput, props.subheading)}
 					</SubheadingTag>,
+					subheadingInput,
 				)
 				: null;
 			return <React.Fragment key={compiled.id}>{heading}{subheading}</React.Fragment>;
@@ -585,6 +600,7 @@ function renderServerNode(
 				<section key={compiled.id} {...debug} id={id} className={className} style={outer}>
 					<div style={inner}>{children}</div>
 				</section>,
+				props,
 			);
 		}
 
@@ -641,7 +657,7 @@ function renderServerNode(
 					<div style={inner}>{children}</div>
 				</section>
 			);
-			return wrapHref(props.href, hero);
+			return wrapHref(props.href, hero, props);
 		}
 
 		case "card": {
@@ -712,6 +728,7 @@ function renderServerNode(
 					{cover}
 					{content}
 				</div>,
+				props,
 			);
 		}
 
@@ -731,9 +748,11 @@ function renderServerNode(
 					runtime: props.disabled === true ? { opacity: 0.5, cursor: "not-allowed" } : undefined,
 				},
 			);
-			const content = props.label !== undefined && props.label !== null
-				? String(props.label)
-				: children;
+			const content = withUrlIcon(
+				typeof props.href === "string" ? props.href : "",
+				props.label !== undefined && props.label !== null ? String(props.label) : children,
+				props,
+			);
 			if (typeof props.href === "string") {
 				if (props.disabled === true) {
 					return (
@@ -761,7 +780,11 @@ function renderServerNode(
 				? props.cprop as Record<string, any>
 				: undefined;
 			const href = String(cprop?.link?.href ?? props.href ?? "#");
-			const content = props.content !== undefined ? String(props.content) : children;
+			const content = withUrlIcon(
+				href,
+				props.content !== undefined ? String(props.content) : children,
+				props,
+			);
 			const external = props.target === "_blank" || /^([a-z][a-z0-9+.-]*:|\/\/)/i.test(href);
 			if (external) {
 				const target = typeof props.target === "string" ? props.target : "_blank";
