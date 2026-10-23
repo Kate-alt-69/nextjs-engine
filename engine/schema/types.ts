@@ -4,6 +4,7 @@
 
 import type { CSSProperties, JSX, ReactNode, MouseEventHandler } from "react";
 import type { ECScene } from "../core/enginecanvas/ECTypes";
+import type { EngineAnsiPalette } from "../core/markdownParser";
 
 export type Breakpoint = "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
 
@@ -298,6 +299,12 @@ export interface TextProps extends BaseNodeProps {
 	parts?: TextPart[];
 }
 
+export type EngineMarkdownStyleSlot =
+	| "heading" | "paragraph" | "link" | "blockquote" | "inlineCode"
+	| "codeBlock" | "codeLanguage" | "table" | "tableHeader" | "tableCell" | "horizontalRule";
+
+export type EngineMarkdownStyles = Partial<Record<EngineMarkdownStyleSlot, CSSProperties>>;
+
 export interface MarkdownProps extends BaseNodeProps {
 	content?: string;
 	filePath?: string;
@@ -323,6 +330,13 @@ export interface MarkdownProps extends BaseNodeProps {
 	codeBorderColor?: string;
 	codeFontFamily?: string;
 	showCodeLanguage?: boolean;
+	/** Per-element style overrides for reusable documentation themes. */
+	markdownStyles?: EngineMarkdownStyles;
+	/** Custom colors for ANSI 16-color/bright terminal palettes. */
+	ansiPalette?: EngineAnsiPalette;
+	/** Default foreground/background for ANSI terminal output. */
+	ansiForeground?: string;
+	ansiBackground?: string;
 }
 
 export interface HeadingProps extends TextProps {
