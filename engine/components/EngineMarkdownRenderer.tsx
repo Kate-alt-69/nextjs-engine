@@ -18,7 +18,9 @@ import remarkGfm from "remark-gfm";
 import type { MarkdownProps } from "../schema/types";
 import {
 	normalizeEngineMarkdownSource,
+	parseEngineAnsi,
 	slugifyMarkdownHeading,
+	type EngineAnsiPalette,
 } from "../core/markdownParser";
 
 export const ENGINE_MARKDOWN_CSS = `
@@ -65,6 +67,9 @@ interface MarkdownRenderConfig {
 	codeBorderColor: string;
 	codeFontFamily: string;
 	showCodeLanguage: boolean;
+	ansiPalette: EngineAnsiPalette;
+	ansiForeground: string;
+	ansiBackground: string;
 }
 
 const DEFAULT_HEADING_SIZES: Record<string, string> = {
@@ -276,8 +281,19 @@ function createMarkdownComponents(config: MarkdownRenderConfig): Components {
 		pre: ({ node, children }) => {
 			const language = codeLanguage(children);
 			const codeChildren = Children.map(children, (child) => {
-				if (!isValidElement<{ style?: CSSProperties }>(child)) return child;
+				if (!isValidElement<{ style?: CSSProperties; children?: ReactNode }>(child)) return child;
+				const ansiChildren = language?.toLowerCase() === "ansi"
+					? parseEngineAnsi(
+						reactNodeText(child.props.children),
+						config.ansiPalette,
+						config.ansiForeground,
+						config.ansiBackground,
+					).map((segment, index) => (
+						<span key={index} style={segment.style}>{segment.text}</span>
+					))
+					: child.props.children;
 				return cloneElement(child, {
+					children: ansiChildren,
 					style: {
 						...child.props.style,
 						display: "block",
@@ -410,6 +426,9 @@ export function EngineMarkdownRenderer({
 	codeBorderColor = "rgba(148,163,184,.28)",
 	codeFontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace",
 	showCodeLanguage = true,
+	ansiPalette = {},
+	ansiForeground,
+	ansiBackground,
 	className,
 	id,
 	point,
@@ -439,6 +458,9 @@ export function EngineMarkdownRenderer({
 		codeBorderColor,
 		codeFontFamily,
 		showCodeLanguage,
+		ansiPalette,
+		ansiForeground: ansiForeground ?? codeColor,
+		ansiBackground: ansiBackground ?? codeBackground,
 	};
 	const components = createMarkdownComponents(renderConfig);
 	const articleAnimationClass = animClass(textAnimation);
