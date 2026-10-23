@@ -4,6 +4,7 @@
 
 import type { CSSProperties, JSX, ReactNode, MouseEventHandler } from "react";
 import type { ECScene } from "../core/enginecanvas/ECTypes";
+import type { EngineAnsiPalette } from "../core/markdownParser";
 
 export type Breakpoint = "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
 
@@ -323,6 +324,11 @@ export interface MarkdownProps extends BaseNodeProps {
 	codeBorderColor?: string;
 	codeFontFamily?: string;
 	showCodeLanguage?: boolean;
+	/** Custom colors for ANSI 16-color/bright terminal palettes. */
+	ansiPalette?: EngineAnsiPalette;
+	/** Default foreground/background for ANSI terminal output. */
+	ansiForeground?: string;
+	ansiBackground?: string;
 }
 
 export interface HeadingProps extends TextProps {
