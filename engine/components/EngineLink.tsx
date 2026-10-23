@@ -37,6 +37,8 @@ export const EngineLink = memo(
 			onClick,
 			cprop,
 			style,
+			"emd_show-url-icon": showUrlIcon,
+			"emd_url-icon-size": urlIconSize,
 			...restProps
 		} = props;
 
@@ -68,6 +70,8 @@ export const EngineLink = memo(
 			children: content ?? children,
 			onClick: handleClick,
 			ref,
+			"emd_show-url-icon": showUrlIcon,
+			"emd_url-icon-size": urlIconSize,
 		});
 	}),
 );
