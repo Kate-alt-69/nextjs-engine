@@ -20,10 +20,24 @@ Raw HTML is deliberately skipped. Applications do not need to sanitize HTML
 produced by EngineMarkdown because it renders the parsed syntax as React
 elements and never enables `rehype-raw`.
 
-## Code blocks
+## Code blocks and ANSI terminal output
 
 Standard fenced blocks retain whitespace exactly and expose their language as a
-`language-*` class for optional syntax highlighters:
+`language-*` class for optional syntax highlighters. Fenced blocks marked
+`ansi` additionally interpret ANSI SGR escape sequences as safe styled text,
+including standard/bright colors, 256-color and truecolor foreground/background,
+bold, dim, italic, underline, inverse, strikethrough, and reset codes.
+
+````md
+\`\`\`ansi
+\u001b[1;32m✓ Build complete\u001b[0m
+\u001b[38;2;255;120;50mCustom truecolor output\u001b[0m
+\`\`\`
+````
+
+ANSI output is rendered as React text spans; escape sequences are never inserted
+as HTML. Use `ansiPalette`, `ansiForeground`, and `ansiBackground` to align
+terminal output with the documentation theme.
 
 ````md
 ```text
@@ -96,12 +110,54 @@ hooks; it never reads files from the browser.
 | `codeBorderColor` | `string` | translucent gray | Code and table border color |
 | `codeFontFamily` | `string` | system monospace stack | Inline and fenced-code font |
 | `showCodeLanguage` | `boolean` | `true` | Show the fenced language label |
+| `ansiPalette` | partial ANSI color map | built-in terminal palette | Override standard and bright ANSI colors |
+| `ansiForeground` | `string` | `codeColor` | Default ANSI text color |
+| `ansiBackground` | `string` | `codeBackground` | Default ANSI background color |
+| `markdownStyles` | `EngineMarkdownStyles` | — | Per-element CSS overrides for headings, prose, links, blockquotes, inline code, code blocks, tables, and rules |
 | `disablepointformarkdownhash` | `boolean` | `false` | Stops h1 headings from being EngineScroll points |
 | `disablepointformarkdownhashhash` | `boolean` | `false` | Stops h2 headings from being EngineScroll points |
 
 Shared styling/identity props apply to the actual `<article>`. `id` wins over
 `point` for the article id; `className` is preserved and merged with `cprop`
 state classes and any article animation class.
+
+
+## Reusable styling API
+
+A site can theme semantic Markdown elements without changing its source files or
+forking EngineMarkdown. The same `markdownStyles` object can be reused across
+all documentation pages:
+
+```ts
+{
+  type: "markdown",
+  props: {
+    filePath: "./docs/getting-started.md",
+    headingColor: "var(--docs-heading)",
+    linkColor: "var(--docs-accent)",
+    markdownStyles: {
+      heading: { letterSpacing: "-0.025em" },
+      paragraph: { lineHeight: 1.85 },
+      link: { textDecoration: "underline", textUnderlineOffset: "0.2em" },
+      blockquote: { borderLeftWidth: 5, borderRadius: "0 1rem 1rem 0" },
+      codeBlock: { borderRadius: "1rem", boxShadow: "0 12px 32px #0002" },
+      table: { minWidth: "100%", borderSpacing: 0 },
+      tableHeader: { color: "var(--docs-heading)" },
+      tableCell: { padding: "0.8rem 1rem" },
+    },
+    ansiPalette: {
+      red: "#e05260",
+      green: "#35b779",
+      brightBlue: "#80aaff",
+    },
+  },
+}
+```
+
+Supported `markdownStyles` slots are `heading`, `paragraph`, `link`,
+`blockquote`, `inlineCode`, `codeBlock`, `codeLanguage`, `table`,
+`tableHeader`, `tableCell`, and `horizontalRule`. Existing color and sizing
+props remain supported; style-slot values override the matching renderer defaults.
 
 ## Responsive font family
 
