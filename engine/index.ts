@@ -171,7 +171,7 @@ export type {
 	NodeType, BuiltinNodeType, Breakpoint, ResponsiveValue,
 	CpropValue, SelectOption,
 	BoxProps, StackProps, GridProps, TextProps, TextPart, TextVariant,
-	MarkdownProps, HeadingProps, ImageNodeProps, ButtonProps,
+	MarkdownProps, EngineMarkdownStyleSlot, EngineMarkdownStyles, HeadingProps, ImageNodeProps, ButtonProps,
 	ButtonVariant, ButtonSize, SectionProps, HeroProps, CardProps,
 	SpacerProps, DividerProps, EngineScrollProps, CustomSelectProps,
 	OptionProps, OptGroupProps, SlotProps,
@@ -447,3 +447,5 @@ export type { EngineProviderProps } from "./providers/EngineProvider";
 export { default as DefaultNotFoundPage } from "./not-found";
 
 export { BREAKPOINTS, BREAKPOINT_ORDER } from "./schema/types";
+
+export type { EngineAnsiColor, EngineAnsiPalette, EngineAnsiSegment } from "./core/markdownParser";
