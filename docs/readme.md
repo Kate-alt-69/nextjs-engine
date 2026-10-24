@@ -67,7 +67,7 @@ src/engine/
 │   └── LazyMount.tsx         Generic lazy mount wrapper + LazySection variant
 │
 ├── plugins/
-│   └── engineApiPlugin.js    Next.js webpack plugin — compiles .EngineAPIConfig at build time
+│   └── engineApiPlugin.js    Legacy standalone plugin; Gen 3 combined output lives under .nextjs-engine/config/
 ├── createPage.tsx            Top-level page factory
 └── index.ts                  Public API exports
 ```

@@ -52,14 +52,29 @@ The workbench's **Errors** view captures diagnostics from its same-origin previe
 - calls to the preview frame's `console.error`, including common React hydration mismatch messages;
 - visible Next.js development error overlay text when it can be read from the preview DOM or overlay shadow root.
 
-The inspector keeps a bounded, in-memory history (up to 200 items), coalesces adjacent repeats, redacts common credential-shaped text, and can copy a selected diagnostic. It does not upload reports or modify application source.
+The inspector keeps up to 200 unique issues in memory, coalesces repeats across intervening messages and route changes, counts occurrences, redacts common credential-shaped text, and can copy selected details. Source-mapped issues can be opened in a local editor. Editing is development-only, loopback/same-origin restricted, limited to allowlisted source files under 1 MiB, and guarded by a SHA-256 compare-before-write check to prevent stale-buffer overwrites.
 
 **Likely owner is a hint, not a verdict.** Paths and stack traces that point into Engine source are marked *Likely NE source*; app/page/component paths are marked *Likely application code*; React/Next frames receive a framework hint. Always confirm the relevant stack and reproduce before filing an Engine bug or changing application code.
 
 This is a browser-side collector, not a replacement for the Next.js dev overlay or terminal. Server exceptions that happen before the preview sends a usable document, process-level build errors, and diagnostics hidden in a cross-origin or inaccessible frame may only be visible in Next.js' own overlay/terminal output. Captured messages are intentionally bounded and redacted heuristically; treat copied diagnostic details as potentially sensitive before sharing them.
 
-The workbench layout uses a compact, VS Code-inspired dark workspace: activity rail, route explorer, live preview, and an Errors/Node/Scheduler/Device inspector. The editor styling is confined to the development-only workbench and does not change application UI.
+The workbench uses a VS Code-inspired dark workspace: activity rail, searchable route explorer with full-path tooltips, auto-fitted live preview, and an Errors/Node/Scheduler/Device inspector. Error details stay in a fixed panel above an independently scrolling issue list. The source editor is confined to the development-only workbench and does not change application UI.
 
 ## Preview lifecycle feedback
 
 The central preview now shows an accessible waiting overlay while its iframe response is pending, with indeterminate progress rather than a fabricated percentage. It changes to **READY** after the preview document loads, or **ERROR** when captured runtime diagnostics report a problem. The overlay offers **Reload preview** and, on errors, **View Problems**. A persistent status label remains in the preview toolbar. This indicates iframe loading and captured failures; it does not claim to read Next.js compiler progress from the dev server.
+
+## Inline issue callouts and source previews
+
+In development, Engine pages rendered through `createPage()` also install a lightweight runtime monitor; it skips the dashboard's own `?__engine_debug=1` preview to avoid duplicate collection. When EngineDebug can map a captured diagnostic to exactly one rendered Engine node, it marks that element with a non-layout-shifting red outline and a small error badge. The badge opens an accessible hover/focus card with the authoring file and line when available, a short highlighted source excerpt, the diagnostic summary, and a **View on Dashboard** action. From either an embedded preview or a normal Engine page, that action stores the diagnostic in same-tab session storage with a 60-second expiry and navigates the top-level tab to `/_engine/debug` with the route and issue ID. The dashboard validates the diagnostic shape, expiry, route, and issue ID before selecting it. Using the same handoff for both entry points avoids relying on browser-specific iframe messaging behavior.
+
+A callout is only attached when the mapping is unambiguous:
+
+- an exact `schema:root.children[...]` diagnostic path matches the Engine node's `data-engine-debug-path`; or
+- a component name from the captured stack uniquely matches a node's `data-engine-debug-name` / `data-engine-debug-type`.
+
+A source file/line by itself does not identify a DOM element. If no node can be identified safely, the diagnostic remains in Problems without a guessed red outline. If a trustworthy file/line mapping is absent, the callout states that the source mapping is unavailable rather than inventing a path or code snippet.
+
+The generated `/_engine/debug/source` route returns a bounded line excerpt from an allowed workspace source file. It exists only in development; the request is same-origin and limited to loopback hosts; path traversal, hidden files, dependency/build directories, unsupported extensions, symlink escapes and files larger than 1 MiB are rejected. Responses are non-cacheable. Production preparation removes both the generated debug page and source route before Next.js route discovery.
+
+The inline callout does not change application source. Quick Fix / Code Actions remains a separate workflow: proposed edits must be reviewable, explicitly applied by the developer, and verified afterward.
