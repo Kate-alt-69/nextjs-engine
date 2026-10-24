@@ -1,9 +1,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  Engine — engineApiPlugin
 //
-//  Compiles both EngineAPI provider configuration and APIStatic .route files.
-//  Provider config is written to .engine-api-compiled.json. Static endpoint
-//  programs under data/endpoint are compiled to public/_static/endpoint.
+//  Compiles EngineAPI provider configuration and APIStatic .route files.
+//  The standalone/legacy default provider artifact is .engine-api-compiled.json;
+//  the Generation 3 combined plugin supplies its own centralized output path.
+//  Static endpoint programs under data/endpoint go to public/_static/endpoint.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const fs = require("fs");
@@ -163,6 +164,7 @@ function compileProviderConfig(projectRoot, configDir, outputFile) {
 		}
 	}
 	const outputPath = path.resolve(projectRoot, outputFile);
+	fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 	fs.writeFileSync(outputPath, JSON.stringify(compileAPIConfig(combinedSource), null, "\t"), "utf8");
 }
 

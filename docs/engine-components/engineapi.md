@@ -250,12 +250,12 @@ EngineAPI strips outgoing engine/framework fingerprint headers, including matchi
 
 ---
 
-## Plugin setup
+## Generation 2 — legacy standalone plugin setup
 
 Installed package:
 
 ```js
-const withEngineAPI = require("nextjs-engine/plugin")
+const withEngineAPI = require("nextjs-engine/api-plugin")
 
 module.exports = withEngineAPI(nextConfig)
 ```
@@ -297,3 +297,28 @@ module.exports = withEngineAPI(nextConfig, {
 The plugin runs during `next.config` evaluation so the compiler is available with Turbopack as well as webpack. During `next dev`, existing `.api` and `.route` source directories are watched for changes.
 
 For all APIStatic authoring/runtime details, continue with [`APIStatic`](./apistatic.md).
+---
+
+## Generation 3 — combined plugin and config path
+
+Use the combined `withEngine()` plugin for Generation 3:
+
+```js
+const withEngine = require("nextjs-engine/plugin")
+
+module.exports = withEngine(nextConfig, {
+	api: { configDir: ".EngineAPIConfig", endpointDir: "data/endpoint" },
+})
+```
+
+The input remains `.EngineAPIConfig/*.api` for compatibility, but the compiled provider JSON moves under the Engine-owned config directory:
+
+```text
+.EngineAPIConfig/*.api
+	↓
+.nextjs-engine/config/.apiconfig.json
+```
+
+This JSON is generated output, not a new hand-authored source format. It can contain environment-expanded credentials, so Git ignores it. The combined plugin removes a stale root `.engine-api-compiled.json` only after the default Gen 3 artifact is generated successfully. An explicit `api.outputFile` overrides the default and disables that cleanup.
+
+Generation 2 remains unchanged: the standalone `withEngineAPI()` plugin uses root `.engine-api-compiled.json` by default.

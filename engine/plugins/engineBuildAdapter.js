@@ -5,8 +5,10 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
 const { pathToFileURL } = require("node:url");
+const nencLogger = require("./nencTerminalLogger");
 
 const BUILD_STATE_KEY = Symbol.for("nextjs-engine.gen3-build-adapter-state");
+const DEV_BRIDGE_KEY = Symbol.for("nextjs-engine.next-dev-output-bridge-state");
 const DELEGATE_ADAPTER_ENV = "NEXTJS_ENGINE_DELEGATE_ADAPTER";
 
 function getState() {
@@ -15,20 +17,46 @@ function getState() {
 function setState(value) {
 	globalThis[BUILD_STATE_KEY] = value;
 }
+function startDevelopmentBridge() {
+	if (globalThis[DEV_BRIDGE_KEY]) return globalThis[DEV_BRIDGE_KEY];
+	const stopBridge = nencLogger.installNextBuildOutputBridge();
+	const state = {
+		stop() {
+			stopBridge();
+			nencLogger.clearStatus("nextjs");
+			if (globalThis[DEV_BRIDGE_KEY] === state) delete globalThis[DEV_BRIDGE_KEY];
+			process.removeListener("exit", state.stop);
+		},
+	};
+	globalThis[DEV_BRIDGE_KEY] = state;
+	process.once("exit", state.stop);
+	return state;
+}
 async function loadDelegateAdapter() {
 	const adapterPath = process.env[DELEGATE_ADAPTER_ENV];
 	if (!adapterPath) return null;
 	const imported = await import(pathToFileURL(adapterPath).href);
 	const adapter = imported.default ?? imported;
 	if (!adapter || typeof adapter !== "object") {
-		throw new Error("[nextjs-engine] The application's configured Next.js adapter did not export an adapter object.");
+		throw new Error("[NENC] The application's configured Next.js adapter did not export an adapter object.");
 	}
 	return adapter;
 }
 function removeState(state) {
 	if (getState() === state) delete globalThis[BUILD_STATE_KEY];
+	if (state.stopNextBuildOutputBridge) {
+		state.stopNextBuildOutputBridge();
+		state.stopNextBuildOutputBridge = null;
+	}
 	if (state.bannerOwner && state.compiler) state.compiler.releaseBanner(state.projectDir);
 	try { fs.rmSync(state.tempDirectory, { recursive: true, force: true }); } catch { /* Build cleanup must not hide the original outcome. */ }
+}
+function forwardWorkerLog(event) {
+	if (!event || event.type !== "nenc-log") return;
+	if (event.level === "status") nencLogger.setStatus(event.message, event.source || "engine");
+	else if (event.level === "done") nencLogger.done(event.message);
+	else if (event.level === "failed") nencLogger.failed(event.message);
+	else if (event.level === "clear") nencLogger.clearStatus(event.source || "engine");
 }
 function startCompiler(projectDir) {
 	const existing = getState();
@@ -40,7 +68,7 @@ function startCompiler(projectDir) {
 	const compilerScript = path.join(__dirname, "gen3BuildCompiler.js");
 	const compiler = require("./gen3BuildCompiler");
 	const bannerOwner = compiler.printBannerOnce(resolvedProjectDir);
-	if (bannerOwner) console.log("nextjs-engine | Starting Generation 3 compiler pass alongside Next.js");
+	const stopNextBuildOutputBridge = nencLogger.installNextBuildOutputBridge();
 
 	let child;
 	try {
@@ -52,12 +80,15 @@ function startCompiler(projectDir) {
 			"--output", manifestFile,
 		], {
 			cwd: resolvedProjectDir,
-			env: process.env,
-			stdio: "inherit",
+			env: { ...process.env, NENC_LOG_TRANSPORT: "ipc" },
+			// The parent adapter owns the terminal; compiler events arrive over IPC.
+			stdio: ["ignore", "ignore", "inherit", "ipc"],
 			windowsHide: true,
 		});
 	} catch (error) {
+		stopNextBuildOutputBridge();
 		if (bannerOwner) compiler.releaseBanner(resolvedProjectDir);
+		try { fs.rmSync(tempDirectory, { recursive: true, force: true }); } catch { /* Keep the original spawn error. */ }
 		throw error;
 	}
 
@@ -68,20 +99,22 @@ function startCompiler(projectDir) {
 		child,
 		compiler,
 		bannerOwner,
+		stopNextBuildOutputBridge,
 		completion: null,
 	};
+	child.on("message", forwardWorkerLog);
 	state.completion = new Promise((resolve, reject) => {
 		let settled = false;
 		child.once("error", (error) => {
 			if (settled) return;
 			settled = true;
-			reject(new Error("[nextjs-engine] Could not start the Generation 3 compiler worker: " + error.message));
+			reject(new Error("[NENC] Could not start the Generation 3 compiler worker: " + error.message));
 		});
 		child.once("close", (code, signal) => {
 			if (settled) return;
 			settled = true;
 			if (code === 0) resolve();
-			else reject(new Error("[nextjs-engine] The Generation 3 compiler worker failed with "
+			else reject(new Error("[NENC] The Generation 3 compiler worker failed with "
 				+ (signal ? "signal " + signal : "exit code " + code)));
 		});
 	});
@@ -89,6 +122,8 @@ function startCompiler(projectDir) {
 
 	const cleanup = () => {
 		if (child.exitCode === null && !child.killed) child.kill();
+		// On a failed build, onBuildComplete may not run; restore the terminal before exit.
+		nencLogger.clearStatus();
 		removeState(state);
 	};
 	state.cleanup = cleanup;
@@ -106,7 +141,9 @@ const adapter = {
 			nextConfig = await delegate.modifyConfig(config, context);
 		}
 
-		if (context.phase === "phase-production-build") {
+		if (context.phase === "phase-development-server") {
+			startDevelopmentBridge();
+		} else if (context.phase === "phase-production-build") {
 			startCompiler(process.cwd());
 		}
 		return nextConfig;
@@ -116,14 +153,20 @@ const adapter = {
 		const state = getState();
 		try {
 			if (state) {
+				if (state.stopNextBuildOutputBridge) {
+					state.stopNextBuildOutputBridge();
+					state.stopNextBuildOutputBridge = null;
+				}
 				await state.completion;
 				if (!fs.existsSync(state.manifestFile)) {
-					throw new Error("[nextjs-engine] Generation 3 compiler completed without writing its manifest.");
+					throw new Error("[NENC] Generation 3 compiler completed without writing its manifest.");
 				}
 				const compiler = require("./gen3BuildCompiler");
+				nencLogger.setStatus("FINALIZING NEXT.JS BUILD OUTPUTS", "engine");
 				compiler.emitArtifacts(context.projectDir || state.projectDir, state.manifestFile, context.distDir, context);
 			}
 		} finally {
+			nencLogger.clearStatus();
 			if (state) {
 				process.removeListener("exit", state.cleanup);
 				removeState(state);
@@ -139,4 +182,10 @@ const adapter = {
 
 module.exports = adapter;
 module.exports.startCompiler = startCompiler;
+module.exports.startDevelopmentBridge = startDevelopmentBridge;
+module.exports.stopDevelopmentBridge = function stopDevelopmentBridge() {
+	const state = globalThis[DEV_BRIDGE_KEY];
+	if (state && typeof state.stop === "function") state.stop();
+};
 module.exports.loadDelegateAdapter = loadDelegateAdapter;
+module.exports.forwardWorkerLog = forwardWorkerLog;

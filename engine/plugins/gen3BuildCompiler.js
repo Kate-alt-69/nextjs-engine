@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const ts = require("typescript");
 const { analyzeProjectModules, SCHEMA_ENGINE_SYMBOLS } = require("./gen3ModuleCompiler");
+const nencLogger = require("./nencTerminalLogger");
 
 const BUILTIN_NODE_TYPES = new Set([
 	"box", "stack", "grid", "text", "heading", "markdown", "image", "video",
@@ -201,16 +202,18 @@ function walkNodes(node, visit) {
 	if (typeof node.type === "string") visit(node);
 	if (Array.isArray(node.children)) for (const child of node.children) walkNodes(child, visit);
 }
-function logEvent(event, logger = console.log) {
-	const prefix = "nextjs-engine |";
+function dispatchTerminalLog(message) {
+	nencLogger.dispatchCompilerLine(message);
+}
+function logEvent(event, logger = dispatchTerminalLog) {
 	if (event.phase === "node" && event.customComponent) {
-		logger(prefix + " ⠋ COMPILING CUSTOM COMPONENT : " + event.nodeType + " (" + (event.sourcePath || event.pageId)
+		logger("COMPILING CUSTOM COMPONENT : " + event.nodeType + " (" + (event.sourcePath || event.pageId)
 			+ ":" + (event.nodePath || "root") + ")");
 	} else if (event.phase === "page-cache-hit") {
-		logger(prefix + " ↳ REUSING CACHED ENGINE SCHEMA : " + (event.sourcePath || event.pageId));
+		logger("DONE REUSING CACHED ENGINE SCHEMA : " + (event.sourcePath || event.pageId));
 	} else if (event.phase === "page-complete" && event.summary) {
 		const s = event.summary;
-		logger(prefix + " ✓ COMPILED ENGINE SCHEMA : " + (event.sourcePath || event.pageId) + " — " + s.totalNodes
+		logger("DONE COMPILED " + (event.pageId || event.sourcePath) + " — " + s.totalNodes
 			+ " nodes, " + s.clientIslands + " client islands, " + s.assetCount + " assets");
 	}
 }
@@ -315,7 +318,10 @@ function readVersion(root) {
 }
 function compileProject(projectRoot, options = {}) {
 	const passStartedAt = Date.now();
-	const files = listSourceFiles(projectRoot);
+	const log = typeof options.log === "function" ? options.log : dispatchTerminalLog;
+	const resolvedRoot = path.resolve(projectRoot);
+	log("SCANNING PROJECT SOURCES : " + displayPath(resolvedRoot, resolvedRoot));
+	const files = listSourceFiles(resolvedRoot);
 	const sourceByPath = new Map();
 	const candidatesByFile = new Map();
 	const schemaSymbolsByFile = new Map();
@@ -346,8 +352,7 @@ function compileProject(projectRoot, options = {}) {
 		}
 	}
 
-	const log = options.log || ((line) => console.log(line));
-	const moduleAnalysis = analyzeProjectModules(projectRoot, {
+	const moduleAnalysis = analyzeProjectModules(resolvedRoot, {
 		files,
 		sourceByPath,
 		log,
@@ -366,13 +371,13 @@ function compileProject(projectRoot, options = {}) {
 		const source = sourceByPath.get(file);
 		const candidates = candidatesByFile.get(file) || [];
 		if (candidates.length === 0) {
-			if (/(^|\/)(page|index)\.(tsx?|jsx?)$/.test(relative) && fs.readFileSync(file, "utf8").includes("createPage")) {
+			if (/(^|\/)(page|index)\.(tsx?|jsx?)$/.test(relative) && source.text.includes("createPage")) {
 				skipped.push({
 					sourcePath: relative,
 					pageId: routePathForFile(projectRoot, file),
 					reason: "No statically resolvable Engine schema was found. Next.js retains normal runtime rendering for this route.",
 				});
-				log("nextjs-engine | NOTE : Static schema planning skipped for " + relative
+				log("SKIPPING STATIC SCHEMA PLAN : " + relative
 					+ " — Next.js still compiles and renders the route normally");
 			}
 			continue;
@@ -444,8 +449,9 @@ function compileProject(projectRoot, options = {}) {
 		customComponentTypeCount: new Set(registered.concat(...pages.map((page) => page.customComponents))).size,
 		compilerPassTimeMs: Date.now() - passStartedAt,
 	};
-	log("nextjs-engine | ✓ Compiler pass completed — " + summary.analyzedRouteCount + " route entries analyzed, "
-		+ summary.compiledSchemaPageCount + " Engine schema plans, " + summary.engineModuleCount + " Engine modules");
+	log("DONE COMPILER PASS — " + summary.analyzedRouteCount + " route entries analyzed, "
+		+ summary.compiledSchemaPageCount + " Engine schema plans, " + summary.engineModuleCount + " Engine modules in "
+		+ summary.compilerPassTimeMs + "ms");
 
 	return {
 		schemaVersion: 2,
@@ -542,7 +548,7 @@ function emitArtifacts(projectRoot, inputPath, distDir, buildContext = {}) {
 	if (!isWithin(outputRoot, outputDir)) throw new Error("Unsafe Next.js Engine output directory.");
 	const outputFile = path.join(outputDir, "compiler-manifest.json");
 	atomicWriteJson(outputFile, manifest);
-	console.log("nextjs-engine | ✓ Emitted " + displayPath(root, outputFile) + " after Next.js build succeeded");
+	nencLogger.done("EMITTED " + displayPath(root, outputFile) + " after Next.js build succeeded");
 	if (nextBuild) {
 		const labels = [
 			["appPages", "App pages"],
@@ -555,7 +561,7 @@ function emitArtifacts(projectRoot, inputPath, distDir, buildContext = {}) {
 		const parts = labels
 			.filter(([key]) => Number.isInteger(nextBuild.counts[key]))
 			.map(([key, label]) => nextBuild.counts[key] + " " + label);
-		if (parts.length) console.log("nextjs-engine | ✓ Indexed Next.js build outputs — "
+		if (parts.length) nencLogger.done("INDEXED NEXT.JS BUILD OUTPUTS — "
 			+ nextBuild.routeOutputCount + " unique route paths; " + parts.join(", "));
 	}
 	return outputFile;
@@ -586,11 +592,12 @@ function runCLI(argv = process.argv.slice(2)) {
 			if (!args.output) throw new Error("--scan requires --output <temporary-json-path>");
 			if (!args.adapterWorker) {
 				bannerOwner = printBannerOnce(root);
-				if (bannerOwner) console.log("nextjs-engine | Starting Generation 3 compiler pass alongside Next.js");
+				if (bannerOwner) nencLogger.setStatus("STARTING GENERATION 3 COMPILER PASS ALONGSIDE NEXT.JS");
 			}
 			const manifest = compileProject(root);
+			nencLogger.setStatus("WRITING COMPILER MANIFEST");
 			atomicWriteJson(path.resolve(args.output), manifest);
-			console.log("nextjs-engine | Compiler pass completed — " + manifest.summary.compiledPageCount
+			nencLogger.done("COMPILER MANIFEST WRITTEN — " + manifest.summary.compiledPageCount
 				+ " pages, " + manifest.summary.customComponentTypeCount + " custom component types");
 		} else {
 			if (!args.input) throw new Error("--emit requires --input <compiler-manifest>");
@@ -598,9 +605,10 @@ function runCLI(argv = process.argv.slice(2)) {
 		}
 		return 0;
 	} catch (error) {
-		console.error("nextjs-engine | ERROR " + (error instanceof Error ? error.message : String(error)));
+		nencLogger.failed(error instanceof Error ? error.message : String(error));
 		return 1;
 	} finally {
+		nencLogger.clearStatus();
 		if (bannerOwner && bannerRoot) releaseBanner(bannerRoot);
 	}
 }
