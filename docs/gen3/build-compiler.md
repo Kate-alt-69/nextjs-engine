@@ -6,16 +6,19 @@ The Generation 3 build adapter runs a small Engine-owned analysis pass alongside
 
 The pre-build pass discovers App Router and Pages Router entry files (including route handlers and supported metadata routes), then follows their reachable local imports. Type-only imports, dependency directories, hidden build output, and unrelated Engine modules are not treated as runtime compile jobs. AST reads and module resolution are cached within the pass, and each reached Engine module is indexed once even if many routes import it.
 
-Progress rows intentionally resemble Next.js build output:
+NENC terminal output uses one live status row pinned to the terminal bottom while work is in progress. Completed work is written above it as `[NENC] DONE ...` lines; the current operation is rewritten in place instead of flooding the terminal. On non-interactive output, only completion and failure lines are emitted.
 
 ```text
-nextjs-engine | ⠋ COMPILING PAGE : app/page.tsx
-nextjs-engine | ⠙ COMPILING EC : src/engine/components/EngineCanvas.tsx
-nextjs-engine | ✓ COMPILED EC : src/engine/components/EngineCanvas.tsx — Engine dependency metadata prepared
-nextjs-engine | ✓ COMPILED PAGE : app/page.tsx — 3 Engine modules indexed; Next.js retains JS/TSX emission
+[NENC] COMPILING PAGE : app/page.tsx  (live bottom row)
+[NENC] DONE COMPILED EC : src/engine/components/EngineCanvas.tsx — Engine dependency metadata prepared
+[NENC] DONE COMPILED PAGE : app/page.tsx — 3 Engine modules indexed; Next.js retains JS/TSX emission
 ```
 
 A resolved Engine import logs its source path. An Engine symbol coming from an installed package or an unresolved source alias uses a stable import name such as `@engine/EngineCanvas`. Module completion means Engine's dependency/usage metadata is ready; it does **not** mean Engine emits a replacement JS chunk. The imported code continues through Next.js as usual.
+
+## Helping Next.js compile faster
+
+The combined Engine plugin opts into Next.js's supported Turbopack filesystem cache for development and production builds. This warm-cache optimization lets Next.js restore prior work on subsequent sessions/builds; it does not promise that the first cold build is faster, and Next.js still owns JS/TSX transformation and bundling. Apps can explicitly override either setting with `experimental.turbopackFileSystemCacheForDev: false` or `experimental.turbopackFileSystemCacheForBuild: false`; other `experimental` values are preserved.
 
 ## Schema plans remain conservative
 

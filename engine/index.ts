@@ -171,7 +171,7 @@ export type {
 	NodeType, BuiltinNodeType, Breakpoint, ResponsiveValue,
 	CpropValue, SelectOption,
 	BoxProps, StackProps, GridProps, TextProps, TextPart, TextVariant,
-	MarkdownProps, HeadingProps, ImageNodeProps, ButtonProps,
+	MarkdownProps, EngineMarkdownStyleSlot, EngineMarkdownStyles, HeadingProps, ImageNodeProps, ButtonProps,
 	ButtonVariant, ButtonSize, SectionProps, HeroProps, CardProps,
 	SpacerProps, DividerProps, EngineScrollProps, CustomSelectProps,
 	OptionProps, OptGroupProps, SlotProps,
@@ -266,6 +266,10 @@ export type {
 	RenderingEngine as ECRenderingEngine, ECRenderContext,
 } from "./core/enginecanvas";
 export { EngineMarkdown } from "./components/EngineMarkdown";
+export { EngineUrlIcon } from "./components/EngineUrlIcon";
+export type { EngineUrlIconProps } from "./components/EngineUrlIcon";
+export { normalizeEngineUrlIconSize, resolveEngineFaviconUrl } from "./core/engineUrlIcon";
+export type { EngineUrlIconSize } from "./core/engineUrlIcon";
 export { EngineHero } from "./components/EngineHero";
 export { LazyMount, LazySection } from "./components/LazyMount";
 export { CustomSelect } from "./components/CustomSelect";
@@ -447,3 +451,5 @@ export type { EngineProviderProps } from "./providers/EngineProvider";
 export { default as DefaultNotFoundPage } from "./not-found";
 
 export { BREAKPOINTS, BREAKPOINT_ORDER } from "./schema/types";
+
+export type { EngineAnsiColor, EngineAnsiPalette, EngineAnsiSegment } from "./core/markdownParser";

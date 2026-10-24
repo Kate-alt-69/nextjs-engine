@@ -5,6 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
 const { pathToFileURL } = require("node:url");
+const nencLogger = require("./nencTerminalLogger");
 
 const BUILD_STATE_KEY = Symbol.for("nextjs-engine.gen3-build-adapter-state");
 const DELEGATE_ADAPTER_ENV = "NEXTJS_ENGINE_DELEGATE_ADAPTER";
@@ -21,7 +22,7 @@ async function loadDelegateAdapter() {
 	const imported = await import(pathToFileURL(adapterPath).href);
 	const adapter = imported.default ?? imported;
 	if (!adapter || typeof adapter !== "object") {
-		throw new Error("[nextjs-engine] The application's configured Next.js adapter did not export an adapter object.");
+		throw new Error("[NENC] The application's configured Next.js adapter did not export an adapter object.");
 	}
 	return adapter;
 }
@@ -40,7 +41,7 @@ function startCompiler(projectDir) {
 	const compilerScript = path.join(__dirname, "gen3BuildCompiler.js");
 	const compiler = require("./gen3BuildCompiler");
 	const bannerOwner = compiler.printBannerOnce(resolvedProjectDir);
-	if (bannerOwner) console.log("nextjs-engine | Starting Generation 3 compiler pass alongside Next.js");
+	// The child worker owns the live status row; avoid competing terminal cursors here.
 
 	let child;
 	try {
@@ -75,13 +76,13 @@ function startCompiler(projectDir) {
 		child.once("error", (error) => {
 			if (settled) return;
 			settled = true;
-			reject(new Error("[nextjs-engine] Could not start the Generation 3 compiler worker: " + error.message));
+			reject(new Error("[NENC] Could not start the Generation 3 compiler worker: " + error.message));
 		});
 		child.once("close", (code, signal) => {
 			if (settled) return;
 			settled = true;
 			if (code === 0) resolve();
-			else reject(new Error("[nextjs-engine] The Generation 3 compiler worker failed with "
+			else reject(new Error("[NENC] The Generation 3 compiler worker failed with "
 				+ (signal ? "signal " + signal : "exit code " + code)));
 		});
 	});
@@ -118,12 +119,14 @@ const adapter = {
 			if (state) {
 				await state.completion;
 				if (!fs.existsSync(state.manifestFile)) {
-					throw new Error("[nextjs-engine] Generation 3 compiler completed without writing its manifest.");
+					throw new Error("[NENC] Generation 3 compiler completed without writing its manifest.");
 				}
 				const compiler = require("./gen3BuildCompiler");
+				nencLogger.setStatus("FINALIZING NEXT.JS BUILD OUTPUTS");
 				compiler.emitArtifacts(context.projectDir || state.projectDir, state.manifestFile, context.distDir, context);
 			}
 		} finally {
+			nencLogger.clearStatus();
 			if (state) {
 				process.removeListener("exit", state.cleanup);
 				removeState(state);
