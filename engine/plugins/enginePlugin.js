@@ -14,6 +14,12 @@ const {
 
 const ENGINE_IMAGE_QUALITIES = Object.freeze([65, 75, 78, 90]);
 
+function installDevelopmentOutputBridge() {
+	const args = process.argv.slice(2);
+	if (!args.some((arg) => arg === "dev") && process.env.NEXT_PHASE !== "phase-development-server") return;
+	require("./nencTerminalLogger").installNextBuildOutputBridge({ mode: "dev" });
+}
+
 function withEngineImageConfig(nextConfig = {}) {
 	const configuredQualities = Array.isArray(nextConfig.images?.qualities)
 		? nextConfig.images.qualities.filter((quality) => Number.isInteger(quality) && quality >= 1 && quality <= 100)
@@ -59,8 +65,22 @@ function withEngineBuildAdapter(config, originalConfig = {}) {
 	};
 }
 
+function withEngineTurbopackCache(nextConfig = {}) {
+	const experimental = nextConfig.experimental || {};
+	return {
+		...nextConfig,
+		experimental: {
+			...experimental,
+			turbopackFileSystemCacheForDev: experimental.turbopackFileSystemCacheForDev ?? true,
+			turbopackFileSystemCacheForBuild: experimental.turbopackFileSystemCacheForBuild ?? true,
+		},
+	};
+}
+
 function withEngine(nextConfig = {}, pluginOptions = {}) {
-	const imageConfig = withEngineImageConfig(nextConfig);
+	installDevelopmentOutputBridge();
+	const cacheConfig = withEngineTurbopackCache(nextConfig);
+	const imageConfig = withEngineImageConfig(cacheConfig);
 	const apiOptions = pluginOptions.api || pluginOptions;
 	const shaderOptions = pluginOptions.shader || pluginOptions;
 	const apiConfig = withEngineAPI(imageConfig, apiOptions);
@@ -82,6 +102,7 @@ module.exports.withEngineSEO = withEngineSEO;
 module.exports.withEngineShader = withEngineShader;
 module.exports.withEngineNENC = withEngineNENC;
 module.exports.withEngineImageConfig = withEngineImageConfig;
+module.exports.withEngineTurbopackCache = withEngineTurbopackCache;
 module.exports.withEngineBuildAdapter = withEngineBuildAdapter;
 module.exports.clearPluginArtifactCache = clearPluginArtifactCache;
 module.exports.inspectPluginArtifactCache = inspectPluginArtifactCache;

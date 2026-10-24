@@ -3,7 +3,7 @@
 //  Engine — SchemaRenderer
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { lazy, memo, Suspense, useEffect, type CSSProperties, type ReactNode } from "react";
+import React, { lazy, memo, Suspense, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import {
 	BREAKPOINTS,
 	BREAKPOINT_ORDER,
@@ -238,7 +238,122 @@ interface NodeRendererProps {
 	path: string;
 }
 
-function NodeRenderer({ node, depth, path }: NodeRendererProps) {
+interface NodeErrorBoundaryProps {
+	path: string;
+	nodeType: string;
+	children: ReactNode;
+}
+
+interface NodeErrorBoundaryState {
+	error: Error | null;
+}
+
+class NodeErrorBoundary extends React.Component<NodeErrorBoundaryProps, NodeErrorBoundaryState> {
+	state: NodeErrorBoundaryState = { error: null };
+
+	static getDerivedStateFromError(error: Error): NodeErrorBoundaryState {
+		return { error };
+	}
+
+	componentDidCatch(error: Error, info: React.ErrorInfo): void {
+		console.error(
+			"[EngineDebug] isolated Engine node \"" + this.props.nodeType + "\" at " + this.props.path,
+			error,
+			info.componentStack,
+		);
+	}
+
+	render(): ReactNode {
+		if (!this.state.error) return this.props.children;
+		const message = this.state.error.message || "This component threw during render.";
+		return (
+			<div
+				role="alert"
+				data-engine-debug-error="true"
+				data-engine-debug-path={this.props.path}
+				data-engine-debug-name={this.props.nodeType}
+				title={this.props.path}
+				style={{
+					boxSizing: "border-box",
+					minWidth: 0,
+					padding: "10px 12px",
+					border: "1px solid #b42335",
+					borderLeft: "4px solid #e5484d",
+					borderRadius: 4,
+					background: "#2a171a",
+					color: "#ffd7dc",
+					font: "12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace",
+					overflowWrap: "anywhere",
+				}}
+			>
+				<strong>EngineDebug · component isolated</strong>
+				<div>{this.props.nodeType} at {this.props.path}</div>
+				<div>{message}</div>
+			</div>
+		);
+	}
+}
+
+function NodeRenderer(props: NodeRendererProps) {
+	if (process.env.NODE_ENV !== "development") return <NodeRendererContent {...props} />;
+	return (
+		<NodeErrorBoundary path={props.path} nodeType={props.node.type}>
+			<NodeRendererContent {...props} />
+		</NodeErrorBoundary>
+	);
+}
+
+interface DevelopmentNodeElementProps {
+	component: React.ElementType;
+	props: Record<string, unknown>;
+	path: string;
+	nodeType: string;
+	children: ReactNode;
+}
+
+function safePlaceholderStyle(value: unknown): CSSProperties | undefined {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+	try {
+		const safe: Record<string, string | number> = {};
+		for (const [key, entry] of Object.entries(value as Record<string, unknown>).slice(0, 80)) {
+			if (typeof entry === "string" || (typeof entry === "number" && Number.isFinite(entry))) {
+				safe[key] = entry;
+			}
+		}
+		return safe as CSSProperties;
+	} catch {
+		// A malformed style object must not abort the development route's server render.
+		return undefined;
+	}
+}
+
+function DevelopmentNodeElement({ component: Component, props, path, nodeType, children }: DevelopmentNodeElementProps) {
+	const [clientReady, setClientReady] = useState(false);
+	useEffect(() => setClientReady(true), []);
+
+	if (clientReady) return <Component {...props}>{children}</Component>;
+
+	// Error boundaries cannot catch server-render errors. In dev, avoid running
+	// arbitrary Engine component render functions on the server; keep a safe
+	// DOM shell and children, then instantiate the real component after hydration.
+	return (
+		<div
+			id={typeof props.id === "string" ? props.id : undefined}
+			className={typeof props.className === "string" ? props.className : undefined}
+			style={safePlaceholderStyle(props.style)}
+			role={typeof props.role === "string" ? props.role : undefined}
+			title={typeof props.title === "string" ? props.title : undefined}
+			aria-label={typeof props["aria-label"] === "string" ? props["aria-label"] as string : undefined}
+			data-engine-debug-path={path}
+			data-engine-debug-name={nodeType}
+			data-engine-debug-pending="true"
+		>
+			{children}
+		</div>
+	);
+}
+
+function NodeRendererContent({ node, depth, path }: NodeRendererProps) {
 	const styleCollector = useStyleCollector();
 
 	if (node.type === "slot") {
@@ -315,8 +430,10 @@ function NodeRenderer({ node, depth, path }: NodeRendererProps) {
 		: undefined;
 	const shaderId = hasLayerShader ? `e-shader-${shortHash(`${path}|${String(node.type)}|${node.name ?? ""}`)}` : undefined;
 	const resolvedDomId = explicitId ?? pointName ?? shaderId;
+	const debugMetadata = process.env.NODE_ENV === "development" ? { "data-engine-debug-path": path, "data-engine-debug-name": String(node.type) } : {};
 	const nodeProps = {
 		...componentProps,
+		...debugMetadata,
 		...(resolvedDomId ? { id: resolvedDomId } : {}),
 		...(mergedClassName ? { className: mergedClassName } : {}),
 		...(Object.keys(extraStyle).length > 0
@@ -332,7 +449,9 @@ function NodeRenderer({ node, depth, path }: NodeRendererProps) {
 	const effectiveChildren = hasTreeChildren
 		? renderedChildren
 		: (originalProps.children as ReactNode | undefined) ?? null;
-	const element = <Component {...nodeProps}>{effectiveChildren}</Component>;
+	const element = process.env.NODE_ENV === "development"
+		? <DevelopmentNodeElement component={Component} props={nodeProps} path={path} nodeType={String(node.type)}>{effectiveChildren}</DevelopmentNodeElement>
+		: <Component {...nodeProps}>{effectiveChildren}</Component>;
 	const shaderSurface = hasLayerShader && resolvedDomId
 		? (
 			<Suspense fallback={null}>

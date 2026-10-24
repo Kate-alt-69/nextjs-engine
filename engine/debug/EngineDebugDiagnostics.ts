@@ -6,6 +6,9 @@ export type EngineDebugSource = "runtime" | "unhandled-rejection" | "console" | 
 export interface EngineDebugDiagnostic {
 	id: string;
 	at: number;
+	firstAt?: number;
+	occurrences?: number;
+	routes?: string[];
 	severity: EngineDebugSeverity;
 	category: "Hydration" | "SSR" | "Runtime" | "Console";
 	source: EngineDebugSource;
@@ -21,6 +24,7 @@ const SECRET_PATTERNS: Array<[RegExp, string]> = [
 	[/\b(access[_-]?token|refresh[_-]?token|api[_-]?key|secret|password|authorization)\s*[:=]\s*([^\s,;]+)/gi, "$1=[redacted]"],
 	[/\b(cookie|set-cookie)\s*:\s*[^\r\n]+/gi, "$1: [redacted]"],
 ];
+const SOURCE_REFERENCE = /(?:^|[(/])((?:app|pages|src|components|lib|docs)\/[A-Za-z0-9_./@()[\]-]+\.(?:tsx?|jsx?|mjs|cjs|json|css|md)):(\d+)(?::(\d+))?/m;
 
 export function redactEngineDebugText(value: unknown, maxLength = MAX_MESSAGE_LENGTH): string {
 	let text: string;
@@ -48,6 +52,30 @@ export function redactEngineDebugText(value: unknown, maxLength = MAX_MESSAGE_LE
 	return text.length > maxLength ? text.slice(0, maxLength) + "\n…[truncated]" : text;
 }
 
+function usefulErrorMessage(source: EngineDebugSource, message: string, detail: string): string {
+	const generic = /^(?:Unhandled promise rejection|Next\.js development error overlay|console\.error)$/i.test(message.trim());
+	if (!generic && !(source === "next-overlay" && /^(?:Build Error|Runtime Error|Server Error)$/i.test(message.trim()))) return message;
+	const lines = (detail || "").split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+	const useful = lines.find(line =>
+		/^(?:TypeError|ReferenceError|SyntaxError|RangeError|AggregateError|Error|Module not found|Failed to compile|Cannot find module|Cannot resolve|Unknown file extension|Invalid .*|Expected .*|Unexpected token)\b/i.test(line)
+		&& !/^Next\.js development error overlay$/i.test(line));
+	if (useful) return useful.slice(0, 1_600);
+	if (source === "unhandled-rejection" && lines[0]) return lines[0].slice(0, 1_600);
+	if (source === "next-overlay") {
+		const first = lines.find(line => !/^(?:Next\.js|Build Error|Runtime Error|Server Error|Call Stack|Import trace for requested module)$/i.test(line));
+		if (first) return first.slice(0, 1_600);
+	}
+	if (source === "console" && lines[0]) return lines[0].slice(0, 1_600);
+	return message;
+}
+
+export function extractEngineDebugSourceReference(value: unknown): string | null {
+	const text = typeof value === "string" ? value : redactEngineDebugText(value, 8_000);
+	SOURCE_REFERENCE.lastIndex = 0;
+	const match = SOURCE_REFERENCE.exec(text);
+	return match?.[1] && match[2] ? match[1].replace(/\\/g, "/") + ":" + match[2] : null;
+}
+
 export function classifyEngineDebugDiagnostic(source: EngineDebugSource, message: string, detail = ""):
 	Pick<EngineDebugDiagnostic, "severity" | "category" | "ownerHint"> {
 	const combined = (message + "\n" + detail).toLowerCase();
@@ -60,7 +88,7 @@ export function classifyEngineDebugDiagnostic(source: EngineDebugSource, message
 	let ownerHint: EngineDebugDiagnostic["ownerHint"] = "Unknown";
 	if (/src\/engine\/|\/engine\/debug\/|\[engine(?:canvas|shader|manim|provider|style|scroll|transitions)?\]|nextjs-engine\/(?:src\/)?engine/i.test(combined)) {
 		ownerHint = "Likely NE source";
-	} else if (/(^|[\s("'\\])(?:src\/)?(?:app|pages|components)\/|\bat\s+(?:async\s+)?(?:Home|Page|Layout|RootLayout)\b/.test(combined)) {
+	} else if (/(^|[\s("'\\])(?:src\/)?(?:app|pages|components|lib)\/|\bat\s+(?:async\s+)?(?:Home|Page|Layout|RootLayout)\b/.test(combined)) {
 		ownerHint = "Likely application code";
 	} else if (/react-dom|react\.production|next\/dist|next\.js|nextjs\.org\/docs\/messages|react\.dev\/errors/.test(combined)) {
 		ownerHint = "Likely React / Next.js";
@@ -68,24 +96,51 @@ export function classifyEngineDebugDiagnostic(source: EngineDebugSource, message
 	return { severity, category, ownerHint };
 }
 
+function routeFromLocation(location: string | undefined): string | null {
+	if (!location) return null;
+	const value = location.trim();
+	if (!/^\/(?!\/)[^:\s]*(?:\?[^:\s]*)?$/.test(value)) return null;
+	return value.split("?")[0] || "/";
+}
+
+export function engineDebugDiagnosticFingerprint(diagnostic: Pick<EngineDebugDiagnostic, "severity" | "category" | "message" | "detail" | "location">): string {
+	const sourceReference = extractEngineDebugSourceReference([
+		diagnostic.location ?? "",
+		diagnostic.message,
+		diagnostic.detail,
+	].join("\n"));
+	const stableMessage = diagnostic.message.trim().replace(/\s+/g, " ").toLowerCase();
+	return [diagnostic.severity, diagnostic.category, stableMessage, sourceReference ?? ""].join("|");
+}
+
+function hashText(value: string): string {
+	let hash = 2166136261;
+	for (let index = 0; index < value.length; index++) hash = Math.imul(hash ^ value.charCodeAt(index), 16777619);
+	return (hash >>> 0).toString(16);
+}
+
 export function createEngineDebugDiagnostic(input: {
 	source: EngineDebugSource;
 	message: unknown;
 	detail?: unknown;
 	location?: string;
+	route?: string;
 	now?: number;
 }): EngineDebugDiagnostic {
-	const message = redactEngineDebugText(input.message, 1_600).trim() || "(empty diagnostic)";
+	const rawMessage = redactEngineDebugText(input.message, 1_600).trim() || "(empty diagnostic)";
 	const detail = redactEngineDebugText(input.detail ?? "", 6_000).trim();
+	const message = usefulErrorMessage(input.source, rawMessage, detail);
 	const classification = classifyEngineDebugDiagnostic(input.source, message, detail);
 	const location = input.location ? redactEngineDebugText(input.location, 500) : undefined;
-	const stable = [input.source, classification.category, message, location ?? ""].join("|");
-	let hash = 2166136261;
-	for (let index = 0; index < stable.length; index++) hash = Math.imul(hash ^ stable.charCodeAt(index), 16777619);
+	const stableFingerprint = engineDebugDiagnosticFingerprint({ ...classification, message, detail, location });
 	const at = input.now ?? Date.now();
+	const route = routeFromLocation(input.route) ?? routeFromLocation(location);
 	return {
-		id: (hash >>> 0).toString(16) + "-" + String(at),
+		id: "diag-" + hashText(stableFingerprint),
 		at,
+		firstAt: at,
+		occurrences: 1,
+		routes: route ? [route] : [],
 		...classification,
 		source: input.source,
 		message,
@@ -95,16 +150,20 @@ export function createEngineDebugDiagnostic(input: {
 }
 
 export function formatEngineDebugDiagnostic(diagnostic: EngineDebugDiagnostic): string {
+	const routes = diagnostic.routes?.length ? "Routes observed: " + diagnostic.routes.join(", ") : "";
 	return [
 		"[" + diagnostic.severity.toUpperCase() + "] " + diagnostic.category,
 		"Likely owner: " + diagnostic.ownerHint,
 		"Source: " + diagnostic.source,
-		"Time: " + new Date(diagnostic.at).toISOString(),
+		"Occurrences: " + String(diagnostic.occurrences ?? 1),
+		"First seen: " + new Date(diagnostic.firstAt ?? diagnostic.at).toISOString(),
+		"Last seen: " + new Date(diagnostic.at).toISOString(),
 		diagnostic.location ? "Location: " + diagnostic.location : "",
+		routes,
 		"",
 		diagnostic.message,
 		diagnostic.detail,
-	].filter((line, index) => line || index === 5).join("\n").trim();
+	].filter((line, index) => line || index === 8).join("\n").trim();
 }
 
 export function appendEngineDebugDiagnostics(
@@ -112,13 +171,29 @@ export function appendEngineDebugDiagnostics(
 	incoming: EngineDebugDiagnostic,
 	limit = 200,
 ): EngineDebugDiagnostic[] {
-	const fingerprint = incoming.source + "|" + incoming.category + "|" + incoming.message + "|" + (incoming.location ?? "");
-	const mostRecent = current[current.length - 1];
-	if (mostRecent) {
-		const lastFingerprint = mostRecent.source + "|" + mostRecent.category + "|" + mostRecent.message + "|" + (mostRecent.location ?? "");
-		if (fingerprint === lastFingerprint && incoming.at - mostRecent.at < 1_500) {
-			return [...current.slice(0, -1), { ...mostRecent, at: incoming.at, detail: incoming.detail || mostRecent.detail }];
-		}
+	const incomingFingerprint = engineDebugDiagnosticFingerprint(incoming);
+	const existingIndex = current.findIndex(item => engineDebugDiagnosticFingerprint(item) === incomingFingerprint);
+	if (existingIndex >= 0) {
+		const existing = current[existingIndex];
+		const routes = [...new Set([...(existing.routes ?? []), ...(incoming.routes ?? []), ...[routeFromLocation(incoming.location)].filter((route): route is string => Boolean(route))])];
+		const richerDetail = (incoming.detail ?? "").length > (existing.detail ?? "").length ? incoming.detail : existing.detail;
+		const merged: EngineDebugDiagnostic = {
+			...existing,
+			at: incoming.at,
+			firstAt: existing.firstAt ?? existing.at,
+			occurrences: (existing.occurrences ?? 1) + (incoming.occurrences ?? 1),
+			routes,
+			detail: richerDetail ?? "",
+			location: incoming.location ?? existing.location,
+			ownerHint: existing.ownerHint === "Unknown" ? incoming.ownerHint : existing.ownerHint,
+		};
+		return [...current.slice(0, existingIndex), ...current.slice(existingIndex + 1), merged].slice(-Math.max(1, limit));
 	}
-	return [...current, incoming].slice(-Math.max(1, limit));
+	const normalized: EngineDebugDiagnostic = {
+		...incoming,
+		firstAt: incoming.firstAt ?? incoming.at,
+		occurrences: incoming.occurrences ?? 1,
+		routes: incoming.routes ?? [routeFromLocation(incoming.location)].filter((route): route is string => Boolean(route)),
+	};
+	return [...current, normalized].slice(-Math.max(1, limit));
 }
