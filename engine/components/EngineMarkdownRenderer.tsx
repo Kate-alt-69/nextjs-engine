@@ -16,9 +16,12 @@ import React, {
 import ReactMarkdown, { type Components, type UrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { MarkdownProps } from "../schema/types";
+import { EngineUrlIcon } from "./EngineUrlIcon";
 import {
 	normalizeEngineMarkdownSource,
+	parseEngineAnsi,
 	slugifyMarkdownHeading,
+	type EngineAnsiPalette,
 } from "../core/markdownParser";
 
 export const ENGINE_MARKDOWN_CSS = `
@@ -65,6 +68,12 @@ interface MarkdownRenderConfig {
 	codeBorderColor: string;
 	codeFontFamily: string;
 	showCodeLanguage: boolean;
+	markdownStyles?: MarkdownProps["markdownStyles"];
+	ansiPalette: EngineAnsiPalette;
+	ansiForeground: string;
+	ansiBackground: string;
+	showUrlIcon: boolean;
+	urlIconSize: NonNullable<MarkdownProps["emd_url-icon-size"]>;
 }
 
 const DEFAULT_HEADING_SIZES: Record<string, string> = {
@@ -163,6 +172,7 @@ function createMarkdownComponents(config: MarkdownRenderConfig): Components {
 					scrollMarginTop: "7rem",
 					textAlign: "left",
 					...props.style,
+					...config.markdownStyles?.heading,
 				}}
 			>
 				{children}
@@ -189,10 +199,11 @@ function createMarkdownComponents(config: MarkdownRenderConfig): Components {
 					lineHeight: config.bodyLineHeight,
 					overflowWrap: "anywhere",
 					...style,
+					...config.markdownStyles?.paragraph,
 				}}
 			/>
 		),
-		a: ({ node: _node, href = "#", className, style, ...props }) => {
+		a: ({ node: _node, href = "#", className, style, children, ...props }) => {
 			const safeHref = safeMarkdownUrl(href, "href");
 			const external = /^https?:/i.test(safeHref);
 			return (
@@ -202,8 +213,11 @@ function createMarkdownComponents(config: MarkdownRenderConfig): Components {
 					target={external ? "_blank" : undefined}
 					rel={external ? "noopener noreferrer" : undefined}
 					className={className}
-					style={{ color: config.linkColor, fontWeight: 700, overflowWrap: "anywhere", ...style }}
-				/>
+					style={{ color: config.linkColor, fontWeight: 700, overflowWrap: "anywhere", ...style, ...config.markdownStyles?.link }}
+				>
+					{config.showUrlIcon && external ? <EngineUrlIcon href={safeHref} size={config.urlIconSize} /> : null}
+					{children}
+				</a>
 			);
 		},
 		ul: ({ node, className, style, ...props }) => (
@@ -254,6 +268,7 @@ function createMarkdownComponents(config: MarkdownRenderConfig): Components {
 					borderRadius: "0 .5rem .5rem 0",
 					color: config.textColor,
 					...style,
+					...config.markdownStyles?.blockquote,
 				}}
 			/>
 		),
@@ -270,14 +285,26 @@ function createMarkdownComponents(config: MarkdownRenderConfig): Components {
 					borderRadius: ".3rem",
 					padding: ".12em .35em",
 					...style,
+					...config.markdownStyles?.inlineCode,
 				}}
 			/>
 		),
 		pre: ({ node, children }) => {
 			const language = codeLanguage(children);
 			const codeChildren = Children.map(children, (child) => {
-				if (!isValidElement<{ style?: CSSProperties }>(child)) return child;
+				if (!isValidElement<{ style?: CSSProperties; children?: ReactNode }>(child)) return child;
+				const ansiChildren = language?.toLowerCase() === "ansi"
+					? parseEngineAnsi(
+						reactNodeText(child.props.children),
+						config.ansiPalette,
+						config.ansiForeground,
+						config.ansiBackground,
+					).map((segment, index) => (
+						<span key={index} style={segment.style}>{segment.text}</span>
+					))
+					: child.props.children;
 				return cloneElement(child, {
+					children: ansiChildren,
 					style: {
 						...child.props.style,
 						display: "block",
@@ -304,6 +331,7 @@ function createMarkdownComponents(config: MarkdownRenderConfig): Components {
 						overflow: "hidden",
 						background: config.codeBackground,
 						color: config.codeColor,
+						...config.markdownStyles?.codeBlock,
 					}}
 				>
 					{language && config.showCodeLanguage ? (
@@ -316,6 +344,7 @@ function createMarkdownComponents(config: MarkdownRenderConfig): Components {
 							letterSpacing: ".08em",
 							textTransform: "uppercase",
 							color: "rgba(226,232,240,.72)",
+							...config.markdownStyles?.codeLanguage,
 						}}>{language}</figcaption>
 					) : null}
 					<pre style={{
@@ -344,8 +373,14 @@ function createMarkdownComponents(config: MarkdownRenderConfig): Components {
 					borderRadius: ".65rem",
 				}}
 			>
-				<table>{children}</table>
+				<table style={config.markdownStyles?.table}>{children}</table>
 			</div>
+		),
+		th: ({ node: _node, style, ...props }) => (
+			<th {...props} style={{ ...style, ...config.markdownStyles?.tableHeader }} />
+		),
+		td: ({ node: _node, style, ...props }) => (
+			<td {...props} style={{ ...style, ...config.markdownStyles?.tableCell }} />
 		),
 		img: ({ node: _node, src = "", alt = "", className, style, ...props }) => (
 			<img
@@ -368,6 +403,7 @@ function createMarkdownComponents(config: MarkdownRenderConfig): Components {
 					borderTop: `1px solid ${config.mutedColor}`,
 					margin: ".5rem 0",
 					...style,
+					...config.markdownStyles?.horizontalRule,
 				}}
 			/>
 		),
@@ -410,6 +446,12 @@ export function EngineMarkdownRenderer({
 	codeBorderColor = "rgba(148,163,184,.28)",
 	codeFontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace",
 	showCodeLanguage = true,
+	"emd_show-url-icon": showUrlIcon = false,
+	"emd_url-icon-size": urlIconSize = "auto",
+	markdownStyles,
+	ansiPalette = {},
+	ansiForeground,
+	ansiBackground,
 	className,
 	id,
 	point,
@@ -439,6 +481,12 @@ export function EngineMarkdownRenderer({
 		codeBorderColor,
 		codeFontFamily,
 		showCodeLanguage,
+		markdownStyles,
+		ansiPalette,
+		ansiForeground: ansiForeground ?? codeColor,
+		ansiBackground: ansiBackground ?? codeBackground,
+		showUrlIcon,
+		urlIconSize,
 	};
 	const components = createMarkdownComponents(renderConfig);
 	const articleAnimationClass = animClass(textAnimation);
