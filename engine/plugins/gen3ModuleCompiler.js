@@ -76,7 +76,6 @@ const SCHEMA_ENGINE_SYMBOLS = Object.freeze({
 	popover: "EnginePopover",
 	EnginePopover: "EnginePopover",
 });
-const SPINNER_FRAMES = Object.freeze(["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]);
 
 function displayPath(root, target) {
 	return path.relative(root, target).split(path.sep).join("/");
@@ -398,7 +397,6 @@ function createModuleAnalyzer(projectRoot, options = {}) {
 	const routeVisited = new Set();
 	const fileImports = new Map();
 	const recordById = new Map();
-	let spinnerIndex = 0;
 	let moduleOrder = 0;
 
 	function importsFor(file) {
@@ -484,11 +482,10 @@ function createModuleAnalyzer(projectRoot, options = {}) {
 			moduleRecords.set(key, record);
 			recordById.set(record.id, record);
 			const display = record.sourcePath || fallbackEngineName(specifier, inferredName);
-			log("nextjs-engine | " + SPINNER_FRAMES[spinnerIndex++ % SPINNER_FRAMES.length]
-				+ " COMPILING " + record.abbreviation + " : " + display);
+			log("COMPILING " + record.abbreviation + " : " + display);
 			if (actualPath) processEngineFile(actualPath, record, routePath);
 			const resolutionNote = actualPath ? "Engine dependency metadata prepared" : "package/import reference indexed; Next.js owns package emission";
-			log("nextjs-engine | ✓ COMPILED " + record.abbreviation + " : " + display
+			log("DONE COMPILED " + record.abbreviation + " : " + display
 				+ " — " + resolutionNote + " in " + formatMilliseconds(Date.now() - moduleStartedAt));
 		}
 		addUsage(record, routePath);
@@ -582,8 +579,7 @@ function createModuleAnalyzer(projectRoot, options = {}) {
 			const started = Date.now();
 			const routeLabel = route.kind === "app-metadata-route" ? "METADATA"
 				: route.kind === "app-route-handler" || route.kind === "pages-api-route" ? "ROUTE" : "PAGE";
-			log("nextjs-engine | " + SPINNER_FRAMES[spinnerIndex++ % SPINNER_FRAMES.length]
-				+ " COMPILING " + routeLabel + " : " + route.sourcePath);
+			log("COMPILING " + routeLabel + " : " + route.sourcePath);
 			scanProjectFile(route.file, route.routePath);
 			for (const frameworkFile of route.frameworkFiles || []) {
 				scanProjectFile(frameworkFile, route.routePath);
@@ -615,15 +611,14 @@ function createModuleAnalyzer(projectRoot, options = {}) {
 				schemaCandidateCount: Number(options.schemaCandidateCountsByFile?.get(route.file) || 0),
 				analyzedInMilliseconds: Date.now() - started,
 			});
-			log("nextjs-engine | ✓ COMPILED " + routeLabel + " : " + route.sourcePath
+			log("DONE COMPILED " + routeLabel + " : " + route.sourcePath
 				+ " — " + moduleNames.length + " Engine modules indexed in "
 				+ formatMilliseconds(Date.now() - started) + "; Next.js retains JS/TSX emission");
 		}
 		for (const source of schemaSources) {
 			routeVisited.clear();
 			const usageKey = "schema-source:" + source.sourcePath;
-			log("nextjs-engine | " + SPINNER_FRAMES[spinnerIndex++ % SPINNER_FRAMES.length]
-				+ " COMPILING ENGINE SCHEMA SOURCE : " + source.sourcePath);
+			log("COMPILING ENGINE SCHEMA SOURCE : " + source.sourcePath);
 			scanProjectFile(source.file, usageKey);
 			for (const symbol of schemaSymbolsByFile.get(source.file) || []) {
 				const barrel = path.join(root, "src", "engine", "index.ts");
@@ -648,7 +643,7 @@ function createModuleAnalyzer(projectRoot, options = {}) {
 				engineModuleCount: moduleNames.length,
 				schemaCandidateCount: schemaCandidateCountsByFile.get(source.file) || 0,
 			});
-			log("nextjs-engine | ✓ COMPILED ENGINE SCHEMA SOURCE : " + source.sourcePath
+			log("DONE COMPILED ENGINE SCHEMA SOURCE : " + source.sourcePath
 				+ " — " + moduleNames.length + " Engine modules indexed");
 		}
 		return {

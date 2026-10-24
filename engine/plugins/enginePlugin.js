@@ -59,8 +59,21 @@ function withEngineBuildAdapter(config, originalConfig = {}) {
 	};
 }
 
+function withEngineTurbopackCache(nextConfig = {}) {
+	const experimental = nextConfig.experimental || {};
+	return {
+		...nextConfig,
+		experimental: {
+			...experimental,
+			turbopackFileSystemCacheForDev: experimental.turbopackFileSystemCacheForDev ?? true,
+			turbopackFileSystemCacheForBuild: experimental.turbopackFileSystemCacheForBuild ?? true,
+		},
+	};
+}
+
 function withEngine(nextConfig = {}, pluginOptions = {}) {
-	const imageConfig = withEngineImageConfig(nextConfig);
+	const cacheConfig = withEngineTurbopackCache(nextConfig);
+	const imageConfig = withEngineImageConfig(cacheConfig);
 	const apiOptions = pluginOptions.api || pluginOptions;
 	const shaderOptions = pluginOptions.shader || pluginOptions;
 	const apiConfig = withEngineAPI(imageConfig, apiOptions);
@@ -82,6 +95,7 @@ module.exports.withEngineSEO = withEngineSEO;
 module.exports.withEngineShader = withEngineShader;
 module.exports.withEngineNENC = withEngineNENC;
 module.exports.withEngineImageConfig = withEngineImageConfig;
+module.exports.withEngineTurbopackCache = withEngineTurbopackCache;
 module.exports.withEngineBuildAdapter = withEngineBuildAdapter;
 module.exports.clearPluginArtifactCache = clearPluginArtifactCache;
 module.exports.inspectPluginArtifactCache = inspectPluginArtifactCache;
