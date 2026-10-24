@@ -8,6 +8,7 @@
 		"dev": "next dev",
 		"start": "next start",
 		"type-check": "tsc --noEmit",
+		"test:theme": "node scripts/gen3-theme-compiler-smoke.js",
 		"test:browser": "playwright test",
 		"clear": "pwsh -Command \"clear; Remove-Item ./.next, ./dist, -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item tsconfig.tsbuildinfo -Force -ErrorAction SilentlyContinue\""
 	},

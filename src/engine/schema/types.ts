@@ -311,6 +311,51 @@ export type EngineMarkdownStyleSlot =
 
 export type EngineMarkdownStyles = Partial<Record<EngineMarkdownStyleSlot, CSSProperties>>;
 
+export type EngineHighlighterTokenKind =
+	| "plain" | "keyword" | "string" | "comment" | "number"
+	| "type" | "function" | "property" | "constant" | "operator" | "punctuation";
+
+/** A complete token palette; omitted token categories fall back to foreground. */
+export interface EngineMarkdownTokenPalette extends Partial<Record<EngineHighlighterTokenKind, string>> {
+	foreground?: string;
+	background?: string;
+}
+
+export interface EngineMarkdownPrettyPleaseConfig {
+	/** auto highlights recognized languages; none leaves source code uncolored. */
+	mode?: "auto" | "none";
+	/** engine-lite or a locally registered provider ID. */
+	provider?: string;
+	/** Built-in palette name, currently vscode-dark or vscode-light. */
+	theme?: string;
+	/** An authoritative replacement palette for this Markdown theme/language profile. */
+	palette?: EngineMarkdownTokenPalette;
+}
+
+/** Declarative subset of Engine Schema accepted as a reusable theme template. */
+export type EngineThemeTemplateNodeType = "box" | "stack" | "grid" | "text" | "heading" | "divider" | "spacer" | "slot";
+
+export interface EngineThemeTemplateNode {
+	type: EngineThemeTemplateNodeType;
+	props?: EngineThemeJsonObject;
+	children?: Array<EngineThemeTemplateNode | string>;
+}
+
+export type EngineThemeTemplateDefinition =
+	| { schema: EngineThemeTemplateNode; adapterId?: never }
+	| { adapterId: string; schema?: never };
+
+export interface EngineMarkdownThemeTemplates {
+	/** Wrap a fenced code block; slots include languageLabel and content (the PRE). */
+	codeBlock?: EngineThemeTemplateDefinition;
+	/** Compose content inside the semantic table header cell. */
+	tableHeader?: EngineThemeTemplateDefinition;
+	/** Compose content inside the semantic table data cell. */
+	tableCell?: EngineThemeTemplateDefinition;
+	/** Optional template for recognized information/admonition blocks. */
+	infoBlock?: EngineThemeTemplateDefinition;
+}
+
 export interface MarkdownProps extends BaseNodeProps {
 	content?: string;
 	filePath?: string;
@@ -336,6 +381,10 @@ export interface MarkdownProps extends BaseNodeProps {
 	codeBorderColor?: string;
 	codeFontFamily?: string;
 	showCodeLanguage?: boolean;
+	/** Pretty-please syntax highlighting; providers are registered by trusted project code. */
+	prettyPlease?: EngineMarkdownPrettyPleaseConfig;
+	/** Safe declarative templates or registered local adapters for Markdown sub-blocks. */
+	themeTemplates?: EngineMarkdownThemeTemplates;
 	/** Per-element style overrides for reusable documentation themes. */
 	markdownStyles?: EngineMarkdownStyles;
 	/** Custom colors for ANSI 16-color/bright terminal palettes. */
@@ -649,14 +698,86 @@ export interface PageMeta {
 	viewport?: string;
 }
 
+export type EngineThemeScope = "local" | "global" | "remote";
+
+/** JSON-only data allowed in a portable EngineTheme / .etr artifact. */
+export type EngineThemeJsonValue =
+	| string
+	| number
+	| boolean
+	| null
+	| EngineThemeJsonValue[]
+	| { [key: string]: EngineThemeJsonValue };
+
+export type EngineThemeJsonObject = { [key: string]: EngineThemeJsonValue };
+
+/**
+ * EngineTheme supports legacy inline styling fields plus namespaced component
+ * definitions. Component definitions must remain serializable data; runtime
+ * React/Next.js handlers are registered separately and are never embedded in
+ * remote .etr files.
+ */
 export interface EngineTheme {
+	/** Group ID, or a qualified component/subtheme ID when used as a schema reference. */
+	id?: string;
+	scope?: EngineThemeScope;
+	/** Optional explicit URL for a remote .etr artifact. */
+	sourceUrl?: string;
+	name?: string;
+
+	/** Legacy inline theme properties retained for backwards compatibility. */
 	vars?: Record<string, string>;
 	fonts?: string[];
 	globalStyles?: string;
+
+	/** Reusable semantic tokens, such as colors, typography and spacing. */
+	tokens?: EngineThemeJsonObject;
+	/** Component-scoped theme definitions, e.g. markdown, buttons, or canvas. */
+	components?: Record<string, EngineThemeJsonObject>;
+
+	/** Direct component namespaces are supported by createTheme(), e.g. markdown: {...}. */
+	[component: string]: EngineThemeJsonValue | undefined;
 }
+
+/** Input accepted by createTheme(); scope defaults to local. */
+export interface EngineThemeDefinition extends EngineTheme {
+	id: string;
+}
+
+export interface EngineThemeReference {
+	id: string;
+	sourceUrl?: string;
+}
+
+export type EngineThemeJoinDirection = "left" | "right" | "top" | "bottom";
+export type EngineThemeDataEventType = `join:${EngineThemeJoinDirection}`;
+
+export interface EngineThemeDataEventBinding {
+	/** ID of a trusted handler registered by local application code. */
+	handlerId: string;
+}
+
+export interface EngineThemeDataEventContext {
+	themeId: string;
+	componentId: string;
+	slotId: string;
+	direction?: EngineThemeJoinDirection;
+	existing?: EngineThemeJsonValue;
+	incoming?: EngineThemeJsonValue;
+	metadata?: EngineThemeJsonObject;
+}
+
+export interface EngineThemeDataEvent {
+	type: EngineThemeDataEventType;
+	context: EngineThemeDataEventContext;
+}
+
+export type EngineThemeDataHandlerResult = EngineThemeJsonValue | ReactNode | undefined;
+export type EngineThemeDataHandler = (event: Readonly<EngineThemeDataEvent>) => EngineThemeDataHandlerResult;
 
 export interface PageSchema {
 	meta?: PageMeta;
+	/** Either legacy inline styles or an ID reference resolved by the theme pipeline. */
 	theme?: EngineTheme;
 	root: SchemaNode;
 }

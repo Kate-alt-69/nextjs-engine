@@ -11,6 +11,7 @@ import type {
 	MarkdownProps,
 	EngineTheme as EngineThemeConfig,
 } from "./schema/types";
+import { resolveEngineThemeSchema } from "./theme/resolveTheme";
 import { EngineCollectedStyles, EngineProvider } from "./providers/EngineProvider";
 import { EngineScrollProvider } from "./core/enginescroll";
 import { SchemaRenderer } from "./core/SchemaRenderer";
@@ -206,7 +207,9 @@ function EngineTheme({ schema }: { schema: PageSchema }) {
 }
 
 export function createPage(options: CreatePageOptions): EnginePageComponent {
-	const { schema, config, handlers, slots, mobile, tablet, compiler } = normalizeCreateOptions(options);
+	const normalized = normalizeCreateOptions(options);
+	const schema = resolveEngineThemeSchema(normalized.schema);
+	const { config, handlers, slots, mobile, tablet, compiler } = normalized;
 	const shouldResolveMarkdown = nodeHasMarkdownFile(schema.root);
 	const usesAdaptiveLayout = mobile !== undefined || tablet !== undefined;
 	const hasNamedHandlers = handlers !== undefined && Object.keys(handlers).length > 0;
@@ -280,7 +283,9 @@ export function createPage(options: CreatePageOptions): EnginePageComponent {
 }
 
 export function createComponent(options: CreateComponentOptions): React.FC<EngineComponentProps> {
-	const { schema, config, handlers, slots, compiler } = normalizeCreateOptions(options);
+	const normalized = normalizeCreateOptions(options);
+	const schema = resolveEngineThemeSchema(normalized.schema);
+	const { config, handlers, slots, compiler } = normalized;
 	const hasNamedHandlers = handlers !== undefined && Object.keys(handlers).length > 0;
 	const useServerFirstRenderer = compiler?.serverFirst !== false && !hasNamedHandlers;
 	const basePlan = compilePage(schema, {

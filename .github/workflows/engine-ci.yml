@@ -51,6 +51,9 @@ jobs:
       - name: Test Generation 3 banner artwork and frame sizing
         if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
         run: node scripts/gen3-build-compiler-smoke.js
+      - name: Test Generation 3 EngineTheme artifact compiler
+        if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
+        run: node scripts/gen3-theme-compiler-smoke.js
       - name: Test Generation 3 NENC build adapter and route progress
         if: github.ref_name == 'main-3' || github.base_ref == 'main-3'
         run: node scripts/gen3-build-adapter-smoke.js

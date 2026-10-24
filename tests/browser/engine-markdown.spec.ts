@@ -26,10 +26,17 @@ test("EngineMarkdown showcases documented features with safe GFM rendering", asy
 	await expect(article.locator("img[alt='A small EngineMarkdown feature illustration']")).toHaveAttribute("src", "/markdown-demo.svg");
 
 	const codeBlocks = page.locator("figure.e-md-code-block");
-	await expect(codeBlocks).toHaveCount(3);
+	await expect(codeBlocks).toHaveCount(4);
 	await expect(codeBlocks.nth(0)).toHaveAttribute("data-language", "typescript");
 	await expect(codeBlocks.nth(0).locator("figcaption")).toHaveText("typescript");
 	await expect(codeBlocks.nth(0).locator("pre code")).toContainText("safeByDefault: true");
+	await expect(codeBlocks.nth(0).locator(".e-md-token--keyword").first()).toHaveText("type");
+	await expect(codeBlocks.nth(0).locator(".e-md-token--keyword").first()).toHaveCSS("color", "rgb(86, 156, 214)");
+	const inheritedThemeBlock = page.locator("#markdown-file-loading figure.e-md-code-block");
+	await expect(inheritedThemeBlock).toHaveCount(1);
+	await expect(inheritedThemeBlock).toHaveCSS("background-color", "rgb(36, 27, 56)");
+	await expect(inheritedThemeBlock).toHaveCSS("border-top-color", "rgb(130, 111, 155)");
+	await expect(inheritedThemeBlock).toHaveClass(/emd-themed-code/);
 	await expect(codeBlocks.nth(1).locator("pre code")).toHaveText("<ROOT>/compact/ ├── storage/ └── backup/");
 	await expect(codeBlocks.nth(2)).toHaveAttribute("data-language", "ansi");
 	await expect(codeBlocks.nth(2).locator("pre code")).toContainText("✓ Build complete");

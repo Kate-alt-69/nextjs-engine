@@ -6,6 +6,7 @@ const { Worker } = require("node:worker_threads");
 const ts = require("typescript");
 const { analyzeProjectModules, SCHEMA_ENGINE_SYMBOLS } = require("./gen3ModuleCompiler");
 const { createSchemaOutputCache } = require("./gen3SchemaCache");
+const { compileEngineThemeArtifacts } = require("./gen3ThemeCompiler");
 const nencLogger = require("./nencTerminalLogger");
 
 const BUILTIN_NODE_TYPES = new Set([
@@ -16,7 +17,7 @@ const BUILTIN_NODE_TYPES = new Set([
 	"textarea", "checkbox", "label", "EngineLink", "EngineNav", "EngineManim",
 	"EngineManim3D", "EngineDialog", "EngineDrawer", "EnginePopover",
 ]);
-const SCAN_ROOTS = ["app", "pages", "src/app", "src/pages", "components", "src/components", "src/example"];
+const SCAN_ROOTS = ["app", "pages", "src/app", "src/pages", "components", "src/components", "src/example", "theme", "themes", "src/theme", "src/themes"];
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mts", ".cts"]);
 
 function displayPath(root, target) {
@@ -131,7 +132,7 @@ function staticValue(expression, vars, seen = new Set()) {
 	}
 	if (ts.isCallExpression(node)) {
 		const name = callName(node);
-		if (["defineSchema", "freezeSchema", "createSchema"].includes(name)
+		if (["defineSchema", "freezeSchema", "createSchema", "createTheme"].includes(name)
 			|| (ts.isPropertyAccessExpression(node.expression) && node.expression.expression.getText() === "Object" && name === "freeze")) {
 			return node.arguments.length ? staticValue(node.arguments[0], vars, seen) : { ok: false, reason: name + " has no argument" };
 		}
@@ -508,6 +509,16 @@ async function compileProject(projectRoot, options = {}) {
 		}
 	}
 
+	const themeBuild = compileEngineThemeArtifacts(resolvedRoot, files.map((file) => ({
+		filePath: file,
+		sourceFile: sourceByPath.get(file),
+	})));
+	if (themeBuild.artifacts.length > 0 || themeBuild.removedCount > 0) {
+		log("DONE ENGINE THEME ARTIFACTS — " + themeBuild.artifacts.length
+			+ " theme group(s), " + themeBuild.createdCount + " created, " + themeBuild.updatedCount
+			+ " updated, " + themeBuild.unchangedCount + " unchanged, " + themeBuild.removedCount + " stale removed");
+	}
+
 	const moduleAnalysis = analyzeProjectModules(resolvedRoot, {
 		files,
 		sourceByPath,
@@ -610,6 +621,10 @@ async function compileProject(projectRoot, options = {}) {
 		schemaCacheWriteCount,
 		schemaCompilerWorkerCount: Math.min(3, workerJobs.length),
 		schemaCompilerWorkerLimit: 3,
+		themeArtifactCount: themeBuild.artifacts.length,
+		themeArtifactCreatedCount: themeBuild.createdCount,
+		themeArtifactUpdatedCount: themeBuild.updatedCount,
+		themeArtifactUnchangedCount: themeBuild.unchangedCount,
 		compiledPageCount: pages.length,
 		compiledSchemaPageCount: pages.length,
 		skippedPageCount: skipped.length,
@@ -631,6 +646,7 @@ async function compileProject(projectRoot, options = {}) {
 		scannedSourceFiles: files.map((file) => displayPath(resolvedRoot, file)),
 		routes: moduleAnalysis.routes,
 		schemaSources: moduleAnalysis.schemaSources,
+		themes: themeBuild.artifacts,
 		modules: moduleAnalysis.modules,
 		registeredCustomComponents: registered,
 		pages,

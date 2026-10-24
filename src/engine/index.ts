@@ -166,8 +166,51 @@ export type {
 export { validateSchema, validatePageSchema } from "./core/validateSchema";
 export type { ValidationError, ValidationResult } from "./core/validateSchema";
 
+export { createTheme, parseEngineThemeId } from "./theme/createTheme";
+export type { ParsedEngineThemeId } from "./theme/createTheme";
+
+export {
+	registerEngineHighlighterProvider,
+	unregisterEngineHighlighterProvider,
+	listEngineHighlighterProviders,
+	listEngineHighlighterLanguages,
+	listEngineHighlighterThemes,
+	highlightEngineCode,
+	normalizeEngineHighlightLanguage,
+	normalizeEngineThemeColor,
+} from "./theme/highlighting";
 export type {
-	PageSchema, SchemaNode, PageMeta, EngineTheme, EngineConfig,
+	EngineHighlighterProvider,
+	EngineHighlighterProviderInfo,
+	EngineHighlighterThemeInfo,
+	EngineHighlighterToken,
+} from "./theme/highlighting";
+
+export {
+	registerEngineThemeDataHandler,
+	unregisterEngineThemeDataHandler,
+	listEngineThemeDataHandlers,
+	dispatchEngineThemeDataEvent,
+} from "./theme/dataApi";
+
+export {
+	registerEngineThemeTemplateAdapter,
+	unregisterEngineThemeTemplateAdapter,
+	listEngineThemeTemplateAdapters,
+	renderEngineThemeTemplate,
+} from "./theme/templates";
+export type {
+	EngineThemeTemplateAdapter,
+	EngineThemeTemplateContext,
+} from "./theme/templates";
+
+export type {
+	PageSchema, SchemaNode, PageMeta, EngineTheme, EngineThemeDefinition, EngineThemeReference,
+	EngineThemeScope, EngineThemeJsonValue, EngineThemeJsonObject, EngineConfig,
+	EngineThemeJoinDirection, EngineThemeDataEventType, EngineThemeDataEventBinding, EngineThemeDataEventContext,
+	EngineThemeDataEvent, EngineThemeDataHandlerResult, EngineThemeDataHandler,
+	EngineThemeTemplateNodeType, EngineThemeTemplateNode, EngineThemeTemplateDefinition, EngineMarkdownThemeTemplates,
+	EngineHighlighterTokenKind, EngineMarkdownTokenPalette, EngineMarkdownPrettyPleaseConfig,
 	NodeType, BuiltinNodeType, Breakpoint, ResponsiveValue,
 	CpropValue, SelectOption,
 	BoxProps, StackProps, GridProps, TextProps, TextPart, TextVariant,
