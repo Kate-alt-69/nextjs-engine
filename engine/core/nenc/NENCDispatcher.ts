@@ -173,7 +173,13 @@ export function createNENCDispatcher(options: NENCDispatcherOptions): NENCReques
 			return finalize(await executeCommand(request, origin, command, input, options, {
 				signature, signatureVerified, timestamp, nonce,
 			}));
-		} catch {
+		} catch (error) {
+			// Keep the wire response generic; expose only the error class/message in development
+			// so integration failures can be diagnosed without logging request bodies or secrets.
+			if (process.env.NODE_ENV !== "production") {
+				const detail = error instanceof Error ? error.message : "Unknown dispatcher error";
+				console.error("[NENC] Request dispatch failed:", detail);
+			}
 			return finalize(generic(400));
 		}
 	};
