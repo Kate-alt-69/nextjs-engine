@@ -105,6 +105,15 @@ function generatedRouteSource(routeDirectory, modulePath, isolationModulePath, p
 	].join("\n");
 }
 
+function generatedSourceRouteSource(routeDirectory, sourceModulePath) {
+	const importPath = normalizeImportPath(path.relative(routeDirectory, sourceModulePath));
+	return [
+		GENERATED_MARKER,
+		`export { GET } from ${JSON.stringify(importPath)};`,
+		"",
+	].join("\n");
+}
+
 function removeGeneratedRoute(routeFile, rootDirectory) {
 	if (!fs.existsSync(routeFile)) return;
 	const existing = fs.readFileSync(routeFile, "utf8");
@@ -138,9 +147,12 @@ function prepareEngineDebugRoute(options = {}) {
 		: path.join(rootDirectory, "app");
 	const routeDirectory = path.join(appDirectory, ...DEBUG_ROUTE_PARTS);
 	const routeFile = path.join(routeDirectory, "page.tsx");
+	const sourceRouteDirectory = path.join(routeDirectory, "source");
+	const sourceRouteFile = path.join(sourceRouteDirectory, "route.ts");
 	const development = process.env.NODE_ENV === "development";
 
 	if (!development || options.enabled === false) {
+		removeGeneratedRoute(sourceRouteFile, rootDirectory);
 		removeGeneratedRoute(routeFile, rootDirectory);
 		removeDevelopmentTypeCache(rootDirectory, options.distDir);
 		return { development: false, pages: [], routeFile };
@@ -148,24 +160,36 @@ function prepareEngineDebugRoute(options = {}) {
 
 	const modulePath = path.resolve(options.modulePath || path.join(__dirname, "..", "debug", "EngineDebugPage.tsx"));
 	const isolationModulePath = path.resolve(options.isolationModulePath || path.join(__dirname, "..", "debug", "EngineDebugIsolation.tsx"));
+	const sourceModulePath = path.resolve(options.sourceModulePath || path.join(__dirname, "..", "debug", "EngineDebugSourceRoute.ts"));
 	if (!fs.existsSync(modulePath)) {
 		throw new Error(`[EngineDebug] Debug page module is missing: ${modulePath}`);
 	}
 	if (!fs.existsSync(isolationModulePath)) {
 		throw new Error(`[EngineDebug] Debug isolation module is missing: ${isolationModulePath}`);
 	}
+	if (!fs.existsSync(sourceModulePath)) {
+		throw new Error(`[EngineDebug] Debug source preview module is missing: ${sourceModulePath}`);
+	}
 	const pages = discoverEngineDebugPages(rootDirectory, options.pages || []);
 	const source = generatedRouteSource(routeDirectory, modulePath, isolationModulePath, pages);
+	const sourceRouteSource = generatedSourceRouteSource(sourceRouteDirectory, sourceModulePath);
 	if (fs.existsSync(routeFile)) {
 		const existing = fs.readFileSync(routeFile, "utf8");
 		if (!existing.startsWith(GENERATED_MARKER)) {
 			throw new Error(`[EngineDebug] The reserved /_engine/debug route is owned by ${routeFile}.`);
 		}
-		if (existing === source) return { development: true, pages, routeFile };
+	}
+	if (fs.existsSync(sourceRouteFile)) {
+		const existingSourceRoute = fs.readFileSync(sourceRouteFile, "utf8");
+		if (!existingSourceRoute.startsWith(GENERATED_MARKER)) {
+			throw new Error(`[EngineDebug] The reserved /_engine/debug/source route is owned by ${sourceRouteFile}.`);
+		}
 	}
 	fs.mkdirSync(routeDirectory, { recursive: true });
-	fs.writeFileSync(routeFile, source, "utf8");
-	return { development: true, pages, routeFile };
+	fs.mkdirSync(sourceRouteDirectory, { recursive: true });
+	if (!fs.existsSync(routeFile) || fs.readFileSync(routeFile, "utf8") !== source) fs.writeFileSync(routeFile, source, "utf8");
+	if (!fs.existsSync(sourceRouteFile) || fs.readFileSync(sourceRouteFile, "utf8") !== sourceRouteSource) fs.writeFileSync(sourceRouteFile, sourceRouteSource, "utf8");
+	return { development: true, pages, routeFile, sourceRouteFile };
 }
 
 function withEngineDebug(nextConfig = {}, options = {}) {
