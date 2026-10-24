@@ -204,6 +204,12 @@ module.exports = withEngine(nextConfig, {
 
 Do not enable NENC, Shader compilation, or other subsystems merely because they exist. Configure the features the application actually uses.
 
+### EngineAPI config artifact
+
+The combined Generation 3 plugin writes compiled provider JSON to `.nextjs-engine/config/.apiconfig.json`, keeping generated Engine configuration under the Engine-owned config tree instead of the project root. The existing `.EngineAPIConfig/*.api` source format remains available for compatibility during migration; environment variables are expanded when this generated file is written, so it is Git-ignored. A stale root `.engine-api-compiled.json` from an earlier combined Gen 3 build is removed after the new artifact is successfully generated.
+
+The standalone Generation 2 API plugin keeps its legacy default: `.EngineAPIConfig/*.api` compiles to root `.engine-api-compiled.json`. See [EngineAPI generation-specific config locations](../engine-components/engineapi.md).
+
 ## Read next
 
 | Goal | Document |

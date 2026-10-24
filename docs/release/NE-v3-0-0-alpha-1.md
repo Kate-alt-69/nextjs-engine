@@ -58,6 +58,7 @@ The Generation 3 line includes the NENC command pipeline and server-side securit
 | Rendering and browser work often coordinated at runtime | Static/server/client/deferred ownership made explicit before rendering |
 | Optimizations are largely runtime/component behavior | Build-time feature manifests and compatibility/fallback planning |
 | Inspect runtime behavior through browser tools and logs | Development workbench connects routes, boundaries, scheduling, and captured preview errors |
+| Standalone provider compiler writes `.engine-api-compiled.json` at the root | Combined Gen 3 plugin writes `.nextjs-engine/config/.apiconfig.json` under the Engine config tree |
 | Existing 2.x APIs and behavior define the stable contract | A distinct alpha contract with its own migration and compatibility checks |
 
 The table describes architectural direction, not a claim that every Gen 2 API has a one-to-one Gen 3 replacement.

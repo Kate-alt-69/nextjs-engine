@@ -22,6 +22,8 @@ import { usePathname } from "next/navigation";
 import { staticClass, useCpropClass, usePropStyles } from "../hooks/usePropStyles";
 import { useStyleCollector } from "../providers/EngineProvider";
 import type { BaseNodeProps } from "../schema/types";
+import { EngineUrlIcon } from "./EngineUrlIcon";
+import type { EngineUrlIconSize } from "../core/engineUrlIcon";
 import type { EngineTransitionInput } from "../core/enginetransitions";
 
 const LazyEngineTransitionLink = lazy(async () => {
@@ -40,6 +42,8 @@ export interface EngineAnchorConfig {
 	style?: CSSProperties;
 	"aria-label"?: string;
 	"aria-current"?: React.AriaAttributes["aria-current"];
+	"emd_show-url-icon"?: boolean;
+	"emd_url-icon-size"?: EngineUrlIconSize;
 }
 
 function isExternalHref(href: string, target?: string): boolean {
@@ -74,19 +78,22 @@ export function renderEngineAnchor(cfg: EngineAnchorConfig): ReactElement {
 		href, target, transition, className, children, onClick, ref, style,
 		"aria-label": ariaLabel, "aria-current": ariaCurrent,
 	} = cfg;
+	const anchorChildren = cfg["emd_show-url-icon"] === true
+		? <>{<EngineUrlIcon href={href} size={cfg["emd_url-icon-size"] ?? "auto"} />}{children}</>
+		: children;
 	if (isExternalHref(href, target)) {
 		return (
 			<a ref={ref} href={href} target={target ?? "_blank"} rel="noopener noreferrer" className={className} onClick={onClick} style={style} aria-label={ariaLabel} aria-current={ariaCurrent}>
-				{children}
+				{anchorChildren}
 			</a>
 		);
 	}
 	if (hasAnimatedTransition(transition)) {
-		const nextAnchor = renderNextAnchor(cfg);
+		const nextAnchor = renderNextAnchor({ ...cfg, children: anchorChildren });
 		return (
 			<Suspense fallback={nextAnchor}>
 				<LazyEngineTransitionLink ref={ref} href={href} transition={transition} target={target} className={className} onClick={onClick} style={style} aria-label={ariaLabel} aria-current={ariaCurrent}>
-					{children}
+					{anchorChildren}
 				</LazyEngineTransitionLink>
 			</Suspense>
 		);
@@ -99,6 +106,8 @@ export interface EngineNavItem {
 	href?: string;
 	target?: string;
 	cprop?: { link?: { transition?: EngineTransitionInput; href?: string } };
+	"emd_show-url-icon"?: boolean;
+	"emd_url-icon-size"?: EngineUrlIconSize;
 	active?: boolean;
 	children?: EngineNavItem[];
 }
@@ -203,7 +212,16 @@ const NavItem = memo(function NavItem({ item, pathname, variant }: NavItemProps)
 
 	return (
 		<div className={itemClass}>
-			{renderEngineAnchor({ href, target: item.target, transition, className: anchorClass, children: item.label, "aria-current": isActive ? "page" : undefined })}
+			{renderEngineAnchor({
+				href,
+				target: item.target,
+				transition,
+				className: anchorClass,
+				children: item.label,
+				"aria-current": isActive ? "page" : undefined,
+				"emd_show-url-icon": item["emd_show-url-icon"],
+				"emd_url-icon-size": item["emd_url-icon-size"],
+			})}
 		</div>
 	);
 });
